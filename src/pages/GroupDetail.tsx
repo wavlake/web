@@ -9,10 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAuthor } from "@/hooks/useAuthor";
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
-import { Users, Settings, Info, MessageSquare } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 
 export default function GroupDetail() {
@@ -20,6 +22,7 @@ export default function GroupDetail() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  const [showOnlyApproved, setShowOnlyApproved] = useState(true);
   
   useEffect(() => {
     if (groupId) {
@@ -158,7 +161,21 @@ export default function GroupDetail() {
             <CreatePostForm communityId={groupId || ''} />
           )}
           
-          <PostList communityId={groupId || ''} />
+          <div className="flex items-center justify-end mb-4 gap-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="approved-only"
+                checked={showOnlyApproved}
+                onCheckedChange={setShowOnlyApproved}
+              />
+              <Label htmlFor="approved-only" className="flex items-center cursor-pointer">
+                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                Show only approved posts
+              </Label>
+            </div>
+          </div>
+          
+          <PostList communityId={groupId || ''} showOnlyApproved={showOnlyApproved} />
         </TabsContent>
         
         <TabsContent value="about">

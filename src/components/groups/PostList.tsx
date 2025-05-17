@@ -8,14 +8,15 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { toast } from "sonner";
-import { Heart, MessageSquare, Share2 } from "lucide-react";
+import { Heart, MessageSquare, Share2, CheckCircle } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 
 interface PostListProps {
   communityId: string;
+  showOnlyApproved?: boolean;
 }
 
-export function PostList({ communityId }: PostListProps) {
+export function PostList({ communityId, showOnlyApproved = false }: PostListProps) {
   const { nostr } = useNostr();
   
   // Query for approved posts
@@ -82,8 +83,17 @@ export function PostList({ communityId }: PostListProps) {
     index === self.findIndex(p => p.id === post.id)
   );
   
+  // Count approved and pending posts
+  const approvedCount = uniquePosts.filter(post => 'approval' in post).length;
+  const pendingCount = uniquePosts.length - approvedCount;
+  
+  // Filter posts based on approval status if showOnlyApproved is true
+  const filteredPosts = showOnlyApproved 
+    ? uniquePosts.filter(post => 'approval' in post)
+    : uniquePosts;
+  
   // Sort by created_at (newest first)
-  const sortedPosts = uniquePosts.sort((a, b) => b.created_at - a.created_at);
+  const sortedPosts = filteredPosts.sort((a, b) => b.created_at - a.created_at);
   
   if (isLoadingApproved || isLoadingPending) {
     return (
@@ -118,14 +128,41 @@ export function PostList({ communityId }: PostListProps) {
   if (sortedPosts.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-muted-foreground mb-2">No posts in this community yet</p>
-        <p className="text-sm">Be the first to post something!</p>
+        <p className="text-muted-foreground mb-2">
+          {showOnlyApproved 
+            ? "No approved posts in this community yet" 
+            : "No posts in this community yet"}
+        </p>
+        <p className="text-sm">
+          {showOnlyApproved && pendingCount > 0
+            ? `There are ${pendingCount} pending posts waiting for approval.`
+            : "Be the first to post something!"}
+        </p>
       </Card>
     );
   }
   
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-muted-foreground">
+          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : ""} posts
+        </div>
+        
+        <div className="flex gap-3 text-sm">
+          <span className="flex items-center">
+            <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+            {approvedCount} approved
+          </span>
+          {!showOnlyApproved && pendingCount > 0 && (
+            <span className="flex items-center">
+              <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
+              {pendingCount} pending
+            </span>
+          )}
+        </div>
+      </div>
+      
       {sortedPosts.map((post) => (
         <PostItem 
           key={post.id} 
@@ -243,12 +280,20 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold">{displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(post.created_at * 1000).toLocaleString()}
-                {isApproved && (
-                  <span className="ml-2 text-green-600 dark:text-green-400">• Approved</span>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+                {isApproved ? (
+                  <span className="ml-2 text-green-600 dark:text-green-400 flex items-center">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Approved
+                  </span>
+                ) : (
+                  <span className="ml-2 text-amber-600 dark:text-amber-400 flex items-center">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
+                    Pending approval
+                  </span>
                 )}
-              </p>
+              </div>
             </div>
             
             {user && isModerator && !isApproved && (
