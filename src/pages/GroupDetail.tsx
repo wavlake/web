@@ -95,7 +95,9 @@ export default function GroupDetail() {
           </Link>
           <h1 className="text-3xl font-bold">{name}</h1>
         </div>
-        <LoginArea />
+        <div className="ml-auto">
+          <LoginArea />
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

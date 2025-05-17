@@ -10,7 +10,7 @@ const Index = () => {
       <header className="border-b">
         <div className="container mx-auto p-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">NostrGroups</h1>
-          <LoginArea />
+          <div className="ml-auto"><LoginArea /></div>
         </div>
       </header>
       
