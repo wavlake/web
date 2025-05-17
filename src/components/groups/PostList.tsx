@@ -10,6 +10,7 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { toast } from "sonner";
 import { Heart, MessageSquare, Share2, CheckCircle } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
+import { NoteContent } from "../NoteContent";
 
 interface PostListProps {
   communityId: string;
@@ -195,53 +196,6 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .some(tag => tag[1] === user.pubkey);
   
-  // Format the post content
-  const formatContent = (content: string) => {
-    // Handle image URLs
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?)/gi;
-    const parts = content.split(urlRegex);
-    
-    if (parts.length > 1) {
-      // There's at least one image URL
-      const result: React.ReactNode[] = [];
-      let i = 0;
-      
-      while (i < parts.length) {
-        if (parts[i]) {
-          result.push(<span key={i}>{parts[i]}</span>);
-        }
-        
-        i++;
-        
-        if (i < parts.length && parts[i] && urlRegex.test(parts[i])) {
-          result.push(
-            <div key={`img-${i}`} className="my-2">
-              <img 
-                src={parts[i]} 
-                alt="Post image" 
-                className="max-h-96 rounded-md object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
-          );
-          i += 3; // Skip the matched URL and the capture groups
-        }
-      }
-      
-      return result;
-    }
-    
-    // No images, just return the text with line breaks
-    return content.split('\n').map((line, i) => (
-      <span key={i}>
-        {line}
-        {i < content.split('\n').length - 1 && <br />}
-      </span>
-    ));
-  };
-  
   const handleApprovePost = async () => {
     if (!user) {
       toast.error("You must be logged in to approve posts");
@@ -311,7 +265,7 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
       
       <CardContent className="pb-2">
         <div className="whitespace-pre-wrap break-words">
-          {formatContent(post.content)}
+          <NoteContent event={post} className="text-sm" />
         </div>
       </CardContent>
       
