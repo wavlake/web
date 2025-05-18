@@ -363,3 +363,134 @@ npm run ci
 This command will typecheck the code and attempt to build it.
 
 Your task is not considered finished until this test passes without errors.
+
+# NostrGroups Project
+
+NostrGroups is a Facebook-inspired groups platform built on the Nostr protocol using NIP-72 for moderated communities. This section provides specific information about the NostrGroups implementation.
+
+## NIP-72 Implementation
+
+NostrGroups implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/72.md), which defines a standard for moderated communities on Nostr. The implementation uses:
+
+- **Kind 34550**: Community definition events that include community metadata and moderator lists
+- **Kind 4550**: Post approval events that moderators use to approve posts
+- **Kind 30000**: Custom list events used for approved users lists
+- **Kind 1**: Standard text note events used for posts within communities
+
+## Key Features
+
+- **Community Creation**: Users can create communities with custom names, descriptions, and images
+- **Community Browsing**: Users can discover and join existing communities
+- **Post Creation**: Users can create text and image posts within communities
+- **Post Moderation**: Community moderators can approve or reject posts
+- **Approved Users**: Communities can maintain lists of approved users whose posts are automatically approved
+- **User Profiles**: Integration with Nostr profiles for user identity
+
+## Project Components
+
+### Pages
+
+- **Index.tsx**: Landing page with introduction to the platform
+- **Groups.tsx**: Main page listing all available communities
+- **GroupDetail.tsx**: Detailed view of a specific community with posts and member information
+- **CreateGroup.tsx**: Form for creating new communities
+
+### Custom Components
+
+- **CreatePostForm.tsx**: Component for creating posts within a community
+- **PostList.tsx**: Component for displaying posts with approval status
+- **ApprovedUsersList.tsx**: Component for managing approved users in a community
+
+## Data Models
+
+### Community (Kind 34550)
+
+```json
+{
+  "kind": 34550,
+  "tags": [
+    ["d", "<community-identifier>"],
+    ["name", "<Community name>"],
+    ["description", "<Community description>"],
+    ["image", "<Community image url>"],
+    ["p", "<moderator-pubkey>", "", "moderator"]
+  ],
+  "content": ""
+}
+```
+
+### Post Approval (Kind 4550)
+
+```json
+{
+  "kind": 4550,
+  "tags": [
+    ["a", "34550:<community-pubkey>:<community-identifier>"],
+    ["e", "<post-id>"],
+    ["p", "<post-author-pubkey>"],
+    ["k", "1"]
+  ],
+  "content": "<JSON-encoded post event>"
+}
+```
+
+### Approved Users List (Kind 30000)
+
+```json
+{
+  "kind": 30000,
+  "tags": [
+    ["d", "approved-users"],
+    ["a", "34550:<community-pubkey>:<community-identifier>"],
+    ["p", "<approved-user-pubkey-1>"],
+    ["p", "<approved-user-pubkey-2>"]
+  ],
+  "content": "Approved users for community"
+}
+```
+
+### Post (Kind 1)
+
+```json
+{
+  "kind": 1,
+  "tags": [
+    ["a", "34550:<community-pubkey>:<community-identifier>"]
+  ],
+  "content": "Post content"
+}
+```
+
+## Post Approval Flow
+
+1. User creates a post in a community (kind 1 with community "a" tag)
+2. If the user is in the approved users list, the post is automatically marked as approved
+3. If not, a moderator must create a kind 4550 approval event referencing the post
+4. The UI shows approved posts by default, with an option to view pending posts
+
+## Approved Users System
+
+The approved users system uses kind 30000 list events with:
+- A "d" tag set to "approved-users" to identify the purpose of the list
+- An "a" tag referencing the community
+- "p" tags for each approved user's pubkey
+
+Posts from approved users are automatically displayed in the community without requiring manual moderator approval.
+
+## UI Features
+
+- **Toggle for Approved Posts**: Users can toggle between seeing all posts or only approved posts
+- **Visual Indicators**: Clear visual indicators for approved, auto-approved, and pending posts
+- **Moderation Tools**: Moderators have access to tools for approving posts and managing approved users
+- **Responsive Design**: Works on both desktop and mobile devices
+
+## Development Guidelines
+
+When extending the NostrGroups platform:
+
+1. Follow the established patterns for Nostr event creation and querying
+2. Use the existing hooks for Nostr integration (`useNostr`, `useNostrPublish`, etc.)
+3. Maintain the separation between community definition, post content, and moderation actions
+4. Ensure proper error handling for network operations
+5. Keep the UI consistent with the existing design language
+6. Test all changes with `npm run ci` before considering them complete
