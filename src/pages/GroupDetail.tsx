@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { usePendingReplies } from "@/hooks/usePendingReplies";
+import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -74,99 +75,8 @@ export default function GroupDetail() {
   console.log("Is owner:", isOwner);
   console.log("Is moderator:", isModerator);
   
-  // Query for pending posts count (moved after isModerator is defined)
-  const { data: pendingPostsCount = 0 } = useQuery({
-    queryKey: ["pending-posts-count", groupId],
-    queryFn: async (c) => {
-      if (!parsedId) return 0;
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      // Get posts that tag the community
-      const posts = await nostr.query([{ 
-        kinds: [1, 11],
-        "#a": [groupId],
-        limit: 100,
-      }], { signal });
-      
-      // Get approval events
-      const approvals = await nostr.query([{ 
-        kinds: [4550],
-        "#a": [groupId],
-        limit: 100,
-      }], { signal });
-      
-      // Get removal events
-      const removals = await nostr.query([{ 
-        kinds: [4551],
-        "#a": [groupId],
-        limit: 100,
-      }], { signal });
-      
-      // Get approved members list
-      const approvedMembersEvents = await nostr.query([{ 
-        kinds: [14550],
-        "#a": [groupId],
-        limit: 10,
-      }], { signal });
-      
-      // Get community details to get moderators
-      const communityEvent = await nostr.query([{ 
-        kinds: [34550],
-        authors: [parsedId.pubkey],
-        "#d": [parsedId.identifier],
-      }], { signal });
-      
-      // Extract approved members pubkeys
-      const approvedMembers = approvedMembersEvents.flatMap(event => 
-        event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-      );
-      
-      // Extract moderator pubkeys
-      const moderators = communityEvent[0]?.tags
-        .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-        .map(tag => tag[1]) || [];
-      
-      // Extract the approved post IDs
-      const approvedPostIds = approvals.map(approval => {
-        const eventTag = approval.tags.find(tag => tag[0] === "e");
-        return eventTag ? eventTag[1] : null;
-      }).filter((id): id is string => id !== null);
-      
-      // Extract the removed post IDs
-      const removedPostIds = removals.map(removal => {
-        const eventTag = removal.tags.find(tag => tag[0] === "e");
-        return eventTag ? eventTag[1] : null;
-      }).filter((id): id is string => id !== null);
-      
-      // Filter out posts that are:
-      // 1. Already approved
-      // 2. Removed
-      // 3. Posted by approved members (auto-approved)
-      // 4. Posted by moderators (auto-approved)
-      const pendingPosts = posts.filter(post => 
-        !approvedPostIds.includes(post.id) && 
-        !removedPostIds.includes(post.id) &&
-        !approvedMembers.includes(post.pubkey) &&
-        !moderators.includes(post.pubkey)
-      );
-      
-      // Debug logging
-      console.log("Pending posts count calculation:", {
-        totalPosts: posts.length,
-        approvedPostIds,
-        removedPostIds,
-        approvedMembers,
-        moderators,
-        pendingPostsLength: pendingPosts.length,
-        pendingPosts: pendingPosts.map(p => ({ id: p.id, pubkey: p.pubkey }))
-      });
-      
-      return pendingPosts.length;
-    },
-    enabled: !!nostr && !!parsedId && isModerator === true,
-    staleTime: 30000, // Cache for 30 seconds to reduce duplicate queries
-  });
+  // Query for pending posts count using our custom hook
+  const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
   
   // Query for pending replies
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');

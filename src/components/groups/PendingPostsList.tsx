@@ -1,5 +1,5 @@
 import { useNostr } from "@/hooks/useNostr";
-import { useQuery } from "@tanstack/react-query";
+import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostList } from "./PostList";
@@ -15,14 +15,8 @@ interface PendingPostsListProps {
 export function PendingPostsList({ communityId }: PendingPostsListProps) {
   const { nostr } = useNostr();
   
-  // Query for pending posts count - using the same query key as in GroupDetail.tsx
-  const { data: pendingPostsCount = 0, isLoading } = useQuery({
-    queryKey: ["pending-posts-count", communityId],
-    // We're using the same query key as in GroupDetail.tsx, so we don't need to duplicate the query logic
-    // The data will be shared between components
-    enabled: !!nostr && !!communityId,
-    staleTime: 30000, // Cache for 30 seconds to reduce duplicate queries
-  });
+  // Query for pending posts count using our custom hook
+  const { data: pendingPostsCount = 0, isLoading } = usePendingPostsCount(communityId);
   
   if (isLoading) {
     return (
