@@ -39,10 +39,11 @@ import {
 interface PostListProps {
   communityId: string;
   showOnlyApproved?: boolean;
-  onPostCountChange?: (count: number) => void; // New prop
+  pendingOnly?: boolean;
+  onPostCountChange?: (count: number) => void; // New prop for tracking post count
 }
 
-export function PostList({ communityId, showOnlyApproved = false, onPostCountChange }: PostListProps) { // Added onPostCountChange
+export function PostList({ communityId, showOnlyApproved = false, pendingOnly = false, onPostCountChange }: PostListProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { bannedUsers } = useBannedUsers(communityId);
@@ -59,15 +60,23 @@ export function PostList({ communityId, showOnlyApproved = false, onPostCountCha
         limit: 50,
       }], { signal });
       
+      // Extract the approved posts from the content field
       return approvals.map(approval => {
         try {
           const approvedPost = JSON.parse(approval.content) as NostrEvent;
+          
+          // Get the kind tag to check if it's a reply
+          const kindTag = approval.tags.find(tag => tag[0] === "k");
+          const kind = kindTag ? parseInt(kindTag[1]) : approvedPost.kind;
+          
+          // Add the approval information
           return {
             ...approvedPost,
             approval: {
               id: approval.id,
               pubkey: approval.pubkey,
               created_at: approval.created_at,
+              kind: kind
             }
           };
         } catch (error) {
@@ -75,8 +84,33 @@ export function PostList({ communityId, showOnlyApproved = false, onPostCountCha
           return null;
         }
       }).filter((post): post is NostrEvent & { 
-        approval: { id: string; pubkey: string; created_at: number } 
+        approval: { id: string; pubkey: string; created_at: number; kind: number } 
       } => post !== null);
+      
+      // Filter out replies (kind 1111)
+      const filteredApprovedPosts = approvedPosts.filter(post => {
+        // Check if the post itself is kind 1111
+        if (post.kind === 1111) {
+          return false;
+        }
+        
+        // Check if the approval kind is 1111
+        const approvalKind = post.approval.kind;
+        if (approvalKind === 1111) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // Debug logging
+      console.log("Filtered approved posts:", {
+        totalApprovedPosts: approvedPosts.length,
+        filteredApprovedPosts: filteredApprovedPosts.length,
+        removedReplies: approvedPosts.length - filteredApprovedPosts.length
+      });
+      
+      return filteredApprovedPosts;
     },
     enabled: !!nostr && !!communityId,
   });
@@ -111,7 +145,18 @@ export function PostList({ communityId, showOnlyApproved = false, onPostCountCha
         "#a": [communityId],
         limit: 50,
       }], { signal });
-      return posts;
+      
+      // Filter out replies (kind 1111) that might have been approved and appear as posts
+      const filteredPosts = posts.filter(post => post.kind !== 1111);
+      
+      // Debug logging
+      console.log("Filtered posts:", {
+        totalPosts: posts.length,
+        filteredPosts: filteredPosts.length,
+        removedReplies: posts.length - filteredPosts.length
+      });
+      
+      return filteredPosts;
     },
     enabled: !!nostr && !!communityId,
   });
@@ -183,18 +228,34 @@ export function PostList({ communityId, showOnlyApproved = false, onPostCountCha
           id: `auto-approved-${post.id}`,
           pubkey: post.pubkey,
           created_at: post.created_at,
-          autoApproved: true
+          autoApproved: true,
+          kind: post.kind
         }
       };
     }
     return post;
   });
   
-  const pendingCount = processedPosts.filter(post => !('approval' in post)).length; // Recalculate pending for empty message
-
-  const filteredPosts = showOnlyApproved 
-    ? processedPosts.filter(post => 'approval' in post)
-    : processedPosts;
+  // Count approved and pending posts
+  const pendingCount = processedPosts.filter(post => !('approval' in post)).length;
+  const approvedCount = processedPosts.length - pendingCount;
+  
+  // Filter posts based on approval status
+  let filteredPosts = processedPosts;
+  
+  if (showOnlyApproved) {
+    // Show only approved posts
+    filteredPosts = processedPosts.filter(post => 'approval' in post);
+  } else if (pendingOnly) {
+    // Show only pending posts (not auto-approved and not manually approved)
+    filteredPosts = processedPosts.filter(post => {
+      // If it has an approval property, it's either manually approved or auto-approved
+      if ('approval' in post) {
+        return false;
+      }
+      return true;
+    });
+  }
   
   const sortedPosts = filteredPosts.sort((a, b) => b.created_at - a.created_at);
 
@@ -240,20 +301,41 @@ export function PostList({ communityId, showOnlyApproved = false, onPostCountCha
         <p className="text-muted-foreground mb-2">
           {showOnlyApproved 
             ? "No approved posts in this community yet" 
-            : "No posts in this community yet"}
+            : pendingOnly
+              ? "No pending posts in this community"
+              : "No posts in this community yet"}
         </p>
         <p className="text-sm">
           {showOnlyApproved && pendingCount > 0
             ? `There are ${pendingCount} pending posts waiting for approval.`
-            : "Be the first to post something!"}
+            : pendingOnly
+              ? "All posts have been approved or removed."
+              : "Be the first to post something!"}
         </p>
       </Card>
     );
   }
   
   return (
-    <div className="space-y-3">
-      {/* Removed the header div that showed post counts */}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-muted-foreground">
+          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : pendingOnly ? "pending" : ""} posts
+        </div>
+        
+        <div className="flex gap-3 text-sm">
+          <span className="flex items-center">
+            <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+            {approvedCount} approved
+          </span>
+          {!showOnlyApproved && pendingCount > 0 && (
+            <span className="flex items-center">
+              <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
+              {pendingCount} pending
+            </span>
+          )}
+        </div>
+      </div>
       {sortedPosts.map((post) => (
         <PostItem 
           key={post.id} 
@@ -306,6 +388,7 @@ interface PostItemProps {
       pubkey: string;
       created_at: number;
       autoApproved?: boolean;
+      kind: number;
     }
   };
   communityId: string;
