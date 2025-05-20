@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { NostrEvent } from "@nostrify/nostrify";
 import { useApprovedMembers } from "./useApprovedMembers";
 import { useReplyApprovals } from "./useReplyApprovals";
+import { parseNostrAddress } from "@/lib/nostr-utils";
 
 /**
  * Hook to fetch all pending replies in a community
@@ -25,8 +26,22 @@ export function usePendingReplies(communityId: string) {
         limit: 100,
       }], { signal });
       
-      // Get the community owner (creator) pubkey
-      const communityOwnerPubkey = communityEvent[0]?.pubkey || "";
+      // Parse the community ID to get the pubkey and identifier
+      const parsedId = communityId.includes(':') 
+        ? parseNostrAddress(communityId)
+        : null;
+      
+      // Get community details to get the owner
+      let communityOwnerPubkey = "";
+      if (parsedId) {
+        const communityEvent = await nostr.query([{ 
+          kinds: [34550],
+          authors: [parsedId.pubkey],
+          "#d": [parsedId.identifier],
+        }], { signal });
+        
+        communityOwnerPubkey = communityEvent[0]?.pubkey || "";
+      }
       
       // Filter out replies that are:
       // 1. Already approved

@@ -84,7 +84,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           return null;
         }
       }).filter((post): post is NostrEvent & { 
-        approval: { id: string; pubkey: string; created_at: number; kind?: number } 
+        approval: { id: string; pubkey: string; created_at: number; kind: number } 
       } => post !== null);
       
       // Filter out replies (kind 1111)
@@ -95,7 +95,8 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
         }
         
         // Check if the approval kind is 1111
-        if (post.approval.kind === 1111) {
+        const approvalKind = post.approval.kind;
+        if (approvalKind === 1111) {
           return false;
         }
         
@@ -251,7 +252,8 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           id: `auto-approved-${post.id}`,
           pubkey: post.pubkey,
           created_at: post.created_at,
-          autoApproved: true
+          autoApproved: true,
+          kind: post.kind
         }
       };
     }
@@ -406,7 +408,7 @@ interface PostItemProps {
       pubkey: string; 
       created_at: number;
       autoApproved?: boolean;
-      kind?: number;
+      kind: number;
     } 
   };
   communityId: string;
