@@ -32,7 +32,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const events = await nostr.query([{ 
-        kinds: [14551],
+        kinds: [4552],
         "#a": [communityId],
         limit: 50,
       }], { signal });

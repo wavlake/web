@@ -28,7 +28,7 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
       
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{ 
-        kinds: [14551], 
+        kinds: [4552], 
         authors: [user.pubkey],
         "#a": [communityId]
       }], { signal });
@@ -65,9 +65,9 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
     }
 
     try {
-      // Create join request event (kind 14551)
+      // Create join request event (kind 4552)
       await publishEvent({
-        kind: 14551,
+        kind: 4552,
         tags: [
           ["a", communityId],
         ],
