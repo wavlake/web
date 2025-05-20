@@ -17,16 +17,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, UserPlus, Users, Shield, Trash2 } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { NostrEvent } from "@nostrify/nostrify";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 
 export default function GroupSettings() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -41,7 +32,6 @@ export default function GroupSettings() {
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [moderators, setModerators] = useState<string[]>([]);
-  const [isRemoveModDialogOpen, setIsRemoveModDialogOpen] = useState<string | null>(null);
   
   useEffect(() => {
     if (groupId) {
@@ -333,41 +323,22 @@ export default function GroupSettings() {
     }
     
     try {
-      // Create a new list of moderators excluding the removed one
-      const updatedModerators = moderators.filter(mod => mod !== pubkey);
-      
-      // Build tags array with all existing metadata
+      // Build tags array for the new event
       const tags: string[][] = [];
       
-      // Add the 'd' identifier tag
-      if (parsedId) {
-        tags.push(["d", parsedId.identifier]);
-      }
-      
-      // Add all existing metadata tags (except 'p' tags which we'll rebuild)
-      communityEvent?.tags.forEach(tag => {
-        if (tag[0] !== "p" && tag[0] !== "d") {
-          tags.push([...tag]); // Clone the tag array
+      // Copy all existing tags except 'p' tags for the moderator being removed
+      communityEvent.tags.forEach(tag => {
+        // Skip the 'p' tag of the moderator we're removing
+        if (tag[0] === "p" && tag[1] === pubkey) {
+          return;
         }
-      });
-      
-      // Add all moderator tags excluding the removed one
-      // Make sure the owner is always included
-      const allModerators = [...new Set([...updatedModerators, communityEvent.pubkey])];
-      
-      allModerators.forEach(mod => {
-        // Find the original moderator tag to preserve any relay hints
-        const originalModTag = communityEvent?.tags.find(tag => 
-          tag[0] === "p" && tag[1] === mod
-        );
         
-        if (originalModTag && originalModTag.length > 2 && originalModTag[2]) {
-          // Preserve the relay hint if it exists
-          tags.push(["p", mod, originalModTag[2], "moderator"]);
-        } else {
-          tags.push(["p", mod, "", "moderator"]);
-        }
+        // Copy all other tags
+        tags.push([...tag]);
       });
+      
+      console.log(`Removing moderator: ${pubkey}`);
+      console.log("Updated tags:", tags);
       
       // Create community update event (kind 34550)
       await publishEvent({
@@ -377,8 +348,7 @@ export default function GroupSettings() {
       });
       
       // Update local state
-      setModerators(updatedModerators);
-      setIsRemoveModDialogOpen(null);
+      setModerators(moderators.filter(mod => mod !== pubkey));
       toast.success("Moderator removed successfully!");
     } catch (error) {
       console.error("Error removing moderator:", error);
@@ -549,7 +519,7 @@ export default function GroupSettings() {
                           key={pubkey} 
                           pubkey={pubkey} 
                           isCreator={false}
-                          onRemove={() => setIsRemoveModDialogOpen(pubkey)}
+                          onRemove={() => handleRemoveModerator(pubkey)}
                         />
                       ))
                     }
@@ -615,26 +585,7 @@ export default function GroupSettings() {
           </TabsContent>
         </form>
       </Tabs>
-      
-      <AlertDialog open={isRemoveModDialogOpen !== null} onOpenChange={(open) => !open && setIsRemoveModDialogOpen(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Moderator</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this moderator? They will no longer be able to manage this community.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => isRemoveModDialogOpen && handleRemoveModerator(isRemoveModDialogOpen)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Remove Moderator
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 }
@@ -694,6 +645,7 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
           onClick={onRemove}
           disabled={!isCurrentUser && !user?.pubkey}
           title={isOwner ? "The group owner cannot be removed" : ""}
+          type="button"
         >
           <Trash2 className="h-4 w-4 mr-1" />
           Remove
