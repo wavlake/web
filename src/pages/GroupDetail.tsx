@@ -102,6 +102,30 @@ export default function GroupDetail() {
         limit: 100,
       }], { signal });
       
+      // Get approved members list
+      const approvedMembersEvents = await nostr.query([{ 
+        kinds: [14550],
+        "#a": [groupId],
+        limit: 10,
+      }], { signal });
+      
+      // Get community details to get moderators
+      const communityEvent = await nostr.query([{ 
+        kinds: [34550],
+        authors: [parsedId.pubkey],
+        "#d": [parsedId.identifier],
+      }], { signal });
+      
+      // Extract approved members pubkeys
+      const approvedMembers = approvedMembersEvents.flatMap(event => 
+        event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
+      );
+      
+      // Extract moderator pubkeys
+      const moderators = communityEvent[0]?.tags
+        .filter(tag => tag[0] === "p" && tag[3] === "moderator")
+        .map(tag => tag[1]) || [];
+      
       // Extract the approved post IDs
       const approvedPostIds = approvals.map(approval => {
         const eventTag = approval.tags.find(tag => tag[0] === "e");
@@ -114,11 +138,28 @@ export default function GroupDetail() {
         return eventTag ? eventTag[1] : null;
       }).filter((id): id is string => id !== null);
       
-      // Filter out posts that are already approved or removed
+      // Filter out posts that are:
+      // 1. Already approved
+      // 2. Removed
+      // 3. Posted by approved members (auto-approved)
+      // 4. Posted by moderators (auto-approved)
       const pendingPosts = posts.filter(post => 
         !approvedPostIds.includes(post.id) && 
-        !removedPostIds.includes(post.id)
+        !removedPostIds.includes(post.id) &&
+        !approvedMembers.includes(post.pubkey) &&
+        !moderators.includes(post.pubkey)
       );
+      
+      // Debug logging
+      console.log("Pending posts count calculation:", {
+        totalPosts: posts.length,
+        approvedPostIds,
+        removedPostIds,
+        approvedMembers,
+        moderators,
+        pendingPostsLength: pendingPosts.length,
+        pendingPosts: pendingPosts.map(p => ({ id: p.id, pubkey: p.pubkey }))
+      });
       
       return pendingPosts.length;
     },

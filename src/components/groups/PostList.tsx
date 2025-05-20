@@ -230,8 +230,14 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     // Show only approved posts
     filteredPosts = processedPosts.filter(post => 'approval' in post);
   } else if (pendingOnly) {
-    // Show only pending posts
-    filteredPosts = processedPosts.filter(post => !('approval' in post));
+    // Show only pending posts (not auto-approved and not manually approved)
+    filteredPosts = processedPosts.filter(post => {
+      // If it has an approval property, it's either manually approved or auto-approved
+      if ('approval' in post) {
+        return false;
+      }
+      return true;
+    });
   }
   
   // Sort by created_at (newest first)

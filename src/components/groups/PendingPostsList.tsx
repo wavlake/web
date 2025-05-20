@@ -16,50 +16,8 @@ export function PendingPostsList({ communityId }: PendingPostsListProps) {
   // Query for pending posts count - using the same query key as in GroupDetail.tsx
   const { data: pendingPostsCount = 0, isLoading } = useQuery({
     queryKey: ["pending-posts-count", communityId],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      // Get posts that tag the community
-      const posts = await nostr.query([{ 
-        kinds: [1, 11],
-        "#a": [communityId],
-        limit: 100,
-      }], { signal });
-      
-      // Get approval events
-      const approvals = await nostr.query([{ 
-        kinds: [4550],
-        "#a": [communityId],
-        limit: 100,
-      }], { signal });
-      
-      // Get removal events
-      const removals = await nostr.query([{ 
-        kinds: [4551],
-        "#a": [communityId],
-        limit: 100,
-      }], { signal });
-      
-      // Extract the approved post IDs
-      const approvedPostIds = approvals.map(approval => {
-        const eventTag = approval.tags.find(tag => tag[0] === "e");
-        return eventTag ? eventTag[1] : null;
-      }).filter((id): id is string => id !== null);
-      
-      // Extract the removed post IDs
-      const removedPostIds = removals.map(removal => {
-        const eventTag = removal.tags.find(tag => tag[0] === "e");
-        return eventTag ? eventTag[1] : null;
-      }).filter((id): id is string => id !== null);
-      
-      // Filter out posts that are already approved or removed
-      const pendingPosts = posts.filter(post => 
-        !approvedPostIds.includes(post.id) && 
-        !removedPostIds.includes(post.id)
-      );
-      
-      return pendingPosts.length;
-    },
+    // We're using the same query key as in GroupDetail.tsx, so we don't need to duplicate the query logic
+    // The data will be shared between components
     enabled: !!nostr && !!communityId,
     staleTime: 30000, // Cache for 30 seconds to reduce duplicate queries
   });
