@@ -66,7 +66,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       const events = await nostr.query([{ 
-        kinds: [4551],
+        kinds: [14551],
         "#a": [communityId],
         limit: 50,
       }], { signal });
@@ -105,10 +105,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     }
 
     try {
-      // Get the latest approved members list
-      const latestList = approvedMembersEvents?.[0];
+      // Check if the user is in the declined list
+      const isDeclined = uniqueDeclinedUsers.includes(pubkey);
       
-      // Create a new list or update the existing one
+      // Create a new list or update the existing one for approved members
       const tags = [
         ["a", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),
@@ -122,11 +122,43 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         content: "",
       });
       
+      // If the user was in the declined list, remove them by creating a new kind 4551 event
+      // that excludes this pubkey
+      if (isDeclined) {
+        // Find all declined events that include this pubkey
+        const declinedEventsForUser = declinedUsersEvents?.filter(event => 
+          event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
+        ) || [];
+        
+        // For each declined event, create a new event that removes this user
+        for (const declinedEvent of declinedEventsForUser) {
+          // Get the original request event ID and kind from the declined event
+          const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
+          const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
+          
+          if (eventIdTag && kindTag) {
+            // Create a new declined event that doesn't include this pubkey
+            // This effectively "removes" the user from the declined list
+            await publishEvent({
+              kind: 14551,
+              tags: [
+                ["a", communityId],
+                ["e", eventIdTag[1]],
+                // Deliberately omitting the pubkey tag to remove the user
+                ["k", kindTag[1]]
+              ],
+              content: "", // Empty content to indicate removal
+            });
+          }
+        }
+      }
+      
       toast.success("User approved successfully!");
       
       // Refetch data
       refetchRequests();
       refetchMembers();
+      refetchDeclined();
       
       // Switch to members tab
       setActiveTab("members");
@@ -176,9 +208,9 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     }
 
     try {
-      // Create decline event (kind 4551)
+      // Create decline event (kind 14551)
       await publishEvent({
-        kind: 4551,
+        kind: 14551,
         tags: [
           ["a", communityId],
           ["e", request.id],
@@ -206,10 +238,34 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     }
 
     try {
-      // 1. Remove from declined list by creating a new event without this pubkey
-      // This is implicit as we're not actually removing from a list, but creating a new approval
+      // 1. Find all declined events that include this pubkey
+      const declinedEventsForUser = declinedUsersEvents?.filter(event => 
+        event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
+      ) || [];
+      
+      // 2. For each declined event, create a new event that removes this user
+      for (const declinedEvent of declinedEventsForUser) {
+        // Get the original request event ID and kind from the declined event
+        const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
+        const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
+        
+        if (eventIdTag && kindTag) {
+          // Create a new declined event that doesn't include this pubkey
+          // This effectively "removes" the user from the declined list
+          await publishEvent({
+            kind: 14551,
+            tags: [
+              ["a", communityId],
+              ["e", eventIdTag[1]],
+              // Deliberately omitting the pubkey tag to remove the user
+              ["k", kindTag[1]]
+            ],
+            content: "", // Empty content to indicate removal
+          });
+        }
+      }
 
-      // 2. Add to approved members list
+      // 3. Add to approved members list
       const tags = [
         ["a", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),

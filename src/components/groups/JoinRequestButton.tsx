@@ -67,7 +67,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
       
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{ 
-        kinds: [4551], 
+        kinds: [14551], 
         "#a": [communityId],
         "#p": [user.pubkey]
       }], { signal });
