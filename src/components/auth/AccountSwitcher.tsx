@@ -70,6 +70,16 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <a href="/settings">
+            <Settings className='w-4 h-4' />
+            <span>Settings</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
           onClick={() => {
             removeLogin(currentUser.id);
             navigate('/');

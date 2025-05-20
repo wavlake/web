@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Upload } from "lucide-react";
+import Header from "@/components/ui/Header";
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -109,17 +110,12 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="container max-w-3xl mx-auto p-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Create a New Community</h1>
-      </div>
+    <div className="container mx-auto p-4">
+      <Header />
 
       <Card>
         <CardHeader>
-          <CardTitle>Community Details</CardTitle>
-          <CardDescription>
-            Fill in the information below to create your Nostr community.
-          </CardDescription>
+          <CardTitle>Create a Community</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">

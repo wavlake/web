@@ -160,7 +160,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
           Request to join
         </Button>
       </DialogTrigger>
-      <DialogContent className="rounded-lg mx-auto w-[96%]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Request to join this group</DialogTitle>
           <DialogDescription>
