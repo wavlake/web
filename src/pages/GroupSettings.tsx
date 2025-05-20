@@ -52,8 +52,49 @@ export default function GroupSettings() {
     }
   }, [groupId]);
   
+
+  
+  // Handle community data changes
+  useEffect(() => {
+    if (community) {
+      // Initialize form with current values
+      const communityEvent = community as NostrEvent;
+      const nameTag = communityEvent.tags.find(tag => tag[0] === "name");
+      const descriptionTag = communityEvent.tags.find(tag => tag[0] === "description");
+      const imageTag = communityEvent.tags.find(tag => tag[0] === "image");
+      
+      // Get all moderator tags - these are "p" tags with "moderator" as the 4th element (index 3)
+      // Some implementations might not include the 4th element, so we need to check for both cases
+      const modTags = communityEvent.tags.filter(tag => 
+        tag[0] === "p" && (
+          // Either explicitly marked as moderator
+          (tag.length > 3 && tag[3] === "moderator") ||
+          // Or it's a "p" tag in a kind 34550 event (all "p" tags in community events are moderators per NIP-72)
+          (communityEvent.kind === 34550)
+        )
+      );
+      
+      setName(nameTag ? nameTag[1] : "");
+      setDescription(descriptionTag ? descriptionTag[1] : "");
+      setImageUrl(imageTag ? imageTag[1] : "");
+      
+      // Get all moderator pubkeys
+      const modPubkeys = modTags.map(tag => tag[1]);
+      
+      // Make sure the owner is included in the moderators list
+      if (!modPubkeys.includes(communityEvent.pubkey)) {
+        modPubkeys.push(communityEvent.pubkey);
+      }
+      
+      // Remove duplicates
+      const uniqueModPubkeys = [...new Set(modPubkeys)];
+      
+      setModerators(uniqueModPubkeys);
+    }
+  }, [community]);
+  
   // Query for community details
-  const { data: community, isLoading: isLoadingCommunity } = useQuery({
+  const { data: community, isLoading: isLoadingCommunity } = useQuery<NostrEvent>({
     queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier],
     queryFn: async (c) => {
       if (!parsedId) throw new Error("Invalid community ID");
@@ -68,41 +109,7 @@ export default function GroupSettings() {
       if (events.length === 0) throw new Error("Community not found");
       return events[0];
     },
-    enabled: !!nostr && !!parsedId,
-    onSuccess: (data: NostrEvent) => {
-      // Initialize form with current values
-      const nameTag = data.tags.find(tag => tag[0] === "name");
-      const descriptionTag = data.tags.find(tag => tag[0] === "description");
-      const imageTag = data.tags.find(tag => tag[0] === "image");
-      
-      // Get all moderator tags - these are "p" tags with "moderator" as the 4th element (index 3)
-      // Some implementations might not include the 4th element, so we need to check for both cases
-      const modTags = data.tags.filter(tag => 
-        tag[0] === "p" && (
-          // Either explicitly marked as moderator
-          (tag.length > 3 && tag[3] === "moderator") ||
-          // Or it's a "p" tag in a kind 34550 event (all "p" tags in community events are moderators per NIP-72)
-          (data.kind === 34550)
-        )
-      );
-      
-      setName(nameTag ? nameTag[1] : "");
-      setDescription(descriptionTag ? descriptionTag[1] : "");
-      setImageUrl(imageTag ? imageTag[1] : "");
-      
-      // Get all moderator pubkeys
-      const modPubkeys = modTags.map(tag => tag[1]);
-      
-      // Make sure the owner is included in the moderators list
-      if (!modPubkeys.includes(data.pubkey)) {
-        modPubkeys.push(data.pubkey);
-      }
-      
-      // Remove duplicates
-      const uniqueModPubkeys = [...new Set(modPubkeys)];
-      
-      setModerators(uniqueModPubkeys);
-    }
+    enabled: !!nostr && !!parsedId
   });
   
   // Query for approved members
@@ -134,7 +141,7 @@ export default function GroupSettings() {
   const isModerator = user && moderators.includes(user.pubkey);
   
   // Check if user is the creator/owner (the signer of the original event)
-  const isOwner = user && community && user.pubkey === community.pubkey;
+  const isOwner = user && community && user.pubkey === (community as NostrEvent).pubkey;
   
   // Debug logging
   console.log("Current user pubkey:", user?.pubkey);
@@ -157,7 +164,8 @@ export default function GroupSettings() {
     
     // Only the owner can update moderators
     // Get all moderator pubkeys from the original community event
-    const originalModPubkeys = community.tags
+    const communityEvent = community as NostrEvent;
+    const originalModPubkeys = communityEvent.tags
       .filter(tag => tag[0] === "p")
       .map(tag => tag[1]);
     
@@ -187,9 +195,12 @@ export default function GroupSettings() {
       tags.push(["name", name]);
       tags.push(["description", description]);
       
+      // Get the community event with proper type
+      const communityEvent = community as NostrEvent;
+      
       if (imageUrl) {
         // Check if the original image tag had dimensions
-        const originalImageTag = community.tags.find(tag => tag[0] === "image");
+        const originalImageTag = communityEvent.tags.find(tag => tag[0] === "image");
         if (originalImageTag && originalImageTag.length > 2) {
           // Preserve the dimensions if they exist
           tags.push(["image", imageUrl, originalImageTag[2]]);
@@ -199,7 +210,7 @@ export default function GroupSettings() {
       }
       
       // Add any other metadata tags from the original event (except 'p', 'd', 'name', 'description', 'image')
-      community.tags.forEach(tag => {
+      communityEvent.tags.forEach(tag => {
         if (!["p", "d", "name", "description", "image"].includes(tag[0])) {
           tags.push([...tag]); // Clone the tag array to preserve all other metadata
         }
@@ -207,11 +218,11 @@ export default function GroupSettings() {
       
       // Add moderator tags
       // Make sure the owner is always included as a moderator
-      const allModerators = [...new Set([...moderators, community.pubkey])];
+      const allModerators = [...new Set([...moderators, communityEvent.pubkey])];
       
       allModerators.forEach(mod => {
         // Find the original moderator tag to preserve any relay hints
-        const originalModTag = community.tags.find(tag => 
+        const originalModTag = communityEvent.tags.find(tag => 
           tag[0] === "p" && tag[1] === mod
         );
         
@@ -260,8 +271,11 @@ export default function GroupSettings() {
           tags.push(["d", parsedId.identifier]);
         }
         
+        // Get the community event with proper type
+        const communityEvent = community as NostrEvent;
+        
         // Add all existing metadata tags (except 'p' tags which we'll rebuild)
-        community?.tags.forEach(tag => {
+        communityEvent?.tags.forEach(tag => {
           if (tag[0] !== "p" && tag[0] !== "d") {
             tags.push([...tag]); // Clone the tag array
           }
@@ -273,7 +287,7 @@ export default function GroupSettings() {
         
         uniqueModPubkeys.forEach(mod => {
           // Find the original moderator tag to preserve any relay hints
-          const originalModTag = community?.tags.find(tag => 
+          const originalModTag = communityEvent?.tags.find(tag => 
             tag[0] === "p" && tag[1] === mod
           );
           
@@ -311,8 +325,11 @@ export default function GroupSettings() {
       return;
     }
     
+    // Get the community event with proper type
+    const communityEvent = community as NostrEvent;
+    
     // Don't allow removing the owner
-    if (community && community.pubkey === pubkey) {
+    if (community && communityEvent.pubkey === pubkey) {
       toast.error("Cannot remove the group owner");
       return;
     }
@@ -330,7 +347,7 @@ export default function GroupSettings() {
       }
       
       // Add all existing metadata tags (except 'p' tags which we'll rebuild)
-      community?.tags.forEach(tag => {
+      communityEvent?.tags.forEach(tag => {
         if (tag[0] !== "p" && tag[0] !== "d") {
           tags.push([...tag]); // Clone the tag array
         }
@@ -338,11 +355,11 @@ export default function GroupSettings() {
       
       // Add all moderator tags excluding the removed one
       // Make sure the owner is always included
-      const allModerators = [...new Set([...updatedModerators, community.pubkey])];
+      const allModerators = [...new Set([...updatedModerators, communityEvent.pubkey])];
       
       allModerators.forEach(mod => {
         // Find the original moderator tag to preserve any relay hints
-        const originalModTag = community?.tags.find(tag => 
+        const originalModTag = communityEvent?.tags.find(tag => 
           tag[0] === "p" && tag[1] === mod
         );
         
@@ -484,10 +501,10 @@ export default function GroupSettings() {
                     <span className="font-medium">ID:</span> {parsedId?.identifier}
                   </p>
                   <p className="text-xs text-muted-foreground mb-1">
-                    <span className="font-medium">Created by:</span> {community?.pubkey.slice(0, 8)}...
+                    <span className="font-medium">Created by:</span> {(community as NostrEvent)?.pubkey.slice(0, 8)}...
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Created at:</span> {new Date(community?.created_at * 1000).toLocaleString()}
+                    <span className="font-medium">Created at:</span> {new Date((community as NostrEvent)?.created_at * 1000).toLocaleString()}
                   </p>
                 </div>
               </CardContent>
@@ -519,8 +536,8 @@ export default function GroupSettings() {
                     {/* Always display the owner first */}
                     {community && (
                       <ModeratorItem 
-                        key={community.pubkey} 
-                        pubkey={community.pubkey} 
+                        key={(community as NostrEvent).pubkey} 
+                        pubkey={(community as NostrEvent).pubkey} 
                         isCreator={true}
                         onRemove={() => {}} // Owner can't be removed
                       />
@@ -528,7 +545,7 @@ export default function GroupSettings() {
                     
                     {/* Then display all moderators who are not the owner */}
                     {moderators
-                      .filter(pubkey => pubkey !== community?.pubkey) // Filter out the owner
+                      .filter(pubkey => pubkey !== (community as NostrEvent)?.pubkey) // Filter out the owner
                       .map((pubkey) => (
                         <ModeratorItem 
                           key={pubkey} 
@@ -601,7 +618,7 @@ export default function GroupSettings() {
         </form>
       </Tabs>
       
-      <AlertDialog open={!!isRemoveModDialogOpen} onOpenChange={() => setIsRemoveModDialogOpen(null)}>
+      <AlertDialog open={isRemoveModDialogOpen !== null} onOpenChange={(open) => !open && setIsRemoveModDialogOpen(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Moderator</AlertDialogTitle>
