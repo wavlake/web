@@ -99,7 +99,7 @@ export default function GroupDetail() {
           <h1 className="text-3xl font-bold">{name}</h1>
         </div>
         <div className="flex items-center gap-4">
-          <JoinRequestButton communityId={groupId || ''} />
+          <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
           <div className="ml-auto">
             <LoginArea />
           </div>
@@ -122,30 +122,42 @@ export default function GroupDetail() {
         </div>
         
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <UserPlus className="h-5 w-5 mr-2" />
-                Join this group
-              </CardTitle>
-              <CardDescription>
-                Request to join this community to participate in discussions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center py-4">
-              <JoinRequestButton communityId={groupId || ''} />
-            </CardContent>
-            {isModerator && (
-              <CardFooter>
+          {isModerator ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Moderator Controls
+                </CardTitle>
+                <CardDescription>
+                  You are a moderator of this community
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center py-4">
                 <Button asChild variant="outline" className="w-full">
                   <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`}>
                     <Settings className="h-4 w-4 mr-2" />
                     Manage Community
                   </Link>
                 </Button>
-              </CardFooter>
-            )}
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Join this group
+                </CardTitle>
+                <CardDescription>
+                  Request to join this community to participate in discussions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center py-4">
+                <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       

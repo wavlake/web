@@ -11,9 +11,10 @@ import { UserPlus, CheckCircle, Clock } from "lucide-react";
 
 interface JoinRequestButtonProps {
   communityId: string;
+  isModerator?: boolean;
 }
 
-export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
+export function JoinRequestButton({ communityId, isModerator = false }: JoinRequestButtonProps) {
   const [open, setOpen] = useState(false);
   const [joinReason, setJoinReason] = useState("");
   const { user } = useCurrentUser();
@@ -99,6 +100,11 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
       toast.error("Failed to send join request. Please try again.");
     }
   };
+
+  // If the user is a moderator, don't show the join button at all
+  if (isModerator) {
+    return null;
+  }
 
   if (!user) {
     return (
