@@ -1,4 +1,5 @@
 import { useNostr } from "@/hooks/useNostr";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,11 +9,28 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { toast } from "sonner";
-import { Heart, MessageSquare, Share2, CheckCircle } from "lucide-react";
+import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PostListProps {
   communityId: string;
@@ -21,6 +39,7 @@ interface PostListProps {
 
 export function PostList({ communityId, showOnlyApproved = false }: PostListProps) {
   const { nostr } = useNostr();
+  const { user } = useCurrentUser();
   
   // Query for approved posts
   const { data: approvedPosts, isLoading: isLoadingApproved } = useQuery({
@@ -56,6 +75,28 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
       }).filter((post): post is NostrEvent & { 
         approval: { id: string; pubkey: string; created_at: number } 
       } => post !== null);
+    },
+    enabled: !!nostr && !!communityId,
+  });
+  
+  // Query for removed posts
+  const { data: removedPosts } = useQuery({
+    queryKey: ["removed-posts", communityId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      
+      // Get removal events
+      const removals = await nostr.query([{ 
+        kinds: [4551],
+        "#a": [communityId],
+        limit: 50,
+      }], { signal });
+      
+      // Extract the post IDs that have been removed
+      return removals.map(removal => {
+        const eventTag = removal.tags.find(tag => tag[0] === "e");
+        return eventTag ? eventTag[1] : null;
+      }).filter((id): id is string => id !== null);
     },
     enabled: !!nostr && !!communityId,
   });
@@ -128,6 +169,14 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
   const moderators = communityEvent?.tags
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .map(tag => tag[1]) || [];
+    
+  // Check if current user is a moderator
+  const isUserModerator = user && moderators.includes(user.pubkey);
+  
+  // Debug logging
+  console.log('Current user:', user?.pubkey);
+  console.log('Moderators:', moderators);
+  console.log('Is user moderator:', isUserModerator);
   
   // Combine and sort all posts
   const allPosts = [...(approvedPosts || []), ...(pendingPosts || [])];
@@ -137,8 +186,14 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     index === self.findIndex(p => p.id === post.id)
   );
   
+  // Filter out removed posts
+  const removedPostIds = removedPosts || [];
+  const postsWithoutRemoved = uniquePosts.filter(post => 
+    !removedPostIds.includes(post.id)
+  );
+  
   // Process posts to mark auto-approved ones
-  const processedPosts = uniquePosts.map(post => {
+  const processedPosts = postsWithoutRemoved.map(post => {
     // If it's already approved, keep it as is
     if ('approval' in post) {
       return post;
@@ -249,6 +304,7 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
           post={post} 
           communityId={communityId}
           isApproved={'approval' in post}
+          isModerator={isUserModerator}
         />
       ))}
     </div>
@@ -266,21 +322,50 @@ interface PostItemProps {
   };
   communityId: string;
   isApproved: boolean;
+  isModerator: boolean;
 }
 
-function PostItem({ post, communityId, isApproved }: PostItemProps) {
+function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps) {
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  
+  // Debug logging
+  console.log('PostItem - isModerator:', isModerator);
+  console.log('PostItem - user:', user?.pubkey);
   
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
   
-  // Check if user is a moderator (for approving posts)
-  const isModerator = user && post.tags
-    .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-    .some(tag => tag[1] === user.pubkey);
+  // Parse the community ID to get the pubkey and identifier
+  const parsedCommunityId = communityId.includes(':') 
+    ? parseNostrAddress(communityId)
+    : null;
+  
+  // We'll use the community ID directly to check if the user is a moderator
+  // This is more reliable than trying to parse and query again
+  
+  // Check if user is a moderator (passed from parent component)
+  const { data: communityEvent } = useQuery({
+    queryKey: ["community-details-for-post", communityId],
+    queryFn: async (c) => {
+      if (!parsedCommunityId) return null;
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([{ 
+        kinds: [34550],
+        authors: [parsedCommunityId.pubkey],
+        "#d": [parsedCommunityId.identifier],
+      }], { signal });
+      
+      return events[0] || null;
+    },
+    enabled: !!nostr && !!parsedCommunityId,
+  });
+  
+  // isModerator is now passed as a prop, so we don't need to check again
   
   const handleApprovePost = async () => {
     if (!user) {
@@ -305,6 +390,37 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
     } catch (error) {
       console.error("Error approving post:", error);
       toast.error("Failed to approve post. Please try again.");
+    }
+  };
+  
+  const handleRemovePost = async () => {
+    if (!user) {
+      toast.error("You must be logged in to remove posts");
+      return;
+    }
+    
+    try {
+      // Create removal event (kind 4551)
+      await publishEvent({
+        kind: 4551,
+        tags: [
+          ["a", communityId],
+          ["e", post.id],
+          ["p", post.pubkey],
+          ["k", "1"], // Post kind
+        ],
+        content: JSON.stringify({
+          reason: "Removed by moderator",
+          timestamp: Date.now(),
+          post: post // Include the original post for reference
+        }),
+      });
+      
+      toast.success("Post removed successfully!");
+      setIsRemoveDialogOpen(false);
+    } catch (error) {
+      console.error("Error removing post:", error);
+      toast.error("Failed to remove post. Please try again.");
     }
   };
   
@@ -340,14 +456,65 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
               </div>
             </div>
             
-            {user && isModerator && !isApproved && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleApprovePost}
-              >
-                Approve
-              </Button>
+            {isModerator && (
+              <div className="flex items-center gap-2">
+                {!isApproved && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleApprovePost}
+                    className="text-green-600"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approve
+                  </Button>
+                )}
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Shield className="h-4 w-4 mr-1" />
+                      <span className="sr-only md:not-sr-only md:inline-block">Moderate</span>
+                      <MoreHorizontal className="h-4 w-4 md:hidden" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!isApproved && (
+                      <DropdownMenuItem onClick={handleApprovePost}>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Approve Post
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => setIsRemoveDialogOpen(true)}
+                      className="text-red-600"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Remove Post
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Post</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove this post? This action will hide the post from the community.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleRemovePost}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Remove Post
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             )}
           </div>
         </div>
