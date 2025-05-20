@@ -385,7 +385,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           ["a", communityId],
           ["e", post.id],
           ["p", post.pubkey],
-          ["k", post.kind === 11 ? "11" : "1"], // Post kind (11 or 1)
+          ["k", String(post.kind)],
         ],
         content: JSON.stringify(post),
       });
@@ -411,7 +411,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           ["a", communityId],
           ["e", post.id],
           ["p", post.pubkey],
-          ["k", post.kind === 11 ? "11" : "1"], // Post kind (11 or 1)
+          ["k", String(post.kind)],
         ],
         content: JSON.stringify({
           reason: "Removed by moderator",
