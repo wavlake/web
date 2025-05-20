@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Shield, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
@@ -19,10 +19,9 @@ interface LoginDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onLogin: () => void;
-  onSignup?: () => void;
 }
 
-const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onSignup }) => {
+const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const [bunkerUri, setBunkerUri] = useState('');
@@ -48,7 +47,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const handleKeyLogin = () => {
     if (!nsec.trim()) return;
     setIsLoading(true);
-    
+
     try {
       login.nsec(nsec);
       onLogin();
@@ -63,7 +62,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
   const handleBunkerLogin = () => {
     if (!bunkerUri.trim() || !bunkerUri.startsWith('bunker://')) return;
     setIsLoading(true);
-    
+
     try {
       login.bunker(bunkerUri);
       onLogin();
@@ -85,13 +84,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
       setNsec(content.trim());
     };
     reader.readAsText(file);
-  };
-
-  const handleSignupClick = () => {
-    onClose();
-    if (onSignup) {
-      onSignup();
-    }
   };
 
   return (
@@ -198,18 +190,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ isOpen, onClose, onLogin, onS
               </Button>
             </TabsContent>
           </Tabs>
-
-          <div className='text-center text-sm'>
-            <p className='text-gray-600 dark:text-gray-400'>
-              Don't have an account?{' '}
-              <button
-                onClick={handleSignupClick}
-                className='text-primary hover:underline font-medium'
-              >
-                Sign up
-              </button>
-            </p>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

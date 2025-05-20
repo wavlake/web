@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, Plus, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
+import { useNavigate } from 'react-router-dom';
 
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
@@ -18,16 +19,19 @@ interface AccountSwitcherProps {
 
 export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
+  const navigate = useNavigate();
 
   if (!currentUser) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground max-w-60'>
+        <button type="button" className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground max-w-60'>
           <Avatar className='w-10 h-10'>
             <AvatarImage src={currentUser.metadata.picture} alt={currentUser.metadata.name} />
-            <AvatarFallback>{currentUser.metadata.name?.charAt(0) || <UserIcon />}</AvatarFallback>
+            {currentUser.metadata.name?.charAt(0)
+              ? <AvatarFallback>{currentUser.metadata.name?.charAt(0)}</AvatarFallback>
+              : <AvatarFallback><UserIcon /></AvatarFallback>}
           </Avatar>
           <div className='flex-1 text-left hidden md:block truncate'>
             <p className='font-medium text-sm truncate'>{currentUser.metadata.name || currentUser.pubkey}</p>
@@ -36,33 +40,30 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className='w-56 p-2 animate-scale-in'>
-        <div className='font-medium text-sm px-2 py-1.5'>Switch Account</div>
-        {otherUsers.map((user) => (
-          <DropdownMenuItem
-            key={user.id}
-            onClick={() => setLogin(user.id)}
-            className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
-          >
-            <Avatar className='w-8 h-8'>
-              <AvatarImage src={user.metadata.picture} alt={user.metadata.name} />
-              <AvatarFallback>{user.metadata.name?.charAt(0) || <UserIcon />}</AvatarFallback>
-            </Avatar>
-            <div className='flex-1 truncate'>
-              <p className='text-sm font-medium'>{user.metadata.name || user.pubkey}</p>
-            </div>
-            {user.id === currentUser.id && <div className='w-2 h-2 rounded-full bg-primary'></div>}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md font-bold'
+        >
+          <a href="/create-group">
+            <Plus className='w-4 h-4 font-bold' />
+            <span>Create Community</span>
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={onAddAccountClick}
+          asChild
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
         >
-          <UserPlus className='w-4 h-4' />
-          <span>Add another account</span>
+          <a href="/settings">
+            <Settings className='w-4 h-4' />
+            <span>Settings</span>
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => removeLogin(currentUser.id)}
+          onClick={() => {
+            removeLogin(currentUser.id);
+            navigate('/');
+          }}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md text-red-500'
         >
           <LogOut className='w-4 h-4' />

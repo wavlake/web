@@ -5,18 +5,15 @@ import React, { useState } from 'react';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import LoginDialog from './LoginDialog';
-import SignupDialog from './SignupDialog';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { AccountSwitcher } from './AccountSwitcher';
 
 export function LoginArea() {
   const { currentUser } = useLoggedInAccounts();
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
 
   const handleLogin = () => {
     setLoginDialogOpen(false);
-    setSignupDialogOpen(false);
   };
 
   return (
@@ -34,16 +31,11 @@ export function LoginArea() {
       )}
 
       <LoginDialog
-        isOpen={loginDialogOpen} 
-        onClose={() => setLoginDialogOpen(false)} 
+        isOpen={loginDialogOpen}
+        onClose={() => setLoginDialogOpen(false)}
         onLogin={handleLogin}
-        onSignup={() => setSignupDialogOpen(true)}
       />
 
-      <SignupDialog
-        isOpen={signupDialogOpen}
-        onClose={() => setSignupDialogOpen(false)}
-      />
     </>
   );
 }
