@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import AppRouter from './AppRouter';
+import { useSystemTheme } from '@/hooks/useSystemTheme'; // Added import
 
 // DO NOT MODIFY THIS LIST UNLESS YOU ARE ABSOLUTELY CERTAIN EACH RELAY URL YOU ARE ADDING IS VALID AND THE RELAY IS CURRENTLY ONLINE AND CONFIRMED TO BE FULLY FUNCTIONAL AND WORKING.
 const defaultRelays = [
@@ -25,6 +26,8 @@ const queryClient = new QueryClient({
 });
 
 export function App() {
+  useSystemTheme(); // Called the hook
+
   return (
     <NostrLoginProvider storageKey='nostr:login'>
       <NostrProvider relays={defaultRelays}>
