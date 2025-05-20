@@ -5,13 +5,70 @@ import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFollowList } from "@/hooks/useFollowList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NoteContent } from "@/components/NoteContent";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Copy, UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, UserPlus, UserMinus, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { NostrEvent } from "@nostrify/nostrify";
+import { parseNostrAddress } from "@/lib/nostr-utils";
+
+// Helper function to extract group information from a post
+function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
+  // Find the "a" tag that matches the group format
+  const groupTag = post.tags.find(tag => {
+    return tag[0] === "a" && tag[1].startsWith("34550:");
+  });
+  
+  if (!groupTag) return null;
+  
+  const groupId = groupTag[1];
+  
+  // Parse the Nostr address to extract components
+  const parsedAddress = parseNostrAddress(groupId);
+  
+  if (parsedAddress && parsedAddress.kind === 34550) {
+    return {
+      groupId,
+      groupName: parsedAddress.identifier // The identifier part is often the group name
+    };
+  }
+  
+  // Fallback to simple string splitting if parsing fails
+  const parts = groupId.split(":");
+  if (parts.length >= 3) {
+    return {
+      groupId,
+      groupName: parts[2] // The identifier part is often the group name
+    };
+  }
+  
+  return {
+    groupId,
+    groupName: "Community" // Fallback name if we can't extract it
+  };
+}
+
+// Component to display group information on a post
+function PostGroupLink({ post }: { post: NostrEvent }) {
+  const groupInfo = extractGroupInfo(post);
+  
+  if (!groupInfo) return null;
+  
+  return (
+    <Link 
+      to={`/group/${encodeURIComponent(groupInfo.groupId)}`}
+      className="flex items-center text-xs text-muted-foreground hover:text-primary"
+    >
+      <div className="flex items-center px-2 py-1 rounded-md bg-muted hover:bg-muted/80 transition-colors">
+        <Users className="h-3 w-3 mr-1" />
+        Posted in <span className="font-medium ml-1">{groupInfo.groupName}</span>
+      </div>
+    </Link>
+  );
+}
 
 export default function Profile() {
   const { pubkey } = useParams<{ pubkey: string }>();
@@ -318,11 +375,17 @@ export default function Profile() {
                 </div>
               </CardHeader>
               
-              <CardContent className="pb-4">
+              <CardContent className="pb-2">
                 <div className="whitespace-pre-wrap break-words">
                   <NoteContent event={post} className="text-sm" />
                 </div>
               </CardContent>
+              
+              {extractGroupInfo(post) && (
+                <CardFooter className="pt-0 pb-3">
+                  <PostGroupLink post={post} />
+                </CardFooter>
+              )}
             </Card>
           ))}
         </div>
