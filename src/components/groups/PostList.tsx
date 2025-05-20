@@ -60,10 +60,15 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
       }], { signal });
       
       // Extract the approved posts from the content field
-      return approvals.map(approval => {
+      const approvedPosts = approvals.map(approval => {
         try {
           // Parse the approved post from the content
           const approvedPost = JSON.parse(approval.content) as NostrEvent;
+          
+          // Get the kind tag to check if it's a reply
+          const kindTag = approval.tags.find(tag => tag[0] === "k");
+          const kind = kindTag ? parseInt(kindTag[1]) : approvedPost.kind;
+          
           // Add the approval information
           return {
             ...approvedPost,
@@ -71,6 +76,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
               id: approval.id,
               pubkey: approval.pubkey,
               created_at: approval.created_at,
+              kind: kind
             }
           };
         } catch (error) {
@@ -78,8 +84,32 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           return null;
         }
       }).filter((post): post is NostrEvent & { 
-        approval: { id: string; pubkey: string; created_at: number } 
+        approval: { id: string; pubkey: string; created_at: number; kind?: number } 
       } => post !== null);
+      
+      // Filter out replies (kind 1111)
+      const filteredApprovedPosts = approvedPosts.filter(post => {
+        // Check if the post itself is kind 1111
+        if (post.kind === 1111) {
+          return false;
+        }
+        
+        // Check if the approval kind is 1111
+        if (post.approval.kind === 1111) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // Debug logging
+      console.log("Filtered approved posts:", {
+        totalApprovedPosts: approvedPosts.length,
+        filteredApprovedPosts: filteredApprovedPosts.length,
+        removedReplies: approvedPosts.length - filteredApprovedPosts.length
+      });
+      
+      return filteredApprovedPosts;
     },
     enabled: !!nostr && !!communityId,
   });
@@ -119,7 +149,17 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
         limit: 50,
       }], { signal });
       
-      return posts;
+      // Filter out replies (kind 1111) that might have been approved and appear as posts
+      const filteredPosts = posts.filter(post => post.kind !== 1111);
+      
+      // Debug logging
+      console.log("Filtered posts:", {
+        totalPosts: posts.length,
+        filteredPosts: filteredPosts.length,
+        removedReplies: posts.length - filteredPosts.length
+      });
+      
+      return filteredPosts;
     },
     enabled: !!nostr && !!communityId,
   });
@@ -366,6 +406,7 @@ interface PostItemProps {
       pubkey: string; 
       created_at: number;
       autoApproved?: boolean;
+      kind?: number;
     } 
   };
   communityId: string;
