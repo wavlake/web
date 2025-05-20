@@ -227,9 +227,15 @@ export default function GroupDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {moderatorTags.map((tag) => (
-                    <ModeratorItem key={tag[1]} pubkey={tag[1]} />
-                  ))}
+                  {/* Display the group owner first */}
+                  <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />
+                  
+                  {/* Display moderators who are not the owner */}
+                  {moderatorTags
+                    .filter(tag => tag[1] !== community.pubkey) // Filter out the owner if they're also listed as a moderator
+                    .map((tag) => (
+                      <ModeratorItem key={tag[1]} pubkey={tag[1]} />
+                    ))}
                 </div>
               </CardContent>
             </Card>
