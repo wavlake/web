@@ -10,12 +10,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { toast } from "sonner";
-import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban } from "lucide-react";
+import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
+import { ReplyList } from "./ReplyList";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -362,6 +363,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const { banUser } = useBannedUsers(communityId);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
   
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 8);
@@ -573,18 +575,34 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
         </div>
       </CardContent>
       
-      <CardFooter>
-        <div className="flex gap-4">
+      <CardFooter className="flex-col">
+        <div className="flex gap-4 w-full">
           <LikeButton postId={post.id} />
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-muted-foreground"
+            onClick={() => setShowReplies(!showReplies)}
+          >
             <MessageSquare className="h-4 w-4 mr-2" />
-            Comment
+            {showReplies ? "Hide replies" : "Reply"}
+            {showReplies ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
           </Button>
           <Button variant="ghost" size="sm" className="text-muted-foreground">
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
         </div>
+        
+        {showReplies && (
+          <div className="w-full mt-4">
+            <ReplyList 
+              postId={post.id} 
+              communityId={communityId} 
+              postAuthorPubkey={post.pubkey} 
+            />
+          </div>
+        )}
       </CardFooter>
     </Card>
   );
