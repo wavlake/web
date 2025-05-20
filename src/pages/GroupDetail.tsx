@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator"; // Removed
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +29,7 @@ export default function GroupDetail() {
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
+  const [currentPostCount, setCurrentPostCount] = useState(0); // State for post count
   const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
@@ -60,16 +61,11 @@ export default function GroupDetail() {
     enabled: !!nostr && !!parsedId,
   });
 
-  // Check if user is the owner (the signer of the event)
   const isOwner = user && community && user.pubkey === community.pubkey;
-
-
-  // Check if user is a moderator
   const isModerator = isOwner || (user && community?.tags
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .some(tag => tag[1] === user.pubkey));
 
-  // Debug logging
   console.log("Current user pubkey:", user?.pubkey);
   console.log("Community creator pubkey:", community?.pubkey);
   console.log("Is owner:", isOwner);
@@ -92,8 +88,6 @@ export default function GroupDetail() {
     }
   }, [isModerator, totalPendingCount, setActiveTab]);
 
-
-  // Extract community data from tags
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
   const imageTag = community?.tags.find(tag => tag[0] === "image");
@@ -105,7 +99,7 @@ export default function GroupDetail() {
 
   if (isLoadingCommunity || !parsedId) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto py-4 px-6">
         <Header />
         <h1 className="text-2xl font-bold mb-4">Loading community...</h1>
       </div>
@@ -114,7 +108,7 @@ export default function GroupDetail() {
 
   if (!community) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto py-4 px-6">
         <h1 className="text-2xl font-bold mb-4">Community not found</h1>
         <p>The community you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-4">
@@ -125,17 +119,12 @@ export default function GroupDetail() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto py-4 px-6">
       <Header />
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div className="md:col-span-2">
-          <div className="h-60 rounded-lg overflow-hidden mb-4">
+          <div className="h-48 rounded-lg overflow-hidden mb-4"> {/* Changed mb-1.5 to mb-4 */}
             <img
               src={image}
               alt={name}
@@ -145,7 +134,7 @@ export default function GroupDetail() {
               }}
             />
           </div>
-          <p className="text-lg mb-6">{description}</p>
+          <p className="text-lg mb-3">{description}</p>
         </div>
 
         <div>
@@ -190,10 +179,8 @@ export default function GroupDetail() {
         </div>
       </div>
 
-      <Separator className="my-6" />
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-4">
           <TabsTrigger value="posts">
             <MessageSquare className="h-4 w-4 mr-2" />
             Posts
@@ -219,11 +206,12 @@ export default function GroupDetail() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="posts" className="space-y-6">
+        <TabsContent value="posts" className="space-y-4">
           {user && (
             <CreatePostForm communityId={groupId || ''} />
           )}
 
+          {/* Modified section for toggle only */}
           <div className="flex items-center justify-end mb-4 gap-2">
             <div className="flex items-center space-x-2">
               <Switch
@@ -238,7 +226,11 @@ export default function GroupDetail() {
             </div>
           </div>
 
-          <PostList communityId={groupId || ''} showOnlyApproved={showOnlyApproved} />
+          <PostList 
+            communityId={groupId || ''} 
+            showOnlyApproved={showOnlyApproved} 
+            onPostCountChange={setCurrentPostCount} // Passed callback
+          />
         </TabsContent>
         
         {isModerator && (
@@ -247,7 +239,7 @@ export default function GroupDetail() {
           </TabsContent>
         )}
 
-        <TabsContent value="members" className="space-y-6">
+        <TabsContent value="members" className="space-y-4">
           {isModerator && (
             <MemberManagement communityId={groupId || ''} isModerator={isModerator} />
           )}
@@ -262,12 +254,9 @@ export default function GroupDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Display the group owner first */}
-                  <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />
-
-                  {/* Display moderators who are not the owner */}
+                  {community && <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />}
                   {moderatorTags
-                    .filter(tag => tag[1] !== community.pubkey) // Filter out the owner if they're also listed as a moderator
+                    .filter(tag => tag[1] !== community?.pubkey) 
                     .map((tag) => (
                       <ModeratorItem key={tag[1]} pubkey={tag[1]} />
                     ))}
@@ -289,16 +278,18 @@ export default function GroupDetail() {
                 <h3 className="font-medium">Description</h3>
                 <p>{description}</p>
               </div>
-
-              <div>
-                <h3 className="font-medium">Created by</h3>
-                <ModeratorItem pubkey={community.pubkey} isCreator />
-              </div>
-
-              <div>
-                <h3 className="font-medium">Created at</h3>
-                <p>{new Date(community.created_at * 1000).toLocaleString()}</p>
-              </div>
+              {community && (
+                <>
+                  <div>
+                    <h3 className="font-medium">Created by</h3>
+                    <ModeratorItem pubkey={community.pubkey} isCreator />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Created at</h3>
+                    <p>{new Date(community.created_at * 1000).toLocaleString()}</p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -117,7 +117,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
       <div className="my-6">
         <h1 className="text-3xl font-bold">Settings</h1>
