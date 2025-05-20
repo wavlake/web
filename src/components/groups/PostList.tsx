@@ -38,9 +38,10 @@ import {
 interface PostListProps {
   communityId: string;
   showOnlyApproved?: boolean;
+  pendingOnly?: boolean;
 }
 
-export function PostList({ communityId, showOnlyApproved = false }: PostListProps) {
+export function PostList({ communityId, showOnlyApproved = false, pendingOnly = false }: PostListProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { bannedUsers } = useBannedUsers(communityId);
@@ -222,10 +223,16 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
   const approvedCount = processedPosts.filter(post => 'approval' in post).length;
   const pendingCount = processedPosts.length - approvedCount;
   
-  // Filter posts based on approval status if showOnlyApproved is true
-  const filteredPosts = showOnlyApproved 
-    ? processedPosts.filter(post => 'approval' in post)
-    : processedPosts;
+  // Filter posts based on approval status
+  let filteredPosts = processedPosts;
+  
+  if (showOnlyApproved) {
+    // Show only approved posts
+    filteredPosts = processedPosts.filter(post => 'approval' in post);
+  } else if (pendingOnly) {
+    // Show only pending posts
+    filteredPosts = processedPosts.filter(post => !('approval' in post));
+  }
   
   // Sort by created_at (newest first)
   const sortedPosts = filteredPosts.sort((a, b) => b.created_at - a.created_at);
@@ -266,12 +273,16 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
         <p className="text-muted-foreground mb-2">
           {showOnlyApproved 
             ? "No approved posts in this community yet" 
-            : "No posts in this community yet"}
+            : pendingOnly
+              ? "No pending posts in this community"
+              : "No posts in this community yet"}
         </p>
         <p className="text-sm">
           {showOnlyApproved && pendingCount > 0
             ? `There are ${pendingCount} pending posts waiting for approval.`
-            : "Be the first to post something!"}
+            : pendingOnly
+              ? "All posts have been approved or removed."
+              : "Be the first to post something!"}
         </p>
       </Card>
     );
@@ -281,7 +292,7 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-muted-foreground">
-          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : ""} posts
+          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : pendingOnly ? "pending" : ""} posts
         </div>
         
         <div className="flex gap-3 text-sm">

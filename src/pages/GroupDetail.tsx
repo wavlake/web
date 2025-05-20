@@ -13,10 +13,11 @@ import { Label } from "@/components/ui/label";
 import { useAuthor } from "@/hooks/useAuthor";
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
+import { PendingPostsList } from "@/components/groups/PendingPostsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 
@@ -26,6 +27,7 @@ export default function GroupDetail() {
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
+  const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
     if (groupId) {
@@ -35,6 +37,8 @@ export default function GroupDetail() {
       }
     }
   }, [groupId]);
+
+  // We'll move the pending posts count query after isModerator is defined
 
   const { data: community, isLoading: isLoadingCommunity } = useQuery({
     queryKey: ["community", parsedId?.pubkey, parsedId?.identifier],
@@ -68,6 +72,67 @@ export default function GroupDetail() {
   console.log("Community creator pubkey:", community?.pubkey);
   console.log("Is owner:", isOwner);
   console.log("Is moderator:", isModerator);
+  
+  // Query for pending posts count (moved after isModerator is defined)
+  const { data: pendingPostsCount = 0 } = useQuery({
+    queryKey: ["pending-posts-count", groupId],
+    queryFn: async (c) => {
+      if (!parsedId) return 0;
+
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      
+      // Get posts that tag the community
+      const posts = await nostr.query([{ 
+        kinds: [1, 11],
+        "#a": [groupId],
+        limit: 100,
+      }], { signal });
+      
+      // Get approval events
+      const approvals = await nostr.query([{ 
+        kinds: [4550],
+        "#a": [groupId],
+        limit: 100,
+      }], { signal });
+      
+      // Get removal events
+      const removals = await nostr.query([{ 
+        kinds: [4551],
+        "#a": [groupId],
+        limit: 100,
+      }], { signal });
+      
+      // Extract the approved post IDs
+      const approvedPostIds = approvals.map(approval => {
+        const eventTag = approval.tags.find(tag => tag[0] === "e");
+        return eventTag ? eventTag[1] : null;
+      }).filter((id): id is string => id !== null);
+      
+      // Extract the removed post IDs
+      const removedPostIds = removals.map(removal => {
+        const eventTag = removal.tags.find(tag => tag[0] === "e");
+        return eventTag ? eventTag[1] : null;
+      }).filter((id): id is string => id !== null);
+      
+      // Filter out posts that are already approved or removed
+      const pendingPosts = posts.filter(post => 
+        !approvedPostIds.includes(post.id) && 
+        !removedPostIds.includes(post.id)
+      );
+      
+      return pendingPosts.length;
+    },
+    enabled: !!nostr && !!parsedId && isModerator === true,
+    staleTime: 30000, // Cache for 30 seconds to reduce duplicate queries
+  });
+  
+  // Set active tab to "pending" if there are pending posts and user is a moderator
+  useEffect(() => {
+    // Only change tab if we have pending posts and user is a moderator
+    if (isModerator && typeof pendingPostsCount === 'number' && pendingPostsCount > 0) {
+      setActiveTab("pending");
+    }
+  }, [isModerator, pendingPostsCount, setActiveTab]);
 
 
   // Extract community data from tags
@@ -169,12 +234,23 @@ export default function GroupDetail() {
 
       <Separator className="my-6" />
 
-      <Tabs defaultValue="posts" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="posts">
             <MessageSquare className="h-4 w-4 mr-2" />
             Posts
           </TabsTrigger>
+          {isModerator && (
+            <TabsTrigger value="pending" className="relative">
+              <Clock className="h-4 w-4 mr-2" />
+              Pending Approval
+              {typeof pendingPostsCount === 'number' && pendingPostsCount > 0 && (
+                <span className="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {pendingPostsCount}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="members">
             <Users className="h-4 w-4 mr-2" />
             Members
@@ -206,6 +282,12 @@ export default function GroupDetail() {
 
           <PostList communityId={groupId || ''} showOnlyApproved={showOnlyApproved} />
         </TabsContent>
+        
+        {isModerator && (
+          <TabsContent value="pending" className="space-y-6">
+            <PendingPostsList communityId={groupId || ''} />
+          </TabsContent>
+        )}
 
         <TabsContent value="members" className="space-y-6">
           {isModerator && (
