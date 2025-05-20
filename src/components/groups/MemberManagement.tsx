@@ -191,10 +191,29 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         content: "",
       });
       
+      // Add the removed user to the declined list (kind 14551)
+      // We'll create a generic event ID since we don't have a specific request event
+      const removalEventId = `removal:${pubkey}:${Date.now()}`;
+      
+      await publishEvent({
+        kind: 14551,
+        tags: [
+          ["a", communityId],
+          ["e", removalEventId], // Using a generated event ID
+          ["p", pubkey], // The pubkey of the removed user
+          ["k", "14550"] // Indicating this was a removal from the approved list
+        ],
+        content: JSON.stringify({
+          reason: "Removed from group by moderator",
+          timestamp: Date.now()
+        }),
+      });
+      
       toast.success("Member removed successfully!");
       
       // Refetch data
       refetchMembers();
+      refetchDeclined();
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
