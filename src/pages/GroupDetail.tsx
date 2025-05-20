@@ -54,10 +54,19 @@ export default function GroupDetail() {
     enabled: !!nostr && !!parsedId,
   });
   
+  // Check if user is the owner (the signer of the event)
+  const isOwner = user && community && user.pubkey === community.pubkey;
+  
   // Check if user is a moderator
-  const isModerator = user && community?.tags
+  const isModerator = isOwner || (user && community?.tags
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-    .some(tag => tag[1] === user.pubkey);
+    .some(tag => tag[1] === user.pubkey));
+    
+  // Debug logging
+  console.log("Current user pubkey:", user?.pubkey);
+  console.log("Community creator pubkey:", community?.pubkey);
+  console.log("Is owner:", isOwner);
+  console.log("Is moderator:", isModerator);
   
   // Extract community data from tags
   const nameTag = community?.tags.find(tag => tag[0] === "name");
@@ -127,10 +136,12 @@ export default function GroupDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Settings className="h-5 w-5 mr-2" />
-                  Moderator Controls
+                  {isOwner ? "Owner Controls" : "Moderator Controls"}
                 </CardTitle>
                 <CardDescription>
-                  You are a moderator of this community
+                  {isOwner 
+                    ? "You are the owner of this community" 
+                    : "You are a moderator of this community"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center py-4">
@@ -211,7 +222,7 @@ export default function GroupDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Users className="h-5 w-5 mr-2" />
-                  Moderators
+                  Group Owner & Moderators
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -271,7 +282,15 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
         </Avatar>
         <div>
           <p className="font-medium">{displayName}</p>
-          {isCreator && <p className="text-xs text-muted-foreground">Creator</p>}
+          {isCreator ? (
+            <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2 py-0.5">
+              Group Owner
+            </span>
+          ) : (
+            <span className="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5">
+              Moderator
+            </span>
+          )}
         </div>
       </div>
     </Link>

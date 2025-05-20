@@ -111,8 +111,13 @@ export default function GroupSettings() {
   // Check if user is a moderator
   const isModerator = user && moderators.includes(user.pubkey);
   
-  // Check if user is the creator (first moderator)
-  const isCreator = user && community && community.pubkey === user.pubkey;
+  // Check if user is the creator/owner (the signer of the original event)
+  const isOwner = user && community && user.pubkey === community.pubkey;
+  
+  // Debug logging
+  console.log("Current user pubkey:", user?.pubkey);
+  console.log("Community creator pubkey:", community?.pubkey);
+  console.log("Is owner:", isOwner);
   
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,8 +133,15 @@ export default function GroupSettings() {
       return;
     }
     
-    if (!isModerator && !isCreator) {
-      toast.error("You must be a moderator to update community settings");
+    // Only the owner can update moderators
+    if (moderators.some(mod => !community.tags.some(tag => tag[0] === "p" && tag[1] === mod && tag[3] === "moderator")) && !isOwner) {
+      toast.error("Only the group owner can add or remove moderators");
+      return;
+    }
+    
+    // Moderators can update general settings, but only the owner can update moderators
+    if (!isModerator && !isOwner) {
+      toast.error("You must be a moderator or the group owner to update community settings");
       return;
     }
     
@@ -168,6 +180,12 @@ export default function GroupSettings() {
   };
   
   const handleAddModerator = async (pubkey: string) => {
+    // Only the owner can add moderators
+    if (!isOwner) {
+      toast.error("Only the group owner can add moderators");
+      return;
+    }
+    
     if (!moderators.includes(pubkey)) {
       setModerators([...moderators, pubkey]);
       toast.success("Moderator added. Save changes to apply.");
@@ -175,9 +193,15 @@ export default function GroupSettings() {
   };
   
   const handleRemoveModerator = (pubkey: string) => {
-    // Don't allow removing the creator
+    // Only the owner can remove moderators
+    if (!isOwner) {
+      toast.error("Only the group owner can remove moderators");
+      return;
+    }
+    
+    // Don't allow removing the owner
     if (community && community.pubkey === pubkey) {
-      toast.error("Cannot remove the community creator");
+      toast.error("Cannot remove the group owner");
       return;
     }
     
@@ -206,11 +230,11 @@ export default function GroupSettings() {
     );
   }
   
-  if (!isModerator && !isCreator) {
+  if (!isModerator && !isOwner) {
     return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-        <p>You must be a moderator to access community settings.</p>
+        <p>You must be a moderator or the group owner to access community settings.</p>
         <Button asChild className="mt-4">
           <Link to={`/group/${encodeURIComponent(groupId || "")}`}>Back to Community</Link>
         </Button>
@@ -233,7 +257,9 @@ export default function GroupSettings() {
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="moderators">Moderators</TabsTrigger>
+          {isOwner && (
+            <TabsTrigger value="moderators">Moderators</TabsTrigger>
+          )}
         </TabsList>
         
         <form onSubmit={handleSubmit}>
@@ -306,10 +332,12 @@ export default function GroupSettings() {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Shield className="h-5 w-5 mr-2" />
-                    Current Moderators
+                    Group Owner & Moderators
                   </CardTitle>
                   <CardDescription>
-                    Manage who can moderate this community
+                    {isOwner 
+                      ? "As the group owner, you can manage who can moderate this community"
+                      : "Only the group owner can add or remove moderators"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -325,6 +353,16 @@ export default function GroupSettings() {
                           onRemove={() => setIsRemoveModDialogOpen(pubkey)}
                         />
                       ))
+                    )}
+                    
+                    {/* If the owner is not in the moderators list, add them separately */}
+                    {community && !moderators.includes(community.pubkey) && (
+                      <ModeratorItem 
+                        key={community.pubkey} 
+                        pubkey={community.pubkey} 
+                        isCreator={true}
+                        onRemove={() => {}} // Owner can't be removed
+                      />
                     )}
                   </div>
                 </CardContent>
@@ -343,7 +381,9 @@ export default function GroupSettings() {
                     Community Members
                   </CardTitle>
                   <CardDescription>
-                    Promote members to moderators
+                    {isOwner 
+                      ? "As the group owner, you can promote members to moderators"
+                      : "Only the group owner can promote members to moderators"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -374,7 +414,8 @@ export default function GroupSettings() {
                           <MemberItem 
                             key={pubkey} 
                             pubkey={pubkey} 
-                            onPromote={() => handleAddModerator(pubkey)} 
+                            onPromote={() => handleAddModerator(pubkey)}
+                            isOwner={isOwner}
                           />
                         ))}
                     </div>
@@ -423,6 +464,7 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
   const displayName = metadata?.name || pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
   const isCurrentUser = user?.pubkey === pubkey;
+  const isOwner = isCreator; // This is passed from the parent component
   
   return (
     <div className="flex items-center justify-between p-3 border rounded-md">
@@ -438,9 +480,13 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
             {displayName}
           </Link>
           <div className="flex items-center gap-2">
-            {isCreator && (
+            {isOwner ? (
+              <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2 py-0.5">
+                Group Owner
+              </span>
+            ) : (
               <span className="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5">
-                Creator
+                Moderator
               </span>
             )}
             {isCurrentUser && (
@@ -451,12 +497,13 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
           </div>
         </div>
       </div>
-      {!isCreator && (
+      {!isOwner && user && (
         <Button 
           variant="outline" 
           size="sm" 
           className="text-red-600"
           onClick={onRemove}
+          disabled={!isCurrentUser && !user.pubkey}
         >
           <Trash2 className="h-4 w-4 mr-1" />
           Remove
@@ -469,9 +516,10 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
 interface MemberItemProps {
   pubkey: string;
   onPromote: () => void;
+  isOwner: boolean;
 }
 
-function MemberItem({ pubkey, onPromote }: MemberItemProps) {
+function MemberItem({ pubkey, onPromote, isOwner }: MemberItemProps) {
   const author = useAuthor(pubkey);
   const { user } = useCurrentUser();
   const metadata = author.data?.metadata;
@@ -504,6 +552,8 @@ function MemberItem({ pubkey, onPromote }: MemberItemProps) {
         variant="outline" 
         size="sm"
         onClick={onPromote}
+        disabled={!isOwner}
+        title={!isOwner ? "Only the group owner can add moderators" : ""}
       >
         <UserPlus className="h-4 w-4 mr-1" />
         Make Moderator
