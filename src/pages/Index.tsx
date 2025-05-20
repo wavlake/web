@@ -102,8 +102,12 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white p-8">
         <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg text-center">
-          <h1 className="text-4xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-            Welcome to Chorus
+          <h1 className="text-4xl font-extralight mb-4">
+            <div className="text-4xl">Welcome to</div>
+            <div className="flex flex-row gap-0 items-baseline justify-center">
+              <span className="text-red-500 font-extrabold text-4xl">+</span>
+              <span className="text-black font-extrabold text-4xl">Chorus</span>
+            </div>
           </h1>
           <p className="text-lg text-gray-600 mb-8">
             Create your account to get started.
