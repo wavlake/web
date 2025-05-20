@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
+import { usePendingReplies } from "@/hooks/usePendingReplies";
+import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -13,10 +15,11 @@ import { Label } from "@/components/ui/label";
 import { useAuthor } from "@/hooks/useAuthor";
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
+import { PendingPostsList } from "@/components/groups/PendingPostsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 
@@ -26,6 +29,7 @@ export default function GroupDetail() {
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
+  const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
     if (groupId) {
@@ -35,6 +39,8 @@ export default function GroupDetail() {
       }
     }
   }, [groupId]);
+
+  // We'll move the pending posts count query after isModerator is defined
 
   const { data: community, isLoading: isLoadingCommunity } = useQuery({
     queryKey: ["community", parsedId?.pubkey, parsedId?.identifier],
@@ -68,6 +74,23 @@ export default function GroupDetail() {
   console.log("Community creator pubkey:", community?.pubkey);
   console.log("Is owner:", isOwner);
   console.log("Is moderator:", isModerator);
+  
+  // Query for pending posts count using our custom hook
+  const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
+  
+  // Query for pending replies
+  const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
+  
+  // Calculate total pending items (posts + replies)
+  const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
+  
+  // Set active tab to "pending" if there are pending posts/replies and user is a moderator
+  useEffect(() => {
+    // Only change tab if we have pending items and user is a moderator
+    if (isModerator && totalPendingCount > 0) {
+      setActiveTab("pending");
+    }
+  }, [isModerator, totalPendingCount, setActiveTab]);
 
 
   // Extract community data from tags
@@ -169,12 +192,23 @@ export default function GroupDetail() {
 
       <Separator className="my-6" />
 
-      <Tabs defaultValue="posts" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="posts">
             <MessageSquare className="h-4 w-4 mr-2" />
             Posts
           </TabsTrigger>
+          {isModerator && (
+            <TabsTrigger value="pending" className="relative">
+              <Clock className="h-4 w-4 mr-2" />
+              Pending Approval
+              {totalPendingCount > 0 && (
+                <span className="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {totalPendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="members">
             <Users className="h-4 w-4 mr-2" />
             Members
@@ -206,6 +240,12 @@ export default function GroupDetail() {
 
           <PostList communityId={groupId || ''} showOnlyApproved={showOnlyApproved} />
         </TabsContent>
+        
+        {isModerator && (
+          <TabsContent value="pending" className="space-y-6">
+            <PendingPostsList communityId={groupId || ''} />
+          </TabsContent>
+        )}
 
         <TabsContent value="members" className="space-y-6">
           {isModerator && (

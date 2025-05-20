@@ -3,6 +3,9 @@ import { NostrEvent } from "@nostrify/nostrify";
 import { useReplies, useNestedReplies } from "@/hooks/useReplies";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useApprovedMembers } from "@/hooks/useApprovedMembers";
+import { useReplyApprovals } from "@/hooks/useReplyApprovals";
+import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,9 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { NoteContent } from "../NoteContent";
 import { ReplyForm } from "./ReplyForm";
 import { Link } from "react-router-dom";
-import { MessageSquare, Heart } from "lucide-react";
+import { MessageSquare, Heart, CheckCircle, AlertTriangle, Shield } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ReplyListProps {
   postId: string;
@@ -22,6 +27,13 @@ interface ReplyListProps {
 
 export function ReplyList({ postId, communityId, postAuthorPubkey }: ReplyListProps) {
   const { data: replies, isLoading, refetch } = useReplies(postId, communityId);
+  const { user } = useCurrentUser();
+  const { approvedMembers, moderators, isApprovedMember } = useApprovedMembers(communityId);
+  const { replyApprovals, isReplyApproved } = useReplyApprovals(communityId);
+  const [showOnlyApproved, setShowOnlyApproved] = useState(true);
+  
+  // Check if current user is a moderator
+  const isUserModerator = user ? moderators.includes(user.pubkey) : false;
   
   if (isLoading) {
     return (
@@ -56,13 +68,59 @@ export function ReplyList({ postId, communityId, postAuthorPubkey }: ReplyListPr
     );
   }
   
+  // Process replies to mark which ones are approved
+  const processedReplies = replies.map(reply => {
+    // Check if reply is explicitly approved by a moderator
+    const isExplicitlyApproved = isReplyApproved(reply.id);
+    
+    // Check if author is an approved member or moderator (auto-approval)
+    const isAuthorApproved = isApprovedMember(reply.pubkey);
+    
+    // A reply is considered approved if it's either explicitly approved or from an approved author
+    const isApproved = isExplicitlyApproved || isAuthorApproved;
+    
+    return {
+      ...reply,
+      isApproved,
+      isAutoApproved: isAuthorApproved && !isExplicitlyApproved,
+      isPendingApproval: !isApproved
+    };
+  });
+  
+  // Filter replies based on approval status if showOnlyApproved is true
+  const filteredReplies = showOnlyApproved && !isUserModerator
+    ? processedReplies.filter(reply => reply.isApproved)
+    : processedReplies;
+  
+  // Count approved and pending replies
+  const approvedCount = processedReplies.filter(reply => reply.isApproved).length;
+  const pendingCount = processedReplies.length - approvedCount;
+  
   return (
     <div className="mt-4 space-y-4">
-      <div className="text-sm font-medium text-muted-foreground mb-2">
-        {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium text-muted-foreground">
+          {filteredReplies.length} {filteredReplies.length === 1 ? 'reply' : 'replies'}
+          {pendingCount > 0 && isUserModerator && (
+            <span className="ml-2 text-amber-600">({pendingCount} pending approval)</span>
+          )}
+        </div>
+        
+        {(pendingCount > 0 || !showOnlyApproved) && isUserModerator && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-pending"
+              checked={!showOnlyApproved}
+              onCheckedChange={(checked) => setShowOnlyApproved(!checked)}
+            />
+            <Label htmlFor="show-pending" className="text-xs">
+              Show pending replies
+            </Label>
+          </div>
+        )}
       </div>
       
-      {replies.map((reply) => (
+      {filteredReplies.map((reply) => (
         <ReplyItem 
           key={reply.id} 
           reply={reply} 
@@ -70,6 +128,7 @@ export function ReplyList({ postId, communityId, postAuthorPubkey }: ReplyListPr
           postId={postId}
           postAuthorPubkey={postAuthorPubkey}
           onReplySubmitted={() => refetch()}
+          isUserModerator={isUserModerator}
         />
       ))}
       
@@ -86,19 +145,27 @@ export function ReplyList({ postId, communityId, postAuthorPubkey }: ReplyListPr
 }
 
 interface ReplyItemProps {
-  reply: NostrEvent;
+  reply: NostrEvent & {
+    isApproved: boolean;
+    isAutoApproved: boolean;
+    isPendingApproval: boolean;
+  };
   communityId: string;
   postId: string;
   postAuthorPubkey: string;
   onReplySubmitted: () => void;
+  isUserModerator: boolean;
 }
 
-function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmitted }: ReplyItemProps) {
+function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmitted, isUserModerator }: ReplyItemProps) {
   const author = useAuthor(reply.pubkey);
   const { user } = useCurrentUser();
+  const { mutateAsync: publishEvent } = useNostrPublish();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { data: nestedReplies, isLoading: isLoadingNested, refetch: refetchNested } = useNestedReplies(reply.id);
   const [showNestedReplies, setShowNestedReplies] = useState(true);
+  const { approvedMembers, isApprovedMember } = useApprovedMembers(communityId);
+  const { replyApprovals, isReplyApproved } = useReplyApprovals(communityId);
   
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || reply.pubkey.slice(0, 8);
@@ -108,6 +175,57 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
     setShowReplyForm(false);
     refetchNested();
     onReplySubmitted();
+  };
+  
+  // Process nested replies to mark which ones are approved
+  const processedNestedReplies = nestedReplies?.map(nestedReply => {
+    // Check if reply is explicitly approved by a moderator
+    const isExplicitlyApproved = isReplyApproved(nestedReply.id);
+    
+    // Check if author is an approved member or moderator (auto-approval)
+    const isAuthorApproved = isApprovedMember(nestedReply.pubkey);
+    
+    // A reply is considered approved if it's either explicitly approved or from an approved author
+    const isApproved = isExplicitlyApproved || isAuthorApproved;
+    
+    return {
+      ...nestedReply,
+      isApproved,
+      isAutoApproved: isAuthorApproved && !isExplicitlyApproved,
+      isPendingApproval: !isApproved
+    };
+  }) || [];
+  
+  // Filter nested replies based on approval status if not a moderator
+  const filteredNestedReplies = !isUserModerator
+    ? processedNestedReplies.filter(nestedReply => nestedReply.isApproved)
+    : processedNestedReplies;
+  
+  const handleApproveReply = async () => {
+    if (!user) {
+      toast.error("You must be logged in to approve replies");
+      return;
+    }
+    
+    try {
+      // Create approval event (kind 4550)
+      await publishEvent({
+        kind: 4550,
+        tags: [
+          ["a", communityId],
+          ["e", reply.id],
+          ["p", reply.pubkey],
+          ["k", "1111"], // Reply kind
+        ],
+        content: JSON.stringify(reply),
+      });
+      
+      toast.success("Reply approved successfully!");
+      onReplySubmitted(); // Refresh the list
+    } catch (error) {
+      console.error("Error approving reply:", error);
+      toast.error("Failed to approve reply. Please try again.");
+    }
   };
   
   return (
@@ -122,14 +240,28 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
           </Link>
           
           <div className="flex-1">
-            <div className="bg-muted/50 rounded-lg p-3">
+            <div className={`${reply.isPendingApproval ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-muted/50'} rounded-lg p-3`}>
               <div className="flex items-center justify-between mb-1">
                 <Link to={`/profile/${reply.pubkey}`} className="hover:underline">
                   <p className="font-semibold text-sm">{displayName}</p>
                 </Link>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(reply.created_at * 1000).toLocaleString()}
-                </span>
+                <div className="flex items-center">
+                  {reply.isApproved && (
+                    <span className="text-xs text-green-600 dark:text-green-400 flex items-center mr-2">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      {reply.isAutoApproved ? 'Auto-approved' : 'Approved'}
+                    </span>
+                  )}
+                  {reply.isPendingApproval && (
+                    <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center mr-2">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Pending approval
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(reply.created_at * 1000).toLocaleString()}
+                  </span>
+                </div>
               </div>
               
               <div className="text-sm">
@@ -150,14 +282,26 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
                 Reply
               </Button>
               
-              {nestedReplies && nestedReplies.length > 0 && (
+              {isUserModerator && reply.isPendingApproval && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleApproveReply}
+                  className="text-xs text-green-600 h-6 px-2 border-green-200"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Approve
+                </Button>
+              )}
+              
+              {filteredNestedReplies.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="text-xs text-muted-foreground h-6 px-2"
                   onClick={() => setShowNestedReplies(!showNestedReplies)}
                 >
-                  {showNestedReplies ? 'Hide replies' : `Show ${nestedReplies.length} replies`}
+                  {showNestedReplies ? 'Hide replies' : `Show ${filteredNestedReplies.length} replies`}
                 </Button>
               )}
             </div>
@@ -176,9 +320,9 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
               </div>
             )}
             
-            {showNestedReplies && nestedReplies && nestedReplies.length > 0 && (
+            {showNestedReplies && filteredNestedReplies.length > 0 && (
               <div className="mt-3 space-y-3">
-                {nestedReplies.map(nestedReply => (
+                {filteredNestedReplies.map(nestedReply => (
                   <ReplyItem
                     key={nestedReply.id}
                     reply={nestedReply}
@@ -186,6 +330,7 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
                     postId={postId}
                     postAuthorPubkey={postAuthorPubkey}
                     onReplySubmitted={refetchNested}
+                    isUserModerator={isUserModerator}
                   />
                 ))}
               </div>
