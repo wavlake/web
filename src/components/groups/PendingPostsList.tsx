@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostList } from "./PostList";
+import { PendingRepliesList } from "./PendingRepliesList";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface PendingPostsListProps {
   communityId: string;
@@ -62,7 +64,8 @@ export function PendingPostsList({ communityId }: PendingPostsListProps) {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Pending Approval</AlertTitle>
             <AlertDescription>
-              These posts are waiting for moderator approval before they will be visible to all community members.
+              These posts are from users who are not approved members, moderators, or the group owner.
+              They need your approval before they will be visible to all community members.
             </AlertDescription>
           </Alert>
           
@@ -73,6 +76,12 @@ export function PendingPostsList({ communityId }: PendingPostsListProps) {
           />
         </>
       )}
+      
+      {/* Separator between posts and replies */}
+      <Separator className="my-8" />
+      
+      {/* Pending Replies Section */}
+      <PendingRepliesList communityId={communityId} />
     </div>
   );
 }

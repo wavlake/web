@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
+import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -167,13 +168,19 @@ export default function GroupDetail() {
     staleTime: 30000, // Cache for 30 seconds to reduce duplicate queries
   });
   
-  // Set active tab to "pending" if there are pending posts and user is a moderator
+  // Query for pending replies
+  const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
+  
+  // Calculate total pending items (posts + replies)
+  const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
+  
+  // Set active tab to "pending" if there are pending posts/replies and user is a moderator
   useEffect(() => {
-    // Only change tab if we have pending posts and user is a moderator
-    if (isModerator && typeof pendingPostsCount === 'number' && pendingPostsCount > 0) {
+    // Only change tab if we have pending items and user is a moderator
+    if (isModerator && totalPendingCount > 0) {
       setActiveTab("pending");
     }
-  }, [isModerator, pendingPostsCount, setActiveTab]);
+  }, [isModerator, totalPendingCount, setActiveTab]);
 
 
   // Extract community data from tags
@@ -285,9 +292,9 @@ export default function GroupDetail() {
             <TabsTrigger value="pending" className="relative">
               <Clock className="h-4 w-4 mr-2" />
               Pending Approval
-              {typeof pendingPostsCount === 'number' && pendingPostsCount > 0 && (
+              {totalPendingCount > 0 && (
                 <span className="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5">
-                  {pendingPostsCount}
+                  {totalPendingCount}
                 </span>
               )}
             </TabsTrigger>
