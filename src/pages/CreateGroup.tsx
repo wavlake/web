@@ -31,7 +31,7 @@ export default function CreateGroup() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
         <h1 className="text-2xl font-bold mb-4">You must be logged in to create a community</h1>
         <Button asChild>
           <Link to="/groups">Back to Communities</Link>
@@ -110,7 +110,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
 
       <Card>

@@ -1,5 +1,5 @@
 import { useNostr } from "@/hooks/useNostr";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
 import { NostrEvent } from "@nostrify/nostrify";
+import { nip19 } from 'nostr-tools';
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -38,9 +39,10 @@ import {
 interface PostListProps {
   communityId: string;
   showOnlyApproved?: boolean;
+  onPostCountChange?: (count: number) => void; // New prop
 }
 
-export function PostList({ communityId, showOnlyApproved = false }: PostListProps) {
+export function PostList({ communityId, showOnlyApproved = false, onPostCountChange }: PostListProps) { // Added onPostCountChange
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { bannedUsers } = useBannedUsers(communityId);
@@ -51,19 +53,15 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
-      // Get approval events
       const approvals = await nostr.query([{ 
         kinds: [4550],
         "#a": [communityId],
         limit: 50,
       }], { signal });
       
-      // Extract the approved posts from the content field
       return approvals.map(approval => {
         try {
-          // Parse the approved post from the content
           const approvedPost = JSON.parse(approval.content) as NostrEvent;
-          // Add the approval information
           return {
             ...approvedPost,
             approval: {
@@ -89,14 +87,12 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
-      // Get removal events
       const removals = await nostr.query([{ 
         kinds: [4551],
         "#a": [communityId],
         limit: 50,
       }], { signal });
       
-      // Extract the post IDs that have been removed
       return removals.map(removal => {
         const eventTag = removal.tags.find(tag => tag[0] === "e");
         return eventTag ? eventTag[1] : null;
@@ -105,19 +101,16 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     enabled: !!nostr && !!communityId,
   });
   
-  // Query for pending posts (posts that tag the community but don't have approvals yet)
+  // Query for pending posts
   const { data: pendingPosts, isLoading: isLoadingPending } = useQuery({
     queryKey: ["pending-posts", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      // Get posts that tag the community (both kind 1 and kind 11 for backward compatibility)
       const posts = await nostr.query([{ 
         kinds: [1, 11],
         "#a": [communityId],
         limit: 50,
       }], { signal });
-      
       return posts;
     },
     enabled: !!nostr && !!communityId,
@@ -128,13 +121,11 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     queryKey: ["approved-members-list", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
       const events = await nostr.query([{ 
         kinds: [14550],
         "#a": [communityId],
         limit: 10,
       }], { signal });
-      
       return events;
     },
     enabled: !!nostr && !!communityId,
@@ -145,64 +136,46 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     queryKey: ["community-details", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      // Parse the community ID to get the pubkey and identifier
       const parsedId = communityId.includes(':') 
         ? parseNostrAddress(communityId)
         : null;
-      
       if (!parsedId) return null;
-      
       const events = await nostr.query([{ 
         kinds: [34550],
         authors: [parsedId.pubkey],
         "#d": [parsedId.identifier],
       }], { signal });
-      
       return events[0] || null;
     },
     enabled: !!nostr && !!communityId,
   });
   
-  // Extract approved members pubkeys
   const approvedMembers = approvedMembersEvents?.flatMap(event => 
     event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
   ) || [];
   
-  // Extract moderator pubkeys
   const moderators = communityEvent?.tags
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .map(tag => tag[1]) || [];
     
-  // Check if current user is a moderator
   const isUserModerator = Boolean(user && moderators.includes(user.pubkey));
   
-  // Combine and sort all posts
   const allPosts = [...(approvedPosts || []), ...(pendingPosts || [])];
   
-  // Remove duplicates (posts that are both in pending and approved)
   const uniquePosts = allPosts.filter((post, index, self) => 
     index === self.findIndex(p => p.id === post.id)
   );
   
-  // Filter out removed posts and posts from banned users
   const removedPostIds = removedPosts || [];
   const postsWithoutRemoved = uniquePosts.filter(post => 
     !removedPostIds.includes(post.id) && 
-    !bannedUsers.includes(post.pubkey) // Filter out posts from banned users
+    !bannedUsers.includes(post.pubkey) 
   );
   
-  // Process posts to mark auto-approved ones
   const processedPosts = postsWithoutRemoved.map(post => {
-    // If it's already approved, keep it as is
-    if ('approval' in post) {
-      return post;
-    }
-    
-    // Auto-approve if author is an approved member or moderator
+    if ('approval' in post) return post;
     const isApprovedMember = approvedMembers.includes(post.pubkey);
     const isModerator = moderators.includes(post.pubkey);
-    
     if (isApprovedMember || isModerator) {
       return {
         ...post,
@@ -214,22 +187,23 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
         }
       };
     }
-    
     return post;
   });
   
-  // Count approved and pending posts
-  const approvedCount = processedPosts.filter(post => 'approval' in post).length;
-  const pendingCount = processedPosts.length - approvedCount;
-  
-  // Filter posts based on approval status if showOnlyApproved is true
+  const pendingCount = processedPosts.filter(post => !('approval' in post)).length; // Recalculate pending for empty message
+
   const filteredPosts = showOnlyApproved 
     ? processedPosts.filter(post => 'approval' in post)
     : processedPosts;
   
-  // Sort by created_at (newest first)
   const sortedPosts = filteredPosts.sort((a, b) => b.created_at - a.created_at);
-  
+
+  useEffect(() => {
+    if (onPostCountChange) {
+      onPostCountChange(sortedPosts.length);
+    }
+  }, [sortedPosts, onPostCountChange]);
+
   if (isLoadingApproved || isLoadingPending) {
     return (
       <div className="space-y-4">
@@ -278,26 +252,8 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-muted-foreground">
-          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : ""} posts
-        </div>
-        
-        <div className="flex gap-3 text-sm">
-          <span className="flex items-center">
-            <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-            {approvedCount} approved
-          </span>
-          {!showOnlyApproved && pendingCount > 0 && (
-            <span className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
-              {pendingCount} pending
-            </span>
-          )}
-        </div>
-      </div>
-      
+    <div className="space-y-3">
+      {/* Removed the header div that showed post counts */}
       {sortedPosts.map((post) => (
         <PostItem 
           key={post.id} 
@@ -324,7 +280,6 @@ function LikeButton({ postId }: LikeButtonProps) {
       toast.error("You must be logged in to like posts");
       return;
     }
-    
     await toggleLike();
   };
   
@@ -332,24 +287,26 @@ function LikeButton({ postId }: LikeButtonProps) {
     <Button 
       variant="ghost" 
       size="sm" 
-      className={`${hasLiked ? 'text-pink-500' : 'text-muted-foreground'} flex items-center`}
+      className={`${hasLiked ? 'text-pink-500 hover:text-pink-600' : 'text-muted-foreground hover:text-foreground'} flex items-center h-7 px-1.5`} 
       onClick={handleClick}
       disabled={isLoading || !user}
     >
-      <Heart className={`h-4 w-4 mr-2 ${hasLiked ? 'fill-pink-500' : ''}`} />
-      {likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'Like' : 'Likes'}` : 'Like'}
+      <Heart className={`h-3.5 w-3.5 mr-1 ${hasLiked ? 'fill-pink-500' : ''}`} /> 
+      <span className="text-xs">
+        {likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'Like' : 'Likes'}` : 'Like'}
+      </span>
     </Button>
   );
 }
 
 interface PostItemProps {
-  post: NostrEvent & { 
-    approval?: { 
-      id: string; 
-      pubkey: string; 
+  post: NostrEvent & {
+    approval?: {
+      id: string;
+      pubkey: string;
       created_at: number;
       autoApproved?: boolean;
-    } 
+    }
   };
   communityId: string;
   isApproved: boolean;
@@ -364,62 +321,62 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  
+
   const metadata = author.data?.metadata;
-  const displayName = metadata?.name || post.pubkey.slice(0, 8);
+  const displayName = metadata?.name || post.pubkey.slice(0, 12);
   const profileImage = metadata?.picture;
-  
-  // isModerator is now passed as a prop, so we don't need to check again
-  
+
+  const authorNip05 = metadata?.nip05;
+  let authorIdentifier = authorNip05 || post.pubkey;
+  if (!authorNip05 && post.pubkey.match(/^[0-9a-fA-F]{64}$/)) {
+      try {
+          const npub = nip19.npubEncode(post.pubkey);
+          authorIdentifier = `${npub.slice(0,10)}...${npub.slice(-4)}`;
+      } catch (e) {
+          authorIdentifier = `${post.pubkey.slice(0,8)}...${post.pubkey.slice(-4)}`;
+      }
+  } else if (!authorNip05) {
+    authorIdentifier = `${post.pubkey.slice(0,8)}...${post.pubkey.slice(-4)}`;
+  }
+
+  const postDate = new Date(post.created_at * 1000);
+  const formattedTimestamp = postDate.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  }) + ', ' + postDate.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
   const handleApprovePost = async () => {
     if (!user) {
       toast.error("You must be logged in to approve posts");
       return;
     }
-    
     try {
-      // Create approval event (kind 4550)
       await publishEvent({
         kind: 4550,
-        tags: [
-          ["a", communityId],
-          ["e", post.id],
-          ["p", post.pubkey],
-          ["k", String(post.kind)],
-        ],
+        tags: [["a", communityId], ["e", post.id], ["p", post.pubkey], ["k", String(post.kind)]],
         content: JSON.stringify(post),
       });
-      
       toast.success("Post approved successfully!");
     } catch (error) {
       console.error("Error approving post:", error);
       toast.error("Failed to approve post. Please try again.");
     }
   };
-  
+
   const handleRemovePost = async () => {
     if (!user) {
       toast.error("You must be logged in to remove posts");
       return;
     }
-    
     try {
-      // Create removal event (kind 4551)
       await publishEvent({
         kind: 4551,
-        tags: [
-          ["a", communityId],
-          ["e", post.id],
-          ["p", post.pubkey],
-          ["k", String(post.kind)],
-        ],
-        content: JSON.stringify({
-          reason: "Removed by moderator",
-          timestamp: Date.now(),
-          post: post // Include the original post for reference
-        }),
+        tags: [["a", communityId], ["e", post.id], ["p", post.pubkey], ["k", String(post.kind)]],
+        content: JSON.stringify({ reason: "Removed by moderator", timestamp: Date.now(), post: post }),
       });
-      
       toast.success("Post removed successfully!");
       setIsRemoveDialogOpen(false);
     } catch (error) {
@@ -427,17 +384,14 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
       toast.error("Failed to remove post. Please try again.");
     }
   };
-  
+
   const handleBanUser = async () => {
     if (!user) {
       toast.error("You must be logged in to ban users");
       return;
     }
-    
     try {
-      // Ban the user
       await banUser(post.pubkey);
-      
       toast.success("User banned successfully!");
       setIsBanDialogOpen(false);
     } catch (error) {
@@ -445,157 +399,116 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
       toast.error("Failed to ban user. Please try again.");
     }
   };
-  
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start gap-4 pb-2">
-        <Link to={`/profile/${post.pubkey}`}>
-          <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
-            <AvatarImage src={profileImage} />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+    <div className="py-2.5 px-3 hover:bg-muted/10 transition-colors rounded-md border border-transparent hover:border-border/30">
+      <div className="flex flex-row items-start gap-2.5"> 
+        <Link to={`/profile/${post.pubkey}`} className="flex-shrink-0">
+          <Avatar className="h-9 w-9 cursor-pointer hover:opacity-80 transition-opacity">
+            <AvatarImage src={profileImage} alt={displayName} />
+            <AvatarFallback>{displayName.slice(0, 1).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>
         
         <div className="flex-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
               <Link to={`/profile/${post.pubkey}`} className="hover:underline">
-                <p className="font-semibold">{displayName}</p>
+                <p className="font-semibold text-sm leading-tight">{displayName}</p> 
               </Link>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+              <div className="flex items-center text-xs text-muted-foreground mt-0 flex-wrap">
+                <span className="mr-1.5 hover:underline cursor-help" title={post.pubkey}>@{authorIdentifier}</span>
+                <span className="mr-1.5">·</span>
+                <span className="mr-1.5 whitespace-nowrap">{formattedTimestamp}</span>
                 {isApproved ? (
-                  <span className="ml-2 text-green-600 dark:text-green-400 flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    {post.approval?.autoApproved ? 'Auto-approved' : 'Approved'}
+                  <span className="text-green-600 dark:text-green-400 flex items-center whitespace-nowrap">
+                    <CheckCircle className="h-3 w-3 mr-0.5 flex-shrink-0" />
+                    {post.approval?.autoApproved ? 'Auto-ok' : 'Ok'} 
                   </span>
                 ) : (
-                  <span className="ml-2 text-amber-600 dark:text-amber-400 flex items-center">
-                    <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
-                    Pending approval
+                  <span className="text-amber-600 dark:text-amber-400 flex items-center whitespace-nowrap">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mr-1 flex-shrink-0"></span>
+                    Pending
                   </span>
                 )}
               </div>
             </div>
             
             {isModerator && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5 ml-1 flex-shrink-0">
                 {!isApproved && (
                   <Button 
                     variant="outline" 
-                    size="sm"
+                    size="icon" 
                     onClick={handleApprovePost}
-                    className="text-green-600"
+                    className="text-green-600 h-6 w-6"
                   >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Approve
+                    <CheckCircle className="h-3.5 w-3.5" /> 
+                    <span className="sr-only">Approve</span>
                   </Button>
                 )}
-                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Shield className="h-4 w-4 mr-1" />
-                      <span className="sr-only md:not-sr-only md:inline-block">Moderate</span>
-                      <MoreHorizontal className="h-4 w-4 md:hidden" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                      <Shield className="h-3.5 w-3.5" />
+                      <span className="sr-only">Moderate</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {!isApproved && (
-                      <DropdownMenuItem onClick={handleApprovePost}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Approve Post
+                      <DropdownMenuItem onClick={handleApprovePost} className="text-xs">
+                        <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve Post
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
-                      onClick={() => setIsRemoveDialogOpen(true)}
-                      className="text-red-600"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Remove Post
+                    <DropdownMenuItem onClick={() => setIsRemoveDialogOpen(true)} className="text-red-600 text-xs">
+                      <XCircle className="h-3.5 w-3.5 mr-1.5" /> Remove Post
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setIsBanDialogOpen(true)}
-                      className="text-red-600"
-                    >
-                      <Ban className="h-4 w-4 mr-2" />
-                      Ban User
+                    <DropdownMenuItem onClick={() => setIsBanDialogOpen(true)} className="text-red-600 text-xs">
+                      <Ban className="h-3.5 w-3.5 mr-1.5" /> Ban User
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
                 <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Post</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to remove this post? This action will hide the post from the community.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleRemovePost}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Remove Post
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
+                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Remove Post</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove this post? This action will hide the post from the community.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleRemovePost} className="bg-red-600 hover:bg-red-700">Remove Post</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                 </AlertDialog>
-                
                 <AlertDialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Ban User</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to ban this user? They will no longer be able to post in this community, and all their existing posts will be hidden.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleBanUser}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Ban User
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
+                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Ban User</AlertDialogTitle><AlertDialogDescription>Are you sure you want to ban this user? They will no longer be able to post in this community, and all their existing posts will be hidden.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleBanUser} className="bg-red-600 hover:bg-red-700">Ban User</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                 </AlertDialog>
               </div>
             )}
           </div>
         </div>
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="whitespace-pre-wrap break-words">
-          <NoteContent event={post} className="text-sm" />
+      </div>
+
+      {/* Content Section - indented to align with text below author name */}
+      <div className="pt-1 pb-1.5 pl-[calc(2.25rem+0.625rem)]">
+        <div className="whitespace-pre-wrap break-words text-sm">
+          <NoteContent event={post} />
         </div>
-      </CardContent>
-      
-      <CardFooter className="flex-col">
-        <div className="flex gap-4 w-full">
-          <LikeButton postId={post.id} />
+      </div>
+
+      {/* Footer Section - indented similarly */}
+      <div className="flex-col pt-1.5 pl-[calc(2.25rem+0.625rem)]">
+        <div className="flex items-center gap-1 w-full">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-muted-foreground"
+            className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
             onClick={() => setShowReplies(!showReplies)}
           >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            {showReplies ? "Hide replies" : "Reply"}
-            {showReplies ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+            <MessageSquare className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">{showReplies ? "Hide" : "Reply"}</span>
+            {showReplies ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
           </Button>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
+          <LikeButton postId={post.id} /> 
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5">
+            <Share2 className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">Share</span>
           </Button>
         </div>
         
         {showReplies && (
-          <div className="w-full mt-4">
+          <div className="w-full mt-2.5">
             <ReplyList 
               postId={post.id} 
               communityId={communityId} 
@@ -603,7 +516,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
             />
           </div>
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
