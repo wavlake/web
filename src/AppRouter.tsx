@@ -7,6 +7,8 @@ import GroupDetail from "./pages/GroupDetail";
 import GroupSettings from "./pages/GroupSettings";
 import CreateGroup from "./pages/CreateGroup";
 import Profile from "./pages/Profile";
+import ProfileSettings from "./pages/settings/ProfileSettings";
+import Settings from "./pages/settings/Settings";
 
 export function AppRouter() {
   return (
@@ -18,6 +20,8 @@ export function AppRouter() {
         <Route path="/group/:groupId/settings" element={<GroupSettings />} />
         <Route path="/create-group" element={<CreateGroup />} />
         <Route path="/profile/:pubkey" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/profile" element={<ProfileSettings />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -10,24 +10,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Upload } from "lucide-react";
+import Header from "@/components/ui/Header";
 
 export default function CreateGroup() {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     identifier: "",
     description: "",
     imageUrl: "",
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
+
   if (!user) {
     return (
       <div className="container mx-auto p-4">
@@ -38,17 +39,17 @@ export default function CreateGroup() {
       </div>
     );
   }
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    if (file) {
       setImageFile(file);
-      
+
       // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -57,47 +58,47 @@ export default function CreateGroup() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.identifier || !formData.description) {
       toast.error("Please fill in all required fields");
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Upload image if selected
       let imageUrl = formData.imageUrl;
       if (imageFile) {
         const [[_, uploadedUrl]] = await uploadFile(imageFile);
         imageUrl = uploadedUrl;
       }
-      
+
       // Create community event (kind 34550)
       const tags = [
         ["d", formData.identifier],
         ["name", formData.name],
         ["description", formData.description],
       ];
-      
+
       // Add image tag if available
       if (imageUrl) {
         tags.push(["image", imageUrl]);
       }
-      
+
       // Add current user as moderator
       tags.push(["p", user.pubkey, "", "moderator"]);
-      
+
       // Publish the community event
       await publishEvent({
         kind: 34550,
         tags,
         content: "",
       });
-      
+
       toast.success("Community created successfully!");
       navigate("/groups");
     } catch (error) {
@@ -107,22 +108,14 @@ export default function CreateGroup() {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <div className="container max-w-3xl mx-auto p-4">
-      <div className="mb-6">
-        <Link to="/groups" className="text-sm text-muted-foreground hover:underline mb-2 inline-flex items-center">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Communities
-        </Link>
-        <h1 className="text-3xl font-bold">Create a New Community</h1>
-      </div>
-      
+    <div className="container mx-auto p-4">
+      <Header />
+
       <Card>
         <CardHeader>
-          <CardTitle>Community Details</CardTitle>
-          <CardDescription>
-            Fill in the information below to create your Nostr community.
-          </CardDescription>
+          <CardTitle>Create a Community</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
@@ -137,7 +130,7 @@ export default function CreateGroup() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="identifier">
                 Community Identifier *
@@ -154,7 +147,7 @@ export default function CreateGroup() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Textarea
@@ -167,7 +160,7 @@ export default function CreateGroup() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label>Community Image</Label>
               <div className="flex items-start gap-4">
@@ -195,12 +188,12 @@ export default function CreateGroup() {
                     Upload an image or provide a URL for your community banner
                   </p>
                 </div>
-                
+
                 {previewUrl && (
                   <div className="w-24 h-24 rounded overflow-hidden flex-shrink-0">
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -208,17 +201,17 @@ export default function CreateGroup() {
               </div>
             </div>
           </CardContent>
-          
+
           <CardFooter className="flex justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => navigate("/groups")}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting || isUploading || !formData.name || !formData.identifier || !formData.description}
             >
               {isSubmitting || isUploading ? "Creating..." : "Create Community"}

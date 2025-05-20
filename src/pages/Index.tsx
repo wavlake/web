@@ -136,7 +136,7 @@ const Index = () => {
           <p className="text-gray-600 mb-6 text-center">
             Add your display name, bio, and profile picture. You can always update this later.
           </p>
-          <EditProfileForm />
+          <EditProfileForm showSkipLink={true} />
         </div>
       </div>
     );

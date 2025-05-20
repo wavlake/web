@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus, Plus, Settings } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, Plus, Settings, Edit, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,11 +54,31 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           asChild
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
         >
+          <a href={`/profile/${currentUser.pubkey}`}>
+            <User className='w-4 h-4' />
+            <span>View Profile</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <a href="/settings/profile">
+            <Edit className='w-4 h-4' />
+            <span>Edit Profile</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
           <a href="/settings">
             <Settings className='w-4 h-4' />
             <span>Settings</span>
           </a>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
             removeLogin(currentUser.id);

@@ -26,14 +26,14 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
     queryKey: ["join-request", communityId, user?.pubkey],
     queryFn: async (c) => {
       if (!user) return null;
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ 
-        kinds: [4552], 
+      const events = await nostr.query([{
+        kinds: [4552],
         authors: [user.pubkey],
         "#a": [communityId]
       }], { signal });
-      
+
       return events.length > 0 ? events[0] : null;
     },
     enabled: !!nostr && !!user && !!communityId,
@@ -44,15 +44,15 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
     queryKey: ["approved-member", communityId, user?.pubkey],
     queryFn: async (c) => {
       if (!user) return false;
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ 
-        kinds: [14550], 
+      const events = await nostr.query([{
+        kinds: [14550],
         "#a": [communityId]
       }], { signal });
-      
+
       // Check if any of the approval lists include the user's pubkey
-      return events.some(event => 
+      return events.some(event =>
         event.tags.some(tag => tag[0] === "p" && tag[1] === user.pubkey)
       );
     },
@@ -92,7 +92,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
         ],
         content: joinReason,
       });
-      
+
       toast.success("Join request sent successfully!");
       setOpen(false);
     } catch (error) {
@@ -108,7 +108,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
 
   if (!user) {
     return (
-      <Button variant="outline" disabled>
+      <Button variant="outline" disabled className="w-full">
         <UserPlus className="h-4 w-4 mr-2" />
         Log in to join
       </Button>
@@ -117,7 +117,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
 
   if (isCheckingRequest || isCheckingApproval || isCheckingDeclined) {
     return (
-      <Button variant="outline" disabled>
+      <Button variant="outline" disabled className="w-full">
         <Clock className="h-4 w-4 mr-2 animate-spin" />
         Checking status...
       </Button>
@@ -127,7 +127,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
   // If user is in both approved and declined lists, treat them as approved
   if (isApprovedMember) {
     return (
-      <Button variant="outline" disabled className="text-green-600 border-green-600">
+      <Button variant="outline" disabled className="text-green-600 border-green-600 w-full">
         <CheckCircle className="h-4 w-4 mr-2" />
         Member
       </Button>
@@ -136,7 +136,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
 
   if (existingRequest) {
     return (
-      <Button variant="outline" disabled>
+      <Button variant="outline" disabled className="w-full">
         <Clock className="h-4 w-4 mr-2" />
         Request pending
       </Button>
@@ -155,7 +155,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="w-full">
           <UserPlus className="h-4 w-4 mr-2" />
           Request to join
         </Button>
@@ -167,7 +167,7 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
             Your request will be reviewed by the group moderators.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
           <label htmlFor="join-reason" className="text-sm font-medium mb-2 block">
             Why do you want to join this group? (optional)
@@ -180,12 +180,12 @@ export function JoinRequestButton({ communityId, isModerator = false }: JoinRequ
             className="min-h-[100px]"
           />
         </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+
+        <DialogFooter className="flex flex-col  gap-2">
           <Button onClick={handleRequestJoin} disabled={isPending}>
             {isPending ? "Sending..." : "Send request"}
           </Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
