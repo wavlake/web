@@ -1,81 +1,78 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LoginArea } from "@/components/auth/LoginArea";
-import { Users } from "lucide-react";
+import SignupDialog from "@/components/auth/SignupDialog";
+import LoginDialog from "@/components/auth/LoginDialog";
+import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
+import { EditProfileForm } from "@/components/EditProfileForm";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">NostrGroups</h1>
-          <div className="ml-auto"><LoginArea /></div>
-        </div>
-      </header>
-      
-      {/* Hero Section */}
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-5xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-            Connect with Communities on Nostr
+  const { currentUser } = useLoggedInAccounts();
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if the user has filled out their profile (basic check: has name or about or picture)
+  useEffect(() => {
+    if (currentUser && (currentUser.metadata?.name || currentUser.metadata?.about || currentUser.metadata?.picture)) {
+      setProfileComplete(true);
+    } else {
+      setProfileComplete(false);
+    }
+  }, [currentUser]);
+
+  // Redirect to /groups after profile is complete
+  useEffect(() => {
+    if (profileComplete && currentUser) {
+      navigate("/groups", { replace: true });
+    }
+  }, [profileComplete, currentUser, navigate]);
+
+  // Onboarding step 1: Not logged in
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white p-8">
+        <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg text-center">
+          <h1 className="text-4xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+            Welcome to Chorus
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
-            Join, create, and participate in decentralized communities powered by the Nostr protocol.
-            Share ideas, connect with like-minded people, and build your network.
+          <p className="text-lg text-gray-600 mb-8">
+            Create your account to get started.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="text-lg px-8">
-              <Link to="/groups">
-                <Users className="mr-2 h-5 w-5" />
-                Explore Communities
-              </Link>
-            </Button>
+          <Button size="lg" className="w-full mb-4" onClick={() => setSignupOpen(true)}>
+            Create Account
+          </Button>
+          <div className="text-sm text-gray-600">
+            Already have a Nostr account?{' '}
+            <button type="button" className="text-primary font-medium hover:underline" onClick={() => setLoginOpen(true)}>
+              Sign in
+            </button>
           </div>
         </div>
+        <SignupDialog isOpen={signupOpen} onClose={() => setSignupOpen(false)} />
+        <LoginDialog isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={() => setLoginOpen(false)} />
       </div>
-      
-      {/* Features Section */}
-      <div className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Why NostrGroups?</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-3">Decentralized</h3>
-              <p className="text-gray-600">
-                Built on the Nostr protocol, your data isn't controlled by any single entity.
-                You own your content and connections.
-              </p>
-            </div>
-            
-            <div className="p-6 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-3">Censorship Resistant</h3>
-              <p className="text-gray-600">
-                Communities can't be arbitrarily shut down or censored.
-                Your voice remains heard.
-              </p>
-            </div>
-            
-            <div className="p-6 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-3">User-Controlled</h3>
-              <p className="text-gray-600">
-                Create and moderate your own communities with flexible tools.
-                Set your own rules and culture.
-              </p>
-            </div>
-          </div>
+    );
+  }
+
+  // Onboarding step 2: Logged in, but profile not complete
+  if (currentUser && !profileComplete) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+        <div className="w-full max-w-lg mx-auto p-8 bg-white rounded-2xl shadow-lg">
+          <h2 className="text-2xl font-bold mb-4 text-center">Set up your profile</h2>
+          <p className="text-gray-600 mb-6 text-center">
+            Add your display name, bio, and profile picture. You can always update this later.
+          </p>
+          <EditProfileForm />
         </div>
       </div>
-      
-      {/* Footer */}
-      <footer className="bg-gray-100 py-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>Built with Nostr NIP-72 • Decentralized Communities</p>
-        </div>
-      </footer>
-    </div>
-  );
+    );
+  }
+
+  // Fallback (should not be seen)
+  return null;
 };
 
 export default Index;
