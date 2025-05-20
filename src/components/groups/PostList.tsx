@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Heart, MessageSquare, Share2, CheckCircle } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NoteContent } from "../NoteContent";
+import { Link } from "react-router-dom";
 
 interface PostListProps {
   communityId: string;
@@ -225,15 +226,19 @@ function PostItem({ post, communityId, isApproved }: PostItemProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start gap-4 pb-2">
-        <Avatar>
-          <AvatarImage src={profileImage} />
-          <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <Link to={`/profile/${post.pubkey}`}>
+          <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+            <AvatarImage src={profileImage} />
+            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </Link>
         
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold">{displayName}</p>
+              <Link to={`/profile/${post.pubkey}`} className="hover:underline">
+                <p className="font-semibold">{displayName}</p>
+              </Link>
               <div className="flex items-center text-xs text-muted-foreground">
                 <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
                 {isApproved ? (
