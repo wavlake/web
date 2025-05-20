@@ -16,18 +16,8 @@ export default function Settings() {
   return (
     <div className="container mx-auto p-4">
       <Header />
-      <div className="mb-6">
-        <Link to="/groups" className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Groups
-        </Link>
-      </div>
-
       <div className="my-6">
         <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences.
-        </p>
       </div>
 
       <div className="grid gap-4">

@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { LoginArea } from "@/components/auth/LoginArea";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -142,8 +141,8 @@ export default function GroupDetail() {
               </CardHeader>
               <CardContent className="flex justify-center py-4">
                 <Button asChild variant="outline" className="w-full">
-                  <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`}>
-                    <Settings className="h-4 w-4 mr-2" />
+                  <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="w-full flex items-center justify-center gap-2">
+                    <Settings className="h-4 w-4" />
                     Manage Community
                   </Link>
                 </Button>

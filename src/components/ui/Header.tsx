@@ -9,7 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ className }) => (
   <>
-    <div className={`flex justify-between items-center mb-6 ${className || ''}`}>
+    <div className={`flex justify-between items-center ${className || ''}`}>
       <Link to="/" className="contents">
         <h1 className="text-3xl font-bold flex flex-row gap-0 items-baseline">
           <span className="text-red-500 font-extrabold text-4xl">+</span>
@@ -20,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => (
         <LoginArea />
       </div>
     </div>
-    <Separator className="my-6" />
+    <Separator className="my-4" />
   </>
 );
 
