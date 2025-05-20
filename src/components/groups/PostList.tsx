@@ -11,6 +11,7 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { toast } from "sonner";
 import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban } from "lucide-react";
+import { useLikes } from "@/hooks/useLikes";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
@@ -309,6 +310,37 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
   );
 }
 
+interface LikeButtonProps {
+  postId: string;
+}
+
+function LikeButton({ postId }: LikeButtonProps) {
+  const { likeCount, hasLiked, toggleLike, isLoading } = useLikes(postId);
+  const { user } = useCurrentUser();
+  
+  const handleClick = async () => {
+    if (!user) {
+      toast.error("You must be logged in to like posts");
+      return;
+    }
+    
+    await toggleLike();
+  };
+  
+  return (
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      className={`${hasLiked ? 'text-pink-500' : 'text-muted-foreground'} flex items-center`}
+      onClick={handleClick}
+      disabled={isLoading || !user}
+    >
+      <Heart className={`h-4 w-4 mr-2 ${hasLiked ? 'fill-pink-500' : ''}`} />
+      {likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'Like' : 'Likes'}` : 'Like'}
+    </Button>
+  );
+}
+
 interface PostItemProps {
   post: NostrEvent & { 
     approval?: { 
@@ -543,10 +575,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
       
       <CardFooter>
         <div className="flex gap-4">
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            <Heart className="h-4 w-4 mr-2" />
-            Like
-          </Button>
+          <LikeButton postId={post.id} />
           <Button variant="ghost" size="sm" className="text-muted-foreground">
             <MessageSquare className="h-4 w-4 mr-2" />
             Comment
