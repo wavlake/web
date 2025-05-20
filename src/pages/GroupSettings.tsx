@@ -687,6 +687,7 @@ function MemberItem({ pubkey, onPromote, isOwner }: MemberItemProps) {
         onClick={onPromote}
         disabled={!isOwner}
         title={!isOwner ? "Only the group owner can add moderators" : "This will immediately update the group"}
+        type="button"
       >
         <UserPlus className="h-4 w-4 mr-1" />
         Make Moderator
