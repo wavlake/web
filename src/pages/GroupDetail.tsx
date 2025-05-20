@@ -211,11 +211,8 @@ export default function GroupDetail() {
             <CreatePostForm communityId={groupId || ''} />
           )}
 
-          {/* Modified section for showing post count and toggle */}
-          <div className="flex items-center justify-between mb-4 gap-2">
-            <div className="text-sm text-muted-foreground">
-              Showing {currentPostCount} {showOnlyApproved && currentPostCount > 0 ? "approved" : ""} post{currentPostCount !== 1 ? 's' : ''}
-            </div>
+          {/* Modified section for toggle only */}
+          <div className="flex items-center justify-end mb-4 gap-2">
             <div className="flex items-center space-x-2">
               <Switch
                 id="approved-only"

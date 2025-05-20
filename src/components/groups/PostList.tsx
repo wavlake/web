@@ -60,14 +60,24 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
         limit: 50,
       }], { signal });
       
-      // Extract the approved posts from the content field
+      // Extract the approved posts from the content field and filter out replies
       return approvals.map(approval => {
         try {
-          const approvedPost = JSON.parse(approval.content) as NostrEvent;
-          
           // Get the kind tag to check if it's a reply
           const kindTag = approval.tags.find(tag => tag[0] === "k");
-          const kind = kindTag ? parseInt(kindTag[1]) : approvedPost.kind;
+          const kind = kindTag ? parseInt(kindTag[1]) : null;
+          
+          // Skip this approval if it's for a reply (kind 1111)
+          if (kind === 1111) {
+            return null;
+          }
+          
+          const approvedPost = JSON.parse(approval.content) as NostrEvent;
+          
+          // Skip if the post itself is a reply
+          if (approvedPost.kind === 1111) {
+            return null;
+          }
           
           // Add the approval information
           return {
@@ -76,7 +86,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
               id: approval.id,
               pubkey: approval.pubkey,
               created_at: approval.created_at,
-              kind: kind
+              kind: kind || approvedPost.kind
             }
           };
         } catch (error) {
@@ -87,30 +97,12 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
         approval: { id: string; pubkey: string; created_at: number; kind: number } 
       } => post !== null);
       
-      // Filter out replies (kind 1111)
-      const filteredApprovedPosts = approvedPosts.filter(post => {
-        // Check if the post itself is kind 1111
-        if (post.kind === 1111) {
-          return false;
-        }
-        
-        // Check if the approval kind is 1111
-        const approvalKind = post.approval.kind;
-        if (approvalKind === 1111) {
-          return false;
-        }
-        
-        return true;
-      });
-      
       // Debug logging
       console.log("Filtered approved posts:", {
-        totalApprovedPosts: approvedPosts.length,
-        filteredApprovedPosts: filteredApprovedPosts.length,
-        removedReplies: approvedPosts.length - filteredApprovedPosts.length
+        totalApprovedPosts: approvedPosts.length
       });
       
-      return filteredApprovedPosts;
+      return approvedPosts;
     },
     enabled: !!nostr && !!communityId,
   });
@@ -146,8 +138,21 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
         limit: 50,
       }], { signal });
       
-      // Filter out replies (kind 1111) that might have been approved and appear as posts
-      const filteredPosts = posts.filter(post => post.kind !== 1111);
+      // Filter out replies (kind 1111) and any posts with a parent reference
+      const filteredPosts = posts.filter(post => {
+        // Exclude posts with kind 1111 (replies)
+        if (post.kind === 1111) {
+          return false;
+        }
+        
+        // Exclude posts that have an 'e' tag with a 'reply' marker
+        // This checks for posts that are replies to other posts
+        const replyTags = post.tags.filter(tag => 
+          tag[0] === 'e' && (tag[3] === 'reply' || tag[3] === 'root')
+        );
+        
+        return replyTags.length === 0;
+      });
       
       // Debug logging
       console.log("Filtered posts:", {
@@ -218,7 +223,18 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   );
   
   const processedPosts = postsWithoutRemoved.map(post => {
+    // If post already has approval info, return it as is
     if ('approval' in post) return post;
+    
+    // Check if this is a reply by looking at the kind or tags
+    const isReply = post.kind === 1111 || post.tags.some(tag => 
+      tag[0] === 'e' && (tag[3] === 'reply' || tag[3] === 'root')
+    );
+    
+    // If it's a reply, don't auto-approve it as a top-level post
+    if (isReply) return post;
+    
+    // Auto-approve for approved members and moderators
     const isApprovedMember = approvedMembers.includes(post.pubkey);
     const isModerator = moderators.includes(post.pubkey);
     if (isApprovedMember || isModerator) {
@@ -318,11 +334,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-muted-foreground">
-          Showing {sortedPosts.length} {showOnlyApproved ? "approved" : pendingOnly ? "pending" : ""} posts
-        </div>
-        
+      <div className="flex items-center justify-end mb-2">
         <div className="flex gap-3 text-sm">
           <span className="flex items-center">
             <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
