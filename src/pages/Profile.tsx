@@ -12,8 +12,9 @@ import { NoteContent } from "@/components/NoteContent";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Copy, UserPlus, UserMinus, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
-import { NostrEvent } from "@nostrify/nostrify";
+import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
+import Header from "@/components/ui/Header";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -21,21 +22,21 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
   const groupTag = post.tags.find(tag => {
     return tag[0] === "a" && tag[1].startsWith("34550:");
   });
-  
+
   if (!groupTag) return null;
-  
+
   const groupId = groupTag[1];
-  
+
   // Parse the Nostr address to extract components
   const parsedAddress = parseNostrAddress(groupId);
-  
+
   if (parsedAddress && parsedAddress.kind === 34550) {
     return {
       groupId,
       groupName: parsedAddress.identifier // The identifier part is often the group name
     };
   }
-  
+
   // Fallback to simple string splitting if parsing fails
   const parts = groupId.split(":");
   if (parts.length >= 3) {
@@ -44,7 +45,7 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
       groupName: parts[2] // The identifier part is often the group name
     };
   }
-  
+
   return {
     groupId,
     groupName: "Community" // Fallback name if we can't extract it
@@ -54,11 +55,11 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
 // Component to display group information on a post
 function PostGroupLink({ post }: { post: NostrEvent }) {
   const groupInfo = extractGroupInfo(post);
-  
+
   if (!groupInfo) return null;
-  
+
   return (
-    <Link 
+    <Link
       to={`/group/${encodeURIComponent(groupInfo.groupId)}`}
       className="flex items-center text-xs text-muted-foreground hover:text-primary"
     >
@@ -80,11 +81,11 @@ interface UserGroup {
   groupEvent: NostrEvent;
 }
 
-function UserGroupsList({ 
-  groups, 
-  isLoading 
-}: { 
-  groups: UserGroup[] | undefined; 
+function UserGroupsList({
+  groups,
+  isLoading
+}: {
+  groups: UserGroup[] | undefined;
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -102,7 +103,7 @@ function UserGroupsList({
       </div>
     );
   }
-  
+
   if (!groups || groups.length === 0) {
     return (
       <Card className="p-6 text-center">
@@ -110,20 +111,20 @@ function UserGroupsList({
       </Card>
     );
   }
-  
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {groups.map((group) => (
-        <Link 
-          key={group.id} 
+        <Link
+          key={group.id}
           to={`/group/${encodeURIComponent(group.id)}`}
           className="block"
         >
           <Card className="overflow-hidden h-full hover:bg-muted/50 transition-colors">
             <div className="flex p-4 h-full">
               <div className="h-16 w-16 rounded-md overflow-hidden mr-4 flex-shrink-0">
-                <img 
-                  src={group.image} 
+                <img
+                  src={group.image}
                   alt={group.name}
                   className="h-full w-full object-cover"
                   onError={(e) => {
@@ -150,28 +151,28 @@ export default function Profile() {
   const author = useAuthor(pubkey);
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
-  const { 
-    isFollowing, 
-    followUser, 
-    unfollowUser, 
-    isPending: isFollowActionPending 
+  const {
+    isFollowing,
+    followUser,
+    unfollowUser,
+    isPending: isFollowActionPending
   } = useFollowList(user?.pubkey);
-  
+
   // Query for user's posts
   const { data: posts, isLoading: isLoadingPosts } = useQuery({
     queryKey: ["user-posts", pubkey],
     queryFn: async (c) => {
       if (!pubkey) return [];
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Get posts by this user
-      const userPosts = await nostr.query([{ 
+      const userPosts = await nostr.query([{
         kinds: [1],
         authors: [pubkey],
         limit: 20,
       }], { signal });
-      
+
       return userPosts.sort((a, b) => b.created_at - a.created_at);
     },
     enabled: !!nostr && !!pubkey,
@@ -182,16 +183,16 @@ export default function Profile() {
     queryKey: ["follower-count", pubkey],
     queryFn: async (c) => {
       if (!pubkey || !nostr) return 0;
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Get kind 3 events that include this pubkey in their p tags
-      const followerEvents = await nostr.query([{ 
+      const followerEvents = await nostr.query([{
         kinds: [3],
         "#p": [pubkey],
         limit: 100,
       }], { signal });
-      
+
       // Count unique pubkeys that follow this user
       const uniqueFollowers = new Set(followerEvents.map(event => event.pubkey));
       return uniqueFollowers.size;
@@ -204,9 +205,9 @@ export default function Profile() {
     queryKey: ["following-count", pubkey],
     queryFn: async (c) => {
       if (!pubkey || !nostr) return 0;
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Get the most recent kind 3 event for the user
       const [event] = await nostr.query(
         [{ kinds: [3], authors: [pubkey], limit: 1 }],
@@ -214,39 +215,39 @@ export default function Profile() {
       );
 
       if (!event) return 0;
-      
+
       // Count the number of p tags
       return event.tags.filter(tag => tag[0] === 'p').length;
     },
     enabled: !!nostr && !!pubkey,
   });
-  
+
   // Query for groups the user is a part of (kind 14550 events with user as p tag)
   const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
     queryKey: ["user-groups", pubkey],
     queryFn: async (c) => {
       if (!pubkey || !nostr) return [];
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Get kind 14550 events that include this pubkey in their p tags
-      const groupEvents = await nostr.query([{ 
+      const groupEvents = await nostr.query([{
         kinds: [14550],
         "#p": [pubkey],
         limit: 50,
       }], { signal });
-      
+
       // For each group event, we need to fetch the actual group details
       const groupPromises = groupEvents.map(async (event) => {
         // Extract the group reference from the a tag
         const aTag = event.tags.find(tag => tag[0] === "a");
         if (!aTag || !aTag[1]) return null;
-        
+
         const groupId = aTag[1];
         const parsedGroup = parseNostrAddress(groupId);
-        
+
         if (!parsedGroup || parsedGroup.kind !== 34550) return null;
-        
+
         // Fetch the group details
         const [groupEvent] = await nostr.query([{
           kinds: [34550],
@@ -254,14 +255,14 @@ export default function Profile() {
           "#d": [parsedGroup.identifier],
           limit: 1,
         }], { signal: AbortSignal.timeout(3000) });
-        
+
         if (!groupEvent) return null;
-        
+
         // Extract group details
         const nameTag = groupEvent.tags.find(tag => tag[0] === "name");
         const descriptionTag = groupEvent.tags.find(tag => tag[0] === "description");
         const imageTag = groupEvent.tags.find(tag => tag[0] === "image");
-        
+
         return {
           id: groupId,
           name: nameTag ? nameTag[1] : parsedGroup.identifier,
@@ -271,10 +272,10 @@ export default function Profile() {
           groupEvent: groupEvent,
         };
       });
-      
+
       // Wait for all group details to be fetched
       const groups = await Promise.all(groupPromises);
-      
+
       // Filter out null results and return
       return groups.filter(group => group !== null);
     },
@@ -288,23 +289,23 @@ export default function Profile() {
   const about = metadata?.about;
   const website = metadata?.website;
   const nip05 = metadata?.nip05;
-  
+
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
-  
+
   // Check if the current user is following this profile
   const following = pubkey ? isFollowing(pubkey) : false;
-  
+
   const handleFollowAction = () => {
     if (!pubkey || !user) return;
-    
+
     if (following) {
       unfollowUser(pubkey);
     } else {
       followUser(pubkey);
     }
   };
-  
+
   const copyPubkeyToClipboard = () => {
     if (pubkey) {
       navigator.clipboard.writeText(pubkey);
@@ -314,14 +315,15 @@ export default function Profile() {
 
   if (author.isLoading) {
     return (
-      <div className="container max-w-4xl py-8">
+      <div className="container mx-auto p-4">
+        <Header />
         <div className="mb-6">
           <Link to="/groups" className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Groups
           </Link>
         </div>
-        
+
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center gap-4">
             <Skeleton className="h-24 w-24 rounded-full" />
@@ -331,13 +333,13 @@ export default function Profile() {
                   <Skeleton className="h-6 w-48" />
                   <Skeleton className="h-4 w-72 mt-2" />
                   <Skeleton className="h-4 w-32 mt-2" />
-                  
+
                   <div className="flex items-center gap-4 mt-3">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-4 w-24" />
                   </div>
                 </div>
-                
+
                 <Skeleton className="h-9 w-24" />
               </div>
             </div>
@@ -348,7 +350,7 @@ export default function Profile() {
             <Skeleton className="h-4 w-2/3" />
           </CardContent>
         </Card>
-        
+
         {/* Mobile loading state - Groups first, then Posts */}
         <div className="md:hidden space-y-8 mb-8">
           <div>
@@ -365,7 +367,7 @@ export default function Profile() {
               ))}
             </div>
           </div>
-          
+
           <div>
             <Skeleton className="h-6 w-32 mb-4" />
             <div className="space-y-4">
@@ -388,7 +390,7 @@ export default function Profile() {
             </div>
           </div>
         </div>
-        
+
         {/* Desktop loading state - Posts and Groups side by side */}
         <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
           <div className="col-span-2">
@@ -412,7 +414,7 @@ export default function Profile() {
               ))}
             </div>
           </div>
-          
+
           <div>
             <Skeleton className="h-6 w-24 mb-4" />
             <div className="space-y-4">
@@ -433,21 +435,22 @@ export default function Profile() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container mx-auto p-4">
+      <Header />
       <div className="mb-6">
         <Link to="/groups" className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Groups
         </Link>
       </div>
-      
+
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-start gap-6">
           <Avatar className="h-24 w-24">
             <AvatarImage src={profileImage} />
             <AvatarFallback className="text-xl">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div>
@@ -455,11 +458,11 @@ export default function Profile() {
                 {displayName !== displayNameFull && (
                   <p className="text-muted-foreground">@{displayName}</p>
                 )}
-                
+
                 <div className="flex items-center mt-1 text-sm text-muted-foreground">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-6 px-2 text-xs"
                     onClick={copyPubkeyToClipboard}
                   >
@@ -467,18 +470,18 @@ export default function Profile() {
                     <Copy className="h-3 w-3 ml-1" />
                   </Button>
                 </div>
-                
+
                 {nip05 && (
                   <div className="mt-1 text-sm">
                     <span className="text-muted-foreground">✓ {nip05}</span>
                   </div>
                 )}
-                
+
                 {website && (
                   <div className="mt-2">
-                    <a 
-                      href={website.startsWith('http') ? website : `https://${website}`} 
-                      target="_blank" 
+                    <a
+                      href={website.startsWith('http') ? website : `https://${website}`}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary flex items-center hover:underline"
                     >
@@ -487,7 +490,7 @@ export default function Profile() {
                     </a>
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-4 mt-3">
                   <div className="text-sm">
                     <span className="font-semibold">{isLoadingFollowing ? '...' : followingCount || 0}</span>{' '}
@@ -499,7 +502,7 @@ export default function Profile() {
                   </div>
                 </div>
               </div>
-              
+
               {user && !isCurrentUser && (
                 <Button
                   variant={following ? "outline" : "default"}
@@ -518,7 +521,7 @@ export default function Profile() {
                 </Button>
               )}
             </div>
-            
+
             {about && (
               <div className="mt-4 text-sm whitespace-pre-wrap">
                 {about}
@@ -527,17 +530,17 @@ export default function Profile() {
           </div>
         </CardHeader>
       </Card>
-      
+
       {/* Mobile layout - Groups first, then Posts */}
       <div className="md:hidden space-y-8 mb-8">
         <div>
           <h2 className="text-xl font-semibold mb-4">Groups</h2>
           <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
         </div>
-        
+
         <div>
           <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-          
+
           {isLoadingPosts ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -566,7 +569,7 @@ export default function Profile() {
                       <AvatarImage src={profileImage} />
                       <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
@@ -578,13 +581,13 @@ export default function Profile() {
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pb-2">
                     <div className="whitespace-pre-wrap break-words">
                       <NoteContent event={post} className="text-sm" />
                     </div>
                   </CardContent>
-                  
+
                   {extractGroupInfo(post) && (
                     <CardFooter className="pt-0 pb-3">
                       <PostGroupLink post={post} />
@@ -600,12 +603,12 @@ export default function Profile() {
           )}
         </div>
       </div>
-      
+
       {/* Desktop layout - Posts and Groups side by side */}
       <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
         <div className="col-span-2">
           <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-          
+
           {isLoadingPosts ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -634,7 +637,7 @@ export default function Profile() {
                       <AvatarImage src={profileImage} />
                       <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
@@ -646,13 +649,13 @@ export default function Profile() {
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pb-2">
                     <div className="whitespace-pre-wrap break-words">
                       <NoteContent event={post} className="text-sm" />
                     </div>
                   </CardContent>
-                  
+
                   {extractGroupInfo(post) && (
                     <CardFooter className="pt-0 pb-3">
                       <PostGroupLink post={post} />
@@ -667,7 +670,7 @@ export default function Profile() {
             </Card>
           )}
         </div>
-        
+
         <div>
           <h2 className="text-xl font-semibold mb-4">Groups</h2>
           <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
