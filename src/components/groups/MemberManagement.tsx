@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
 import { toast } from "sonner";
-import { UserPlus, Users, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Users, CheckCircle, XCircle, UserX } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { Link } from "react-router-dom";
 
@@ -59,6 +59,23 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     enabled: !!nostr && !!communityId,
   });
 
+  // Query for declined users
+  const { data: declinedUsersEvents, isLoading: isLoadingDeclined, refetch: refetchDeclined } = useQuery({
+    queryKey: ["declined-users", communityId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      
+      const events = await nostr.query([{ 
+        kinds: [14551],
+        "#a": [communityId],
+        limit: 50,
+      }], { signal });
+      
+      return events;
+    },
+    enabled: !!nostr && !!communityId,
+  });
+
   // Extract all approved member pubkeys from the events
   const approvedMembers = approvedMembersEvents?.flatMap(event => 
     event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
@@ -67,9 +84,18 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
   // Remove duplicates
   const uniqueApprovedMembers = [...new Set(approvedMembers)];
 
-  // Filter out join requests from users who are already approved
+  // Extract all declined user pubkeys from the events
+  const declinedUsers = declinedUsersEvents?.flatMap(event => 
+    event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
+  ) || [];
+
+  // Remove duplicates
+  const uniqueDeclinedUsers = [...new Set(declinedUsers)];
+
+  // Filter out join requests from users who are already approved or declined
   const pendingRequests = joinRequests?.filter(request => 
-    !uniqueApprovedMembers.includes(request.pubkey)
+    !uniqueApprovedMembers.includes(request.pubkey) && 
+    !uniqueDeclinedUsers.includes(request.pubkey)
   ) || [];
 
   const handleApproveUser = async (pubkey: string) => {
@@ -79,10 +105,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     }
 
     try {
-      // Get the latest approved members list
-      const latestList = approvedMembersEvents?.[0];
+      // Check if the user is in the declined list
+      const isDeclined = uniqueDeclinedUsers.includes(pubkey);
       
-      // Create a new list or update the existing one
+      // Create a new list or update the existing one for approved members
       const tags = [
         ["a", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),
@@ -96,11 +122,43 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         content: "",
       });
       
+      // If the user was in the declined list, remove them by creating a new kind 4551 event
+      // that excludes this pubkey
+      if (isDeclined) {
+        // Find all declined events that include this pubkey
+        const declinedEventsForUser = declinedUsersEvents?.filter(event => 
+          event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
+        ) || [];
+        
+        // For each declined event, create a new event that removes this user
+        for (const declinedEvent of declinedEventsForUser) {
+          // Get the original request event ID and kind from the declined event
+          const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
+          const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
+          
+          if (eventIdTag && kindTag) {
+            // Create a new declined event that doesn't include this pubkey
+            // This effectively "removes" the user from the declined list
+            await publishEvent({
+              kind: 14551,
+              tags: [
+                ["a", communityId],
+                ["e", eventIdTag[1]],
+                // Deliberately omitting the pubkey tag to remove the user
+                ["k", kindTag[1]]
+              ],
+              content: "", // Empty content to indicate removal
+            });
+          }
+        }
+      }
+      
       toast.success("User approved successfully!");
       
       // Refetch data
       refetchRequests();
       refetchMembers();
+      refetchDeclined();
       
       // Switch to members tab
       setActiveTab("members");
@@ -133,13 +191,124 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         content: "",
       });
       
+      // Add the removed user to the declined list (kind 14551)
+      // We'll create a generic event ID since we don't have a specific request event
+      const removalEventId = `removal:${pubkey}:${Date.now()}`;
+      
+      await publishEvent({
+        kind: 14551,
+        tags: [
+          ["a", communityId],
+          ["e", removalEventId], // Using a generated event ID
+          ["p", pubkey], // The pubkey of the removed user
+          ["k", "14550"] // Indicating this was a removal from the approved list
+        ],
+        content: JSON.stringify({
+          reason: "Removed from group by moderator",
+          timestamp: Date.now()
+        }),
+      });
+      
       toast.success("Member removed successfully!");
       
       // Refetch data
       refetchMembers();
+      refetchDeclined();
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
+    }
+  };
+
+  const handleDeclineUser = async (request: NostrEvent) => {
+    if (!user || !isModerator) {
+      toast.error("You must be a moderator to decline join requests");
+      return;
+    }
+
+    try {
+      // Create decline event (kind 14551)
+      await publishEvent({
+        kind: 14551,
+        tags: [
+          ["a", communityId],
+          ["e", request.id],
+          ["p", request.pubkey],
+          ["k", "4552"] // The kind of the request event
+        ],
+        content: JSON.stringify(request), // Store the full request event
+      });
+      
+      toast.success("User declined successfully!");
+      
+      // Refetch data
+      refetchRequests();
+      refetchDeclined();
+    } catch (error) {
+      console.error("Error declining user:", error);
+      toast.error("Failed to decline user. Please try again.");
+    }
+  };
+
+  const handleApproveDeclinedUser = async (pubkey: string) => {
+    if (!user || !isModerator) {
+      toast.error("You must be a moderator to approve users");
+      return;
+    }
+
+    try {
+      // 1. Find all declined events that include this pubkey
+      const declinedEventsForUser = declinedUsersEvents?.filter(event => 
+        event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
+      ) || [];
+      
+      // 2. For each declined event, create a new event that removes this user
+      for (const declinedEvent of declinedEventsForUser) {
+        // Get the original request event ID and kind from the declined event
+        const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
+        const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
+        
+        if (eventIdTag && kindTag) {
+          // Create a new declined event that doesn't include this pubkey
+          // This effectively "removes" the user from the declined list
+          await publishEvent({
+            kind: 14551,
+            tags: [
+              ["a", communityId],
+              ["e", eventIdTag[1]],
+              // Deliberately omitting the pubkey tag to remove the user
+              ["k", kindTag[1]]
+            ],
+            content: "", // Empty content to indicate removal
+          });
+        }
+      }
+
+      // 3. Add to approved members list
+      const tags = [
+        ["a", communityId],
+        ...uniqueApprovedMembers.map(pk => ["p", pk]),
+        ["p", pubkey] // Add the new member
+      ];
+
+      // Create approved members event (kind 14550)
+      await publishEvent({
+        kind: 14550,
+        tags,
+        content: "",
+      });
+      
+      toast.success("User approved successfully!");
+      
+      // Refetch data
+      refetchDeclined();
+      refetchMembers();
+      
+      // Switch to members tab
+      setActiveTab("members");
+    } catch (error) {
+      console.error("Error approving declined user:", error);
+      toast.error("Failed to approve user. Please try again.");
     }
   };
 
@@ -174,6 +343,15 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                 {uniqueApprovedMembers.length}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="declined" className="flex items-center">
+              <UserX className="h-4 w-4 mr-2" />
+              Declined
+              {uniqueDeclinedUsers.length > 0 && (
+                <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                  {uniqueDeclinedUsers.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="requests">
@@ -206,7 +384,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                   <JoinRequestItem 
                     key={request.id} 
                     request={request} 
-                    onApprove={() => handleApproveUser(request.pubkey)} 
+                    onApprove={() => handleApproveUser(request.pubkey)}
+                    onDecline={() => handleDeclineUser(request)}
                   />
                 ))}
               </div>
@@ -245,6 +424,39 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               </div>
             )}
           </TabsContent>
+          
+          <TabsContent value="declined">
+            {isLoadingDeclined ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-4 w-32 mb-1" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-9 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : uniqueDeclinedUsers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <UserX className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>No declined users</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {uniqueDeclinedUsers.map((pubkey) => (
+                  <DeclinedUserItem 
+                    key={pubkey} 
+                    pubkey={pubkey} 
+                    onApprove={() => handleApproveDeclinedUser(pubkey)} 
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
@@ -254,9 +466,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
 interface JoinRequestItemProps {
   request: NostrEvent;
   onApprove: () => void;
+  onDecline?: () => void;
 }
 
-function JoinRequestItem({ request, onApprove }: JoinRequestItemProps) {
+function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps) {
   const author = useAuthor(request.pubkey);
   const metadata = author.data?.metadata;
   
@@ -288,7 +501,12 @@ function JoinRequestItem({ request, onApprove }: JoinRequestItemProps) {
         </div>
       </div>
       <div className="flex gap-2 ml-auto">
-        <Button variant="outline" size="sm" className="text-red-600">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-red-600"
+          onClick={onDecline}
+        >
           <XCircle className="h-4 w-4 mr-1" />
           Decline
         </Button>
@@ -344,6 +562,47 @@ function MemberItem({ pubkey, onRemove }: MemberItemProps) {
       >
         <XCircle className="h-4 w-4 mr-1" />
         Remove
+      </Button>
+    </div>
+  );
+}
+
+interface DeclinedUserItemProps {
+  pubkey: string;
+  onApprove: () => void;
+}
+
+function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
+  const author = useAuthor(pubkey);
+  const metadata = author.data?.metadata;
+  
+  const displayName = metadata?.name || pubkey.slice(0, 8);
+  const profileImage = metadata?.picture;
+  
+  return (
+    <div className="flex items-center justify-between p-3 border rounded-md">
+      <div className="flex items-center gap-3">
+        <Link to={`/profile/${pubkey}`}>
+          <Avatar>
+            <AvatarImage src={profileImage} />
+            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </Link>
+        <div>
+          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline">
+            {displayName}
+          </Link>
+          <span className="ml-2 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
+            Declined
+          </span>
+        </div>
+      </div>
+      <Button 
+        size="sm"
+        onClick={onApprove}
+      >
+        <CheckCircle className="h-4 w-4 mr-1" />
+        Approve
       </Button>
     </div>
   );

@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { UserPlus, CheckCircle, Clock } from "lucide-react";
+import { UserPlus, CheckCircle, Clock, XCircle } from "lucide-react";
 
 interface JoinRequestButtonProps {
   communityId: string;
+  isModerator?: boolean;
 }
 
-export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
+export function JoinRequestButton({ communityId, isModerator = false }: JoinRequestButtonProps) {
   const [open, setOpen] = useState(false);
   const [joinReason, setJoinReason] = useState("");
   const { user } = useCurrentUser();
@@ -57,6 +58,24 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
     },
     enabled: !!nostr && !!user && !!communityId,
   });
+  
+  // Check if user is in the declined list
+  const { data: isDeclinedUser, isLoading: isCheckingDeclined } = useQuery({
+    queryKey: ["declined-user", communityId, user?.pubkey],
+    queryFn: async (c) => {
+      if (!user) return false;
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([{ 
+        kinds: [14551], 
+        "#a": [communityId],
+        "#p": [user.pubkey]
+      }], { signal });
+      
+      return events.length > 0;
+    },
+    enabled: !!nostr && !!user && !!communityId,
+  });
 
   const handleRequestJoin = async () => {
     if (!user) {
@@ -82,6 +101,11 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
     }
   };
 
+  // If the user is a moderator, don't show the join button at all
+  if (isModerator) {
+    return null;
+  }
+
   if (!user) {
     return (
       <Button variant="outline" disabled>
@@ -91,7 +115,7 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
     );
   }
 
-  if (isCheckingRequest || isCheckingApproval) {
+  if (isCheckingRequest || isCheckingApproval || isCheckingDeclined) {
     return (
       <Button variant="outline" disabled>
         <Clock className="h-4 w-4 mr-2 animate-spin" />
@@ -100,6 +124,7 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
     );
   }
 
+  // If user is in both approved and declined lists, treat them as approved
   if (isApprovedMember) {
     return (
       <Button variant="outline" disabled className="text-green-600 border-green-600">
@@ -114,6 +139,15 @@ export function JoinRequestButton({ communityId }: JoinRequestButtonProps) {
       <Button variant="outline" disabled>
         <Clock className="h-4 w-4 mr-2" />
         Request pending
+      </Button>
+    );
+  }
+  
+  if (isDeclinedUser) {
+    return (
+      <Button variant="outline" disabled className="text-red-600 border-red-600">
+        <XCircle className="h-4 w-4 mr-2" />
+        Request declined
       </Button>
     );
   }

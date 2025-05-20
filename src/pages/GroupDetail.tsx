@@ -54,10 +54,19 @@ export default function GroupDetail() {
     enabled: !!nostr && !!parsedId,
   });
   
+  // Check if user is the owner (the signer of the event)
+  const isOwner = user && community && user.pubkey === community.pubkey;
+  
   // Check if user is a moderator
-  const isModerator = user && community?.tags
+  const isModerator = isOwner || (user && community?.tags
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-    .some(tag => tag[1] === user.pubkey);
+    .some(tag => tag[1] === user.pubkey));
+    
+  // Debug logging
+  console.log("Current user pubkey:", user?.pubkey);
+  console.log("Community creator pubkey:", community?.pubkey);
+  console.log("Is owner:", isOwner);
+  console.log("Is moderator:", isModerator);
   
   // Extract community data from tags
   const nameTag = community?.tags.find(tag => tag[0] === "name");
@@ -99,7 +108,7 @@ export default function GroupDetail() {
           <h1 className="text-3xl font-bold">{name}</h1>
         </div>
         <div className="flex items-center gap-4">
-          <JoinRequestButton communityId={groupId || ''} />
+          <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
           <div className="ml-auto">
             <LoginArea />
           </div>
@@ -122,30 +131,44 @@ export default function GroupDetail() {
         </div>
         
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <UserPlus className="h-5 w-5 mr-2" />
-                Join this group
-              </CardTitle>
-              <CardDescription>
-                Request to join this community to participate in discussions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center py-4">
-              <JoinRequestButton communityId={groupId || ''} />
-            </CardContent>
-            {isModerator && (
-              <CardFooter>
+          {isModerator ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  {isOwner ? "Owner Controls" : "Moderator Controls"}
+                </CardTitle>
+                <CardDescription>
+                  {isOwner 
+                    ? "You are the owner of this community" 
+                    : "You are a moderator of this community"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center py-4">
                 <Button asChild variant="outline" className="w-full">
                   <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`}>
                     <Settings className="h-4 w-4 mr-2" />
                     Manage Community
                   </Link>
                 </Button>
-              </CardFooter>
-            )}
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Join this group
+                </CardTitle>
+                <CardDescription>
+                  Request to join this community to participate in discussions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center py-4">
+                <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       
@@ -199,14 +222,20 @@ export default function GroupDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Users className="h-5 w-5 mr-2" />
-                  Moderators
+                  Group Owner & Moderators
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {moderatorTags.map((tag) => (
-                    <ModeratorItem key={tag[1]} pubkey={tag[1]} />
-                  ))}
+                  {/* Display the group owner first */}
+                  <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />
+                  
+                  {/* Display moderators who are not the owner */}
+                  {moderatorTags
+                    .filter(tag => tag[1] !== community.pubkey) // Filter out the owner if they're also listed as a moderator
+                    .map((tag) => (
+                      <ModeratorItem key={tag[1]} pubkey={tag[1]} />
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -259,7 +288,15 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
         </Avatar>
         <div>
           <p className="font-medium">{displayName}</p>
-          {isCreator && <p className="text-xs text-muted-foreground">Creator</p>}
+          {isCreator ? (
+            <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2 py-0.5">
+              Group Owner
+            </span>
+          ) : (
+            <span className="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5">
+              Moderator
+            </span>
+          )}
         </div>
       </div>
     </Link>
