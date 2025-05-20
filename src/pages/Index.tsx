@@ -1,17 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import SignupDialog from "@/components/auth/SignupDialog";
 import LoginDialog from "@/components/auth/LoginDialog";
 import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
 import { EditProfileForm } from "@/components/EditProfileForm";
+import { generateFakeName } from "@/lib/utils";
+import { useNostr } from "@nostrify/react";
+import { useNostrLogin, NLogin } from "@nostrify/react/login";
+import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { generateSecretKey, nip19 } from "nostr-tools";
+import { toast } from "@/hooks/useToast";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
-  const [signupOpen, setSignupOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
+  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const { nostr } = useNostr();
+  const { addLogin } = useNostrLogin();
+  const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Check if the user has filled out their profile (basic check: has name or about or picture)
   useEffect(() => {
@@ -29,6 +37,35 @@ const Index = () => {
     }
   }, [profileComplete, currentUser, navigate]);
 
+  // Handle account creation inline
+  const handleCreateAccount = async () => {
+    setCreating(true);
+    try {
+      // Generate new secret key
+      const sk = generateSecretKey();
+      const nsec = nip19.nsecEncode(sk);
+      // Create login and sign in
+      const login = NLogin.fromNsec(nsec);
+      addLogin(login);
+      // Generate fake name and publish kind:0 metadata
+      const fakeName = generateFakeName();
+      // Wait for login to be available (since addLogin is sync but state update is async)
+      setTimeout(async () => {
+        try {
+          await publishEvent({
+            kind: 0,
+            content: JSON.stringify({ name: fakeName, display_name: fakeName }),
+          });
+        } catch {}
+      }, 100);
+      toast({ title: "Account created", description: "You are now logged in." });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to create account. Please try again.", variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   // Onboarding step 1: Not logged in
   if (!currentUser) {
     return (
@@ -40,8 +77,8 @@ const Index = () => {
           <p className="text-lg text-gray-600 mb-8">
             Create your account to get started.
           </p>
-          <Button size="lg" className="w-full mb-4" onClick={() => setSignupOpen(true)}>
-            Create Account
+          <Button size="lg" className="w-full mb-4" onClick={handleCreateAccount} disabled={creating}>
+            {creating ? "Creating..." : "Create Account"}
           </Button>
           <div className="text-sm text-gray-600">
             Already have a Nostr account?{' '}
@@ -50,7 +87,6 @@ const Index = () => {
             </button>
           </div>
         </div>
-        <SignupDialog isOpen={signupOpen} onClose={() => setSignupOpen(false)} />
         <LoginDialog isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={() => setLoginOpen(false)} />
       </div>
     );

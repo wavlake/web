@@ -21,9 +21,11 @@ import { Loader2, Upload } from 'lucide-react';
 import { NSchema as n, type NostrMetadata } from '@nostrify/nostrify';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUploadFile } from '@/hooks/useUploadFile';
+import { useNavigate } from 'react-router-dom';
 
 export const EditProfileForm: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { user, metadata } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
@@ -39,8 +41,6 @@ export const EditProfileForm: React.FC = () => {
       picture: '',
       banner: '',
       website: '',
-      nip05: '',
-      bot: false,
     },
   });
 
@@ -53,8 +53,6 @@ export const EditProfileForm: React.FC = () => {
         picture: metadata.picture || '',
         banner: metadata.banner || '',
         website: metadata.website || '',
-        nip05: metadata.nip05 || '',
-        bot: metadata.bot || false,
       });
     }
   }, [metadata, form]);
@@ -151,10 +149,10 @@ export const EditProfileForm: React.FC = () => {
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Tell others about yourself" 
-                  className="resize-none" 
-                  {...field} 
+                <Textarea
+                  placeholder="Tell others about yourself"
+                  className="resize-none"
+                  {...field}
                 />
               </FormControl>
               <FormDescription>
@@ -214,49 +212,11 @@ export const EditProfileForm: React.FC = () => {
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="nip05"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>NIP-05 Identifier</FormLabel>
-                <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Your verified Nostr identifier.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
-        <FormField
-          control={form.control}
-          name="bot"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Bot Account</FormLabel>
-                <FormDescription>
-                  Mark this account as automated or a bot.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <Button 
-          type="submit" 
-          className="w-full md:w-auto" 
+        <Button
+          type="submit"
+          className="w-full md:w-auto"
           disabled={isPending || isUploading}
         >
           {(isPending || isUploading) && (
@@ -264,6 +224,16 @@ export const EditProfileForm: React.FC = () => {
           )}
           Save Profile
         </Button>
+        <div className="w-full text-center mt-2">
+          <button
+            type="button"
+            className="text-sm text-muted-foreground hover:underline"
+            onClick={() => navigate('/groups')}
+            tabIndex={0}
+          >
+            Skip updating
+          </button>
+        </div>
       </form>
     </Form>
   );
@@ -308,8 +278,8 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           />
         </FormControl>
         <div className="flex items-center gap-2">
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={fileInputRef}
             accept="image/*"
             className="hidden"
@@ -331,9 +301,9 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           </Button>
           {field.value && (
             <div className={`h-10 ${previewType === 'square' ? 'w-10' : 'w-24'} rounded overflow-hidden`}>
-              <img 
-                src={field.value} 
-                alt={`${label} preview`} 
+              <img
+                src={field.value}
+                alt={`${label} preview`}
                 className="h-full w-full object-cover"
               />
             </div>

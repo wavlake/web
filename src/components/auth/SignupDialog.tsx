@@ -14,6 +14,8 @@ import {
 import { toast } from '@/hooks/useToast.ts';
 import { useLoginActions } from '@/hooks/useLoginActions';
 import { generateSecretKey, nip19 } from 'nostr-tools';
+import { generateFakeName } from '@/lib/utils';
+import { useNostrPublish } from '@/hooks/useNostrPublish';
 
 interface SignupDialogProps {
   isOpen: boolean;
@@ -25,15 +27,16 @@ const SignupDialog: React.FC<SignupDialogProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState('');
   const login = useLoginActions();
+  const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Generate a proper nsec key using nostr-tools
   const generateKey = () => {
     setIsLoading(true);
-    
+
     try {
       // Generate a new secret key
       const sk = generateSecretKey();
-      
+
       // Convert to nsec format
       setNsec(nip19.nsecEncode(sk));
       setStep('download');
@@ -71,8 +74,19 @@ const SignupDialog: React.FC<SignupDialogProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  const finishSignup = () => {
+  const finishSignup = async () => {
     login.nsec(nsec);
+
+    // Generate and publish fake name metadata event for new users
+    const fakeName = generateFakeName();
+    try {
+      await publishEvent({
+        kind: 0,
+        content: JSON.stringify({ name: fakeName, display_name: fakeName }),
+      });
+    } catch (e) {
+      // Ignore errors, user can always edit profile later
+    }
 
     setStep('done');
     onClose();
