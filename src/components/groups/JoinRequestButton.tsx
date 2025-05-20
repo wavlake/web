@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { UserPlus, CheckCircle, Clock } from "lucide-react";
+import { UserPlus, CheckCircle, Clock, XCircle } from "lucide-react";
 
 interface JoinRequestButtonProps {
   communityId: string;

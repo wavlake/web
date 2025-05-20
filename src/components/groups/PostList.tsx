@@ -171,7 +171,7 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     .map(tag => tag[1]) || [];
     
   // Check if current user is a moderator
-  const isUserModerator = user && moderators.includes(user.pubkey);
+  const isUserModerator = Boolean(user && moderators.includes(user.pubkey));
   
   // Debug logging
   console.log('Current user:', user?.pubkey);
@@ -338,32 +338,6 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
-  
-  // Parse the community ID to get the pubkey and identifier
-  const parsedCommunityId = communityId.includes(':') 
-    ? parseNostrAddress(communityId)
-    : null;
-  
-  // We'll use the community ID directly to check if the user is a moderator
-  // This is more reliable than trying to parse and query again
-  
-  // Check if user is a moderator (passed from parent component)
-  const { data: communityEvent } = useQuery({
-    queryKey: ["community-details-for-post", communityId],
-    queryFn: async (c) => {
-      if (!parsedCommunityId) return null;
-      
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ 
-        kinds: [34550],
-        authors: [parsedCommunityId.pubkey],
-        "#d": [parsedCommunityId.identifier],
-      }], { signal });
-      
-      return events[0] || null;
-    },
-    enabled: !!nostr && !!parsedCommunityId,
-  });
   
   // isModerator is now passed as a prop, so we don't need to check again
   

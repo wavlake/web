@@ -52,8 +52,42 @@ export default function GroupSettings() {
     }
   }, [groupId]);
   
-
+  // Query for community details
+  const { data: community, isLoading: isLoadingCommunity } = useQuery<NostrEvent>({
+    queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier],
+    queryFn: async (c) => {
+      if (!parsedId) throw new Error("Invalid community ID");
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([{ 
+        kinds: [34550], 
+        authors: [parsedId.pubkey],
+        "#d": [parsedId.identifier]
+      }], { signal });
+      
+      if (events.length === 0) throw new Error("Community not found");
+      return events[0];
+    },
+    enabled: !!nostr && !!parsedId
+  });
   
+  // Query for approved members
+  const { data: approvedMembersEvents, isLoading: isLoadingMembers } = useQuery({
+    queryKey: ["approved-members-settings", groupId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      
+      const events = await nostr.query([{ 
+        kinds: [14550],
+        "#a": [groupId || ""],
+        limit: 50,
+      }], { signal });
+      
+      return events;
+    },
+    enabled: !!nostr && !!groupId,
+  });
+
   // Handle community data changes
   useEffect(() => {
     if (community) {
@@ -93,42 +127,6 @@ export default function GroupSettings() {
     }
   }, [community]);
   
-  // Query for community details
-  const { data: community, isLoading: isLoadingCommunity } = useQuery<NostrEvent>({
-    queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier],
-    queryFn: async (c) => {
-      if (!parsedId) throw new Error("Invalid community ID");
-      
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ 
-        kinds: [34550], 
-        authors: [parsedId.pubkey],
-        "#d": [parsedId.identifier]
-      }], { signal });
-      
-      if (events.length === 0) throw new Error("Community not found");
-      return events[0];
-    },
-    enabled: !!nostr && !!parsedId
-  });
-  
-  // Query for approved members
-  const { data: approvedMembersEvents, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ["approved-members-settings", groupId],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [14550],
-        "#a": [groupId || ""],
-        limit: 50,
-      }], { signal });
-      
-      return events;
-    },
-    enabled: !!nostr && !!groupId,
-  });
-  
   // Extract all approved member pubkeys from the events
   const approvedMembers = approvedMembersEvents?.flatMap(event => 
     event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
@@ -141,7 +139,7 @@ export default function GroupSettings() {
   const isModerator = user && moderators.includes(user.pubkey);
   
   // Check if user is the creator/owner (the signer of the original event)
-  const isOwner = user && community && user.pubkey === (community as NostrEvent).pubkey;
+  const isOwner = Boolean(user && community && user.pubkey === (community as NostrEvent).pubkey);
   
   // Debug logging
   console.log("Current user pubkey:", user?.pubkey);
