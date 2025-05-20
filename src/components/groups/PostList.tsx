@@ -8,8 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
+import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { toast } from "sonner";
-import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal } from "lucide-react";
+import { Heart, MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
@@ -40,6 +41,7 @@ interface PostListProps {
 export function PostList({ communityId, showOnlyApproved = false }: PostListProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { bannedUsers } = useBannedUsers(communityId);
   
   // Query for approved posts
   const { data: approvedPosts, isLoading: isLoadingApproved } = useQuery({
@@ -173,11 +175,6 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
   // Check if current user is a moderator
   const isUserModerator = Boolean(user && moderators.includes(user.pubkey));
   
-  // Debug logging
-  console.log('Current user:', user?.pubkey);
-  console.log('Moderators:', moderators);
-  console.log('Is user moderator:', isUserModerator);
-  
   // Combine and sort all posts
   const allPosts = [...(approvedPosts || []), ...(pendingPosts || [])];
   
@@ -186,10 +183,11 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     index === self.findIndex(p => p.id === post.id)
   );
   
-  // Filter out removed posts
+  // Filter out removed posts and posts from banned users
   const removedPostIds = removedPosts || [];
   const postsWithoutRemoved = uniquePosts.filter(post => 
-    !removedPostIds.includes(post.id)
+    !removedPostIds.includes(post.id) && 
+    !bannedUsers.includes(post.pubkey) // Filter out posts from banned users
   );
   
   // Process posts to mark auto-approved ones
@@ -329,11 +327,9 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const { banUser } = useBannedUsers(communityId);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
-  
-  // Debug logging
-  console.log('PostItem - isModerator:', isModerator);
-  console.log('PostItem - user:', user?.pubkey);
+  const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 8);
@@ -395,6 +391,24 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
     } catch (error) {
       console.error("Error removing post:", error);
       toast.error("Failed to remove post. Please try again.");
+    }
+  };
+  
+  const handleBanUser = async () => {
+    if (!user) {
+      toast.error("You must be logged in to ban users");
+      return;
+    }
+    
+    try {
+      // Ban the user
+      await banUser(post.pubkey);
+      
+      toast.success("User banned successfully!");
+      setIsBanDialogOpen(false);
+    } catch (error) {
+      console.error("Error banning user:", error);
+      toast.error("Failed to ban user. Please try again.");
     }
   };
   
@@ -466,6 +480,13 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
                       <XCircle className="h-4 w-4 mr-2" />
                       Remove Post
                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setIsBanDialogOpen(true)}
+                      className="text-red-600"
+                    >
+                      <Ban className="h-4 w-4 mr-2" />
+                      Ban User
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
@@ -484,6 +505,26 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
                         className="bg-red-600 hover:bg-red-700"
                       >
                         Remove Post
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <AlertDialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Ban User</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to ban this user? They will no longer be able to post in this community, and all their existing posts will be hidden.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleBanUser}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Ban User
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
