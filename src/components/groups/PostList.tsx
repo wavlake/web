@@ -111,9 +111,9 @@ export function PostList({ communityId, showOnlyApproved = false }: PostListProp
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
-      // Get posts that tag the community
+      // Get posts that tag the community (both kind 1 and kind 11 for backward compatibility)
       const posts = await nostr.query([{ 
-        kinds: [1],
+        kinds: [1, 11],
         "#a": [communityId],
         limit: 50,
       }], { signal });
@@ -385,7 +385,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           ["a", communityId],
           ["e", post.id],
           ["p", post.pubkey],
-          ["k", "1"], // Post kind
+          ["k", String(post.kind)],
         ],
         content: JSON.stringify(post),
       });
@@ -411,7 +411,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           ["a", communityId],
           ["e", post.id],
           ["p", post.pubkey],
-          ["k", "1"], // Post kind
+          ["k", String(post.kind)],
         ],
         content: JSON.stringify({
           reason: "Removed by moderator",

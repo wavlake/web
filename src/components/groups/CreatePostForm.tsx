@@ -70,17 +70,19 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
         imageTags = tags;
       }
       
-      // Create post event (kind 1)
+      // Create post event (kind 11)
       const tags = [
         // Community reference
         ["a", communityId],
+        // Add subject tag for thread title (optional)
+        ["subject", "Post in " + communityId],
         // Add image tags if any
         ...imageTags,
       ];
       
       // Publish the post event
       await publishEvent({
-        kind: 1,
+        kind: 11,
         tags,
         content: finalContent,
       });
