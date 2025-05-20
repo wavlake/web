@@ -499,10 +499,6 @@ export default function GroupSettings() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="ml-auto">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
                 </CardFooter>
               </Card>
               
