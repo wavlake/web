@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, Plus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +24,12 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground max-w-60'>
+        <button type="button" className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground max-w-60'>
           <Avatar className='w-10 h-10'>
             <AvatarImage src={currentUser.metadata.picture} alt={currentUser.metadata.name} />
-            <AvatarFallback>{currentUser.metadata.name?.charAt(0) || <UserIcon />}</AvatarFallback>
+            {currentUser.metadata.name?.charAt(0)
+              ? <AvatarFallback>{currentUser.metadata.name?.charAt(0)}</AvatarFallback>
+              : <AvatarFallback><UserIcon /></AvatarFallback>}
           </Avatar>
           <div className='flex-1 text-left hidden md:block truncate'>
             <p className='font-medium text-sm truncate'>{currentUser.metadata.name || currentUser.pubkey}</p>
@@ -45,7 +47,9 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           >
             <Avatar className='w-8 h-8'>
               <AvatarImage src={user.metadata.picture} alt={user.metadata.name} />
-              <AvatarFallback>{user.metadata.name?.charAt(0) || <UserIcon />}</AvatarFallback>
+              {user.metadata.name?.charAt(0)
+                ? <AvatarFallback>{user.metadata.name?.charAt(0)}</AvatarFallback>
+                : <AvatarFallback><UserIcon /></AvatarFallback>}
             </Avatar>
             <div className='flex-1 truncate'>
               <p className='text-sm font-medium'>{user.metadata.name || user.pubkey}</p>
@@ -54,6 +58,15 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <a href="/create-group">
+            <Plus className='w-4 h-4' />
+            <span>Create Community</span>
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={onAddAccountClick}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
