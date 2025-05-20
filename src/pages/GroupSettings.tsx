@@ -79,7 +79,16 @@ export default function GroupSettings() {
       setName(nameTag ? nameTag[1] : "");
       setDescription(descriptionTag ? descriptionTag[1] : "");
       setImageUrl(imageTag ? imageTag[1] : "");
-      setModerators(modTags.map(tag => tag[1]));
+      
+      // Get all moderator pubkeys
+      const modPubkeys = modTags.map(tag => tag[1]);
+      
+      // Make sure the owner is included in the moderators list
+      if (!modPubkeys.includes(data.pubkey)) {
+        modPubkeys.push(data.pubkey);
+      }
+      
+      setModerators(modPubkeys);
     }
   });
   
@@ -147,19 +156,49 @@ export default function GroupSettings() {
     
     try {
       // Build tags array
-      const tags = [
-        ["d", parsedId.identifier],
-        ["name", name],
-        ["description", description],
-      ];
+      const tags = [];
+      
+      // Add the 'd' identifier tag
+      tags.push(["d", parsedId.identifier]);
+      
+      // Add updated basic metadata
+      tags.push(["name", name]);
+      tags.push(["description", description]);
       
       if (imageUrl) {
-        tags.push(["image", imageUrl]);
+        // Check if the original image tag had dimensions
+        const originalImageTag = community.tags.find(tag => tag[0] === "image");
+        if (originalImageTag && originalImageTag.length > 2) {
+          // Preserve the dimensions if they exist
+          tags.push(["image", imageUrl, originalImageTag[2]]);
+        } else {
+          tags.push(["image", imageUrl]);
+        }
       }
       
+      // Add any other metadata tags from the original event (except 'p', 'd', 'name', 'description', 'image')
+      community.tags.forEach(tag => {
+        if (!["p", "d", "name", "description", "image"].includes(tag[0])) {
+          tags.push([...tag]); // Clone the tag array to preserve all other metadata
+        }
+      });
+      
       // Add moderator tags
-      moderators.forEach(mod => {
-        tags.push(["p", mod, "", "moderator"]);
+      // Make sure the owner is always included as a moderator
+      const allModerators = [...new Set([...moderators, community.pubkey])];
+      
+      allModerators.forEach(mod => {
+        // Find the original moderator tag to preserve any relay hints
+        const originalModTag = community.tags.find(tag => 
+          tag[0] === "p" && tag[1] === mod && tag[3] === "moderator"
+        );
+        
+        if (originalModTag && originalModTag.length > 2 && originalModTag[2]) {
+          // Preserve the relay hint if it exists
+          tags.push(["p", mod, originalModTag[2], "moderator"]);
+        } else {
+          tags.push(["p", mod, "", "moderator"]);
+        }
       });
       
       // Create community update event (kind 34550)
@@ -187,12 +226,50 @@ export default function GroupSettings() {
     }
     
     if (!moderators.includes(pubkey)) {
-      setModerators([...moderators, pubkey]);
-      toast.success("Moderator added. Save changes to apply.");
+      try {
+        // Create a new list of moderators including the new one
+        const updatedModerators = [...moderators, pubkey];
+        
+        // Build tags array with all existing metadata
+        const tags = [];
+        
+        // Add the 'd' identifier tag
+        if (parsedId) {
+          tags.push(["d", parsedId.identifier]);
+        }
+        
+        // Add all existing metadata tags (except 'p' tags which we'll rebuild)
+        community?.tags.forEach(tag => {
+          if (tag[0] !== "p" && tag[0] !== "d") {
+            tags.push([...tag]); // Clone the tag array
+          }
+        });
+        
+        // Add all moderator tags including the new one
+        updatedModerators.forEach(mod => {
+          tags.push(["p", mod, "", "moderator"]);
+        });
+        
+        // Create community update event (kind 34550)
+        await publishEvent({
+          kind: 34550,
+          tags,
+          content: "",
+        });
+        
+        // Update local state
+        setModerators(updatedModerators);
+        toast.success("Moderator added successfully!");
+      } catch (error) {
+        console.error("Error adding moderator:", error);
+        toast.error("Failed to add moderator. Please try again.");
+      }
+    } else {
+      toast.info("This user is already a moderator.");
     }
   };
   
-  const handleRemoveModerator = (pubkey: string) => {
+  const handleRemoveModerator = async (pubkey: string) => {
     // Only the owner can remove moderators
     if (!isOwner) {
       toast.error("Only the group owner can remove moderators");
@@ -205,9 +282,47 @@ export default function GroupSettings() {
       return;
     }
     
-    setModerators(moderators.filter(mod => mod !== pubkey));
-    setIsRemoveModDialogOpen(null);
-    toast.success("Moderator removed. Save changes to apply.");
+    try {
+      // Create a new list of moderators excluding the removed one
+      const updatedModerators = moderators.filter(mod => mod !== pubkey);
+      
+      // Build tags array with all existing metadata
+      const tags = [];
+      
+      // Add the 'd' identifier tag
+      if (parsedId) {
+        tags.push(["d", parsedId.identifier]);
+      }
+      
+      // Add all existing metadata tags (except 'p' tags which we'll rebuild)
+      community?.tags.forEach(tag => {
+        if (tag[0] !== "p" && tag[0] !== "d") {
+          tags.push([...tag]); // Clone the tag array
+        }
+      });
+      
+      // Add all moderator tags excluding the removed one
+      // Make sure the owner is always included
+      const allModerators = [...new Set([...updatedModerators, community.pubkey])];
+      allModerators.forEach(mod => {
+        tags.push(["p", mod, "", "moderator"]);
+      });
+      
+      // Create community update event (kind 34550)
+      await publishEvent({
+        kind: 34550,
+        tags,
+        content: "",
+      });
+      
+      // Update local state
+      setModerators(updatedModerators);
+      setIsRemoveModDialogOpen(null);
+      toast.success("Moderator removed successfully!");
+    } catch (error) {
+      console.error("Error removing moderator:", error);
+      toast.error("Failed to remove moderator. Please try again.");
+    }
   };
   
   if (isLoadingCommunity) {
@@ -316,6 +431,19 @@ export default function GroupSettings() {
                     </div>
                   )}
                 </div>
+
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <h3 className="text-sm font-medium mb-2">Current Community Information</h3>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    <span className="font-medium">ID:</span> {parsedId?.identifier}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    <span className="font-medium">Created by:</span> {community?.pubkey.slice(0, 8)}...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Created at:</span> {new Date(community?.created_at * 1000).toLocaleString()}
+                  </p>
+                </div>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="ml-auto">
@@ -342,27 +470,31 @@ export default function GroupSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {moderators.length === 0 ? (
-                      <p className="text-muted-foreground">No moderators yet</p>
-                    ) : (
-                      moderators.map((pubkey) => (
-                        <ModeratorItem 
-                          key={pubkey} 
-                          pubkey={pubkey} 
-                          isCreator={community.pubkey === pubkey}
-                          onRemove={() => setIsRemoveModDialogOpen(pubkey)}
-                        />
-                      ))
-                    )}
-                    
-                    {/* If the owner is not in the moderators list, add them separately */}
-                    {community && !moderators.includes(community.pubkey) && (
+                    {/* Always display the owner first */}
+                    {community && (
                       <ModeratorItem 
                         key={community.pubkey} 
                         pubkey={community.pubkey} 
                         isCreator={true}
                         onRemove={() => {}} // Owner can't be removed
                       />
+                    )}
+                    
+                    {/* Then display all moderators who are not the owner */}
+                    {moderators
+                      .filter(pubkey => pubkey !== community?.pubkey) // Filter out the owner
+                      .map((pubkey) => (
+                        <ModeratorItem 
+                          key={pubkey} 
+                          pubkey={pubkey} 
+                          isCreator={false}
+                          onRemove={() => setIsRemoveModDialogOpen(pubkey)}
+                        />
+                      ))
+                    }
+                    
+                    {moderators.length === 0 && !community && (
+                      <p className="text-muted-foreground">No moderators yet</p>
                     )}
                   </div>
                 </CardContent>
@@ -504,6 +636,7 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
           className="text-red-600"
           onClick={onRemove}
           disabled={!isCurrentUser && !user.pubkey}
+          title={isOwner ? "The group owner cannot be removed" : ""}
         >
           <Trash2 className="h-4 w-4 mr-1" />
           Remove
@@ -553,7 +686,7 @@ function MemberItem({ pubkey, onPromote, isOwner }: MemberItemProps) {
         size="sm"
         onClick={onPromote}
         disabled={!isOwner}
-        title={!isOwner ? "Only the group owner can add moderators" : ""}
+        title={!isOwner ? "Only the group owner can add moderators" : "This will immediately update the group"}
       >
         <UserPlus className="h-4 w-4 mr-1" />
         Make Moderator
