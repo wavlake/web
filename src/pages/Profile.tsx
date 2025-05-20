@@ -70,6 +70,81 @@ function PostGroupLink({ post }: { post: NostrEvent }) {
   );
 }
 
+// Component to display the user's groups
+interface UserGroup {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  membershipEvent: NostrEvent;
+  groupEvent: NostrEvent;
+}
+
+function UserGroupsList({ 
+  groups, 
+  isLoading 
+}: { 
+  groups: UserGroup[] | undefined; 
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-12 w-12 rounded-md" />
+            <div>
+              <Skeleton className="h-4 w-32 mb-1" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (!groups || groups.length === 0) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-muted-foreground">This user is not a member of any groups yet</p>
+      </Card>
+    );
+  }
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {groups.map((group) => (
+        <Link 
+          key={group.id} 
+          to={`/group/${encodeURIComponent(group.id)}`}
+          className="block"
+        >
+          <Card className="overflow-hidden h-full hover:bg-muted/50 transition-colors">
+            <div className="flex p-4 h-full">
+              <div className="h-16 w-16 rounded-md overflow-hidden mr-4 flex-shrink-0">
+                <img 
+                  src={group.image} 
+                  alt={group.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://placehold.co/100x100?text=Group";
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm mb-1">{group.name}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {group.description || "No description available"}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Profile() {
   const { pubkey } = useParams<{ pubkey: string }>();
   const author = useAuthor(pubkey);
@@ -145,6 +220,66 @@ export default function Profile() {
     },
     enabled: !!nostr && !!pubkey,
   });
+  
+  // Query for groups the user is a part of (kind 14550 events with user as p tag)
+  const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
+    queryKey: ["user-groups", pubkey],
+    queryFn: async (c) => {
+      if (!pubkey || !nostr) return [];
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      
+      // Get kind 14550 events that include this pubkey in their p tags
+      const groupEvents = await nostr.query([{ 
+        kinds: [14550],
+        "#p": [pubkey],
+        limit: 50,
+      }], { signal });
+      
+      // For each group event, we need to fetch the actual group details
+      const groupPromises = groupEvents.map(async (event) => {
+        // Extract the group reference from the a tag
+        const aTag = event.tags.find(tag => tag[0] === "a");
+        if (!aTag || !aTag[1]) return null;
+        
+        const groupId = aTag[1];
+        const parsedGroup = parseNostrAddress(groupId);
+        
+        if (!parsedGroup || parsedGroup.kind !== 34550) return null;
+        
+        // Fetch the group details
+        const [groupEvent] = await nostr.query([{
+          kinds: [34550],
+          authors: [parsedGroup.pubkey],
+          "#d": [parsedGroup.identifier],
+          limit: 1,
+        }], { signal: AbortSignal.timeout(3000) });
+        
+        if (!groupEvent) return null;
+        
+        // Extract group details
+        const nameTag = groupEvent.tags.find(tag => tag[0] === "name");
+        const descriptionTag = groupEvent.tags.find(tag => tag[0] === "description");
+        const imageTag = groupEvent.tags.find(tag => tag[0] === "image");
+        
+        return {
+          id: groupId,
+          name: nameTag ? nameTag[1] : parsedGroup.identifier,
+          description: descriptionTag ? descriptionTag[1] : "",
+          image: imageTag ? imageTag[1] : "/placeholder-community.jpg",
+          membershipEvent: event,
+          groupEvent: groupEvent,
+        };
+      });
+      
+      // Wait for all group details to be fetched
+      const groups = await Promise.all(groupPromises);
+      
+      // Filter out null results and return
+      return groups.filter(group => group !== null);
+    },
+    enabled: !!nostr && !!pubkey,
+  });
 
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || pubkey?.slice(0, 8) || "";
@@ -214,23 +349,84 @@ export default function Profile() {
           </CardContent>
         </Card>
         
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
+        {/* Mobile loading state - Groups first, then Posts */}
+        <div className="md:hidden space-y-8 mb-8">
+          <div>
+            <Skeleton className="h-6 w-24 mb-4" />
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-md" />
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-1" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardContent>
-            </Card>
-          ))}
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* Desktop loading state - Posts and Groups side by side */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
+          <div className="col-span-2">
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <Skeleton className="h-6 w-24 mb-4" />
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-md" />
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-1" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -332,68 +528,151 @@ export default function Profile() {
         </CardHeader>
       </Card>
       
-      <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-      
-      {isLoadingPosts ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardContent>
-            </Card>
-          ))}
+      {/* Mobile layout - Groups first, then Posts */}
+      <div className="md:hidden space-y-8 mb-8">
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Groups</h2>
+          <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
         </div>
-      ) : posts && posts.length > 0 ? (
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <Card key={post.id}>
-              <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                <Avatar>
-                  <AvatarImage src={profileImage} />
-                  <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{displayNameFull}</p>
-                      <div className="text-xs text-muted-foreground">
-                        <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+        
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
+          
+          {isLoadingPosts ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : posts && posts.length > 0 ? (
+            <div className="space-y-6">
+              {posts.map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="flex flex-row items-start gap-4 pb-2">
+                    <Avatar>
+                      <AvatarImage src={profileImage} />
+                      <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">{displayNameFull}</p>
+                          <div className="text-xs text-muted-foreground">
+                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pb-2">
-                <div className="whitespace-pre-wrap break-words">
-                  <NoteContent event={post} className="text-sm" />
-                </div>
-              </CardContent>
-              
-              {extractGroupInfo(post) && (
-                <CardFooter className="pt-0 pb-3">
-                  <PostGroupLink post={post} />
-                </CardFooter>
-              )}
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="whitespace-pre-wrap break-words">
+                      <NoteContent event={post} className="text-sm" />
+                    </div>
+                  </CardContent>
+                  
+                  {extractGroupInfo(post) && (
+                    <CardFooter className="pt-0 pb-3">
+                      <PostGroupLink post={post} />
+                    </CardFooter>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No posts from this user yet</p>
             </Card>
-          ))}
+          )}
         </div>
-      ) : (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No posts from this user yet</p>
-        </Card>
-      )}
+      </div>
+      
+      {/* Desktop layout - Posts and Groups side by side */}
+      <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
+        <div className="col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
+          
+          {isLoadingPosts ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : posts && posts.length > 0 ? (
+            <div className="space-y-6">
+              {posts.map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="flex flex-row items-start gap-4 pb-2">
+                    <Avatar>
+                      <AvatarImage src={profileImage} />
+                      <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">{displayNameFull}</p>
+                          <div className="text-xs text-muted-foreground">
+                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="whitespace-pre-wrap break-words">
+                      <NoteContent event={post} className="text-sm" />
+                    </div>
+                  </CardContent>
+                  
+                  {extractGroupInfo(post) && (
+                    <CardFooter className="pt-0 pb-3">
+                      <PostGroupLink post={post} />
+                    </CardFooter>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No posts from this user yet</p>
+            </Card>
+          )}
+        </div>
+        
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Groups</h2>
+          <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
+        </div>
+      </div>
     </div>
   );
 }
