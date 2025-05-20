@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
 import { toast } from "sonner";
-import { UserPlus, Users, CheckCircle, XCircle, UserX } from "lucide-react";
+import { UserPlus, Users, CheckCircle, XCircle, UserX, Ban } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { Link } from "react-router-dom";
 
@@ -23,6 +24,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const { 
+    bannedUsers: uniqueBannedUsers, 
+    isLoading: isLoadingBanned, 
+    banUser, 
+    unbanUser 
+  } = useBannedUsers(communityId);
   const [activeTab, setActiveTab] = useState("requests");
 
   // Query for join requests
@@ -92,10 +99,11 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
   // Remove duplicates
   const uniqueDeclinedUsers = [...new Set(declinedUsers)];
 
-  // Filter out join requests from users who are already approved or declined
+  // Filter out join requests from users who are already approved, declined, or banned
   const pendingRequests = joinRequests?.filter(request => 
     !uniqueApprovedMembers.includes(request.pubkey) && 
-    !uniqueDeclinedUsers.includes(request.pubkey)
+    !uniqueDeclinedUsers.includes(request.pubkey) &&
+    !uniqueBannedUsers.includes(request.pubkey)
   ) || [];
 
   const handleApproveUser = async (pubkey: string) => {
@@ -217,6 +225,31 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
+    }
+  };
+  
+  const handleBanUser = async (pubkey: string) => {
+    if (!user || !isModerator) {
+      toast.error("You must be a moderator to ban users");
+      return;
+    }
+
+    try {
+      // First remove the user from approved members if they are in that list
+      if (uniqueApprovedMembers.includes(pubkey)) {
+        await handleRemoveMember(pubkey);
+      }
+      
+      // Then ban the user
+      await banUser(pubkey);
+      
+      toast.success("User banned successfully!");
+      
+      // Switch to banned tab
+      setActiveTab("banned");
+    } catch (error) {
+      console.error("Error banning user:", error);
+      toast.error("Failed to ban user. Please try again.");
     }
   };
 
@@ -352,6 +385,15 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="banned" className="flex items-center">
+              <Ban className="h-4 w-4 mr-2" />
+              Banned
+              {uniqueBannedUsers.length > 0 && (
+                <span className="ml-2 bg-red-100 text-red-600 rounded-full px-2 py-0.5 text-xs">
+                  {uniqueBannedUsers.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="requests">
@@ -418,7 +460,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                   <MemberItem 
                     key={pubkey} 
                     pubkey={pubkey} 
-                    onRemove={() => handleRemoveMember(pubkey)} 
+                    onRemove={() => handleRemoveMember(pubkey)}
+                    onBan={() => handleBanUser(pubkey)}
                   />
                 ))}
               </div>
@@ -452,6 +495,40 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                     key={pubkey} 
                     pubkey={pubkey} 
                     onApprove={() => handleApproveDeclinedUser(pubkey)} 
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="banned">
+            {isLoadingBanned ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-4 w-32 mb-1" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-9 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : uniqueBannedUsers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Ban className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>No banned users</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {uniqueBannedUsers.map((pubkey) => (
+                  <MemberItem 
+                    key={pubkey} 
+                    pubkey={pubkey} 
+                    onRemove={() => unbanUser(pubkey)}
+                    isBanned={true}
                   />
                 ))}
               </div>
@@ -522,9 +599,11 @@ function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps
 interface MemberItemProps {
   pubkey: string;
   onRemove: () => void;
+  onBan?: () => void;
+  isBanned?: boolean;
 }
 
-function MemberItem({ pubkey, onRemove }: MemberItemProps) {
+function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemProps) {
   const author = useAuthor(pubkey);
   const { user } = useCurrentUser();
   const metadata = author.data?.metadata;
@@ -551,18 +630,37 @@ function MemberItem({ pubkey, onRemove }: MemberItemProps) {
               You
             </span>
           )}
+          {isBanned && (
+            <span className="ml-2 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
+              Banned
+            </span>
+          )}
         </div>
       </div>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="text-red-600"
-        onClick={onRemove}
-        disabled={isCurrentUser}
-      >
-        <XCircle className="h-4 w-4 mr-1" />
-        Remove
-      </Button>
+      <div className="flex gap-2">
+        {onBan && !isBanned && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-red-600"
+            onClick={onBan}
+            disabled={isCurrentUser}
+          >
+            <Ban className="h-4 w-4 mr-1" />
+            Ban
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-red-600"
+          onClick={onRemove}
+          disabled={isCurrentUser}
+        >
+          <XCircle className="h-4 w-4 mr-1" />
+          {isBanned ? "Unban" : "Remove"}
+        </Button>
+      </div>
     </div>
   );
 }
