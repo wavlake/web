@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -23,7 +23,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNavigate } from 'react-router-dom';
 
-export const EditProfileForm: React.FC = () => {
+interface EditProfileFormProps {
+  showSkipLink?: boolean;
+}
+
+export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -224,16 +228,18 @@ export const EditProfileForm: React.FC = () => {
           )}
           Save Profile
         </Button>
-        <div className="w-full text-center mt-2">
-          <button
-            type="button"
-            className="text-sm text-muted-foreground hover:underline"
-            onClick={() => navigate('/groups')}
-            tabIndex={0}
-          >
-            Skip updating
-          </button>
-        </div>
+        {showSkipLink && (
+          <div className="w-full text-center mt-2">
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:underline"
+              onClick={() => navigate('/groups')}
+              tabIndex={0}
+            >
+              Skip updating
+            </button>
+          </div>
+        )}
       </form>
     </Form>
   );

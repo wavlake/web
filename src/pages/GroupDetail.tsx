@@ -84,6 +84,7 @@ export default function GroupDetail() {
   if (isLoadingCommunity || !parsedId) {
     return (
       <div className="container mx-auto p-4">
+        <Header />
         <h1 className="text-2xl font-bold mb-4">Loading community...</h1>
       </div>
     );
@@ -105,12 +106,6 @@ export default function GroupDetail() {
     <div className="container mx-auto p-4">
       <Header />
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <Link to="/groups" className="text-sm text-muted-foreground hover:underline mb-2 inline-block">
-            ← Back to Communities
-          </Link>
-          <h1 className="text-3xl font-bold">{name}</h1>
-        </div>
         <div className="flex items-center gap-4">
           <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
         </div>

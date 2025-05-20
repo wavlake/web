@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { LoginArea } from "@/components/auth/LoginArea";
 import { Separator } from "@/components/ui/separator";
-import { Users, Plus } from "lucide-react";
+import { Users } from "lucide-react";
+import Header from "@/components/ui/Header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Groups() {
   const { nostr } = useNostr();
@@ -23,30 +23,32 @@ export default function Groups() {
     enabled: !!nostr,
   });
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Loading communities...</h1>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex flex-row gap-0 items-baseline">
-          <span className="text-red-500 font-extrabold text-4xl">+</span>
-          Chorus
-          </h1>
-        <div className="flex items-center gap-2">
-          <LoginArea />
-        </div>
-      </div>
-
-      <Separator className="my-6" />
-
+      <Header />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {communities && communities.length > 0 ? (
+        {isLoading ? (
+          // Skeleton loading state
+          Array.from({ length: 6 }).map((_, index) => (
+            <Card key={`skeleton-community-${index}-${Date.now()}`} className="overflow-hidden flex flex-col">
+              <div className="h-40 overflow-hidden">
+                <Skeleton className="w-full h-full" />
+              </div>
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-2/3" />
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-10 w-full" />
+              </CardFooter>
+            </Card>
+          ))
+        ) : communities && communities.length > 0 ? (
           communities.map((community) => {
             // Extract community data from tags
             const nameTag = community.tags.find(tag => tag[0] === "name");

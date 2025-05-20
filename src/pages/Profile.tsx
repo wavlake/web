@@ -317,13 +317,6 @@ export default function Profile() {
     return (
       <div className="container mx-auto p-4">
         <Header />
-        <div className="mb-6">
-          <Link to="/groups" className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Groups
-          </Link>
-        </div>
-
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center gap-4">
             <Skeleton className="h-24 w-24 rounded-full" />
@@ -437,13 +430,6 @@ export default function Profile() {
   return (
     <div className="container mx-auto p-4">
       <Header />
-      <div className="mb-6">
-        <Link to="/groups" className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Groups
-        </Link>
-      </div>
-
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-start gap-6">
           <Avatar className="h-24 w-24">
