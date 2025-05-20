@@ -1,15 +1,15 @@
-# NostrGroups - A NIP-72 Groups Platform
+# Chorus - Grow and give back to the communities that matter to you
 
-A Facebook-inspired groups platform built on the Nostr protocol using NIP-72 for moderated communities.
+Chorus is a decentralized, privacy-conscious, user-moderated groups platform inspired by the early promise of Facebook Groups reimagined on the Nostr protocol. It supports secure, pseudonymous communities where users can create, join, and contribute freely.
 
 ## Features
 
 - **Browse Communities**: Discover and join communities created by other users
 - **Create Communities**: Start your own community with custom name, description, and image
 - **Post to Communities**: Share text and images with community members
-- **Moderation**: Community creators can approve posts and manage their communities
+- **Moderation**: Community creators can manage their communities their way
 - **User Profiles**: View user profiles and their activity
-- **Responsive Design**: Works on desktop and mobile devices
+- **Responsive Design**: Mobile-first, browser-based for use on any smartphone
 
 ## Technology Stack
 
