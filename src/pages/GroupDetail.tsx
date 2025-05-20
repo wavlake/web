@@ -216,15 +216,17 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
   const profileImage = metadata?.picture;
   
   return (
-    <div className="flex items-center space-x-3">
-      <Avatar>
-        <AvatarImage src={profileImage} />
-        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div>
-        <p className="font-medium">{displayName}</p>
-        {isCreator && <p className="text-xs text-muted-foreground">Creator</p>}
+    <Link to={`/profile/${pubkey}`} className="block hover:bg-muted rounded-md transition-colors">
+      <div className="flex items-center space-x-3 p-2">
+        <Avatar>
+          <AvatarImage src={profileImage} />
+          <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-medium">{displayName}</p>
+          {isCreator && <p className="text-xs text-muted-foreground">Creator</p>}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
