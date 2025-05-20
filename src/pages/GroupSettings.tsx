@@ -69,12 +69,22 @@ export default function GroupSettings() {
       return events[0];
     },
     enabled: !!nostr && !!parsedId,
-    onSuccess: (data) => {
+    onSuccess: (data: NostrEvent) => {
       // Initialize form with current values
       const nameTag = data.tags.find(tag => tag[0] === "name");
       const descriptionTag = data.tags.find(tag => tag[0] === "description");
       const imageTag = data.tags.find(tag => tag[0] === "image");
-      const modTags = data.tags.filter(tag => tag[0] === "p" && tag[3] === "moderator");
+      
+      // Get all moderator tags - these are "p" tags with "moderator" as the 4th element (index 3)
+      // Some implementations might not include the 4th element, so we need to check for both cases
+      const modTags = data.tags.filter(tag => 
+        tag[0] === "p" && (
+          // Either explicitly marked as moderator
+          (tag.length > 3 && tag[3] === "moderator") ||
+          // Or it's a "p" tag in a kind 34550 event (all "p" tags in community events are moderators per NIP-72)
+          (data.kind === 34550)
+        )
+      );
       
       setName(nameTag ? nameTag[1] : "");
       setDescription(descriptionTag ? descriptionTag[1] : "");
@@ -88,7 +98,10 @@ export default function GroupSettings() {
         modPubkeys.push(data.pubkey);
       }
       
-      setModerators(modPubkeys);
+      // Remove duplicates
+      const uniqueModPubkeys = [...new Set(modPubkeys)];
+      
+      setModerators(uniqueModPubkeys);
     }
   });
   
@@ -143,7 +156,16 @@ export default function GroupSettings() {
     }
     
     // Only the owner can update moderators
-    if (moderators.some(mod => !community.tags.some(tag => tag[0] === "p" && tag[1] === mod && tag[3] === "moderator")) && !isOwner) {
+    // Get all moderator pubkeys from the original community event
+    const originalModPubkeys = community.tags
+      .filter(tag => tag[0] === "p")
+      .map(tag => tag[1]);
+    
+    // Check if the moderators list has changed and the user is not the owner
+    const moderatorsChanged = moderators.some(mod => !originalModPubkeys.includes(mod)) || 
+                             originalModPubkeys.some(mod => !moderators.includes(mod));
+    
+    if (moderatorsChanged && !isOwner) {
       toast.error("Only the group owner can add or remove moderators");
       return;
     }
@@ -156,7 +178,7 @@ export default function GroupSettings() {
     
     try {
       // Build tags array
-      const tags = [];
+      const tags: string[][] = [];
       
       // Add the 'd' identifier tag
       tags.push(["d", parsedId.identifier]);
@@ -190,7 +212,7 @@ export default function GroupSettings() {
       allModerators.forEach(mod => {
         // Find the original moderator tag to preserve any relay hints
         const originalModTag = community.tags.find(tag => 
-          tag[0] === "p" && tag[1] === mod && tag[3] === "moderator"
+          tag[0] === "p" && tag[1] === mod
         );
         
         if (originalModTag && originalModTag.length > 2 && originalModTag[2]) {
@@ -231,7 +253,7 @@ export default function GroupSettings() {
         const updatedModerators = [...moderators, pubkey];
         
         // Build tags array with all existing metadata
-        const tags = [];
+        const tags: string[][] = [];
         
         // Add the 'd' identifier tag
         if (parsedId) {
@@ -246,8 +268,21 @@ export default function GroupSettings() {
         });
         
         // Add all moderator tags including the new one
-        updatedModerators.forEach(mod => {
-          tags.push(["p", mod, "", "moderator"]);
+        // Remove duplicates first
+        const uniqueModPubkeys = [...new Set(updatedModerators)];
+        
+        uniqueModPubkeys.forEach(mod => {
+          // Find the original moderator tag to preserve any relay hints
+          const originalModTag = community?.tags.find(tag => 
+            tag[0] === "p" && tag[1] === mod
+          );
+          
+          if (originalModTag && originalModTag.length > 2 && originalModTag[2]) {
+            // Preserve the relay hint if it exists
+            tags.push(["p", mod, originalModTag[2], "moderator"]);
+          } else {
+            tags.push(["p", mod, "", "moderator"]);
+          }
         });
         
         // Create community update event (kind 34550)
@@ -258,7 +293,7 @@ export default function GroupSettings() {
         });
         
         // Update local state
-        setModerators(updatedModerators);
+        setModerators(uniqueModPubkeys);
         toast.success("Moderator added successfully!");
       } catch (error) {
         console.error("Error adding moderator:", error);
@@ -287,7 +322,7 @@ export default function GroupSettings() {
       const updatedModerators = moderators.filter(mod => mod !== pubkey);
       
       // Build tags array with all existing metadata
-      const tags = [];
+      const tags: string[][] = [];
       
       // Add the 'd' identifier tag
       if (parsedId) {
@@ -304,8 +339,19 @@ export default function GroupSettings() {
       // Add all moderator tags excluding the removed one
       // Make sure the owner is always included
       const allModerators = [...new Set([...updatedModerators, community.pubkey])];
+      
       allModerators.forEach(mod => {
-        tags.push(["p", mod, "", "moderator"]);
+        // Find the original moderator tag to preserve any relay hints
+        const originalModTag = community?.tags.find(tag => 
+          tag[0] === "p" && tag[1] === mod
+        );
+        
+        if (originalModTag && originalModTag.length > 2 && originalModTag[2]) {
+          // Preserve the relay hint if it exists
+          tags.push(["p", mod, originalModTag[2], "moderator"]);
+        } else {
+          tags.push(["p", mod, "", "moderator"]);
+        }
       });
       
       // Create community update event (kind 34550)
@@ -631,7 +677,7 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
           size="sm" 
           className="text-red-600"
           onClick={onRemove}
-          disabled={!isCurrentUser && !user.pubkey}
+          disabled={!isCurrentUser && !user?.pubkey}
           title={isOwner ? "The group owner cannot be removed" : ""}
         >
           <Trash2 className="h-4 w-4 mr-1" />
