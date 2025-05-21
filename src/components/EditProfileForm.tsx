@@ -42,6 +42,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
     defaultValues: {
       name: '',
       picture: '',
+      nip05: '',
     },
   });
 
@@ -51,6 +52,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
       form.reset({
         name: metadata.name || '',
         picture: metadata.picture || '',
+        nip05: metadata.nip05 || '',
       });
     }
   }, [metadata, form]);
@@ -151,6 +153,23 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
               previewType="square"
               onUpload={(file) => uploadPicture(file, 'picture')}
             />
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="nip05"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>NIP-05 Identifier</FormLabel>
+              <FormControl>
+                <Input placeholder="you@example.com" {...field} />
+              </FormControl>
+              <FormDescription>
+                Your NIP-05 identifier for verification. Format: username@domain.com
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
           )}
         />
 

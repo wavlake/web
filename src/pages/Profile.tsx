@@ -15,7 +15,8 @@ import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
-import { Separator } from "@/components/ui/separator"; // Added Separator import
+import { Separator } from "@/components/ui/separator";
+import { VerifiedNip05 } from "@/components/VerifiedNip05";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -462,7 +463,7 @@ export default function Profile() {
 
                 {nip05 && (
                   <div className="mt-1 text-sm">
-                    <span className="text-muted-foreground">✓ {nip05}</span>
+                    <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
                   </div>
                 )}
 
