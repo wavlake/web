@@ -41,10 +41,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
     resolver: zodResolver(n.metadata()),
     defaultValues: {
       name: '',
-      about: '',
       picture: '',
-      banner: '',
-      website: '',
     },
   });
 
@@ -53,10 +50,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
     if (metadata) {
       form.reset({
         name: metadata.name || '',
-        about: metadata.about || '',
         picture: metadata.picture || '',
-        banner: metadata.banner || '',
-        website: metadata.website || '',
       });
     }
   }, [metadata, form]);
@@ -139,7 +133,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
                 <Input placeholder="Your name" {...field} />
               </FormControl>
               <FormDescription>
-                This is your display name that will be displayed to others.
+                This is the name that will be displayed to others.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -148,98 +142,30 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
 
         <FormField
           control={form.control}
-          name="about"
+          name="picture"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Bio</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tell others about yourself"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                A short description about yourself.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
+            <ImageUploadField
+              field={field}
+              label="Profile Picture"
+              description="Upload an image for your profile picture."
+              previewType="square"
+              onUpload={(file) => uploadPicture(file, 'picture')}
+            />
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="picture"
-            render={({ field }) => (
-              <ImageUploadField
-                field={field}
-                label="Profile Picture"
-                placeholder="https://example.com/profile.jpg"
-                description="URL to your profile picture. You can upload an image or provide a URL."
-                previewType="square"
-                onUpload={(file) => uploadPicture(file, 'picture')}
-              />
+        <div className="flex justify-center">
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isPending || isUploading}
+          >
+            {(isPending || isUploading) && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-          />
-
-          <FormField
-            control={form.control}
-            name="banner"
-            render={({ field }) => (
-              <ImageUploadField
-                field={field}
-                label="Banner Image"
-                placeholder="https://example.com/banner.jpg"
-                description="URL to a wide banner image for your profile. You can upload an image or provide a URL."
-                previewType="wide"
-                onUpload={(file) => uploadPicture(file, 'banner')}
-              />
-            )}
-          />
+            Save Profile
+          </Button>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="website"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Website</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://yourwebsite.com" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Your personal website or social media link.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full md:w-auto"
-          disabled={isPending || isUploading}
-        >
-          {(isPending || isUploading) && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          Save Profile
-        </Button>
-        {showSkipLink && (
-          <div className="w-full text-center mt-2">
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:underline"
-              onClick={() => navigate('/groups')}
-              tabIndex={0}
-            >
-              Skip updating
-            </button>
-          </div>
-        )}
       </form>
     </Form>
   );
@@ -254,7 +180,6 @@ interface ImageUploadFieldProps {
     onBlur: () => void;
   };
   label: string;
-  placeholder: string;
   description: string;
   previewType: 'square' | 'wide';
   onUpload: (file: File) => void;
@@ -263,7 +188,6 @@ interface ImageUploadFieldProps {
 const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   field,
   label,
-  placeholder,
   description,
   previewType,
   onUpload,
@@ -273,16 +197,6 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   return (
     <FormItem>
       <FormLabel>{label}</FormLabel>
-      <div className="flex flex-col gap-2">
-        <FormControl>
-          <Input
-            placeholder={placeholder}
-            name={field.name}
-            value={field.value ?? ''}
-            onChange={e => field.onChange(e.target.value)}
-            onBlur={field.onBlur}
-          />
-        </FormControl>
         <div className="flex items-center gap-2">
           <input
             type="file"
@@ -315,7 +229,6 @@ const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
             </div>
           )}
         </div>
-      </div>
       <FormDescription>
         {description}
       </FormDescription>
