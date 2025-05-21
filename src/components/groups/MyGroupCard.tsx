@@ -99,6 +99,10 @@ export function MyGroupCard({ community, role, isPinned, pinGroup, unpinGroup, i
       <CardHeader>
         <CardTitle>{name}</CardTitle>
         <CardDescription>
+          <span className="flex items-center">
+            <Users className="h-4 w-4 mr-1" />
+            {moderatorTags.length} moderator{moderatorTags.length !== 1 ? 's' : ''}
+          </span>
           <div className="flex flex-wrap gap-2 mt-1">
             {isLoadingStats ? (
               <>

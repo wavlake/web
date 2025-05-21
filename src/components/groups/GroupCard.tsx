@@ -81,48 +81,52 @@ export function GroupCard({ community, isPinned, pinGroup, unpinGroup, isUpdatin
       </div>
       <CardHeader>
         <CardTitle>{name}</CardTitle>
-        <CardDescription>
-          <div className="flex flex-wrap gap-2 mt-1">
-            <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-              <Users className="h-3 w-3 mr-1" />
-              {moderatorTags.length} mod{moderatorTags.length !== 1 ? 's' : ''}
-            </div>
+        {/* Using a div after CardTitle instead of nesting inside CardDescription */}
+        <div className="flex flex-wrap gap-2 mt-1">
+          <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+            <Users className="h-3 w-3 mr-1" />
+            {moderatorTags.length} mod{moderatorTags.length !== 1 ? 's' : ''}
+          </span>
 
-            {isLoadingStats ? (
-              <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
-                  <MessageSquare className="h-3 w-3 mr-1" />
-                  Loading...
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
-                  <Activity className="h-3 w-3 mr-1" />
-                  Loading...
-                </div>
-              </>
-            ) : stats ? (
-              <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-                  <MessageSquare className="h-3 w-3 mr-1" />
-                  {stats.posts} post{stats.posts !== 1 ? 's' : ''}
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-                  <Activity className="h-3 w-3 mr-1" />
-                  {stats.participants.size} participant{stats.participants.size !== 1 ? 's' : ''}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-                  <MessageSquare className="h-3 w-3 mr-1" />
-                  0 posts
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-                  <Activity className="h-3 w-3 mr-1" />
-                  0 participants
-                </div>
-              </>
-            )}
-          </div>
+          {isLoadingStats ? (
+            <>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                Loading...
+              </span>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
+                <Activity className="h-3 w-3 mr-1" />
+                Loading...
+              </span>
+            </>
+          ) : stats ? (
+            <>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                {stats.posts} post{stats.posts !== 1 ? 's' : ''}
+              </span>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <Activity className="h-3 w-3 mr-1" />
+                {stats.participants.size} participant{stats.participants.size !== 1 ? 's' : ''}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                0 posts
+              </span>
+              <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <Activity className="h-3 w-3 mr-1" />
+                0 participants
+              </span>
+            </>
+          )}
+        </div>
+        {/* Adding CardDescription with simple text content */}
+        <CardDescription className="mt-1">
+          Group Statistics
+
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
