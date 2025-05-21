@@ -37,17 +37,17 @@ export function MyGroupCard({ community, role, isPinned, pinGroup, unpinGroup, i
   const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
   
   // Determine the actual role (not just the list it's in)
-  let actualRole: UserRole = null;
+  let displayRole: UserRole = null;
   
   if (community.pubkey === user?.pubkey) {
     // User is the owner
-    actualRole = "owner";
+    displayRole = "owner";
   } else if (community.tags.some(tag => tag[0] === "p" && tag[1] === user?.pubkey && tag[3] === "moderator")) {
     // User is a moderator
-    actualRole = "moderator";
+    displayRole = "moderator";
   } else if (role === "member") {
     // User is a member (we trust the role passed from the parent component)
-    actualRole = "member";
+    displayRole = "member";
   }
 
   const handleTogglePin = (e: React.MouseEvent) => {
@@ -84,9 +84,9 @@ export function MyGroupCard({ community, role, isPinned, pinGroup, unpinGroup, i
         )}
         
         {/* Role indicator badge - only shown if user has a role */}
-        {actualRole && (
+        {displayRole && (
           <div className="absolute top-2 left-2">
-            <RoleBadge role={actualRole} />
+            <RoleBadge role={displayRole} />
           </div>
         )}
       </div>
