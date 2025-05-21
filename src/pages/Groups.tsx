@@ -8,11 +8,14 @@ import { MyGroupsList } from "@/components/groups/MyGroupsList";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { GroupCard } from "@/components/groups/GroupCard";
+import { GroupSearch } from "@/components/groups/GroupSearch";
+import { useState } from "react";
 
 export default function Groups() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups(); // Initialized hook
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: communities, isLoading } = useQuery({
     queryKey: ["communities"],
@@ -23,6 +26,24 @@ export default function Groups() {
     },
     enabled: !!nostr,
   });
+  
+  // Filter communities based on search query
+  const filteredCommunities = communities?.filter(community => {
+    if (!searchQuery) return true;
+    
+    const nameTag = community.tags.find(tag => tag[0] === "name");
+    const descriptionTag = community.tags.find(tag => tag[0] === "description");
+    const dTag = community.tags.find(tag => tag[0] === "d");
+    
+    const name = nameTag ? nameTag[1] : (dTag ? dTag[1] : "");
+    const description = descriptionTag ? descriptionTag[1] : "";
+    
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      name.toLowerCase().includes(searchLower) || 
+      description.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="container mx-auto py-4 px-6">
@@ -31,60 +52,77 @@ export default function Groups() {
       
       <MyGroupsList />
       
-      <h2 className="text-2xl font-bold mb-6 mt-6">All Groups</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading ? (
-          Array.from({ length: 6 }).map((_, index) => (
-            <Card key={`skeleton-group-${index}-${Date.now()}`} className="overflow-hidden flex flex-col">
-              <div className="h-40 overflow-hidden">
-                <Skeleton className="w-full h-full" />
-              </div>
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardContent>
-              <CardFooter>
-                <Skeleton className="h-10 w-full" />
-              </CardFooter>
-            </Card>
-          ))
-        ) : communities && communities.length > 0 ? (
-          communities.map((community) => {
-            const dTag = community.tags.find(tag => tag[0] === "d");
-            const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-            const isPinned = isGroupPinned(communityId);
-            
-            return (
-              <GroupCard 
-                key={community.id}
-                community={community}
-                isPinned={isPinned}
-                pinGroup={pinGroup}
-                unpinGroup={unpinGroup}
-                isUpdating={isUpdating}
-              />
-            );
-          })
-        ) : (
-          <div className="col-span-full text-center py-10">
-            <h2 className="text-xl font-semibold mb-2">No groups found</h2>
-            <p className="text-muted-foreground mb-4">
-              Be the first to create a group on this platform!
-            </p>
-            {user ? (
-              null
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Please log in to create a group
+      <div className="flex flex-col mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">All Groups</h2>
+        </div>
+        
+        <GroupSearch 
+          onSearch={setSearchQuery} 
+          className="mb-6 sticky top-0 z-10" 
+        />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
+              <Card key={`skeleton-group-${index}-${Date.now()}`} className="overflow-hidden flex flex-col">
+                <div className="h-40 overflow-hidden">
+                  <Skeleton className="w-full h-full" />
+                </div>
+                <CardHeader>
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </CardContent>
+                <CardFooter>
+                  <Skeleton className="h-10 w-full" />
+                </CardFooter>
+              </Card>
+            ))
+          ) : filteredCommunities && filteredCommunities.length > 0 ? (
+            filteredCommunities.map((community) => {
+              const dTag = community.tags.find(tag => tag[0] === "d");
+              const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+              const isPinned = isGroupPinned(communityId);
+              
+              return (
+                <GroupCard 
+                  key={community.id}
+                  community={community}
+                  isPinned={isPinned}
+                  pinGroup={pinGroup}
+                  unpinGroup={unpinGroup}
+                  isUpdating={isUpdating}
+                />
+              );
+            })
+          ) : searchQuery && communities && communities.length > 0 ? (
+            <div className="col-span-full text-center py-10">
+              <h2 className="text-xl font-semibold mb-2">No matching groups found</h2>
+              <p className="text-muted-foreground">
+                Try a different search term or browse all groups
               </p>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="col-span-full text-center py-10">
+              <h2 className="text-xl font-semibold mb-2">No groups found</h2>
+              <p className="text-muted-foreground mb-4">
+                Be the first to create a group on this platform!
+              </p>
+              {user ? (
+                null
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Please log in to create a group
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
