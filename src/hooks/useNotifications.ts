@@ -87,10 +87,11 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'post_approved',
-              message: `Your post to a group was approved`,
+              message: `approved your post to a group`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.tags.find(tag => tag[0] === 'e')?.[1],
+              pubkey: event.pubkey,
               groupId: communityRef
             });
             break;
@@ -102,10 +103,11 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'post_removed',
-              message: `Your post to a group was removed`,
+              message: `removed your post from a group`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.tags.find(tag => tag[0] === 'e')?.[1],
+              pubkey: event.pubkey,
               groupId: communityRef
             });
             break;
