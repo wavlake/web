@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
+import { Separator } from "@/components/ui/separator"; // Added Separator import
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -48,7 +49,7 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
 
   return {
     groupId,
-    groupName: "Community" // Fallback name if we can't extract it
+    groupName: "Group" // Fallback name if we can't extract it
   };
 }
 
@@ -267,7 +268,7 @@ export default function Profile() {
           id: groupId,
           name: nameTag ? nameTag[1] : parsedGroup.identifier,
           description: descriptionTag ? descriptionTag[1] : "",
-          image: imageTag ? imageTag[1] : "/placeholder-community.jpg",
+          image: imageTag ? imageTag[1] : "/placeholder-group.jpg", // Updated placeholder
           membershipEvent: event,
           groupEvent: groupEvent,
         };
@@ -317,6 +318,7 @@ export default function Profile() {
     return (
       <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
         <Header />
+        <Separator className="my-4" />
         <Card className="mb-8">
           <CardHeader className="flex flex-row items-center gap-4">
             <Skeleton className="h-24 w-24 rounded-full" />
@@ -430,6 +432,7 @@ export default function Profile() {
   return (
     <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
+      <Separator className="my-4" />
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-start gap-6">
           <Avatar className="h-24 w-24">

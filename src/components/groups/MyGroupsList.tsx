@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useUserGroups } from "@/hooks/useUserGroups";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -33,21 +33,17 @@ export function MyGroupsList() {
   const renderGroupCard = (community: NostrEvent, role: "pinned" | "owner" | "moderator" | "member") => {
     // Extract community data from tags
     const nameTag = community.tags.find((tag: string[]) => tag[0] === "name");
+    const descriptionTag = community.tags.find((tag: string[]) => tag[0] === "description"); // Added
     const imageTag = community.tags.find((tag: string[]) => tag[0] === "image");
     const dTag = community.tags.find((tag: string[]) => tag[0] === "d");
+    const moderatorTags = community.tags.filter((tag: string[]) => tag[0] === "p" && tag[3] === "moderator"); // Added
 
-    const name = nameTag ? nameTag[1] : (dTag ? dTag[1] : "Unnamed Community");
-    const image = imageTag ? imageTag[1] : "/placeholder-community.jpg";
+    const name = nameTag ? nameTag[1] : (dTag ? dTag[1] : "Unnamed Group");
+    const description = descriptionTag ? descriptionTag[1] : "No description available"; // Added
+    const image = imageTag ? imageTag[1] : "/placeholder-community.jpg"; 
     const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
     
-    // Determine if this group is pinned
     const isPinned = isGroupPinned(communityId);
-    
-    // Determine the actual role for the icon (pinned groups still show their original role icon)
-    const displayRole = role === "pinned" 
-      ? (community.pubkey === user?.pubkey ? "owner" : 
-         community.tags.some(tag => tag[0] === "p" && tag[1] === user?.pubkey && tag[3] === "moderator") ? "moderator" : "member")
-      : role;
 
     const handleTogglePin = (e: React.MouseEvent) => {
       e.preventDefault();
@@ -62,38 +58,39 @@ export function MyGroupsList() {
 
     return (
       <Card key={community.id} className={cn(
-        "min-w-[250px] max-w-[250px] flex flex-col relative group",
-        role === "pinned" && "ring-2 ring-primary/20"
+        "overflow-hidden flex flex-col relative group",
+        role === "pinned" && "ring-1 ring-primary/20"
       )}>
-        <div className="h-28 overflow-hidden">
+        <div className="h-40 overflow-hidden">
           {image && (
             <img
               src={image}
               alt={name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.src = "https://placehold.co/600x400?text=Community";
+                (e.target as HTMLImageElement).src = "https://placehold.co/600x400?text=Group";
               }}
             />
           )}
         </div>
-        <CardHeader className="p-3">
-          <CardTitle className="text-base truncate flex items-center gap-1">
-            {displayRole === "owner" && <Crown className="h-4 w-4 text-yellow-500" />}
-            {displayRole === "moderator" && <Shield className="h-4 w-4 text-blue-500" />}
-            {displayRole === "member" && <Users className="h-4 w-4 text-green-500" />}
-            {name}
-          </CardTitle>
+        <CardHeader>
+          <CardTitle>{name}</CardTitle>
+          <CardDescription className="flex items-center">
+            <Users className="h-4 w-4 mr-1" />
+            {moderatorTags.length} moderator{moderatorTags.length !== 1 ? 's' : ''}
+          </CardDescription>
         </CardHeader>
-        <CardFooter className="p-3 pt-0 mt-auto">
-          <Button asChild variant="outline" size="sm" className="w-full">
+        <CardContent className="flex-grow">
+          <p className="line-clamp-3">{description}</p>
+        </CardContent>
+        <CardFooter>
+          <Button asChild className="w-full">
             <Link to={`/group/${encodeURIComponent(communityId)}`}>
-              Visit
+              View Group
             </Link>
           </Button>
         </CardFooter>
         
-        {/* Pin/Unpin Button */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -147,8 +144,7 @@ export function MyGroupsList() {
           ))}
         </div>
       ) : (
-        <ScrollArea className="w-full whitespace-nowrap pb-2">
-          <div className="flex gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Pinned groups first */}
             {userGroups?.pinned.map(community => renderGroupCard(community, "pinned"))}
             
@@ -157,8 +153,6 @@ export function MyGroupsList() {
             {userGroups?.moderated.map(community => renderGroupCard(community, "moderator"))}
             {userGroups?.member.map(community => renderGroupCard(community, "member"))}
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
       )}
     </div>
   );

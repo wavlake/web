@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import Settings from "./pages/settings/Settings";
 import Notifications from "./pages/settings/Notifications";
+import CashuWallet from "./cashu/pages/CashuWallet";
 
 export function AppRouter() {
   return (
@@ -24,6 +25,7 @@ export function AppRouter() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/profile" element={<ProfileSettings />} />
         <Route path="/settings/notifications" element={<Notifications />} />
+        <Route path="/wallet" element={<CashuWallet />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -43,8 +43,8 @@ export function useUserGroups() {
       // Fetch approved members lists to find communities where user is a member
       const approvedMembersLists = await nostr.query([
         { 
-          kinds: [30000], 
-          "#d": ["approved-users"],
+          kinds: [14550], 
+          "#p": [user.pubkey],
           limit: 100 
         }
       ], { signal });
@@ -53,28 +53,21 @@ export function useUserGroups() {
       const memberCommunities: NostrEvent[] = [];
       
       for (const list of approvedMembersLists) {
-        // Check if user is in this approved members list
-        const isApprovedMember = list.tags.some(tag => 
-          tag[0] === "p" && tag[1] === user.pubkey
-        );
-        
-        if (isApprovedMember) {
-          // Find which community this list belongs to
-          const communityRef = list.tags.find(tag => tag[0] === "a");
-          if (communityRef) {
-            const [_, pubkey, identifier] = communityRef[1].split(":");
-            
-            // Find the actual community event
-            const community = allCommunities.find(c => {
-              const dTag = c.tags.find(tag => tag[0] === "d");
-              return c.pubkey === pubkey && dTag && dTag[1] === identifier;
-            });
-            
-            if (community && 
-                !ownedCommunities.includes(community) && 
-                !moderatedCommunities.includes(community)) {
-              memberCommunities.push(community);
-            }
+        // Find which community this list belongs to
+        const communityRef = list.tags.find(tag => tag[0] === "a");
+        if (communityRef) {
+          const [_, pubkey, identifier] = communityRef[1].split(":");
+          
+          // Find the actual community event
+          const community = allCommunities.find(c => {
+            const dTag = c.tags.find(tag => tag[0] === "d");
+            return c.pubkey === pubkey && dTag && dTag[1] === identifier;
+          });
+          
+          if (community && 
+              !ownedCommunities.includes(community) && 
+              !moderatedCommunities.includes(community)) {
+            memberCommunities.push(community);
           }
         }
       }

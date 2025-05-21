@@ -48,7 +48,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         >
           <a href="/create-group">
             <Plus className='w-4 h-4 font-bold' />
-            <span>Create Community</span>
+            <span>Create Group</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -68,6 +68,15 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           <a href="/settings/profile">
             <Edit className='w-4 h-4' />
             <span>Edit Profile</span>
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <a href="/wallet">
+            <Edit className='w-4 h-4' />
+            <span>Wallet</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

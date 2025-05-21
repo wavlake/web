@@ -49,7 +49,7 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
     try {
       const parsedId = parseNostrAddress(communityId);
       if (!parsedId) {
-        toast.error("Invalid community ID");
+        toast.error("Invalid group ID");
         return;
       }
       
@@ -67,7 +67,7 @@ ${imageUrl}`;
       
       const tags = [
         ["a", communityId],
-        ["subject", "Post in " + communityId],
+        ["subject", `Post in ${parsedId?.identifier || 'group'}`],
         ...imageTags,
       ];
       
