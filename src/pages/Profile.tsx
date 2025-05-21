@@ -114,9 +114,19 @@ function UserGroupsList({
     );
   }
 
+  // Create a map to deduplicate groups by ID
+  const uniqueGroups = new Map<string, UserGroup>();
+  groups.forEach(group => {
+    // Only add if not already in the map, or replace with newer version
+    if (!uniqueGroups.has(group.id) || 
+        (group.groupEvent.created_at > uniqueGroups.get(group.id)!.groupEvent.created_at)) {
+      uniqueGroups.set(group.id, group);
+    }
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {groups.map((group) => (
+      {Array.from(uniqueGroups.values()).map((group) => (
         <Link
           key={group.id}
           to={`/group/${encodeURIComponent(group.id)}`}
@@ -224,62 +234,153 @@ export default function Profile() {
     enabled: !!nostr && !!pubkey,
   });
 
-  // Query for groups the user is a part of (kind 14550 events with user as p tag)
+  // Query for groups the user is a part of
   const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
-    queryKey: ["user-groups", pubkey],
+    queryKey: ["user-groups-profile", pubkey],
     queryFn: async (c) => {
       if (!pubkey || !nostr) return [];
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      // Get kind 14550 events that include this pubkey in their p tags
-      const groupEvents = await nostr.query([{
-        kinds: [14550],
-        "#p": [pubkey],
-        limit: 50,
-      }], { signal });
-
-      // For each group event, we need to fetch the actual group details
-      const groupPromises = groupEvents.map(async (event) => {
-        // Extract the group reference from the a tag
-        const aTag = event.tags.find(tag => tag[0] === "a");
-        if (!aTag || !aTag[1]) return null;
-
-        const groupId = aTag[1];
-        const parsedGroup = parseNostrAddress(groupId);
-
-        if (!parsedGroup || parsedGroup.kind !== 34550) return null;
-
-        // Fetch the group details
-        const [groupEvent] = await nostr.query([{
+      // First, check if this is the current user - if so, we can use a more efficient approach
+      const isCurrentUserProfile = user && pubkey === user.pubkey;
+      
+      let groupEvents: NostrEvent[] = [];
+      
+      if (isCurrentUserProfile) {
+        // For current user, get all communities they're part of from various sources
+        
+        // Get communities where user is owner or moderator
+        const ownedOrModeratedEvents = await nostr.query([{
           kinds: [34550],
-          authors: [parsedGroup.pubkey],
-          "#d": [parsedGroup.identifier],
-          limit: 1,
-        }], { signal: AbortSignal.timeout(3000) });
-
-        if (!groupEvent) return null;
-
-        // Extract group details
-        const nameTag = groupEvent.tags.find(tag => tag[0] === "name");
-        const descriptionTag = groupEvent.tags.find(tag => tag[0] === "description");
-        const imageTag = groupEvent.tags.find(tag => tag[0] === "image");
-
+          authors: [pubkey], // Communities they created
+          limit: 50,
+        }], { signal });
+        
+        groupEvents.push(...ownedOrModeratedEvents);
+        
+        // Get communities where user is a moderator but not owner
+        const moderatedEvents = await nostr.query([{
+          kinds: [34550],
+          "#p": [pubkey],
+          limit: 50,
+        }], { signal });
+        
+        // Filter to only include events where user is tagged as moderator
+        const moderatorEvents = moderatedEvents.filter(event => 
+          event.pubkey !== pubkey && // Not already counted as owned
+          event.tags.some(tag => 
+            tag[0] === "p" && 
+            tag[1] === pubkey && 
+            tag[3] === "moderator"
+          )
+        );
+        
+        groupEvents.push(...moderatorEvents);
+        
+        // Get communities where user is a member
+        const membershipEvents = await nostr.query([{
+          kinds: [14550],
+          "#p": [pubkey],
+          limit: 50,
+        }], { signal });
+        
+        // For each membership event, get the community details
+        for (const event of membershipEvents) {
+          const aTag = event.tags.find(tag => tag[0] === "a");
+          if (!aTag || !aTag[1]) continue;
+          
+          const groupId = aTag[1];
+          const parsedGroup = parseNostrAddress(groupId);
+          
+          if (!parsedGroup || parsedGroup.kind !== 34550) continue;
+          
+          // Fetch the group details if we don't already have it
+          const existingGroup = groupEvents.find(g => {
+            const dTag = g.tags.find(tag => tag[0] === "d");
+            return g.pubkey === parsedGroup.pubkey && dTag && dTag[1] === parsedGroup.identifier;
+          });
+          
+          if (!existingGroup) {
+            const [groupEvent] = await nostr.query([{
+              kinds: [34550],
+              authors: [parsedGroup.pubkey],
+              "#d": [parsedGroup.identifier],
+              limit: 1,
+            }], { signal: AbortSignal.timeout(3000) });
+            
+            if (groupEvent) {
+              groupEvents.push(groupEvent);
+            }
+          }
+        }
+      } else {
+        // For other users, get membership events
+        const membershipEvents = await nostr.query([{
+          kinds: [14550],
+          "#p": [pubkey],
+          limit: 50,
+        }], { signal });
+        
+        // For each membership event, get the community details
+        for (const event of membershipEvents) {
+          const aTag = event.tags.find(tag => tag[0] === "a");
+          if (!aTag || !aTag[1]) continue;
+          
+          const groupId = aTag[1];
+          const parsedGroup = parseNostrAddress(groupId);
+          
+          if (!parsedGroup || parsedGroup.kind !== 34550) continue;
+          
+          // Fetch the group details
+          const [groupEvent] = await nostr.query([{
+            kinds: [34550],
+            authors: [parsedGroup.pubkey],
+            "#d": [parsedGroup.identifier],
+            limit: 1,
+          }], { signal: AbortSignal.timeout(3000) });
+          
+          if (groupEvent) {
+            groupEvents.push(groupEvent);
+          }
+        }
+        
+        // Also get communities they created
+        const ownedEvents = await nostr.query([{
+          kinds: [34550],
+          authors: [pubkey],
+          limit: 50,
+        }], { signal });
+        
+        groupEvents.push(...ownedEvents);
+      }
+      
+      // Deduplicate groups by their unique ID
+      const uniqueGroups = new Map<string, NostrEvent>();
+      for (const event of groupEvents) {
+        const dTag = event.tags.find(tag => tag[0] === "d");
+        if (!dTag) continue;
+        
+        const groupId = `34550:${event.pubkey}:${dTag[1]}`;
+        uniqueGroups.set(groupId, event);
+      }
+      
+      // Convert to UserGroup format
+      return Array.from(uniqueGroups.entries()).map(([id, event]) => {
+        const nameTag = event.tags.find(tag => tag[0] === "name");
+        const descriptionTag = event.tags.find(tag => tag[0] === "description");
+        const imageTag = event.tags.find(tag => tag[0] === "image");
+        const dTag = event.tags.find(tag => tag[0] === "d");
+        
         return {
-          id: groupId,
-          name: nameTag ? nameTag[1] : parsedGroup.identifier,
+          id,
+          name: nameTag ? nameTag[1] : (dTag ? dTag[1] : "Unnamed Group"),
           description: descriptionTag ? descriptionTag[1] : "",
-          image: imageTag ? imageTag[1] : "/placeholder-group.jpg", // Updated placeholder
-          membershipEvent: event,
-          groupEvent: groupEvent,
+          image: imageTag ? imageTag[1] : "/placeholder-group.jpg",
+          membershipEvent: event, // Using the group event as membership event
+          groupEvent: event,
         };
       });
-
-      // Wait for all group details to be fetched
-      const groups = await Promise.all(groupPromises);
-
-      // Filter out null results and return
-      return groups.filter(group => group !== null);
     },
     enabled: !!nostr && !!pubkey,
   });

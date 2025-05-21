@@ -13,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { NoteContent } from "../NoteContent";
 import { ReplyForm } from "./ReplyForm";
 import { Link } from "react-router-dom";
-import { MessageSquare, Heart, CheckCircle, AlertTriangle, Shield } from "lucide-react";
-import { useLikes } from "@/hooks/useLikes";
+import { MessageSquare, CheckCircle, AlertTriangle, Shield } from "lucide-react";
+import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -270,7 +270,7 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
             </div>
             
             <div className="flex items-center gap-2 mt-1 ml-1">
-              <LikeButton postId={reply.id} />
+              <EmojiReactionButton postId={reply.id} />
               
               <Button 
                 variant="ghost" 
@@ -342,34 +342,4 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
   );
 }
 
-interface LikeButtonProps {
-  postId: string;
-}
-
-function LikeButton({ postId }: LikeButtonProps) {
-  const { likeCount, hasLiked, toggleLike, isLoading } = useLikes(postId);
-  const { user } = useCurrentUser();
-  
-  const handleClick = async () => {
-    if (!user) {
-      toast.error("You must be logged in to like posts");
-      return;
-    }
-    
-    await toggleLike();
-  };
-  
-  return (
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      className={`${hasLiked ? 'text-pink-500' : 'text-muted-foreground'} flex items-center h-6 px-2 text-xs`}
-      onClick={handleClick}
-      disabled={isLoading || !user}
-    >
-      <Heart className={`h-3 w-3 mr-1 ${hasLiked ? 'fill-pink-500' : ''}`} />
-      {likeCount > 0 ? likeCount : ''}
-      Like
-    </Button>
-  );
-}
+// LikeButton has been replaced with EmojiReactionButton
