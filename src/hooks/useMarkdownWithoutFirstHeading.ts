@@ -7,10 +7,11 @@ export function useMarkdownWithoutFirstHeading(path: string) {
   useEffect(() => {
     fetch(path)
       .then((res) => res.text())
-      .then((md) => {
+      .then(async (md) => {
         // Remove the first heading (# Title) from the markdown
         const contentWithoutFirstHeading = md.replace(/^# .*$/m, "").trim();
-        setHtml(marked.parse(contentWithoutFirstHeading));
+        const parsedHtml = await marked.parse(contentWithoutFirstHeading);
+        setHtml(parsedHtml);
       })
       .catch(() => setHtml("<p>Failed to load content.</p>"));
   }, [path]);

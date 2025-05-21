@@ -7,7 +7,10 @@ export function useMarkdown(path: string) {
   useEffect(() => {
     fetch(path)
       .then((res) => res.text())
-      .then((md) => setHtml(marked.parse(md)))
+      .then(async (md) => {
+        const parsedHtml = await marked.parse(md);
+        setHtml(parsedHtml);
+      })
       .catch(() => setHtml("<p>Failed to load content.</p>"));
   }, [path]);
 
