@@ -16,7 +16,8 @@ export function useUserGroups() {
         pinned: [] as NostrEvent[], 
         owned: [] as NostrEvent[], 
         moderated: [] as NostrEvent[], 
-        member: [] as NostrEvent[] 
+        member: [] as NostrEvent[],
+        allGroups: [] as NostrEvent[] // Added to track all groups the user is part of
       };
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
@@ -40,35 +41,47 @@ export function useUserGroups() {
           )
       );
       
-      // Fetch approved members lists to find communities where user is a member
+      // Fetch all approved members lists
       const approvedMembersLists = await nostr.query([
         { 
           kinds: [14550], 
-          "#p": [user.pubkey],
-          limit: 100 
+          limit: 200 
         }
       ], { signal });
+      
+      // Create a map of community IDs to their approved members lists
+      const communityMembersMap = new Map<string, string[]>();
+      
+      for (const list of approvedMembersLists) {
+        const communityRef = list.tags.find(tag => tag[0] === "a");
+        if (communityRef) {
+          const communityId = communityRef[1];
+          const memberPubkeys = list.tags
+            .filter(tag => tag[0] === "p")
+            .map(tag => tag[1]);
+          
+          communityMembersMap.set(communityId, memberPubkeys);
+        }
+      }
       
       // Communities where user is an approved member
       const memberCommunities: NostrEvent[] = [];
       
-      for (const list of approvedMembersLists) {
-        // Find which community this list belongs to
-        const communityRef = list.tags.find(tag => tag[0] === "a");
-        if (communityRef) {
-          const [_, pubkey, identifier] = communityRef[1].split(":");
-          
-          // Find the actual community event
-          const community = allCommunities.find(c => {
-            const dTag = c.tags.find(tag => tag[0] === "d");
-            return c.pubkey === pubkey && dTag && dTag[1] === identifier;
-          });
-          
-          if (community && 
-              !ownedCommunities.includes(community) && 
-              !moderatedCommunities.includes(community)) {
-            memberCommunities.push(community);
-          }
+      // Check each community to see if the user is a member
+      for (const community of allCommunities) {
+        // Skip if already in owned or moderated
+        if (ownedCommunities.includes(community) || moderatedCommunities.includes(community)) {
+          continue;
+        }
+        
+        const dTag = community.tags.find(tag => tag[0] === "d");
+        if (!dTag) continue;
+        
+        const communityId = `34550:${community.pubkey}:${dTag[1]}`;
+        const membersList = communityMembersMap.get(communityId);
+        
+        if (membersList && membersList.includes(user.pubkey)) {
+          memberCommunities.push(community);
         }
       }
 
@@ -115,6 +128,9 @@ export function useUserGroups() {
         const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
         return !processedCommunityIds.has(communityId);
       });
+      
+      // We don't need to find additional member communities
+      // Just return the filtered lists we already have
       
       return {
         pinned: pinnedCommunities,
