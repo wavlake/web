@@ -19,9 +19,11 @@ import { PendingPostsList } from "@/components/groups/PendingPostsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
+import { usePinnedGroups } from "@/hooks/usePinnedGroups";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -31,6 +33,7 @@ export default function GroupDetail() {
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
   const [currentPostCount, setCurrentPostCount] = useState(0); // State for post count
   const [activeTab, setActiveTab] = useState("posts");
+  const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
 
   useEffect(() => {
     if (groupId) {
@@ -137,7 +140,7 @@ export default function GroupDetail() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div className="md:col-span-2">
-          <div className="h-48 rounded-lg overflow-hidden mb-4"> {/* Changed mb-1.5 to mb-4 */}
+          <div className="h-48 rounded-lg overflow-hidden mb-4 relative group"> {/* Added relative and group */}
             <img
               src={image}
               alt={name}
@@ -146,6 +149,46 @@ export default function GroupDetail() {
                 e.currentTarget.src = "https://placehold.co/1200x400?text=Community";
               }}
             />
+            
+            {/* Pin/Unpin Button */}
+            {user && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="absolute top-3 right-3 h-9 w-9 rounded-full bg-background/80 shadow-md"
+                      onClick={() => {
+                        const communityId = `34550:${parsedId?.pubkey}:${parsedId?.identifier}`;
+                        if (isGroupPinned(communityId)) {
+                          unpinGroup(communityId);
+                        } else {
+                          pinGroup(communityId);
+                        }
+                      }}
+                      disabled={isUpdating}
+                    >
+                      {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`) ? (
+                        <PinOff className="h-5 w-5" />
+                      ) : (
+                        <Pin className="h-5 w-5" />
+                      )}
+                      <span className="sr-only">
+                        {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`) 
+                          ? "Unpin from My Groups" 
+                          : "Pin to My Groups"}
+                      </span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`) 
+                      ? "Unpin from My Groups" 
+                      : "Pin to My Groups"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           <p className="text-lg mb-3">{description}</p>
         </div>
