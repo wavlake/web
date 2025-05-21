@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus, Plus, Settings, Edit, User } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, Plus, Settings, Edit, User, Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { useNavigate } from 'react-router-dom';
+import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
@@ -20,6 +21,7 @@ interface AccountSwitcherProps {
 export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
   const navigate = useNavigate();
+  const unreadCount = useUnreadNotificationsCount();
 
   if (!currentUser) return null;
 
@@ -69,6 +71,20 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          asChild
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <a href="/settings/notifications">
+            <Bell className='w-4 h-4' />
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="ml-auto bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuItem
           asChild
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
