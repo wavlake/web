@@ -84,9 +84,9 @@ export default function Notifications() {
             )}
             <div className="flex-1">
               <div className="font-medium">
-                {notification.pubkey && notification.type === 'reaction' ? `${authorName} ` : ''}
+                {notification.pubkey && (notification.type === 'reaction' || notification.type === 'tag_post' || notification.type === 'tag_reply') ? `${authorName} ` : ''}
                 {notification.message}
-                {notification.pubkey && notification.type !== 'reaction' && ` from ${authorName}`}
+                {notification.pubkey && (notification.type !== 'reaction' && notification.type !== 'tag_post' && notification.type !== 'tag_reply') && ` from ${authorName}`}
                 {notification.groupId && <GroupReference groupId={notification.groupId} />}
               </div>
               <div className="text-sm text-muted-foreground">

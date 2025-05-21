@@ -43,7 +43,7 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'tag_post',
-              message: `You were tagged in a post`,
+              message: `tagged you in a post`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.id,
@@ -71,7 +71,7 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'tag_reply',
-              message: `You were tagged in a reply`,
+              message: `tagged you in a reply`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.id,
