@@ -20,18 +20,18 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending: isPublishing } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
-  
+
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
+
   if (!user) return null;
-  
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -39,23 +39,23 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleSubmit = async () => {
     if (!content.trim() && !imageFile) {
       toast.error("Please enter some content or add an image");
       return;
     }
-    
+
     try {
       const parsedId = parseNostrAddress(communityId);
       if (!parsedId) {
         toast.error("Invalid group ID");
         return;
       }
-      
+
       let finalContent = content;
       let imageTags: string[][] = [];
-      
+
       if (imageFile) {
         const tags = await uploadFile(imageFile);
         const [[_, imageUrl]] = tags;
@@ -64,46 +64,46 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
 ${imageUrl}`;
         imageTags = tags;
       }
-      
+
       const tags = [
         ["a", communityId],
         ["subject", `Post in ${parsedId?.identifier || 'group'}`],
         ...imageTags,
       ];
-      
+
       await publishEvent({
         kind: 11,
         tags,
         content: finalContent,
       });
-      
+
       setContent("");
       setImageFile(null);
       setPreviewUrl(null);
-      
+
       toast.success("Post published successfully!");
     } catch (error) {
       console.error("Error publishing post:", error);
       toast.error("Failed to publish post. Please try again.");
     }
   };
-  
+
   const author = useAuthor(user.pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || user.pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
-  
+
   return (
-    <Card className="mb-4"> 
-      <CardContent className="p-3"> 
-        <div className="flex gap-2"> 
+    <Card className="mb-4">
+      <CardContent className="p-3">
+        <div className="flex gap-2">
           <Link to={`/profile/${user.pubkey}`}>
             <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
               <AvatarImage src={profileImage} />
               <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
           </Link>
-          
+
           <div className="flex-1">
             <Textarea
               placeholder={`What's on your mind, ${displayName.split(' ')[0]}?`}
@@ -111,12 +111,12 @@ ${imageUrl}`;
               onChange={(e) => setContent(e.target.value)}
               className="min-h-20 resize-none text-sm p-2"
             />
-            
+
             {previewUrl && (
               <div className="mt-1.5 relative">
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
+                <img
+                  src={previewUrl}
+                  alt="Preview"
                   className="max-h-52 rounded-md object-contain border"
                 />
                 <Button
@@ -128,19 +128,19 @@ ${imageUrl}`;
                     setPreviewUrl(null);
                   }}
                 >
-                  <XCircle className="h-3 w-3"/> 
+                  <XCircle className="h-3 w-3"/>
                 </Button>
               </div>
             )}
           </div>
         </div>
       </CardContent>
-      
+
       <CardFooter className="flex justify-between items-center border-t px-3 py-2">
         <div>
           <Button variant="ghost" size="sm" className="text-muted-foreground h-8 px-2 text-xs" asChild>
             <label htmlFor="image-upload" className="cursor-pointer flex items-center">
-              <Image className="h-3.5 w-3.5 mr-1" /> 
+              <Image className="h-3.5 w-3.5 mr-1" />
               Photo
               <input
                 id="image-upload"
@@ -152,21 +152,21 @@ ${imageUrl}`;
             </label>
           </Button>
         </div>
-        
-        <Button 
+
+        <Button
           onClick={handleSubmit}
           disabled={isPublishing || isUploading || (!content.trim() && !imageFile)}
-          size="sm" 
+          size="sm"
           className="h-8 px-3 text-xs"
         >
           {isPublishing || isUploading ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> 
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
               Posting...
             </>
           ) : (
             <>
-              <Send className="h-3.5 w-3.5 mr-1.5" /> 
+              <Send className="h-3.5 w-3.5 mr-1.5" />
               Post
             </>
           )}
