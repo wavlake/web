@@ -228,39 +228,6 @@ export default function Settings() {
             </Select>
           </CardContent>
         </Card>
-
-        {/* Delete Everything Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Delete All Content</CardTitle>
-            <CardDescription>This will attempt to delete all your published events from relays</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="destructive" className="w-full">Delete All Published Events</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Are you absolutely sure?</DialogTitle>
-                  <DialogDescription>
-                    This action will attempt to delete all of your published events by sending deletion events to relays.
-                    <br /><br />
-                    Note that some relays may choose not to honor deletion requests, and copies of your events may still exist on relays that do not receive the deletion events.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => document.querySelector('[role="dialog"]')?.dispatchEvent(new Event('close', { bubbles: true }))}>
-                    Cancel
-                  </Button>
-                  <Button variant="destructive" onClick={handleDeleteAll}>
-                    Yes, delete everything
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

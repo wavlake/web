@@ -32,3 +32,41 @@ export function generateFakeName() {
   const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
   return `${adj} ${animal}`;
 }
+
+/**
+ * Fetches the postExpiration value from localStorage settings and returns a future unix timestamp.
+ * Returns null if expiration is off or not set.
+ */
+export function getPostExpirationTimestamp(): number | null {
+  const settingsStr = localStorage.getItem("settings");
+  if (!settingsStr) return null;
+  let postExpiration: string | undefined;
+  try {
+    const settings = JSON.parse(settingsStr);
+    postExpiration = settings.postExpiration;
+  } catch {
+    return null;
+  }
+  if (!postExpiration || postExpiration === "off") return null;
+
+  const now = Math.floor(Date.now() / 1000); // current unix timestamp in seconds
+  let seconds = 0;
+  switch (postExpiration) {
+    case "1-week":
+      seconds = 7 * 24 * 60 * 60;
+      break;
+    case "1-month":
+      seconds = 30 * 24 * 60 * 60;
+      break;
+    case "3-months":
+      seconds = 90 * 24 * 60 * 60;
+      break;
+    case "12-months":
+      seconds = 365 * 24 * 60 * 60;
+      break;
+    default:
+      return null;
+  }
+  return now + seconds;
+}
+
