@@ -23,6 +23,11 @@ export function MyGroupsList() {
       userGroups.member.length === 0) {
     return null;
   }
+  
+  // Ensure we have the data before proceeding
+  if (!userGroups) {
+    return null;
+  }
 
   const renderGroupCard = (community: NostrEvent, role: "pinned" | "owner" | "moderator" | "member") => {
     const dTag = community.tags.find((tag: string[]) => tag[0] === "d");

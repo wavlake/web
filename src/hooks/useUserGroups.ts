@@ -16,7 +16,8 @@ export function useUserGroups() {
         pinned: [] as NostrEvent[], 
         owned: [] as NostrEvent[], 
         moderated: [] as NostrEvent[], 
-        member: [] as NostrEvent[] 
+        member: [] as NostrEvent[],
+        allGroups: [] as NostrEvent[] // Added to track all groups the user is part of
       };
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
@@ -41,11 +42,12 @@ export function useUserGroups() {
       );
       
       // Fetch approved members lists to find communities where user is a member
+      // Use a more specific query to get all lists that include the user
       const approvedMembersLists = await nostr.query([
         { 
           kinds: [14550], 
           "#p": [user.pubkey],
-          limit: 100 
+          limit: 200 
         }
       ], { signal });
       
@@ -115,6 +117,9 @@ export function useUserGroups() {
         const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
         return !processedCommunityIds.has(communityId);
       });
+      
+      // We don't need to find additional member communities
+      // Just return the filtered lists we already have
       
       return {
         pinned: pinnedCommunities,
