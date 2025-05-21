@@ -97,6 +97,19 @@ export default function GroupDetail() {
   const description = descriptionTag ? descriptionTag[1] : "No description available";
   const image = imageTag ? imageTag[1] : "/placeholder-community.jpg";
 
+  useEffect(() => {
+    if (name && name !== "Unnamed Community") {
+      document.title = `+chorus - ${name}`;
+    } else {
+      document.title = "+chorus"; // Default if name isn't available
+    }
+    // Optional: Reset title when component unmounts
+    return () => {
+      document.title = "+chorus";
+    };
+  }, [name]); // Dependency array ensures this runs when 'name' changes
+
+
   if (isLoadingCommunity || !parsedId) {
     return (
       <div className="container mx-auto py-4 px-6">
