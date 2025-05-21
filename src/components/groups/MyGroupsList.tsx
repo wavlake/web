@@ -5,56 +5,18 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { MyGroupCard } from "./MyGroupCard";
 import { NostrEvent } from "@nostrify/nostrify";
-import { useNostr } from "@/hooks/useNostr";
-import { useQuery } from "@tanstack/react-query";
+import { useGroupStats } from "@/hooks/useGroupStats";
 
 export function MyGroupsList() {
   const { user } = useCurrentUser();
-  const { nostr } = useNostr();
   const { data: userGroups, isLoading } = useUserGroups();
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
   
   // Query for community stats (posts and participants)
-  const { data: communityStats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ["my-groups-stats", userGroups],
-    queryFn: async (c) => {
-      if (!userGroups || !userGroups.allGroups || userGroups.allGroups.length === 0 || !nostr) return {};
-      
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
-      const stats: Record<string, { posts: number; participants: Set<string> }> = {};
-      
-      // Create a filter for all communities to get posts in a single query
-      const communityRefs = userGroups.allGroups.map(community => {
-        const dTag = community.tags.find(tag => tag[0] === "d");
-        return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-      });
-      
-      // Get all posts that reference any community
-      const posts = await nostr.query([{ 
-        kinds: [1, 4550], 
-        "#a": communityRefs,
-        limit: 500
-      }], { signal });
-      
-      // Process posts to get stats for each community
-      posts.forEach(post => {
-        const communityTag = post.tags.find(tag => tag[0] === "a");
-        if (!communityTag) return;
-        
-        const communityId = communityTag[1];
-        if (!stats[communityId]) {
-          stats[communityId] = { posts: 0, participants: new Set() };
-        }
-        
-        // Count posts and unique participants
-        stats[communityId].posts++;
-        stats[communityId].participants.add(post.pubkey);
-      });
-      
-      return stats;
-    },
-    enabled: !!nostr && !!userGroups && !!userGroups.allGroups && userGroups.allGroups.length > 0,
-  });
+  const { data: communityStats, isLoading: isLoadingStats } = useGroupStats(
+    userGroups?.allGroups,
+    !!userGroups && !!userGroups.allGroups && userGroups.allGroups.length > 0
+  );
 
   if (!user) {
     return null;
