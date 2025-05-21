@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { MyGroupCard } from "./MyGroupCard";
+import { NostrEvent } from "@nostrify/nostrify";
 
 export function MyGroupsList() {
   const { user } = useCurrentUser();
