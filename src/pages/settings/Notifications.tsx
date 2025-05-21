@@ -9,6 +9,7 @@ import { useNotifications, useMarkNotificationAsRead, Notification } from "@/hoo
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthor } from "@/hooks/useAuthor";
 import { formatDistanceToNow } from "date-fns";
+import { GroupReference } from "@/components/groups/GroupReference";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
@@ -85,6 +86,7 @@ export default function Notifications() {
               <div className="font-medium">
                 {notification.message}
                 {notification.pubkey && ` from ${authorName}`}
+                {notification.groupId && <GroupReference groupId={notification.groupId} />}
               </div>
               <div className="text-sm text-muted-foreground">
                 {formatDistanceToNow(notification.createdAt * 1000, { addSuffix: true })}
@@ -120,7 +122,7 @@ export default function Notifications() {
           <CardHeader>
             <CardTitle>Your Notifications</CardTitle>
             <CardDescription>
-              Stay updated on activity related to your account and communities
+              Stay updated on activity related to your account and groups
             </CardDescription>
           </CardHeader>
           <CardContent>
