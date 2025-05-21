@@ -4,10 +4,11 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-// import { Separator } from "@/components/ui/separator"; // Removed unused import
+import { Separator } from "@/components/ui/separator";
 import { Users } from "lucide-react";
 import Header from "@/components/ui/Header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MyGroupsList } from "@/components/groups/MyGroupsList";
 
 export default function Groups() {
   const { nostr } = useNostr();
@@ -26,6 +27,14 @@ export default function Groups() {
   return (
     <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
+      
+      {/* My Groups Section */}
+      <MyGroupsList />
+      
+      {/* Separator between My Groups and All Communities */}
+      <Separator className="my-6" />
+      
+      <h2 className="text-2xl font-bold mb-6">All Communities</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           // Skeleton loading state
