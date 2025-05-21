@@ -12,13 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image display support in posts with automatic URL hiding for posts with images
 - Favicon support for better branding
 - Chorus relay integration for improved performance
+- Restored community activity indicators showing post count and participant count on group cards
+- Added loading states for community statistics while data is being fetched
+- Enhanced visual presentation of community metrics with badge-style elements
 
 ### Changed
 - Switched default relay to Chorus for better reliability
+- Group cards now display comprehensive activity metrics (moderators, posts, participants)
+- Improved UI consistency for community statistics with proper loading states
 
 ### Fixed
 - Various notification wording improvements and fixes
 - Removed unnecessary "view details" links where not applicable
+- Resolved merge conflicts in LoginArea and Groups components
+- Fixed TypeScript errors in LoginArea component preventing build
+- Restored missing activity indicators that were lost during merge
 
 ## [0.1.0] - 2025-01-21
 

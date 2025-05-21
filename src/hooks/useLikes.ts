@@ -52,7 +52,7 @@ export function useLikes(eventId: string) {
         kind: 7,
         tags: [
           ["e", eventId],
-          ["k", "1"], // Assuming we're liking a kind 1 post
+          ["k", "11"], // Assuming we're liking a kind 11 post
         ],
         content: "+", // "+" means like
       });

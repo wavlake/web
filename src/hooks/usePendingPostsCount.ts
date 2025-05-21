@@ -25,7 +25,7 @@ export function usePendingPostsCount(communityId: string) {
       
       // Get posts that tag the community
       const posts = await nostr.query([{ 
-        kinds: [1, 11],
+        kinds: [11],
         "#a": [communityId],
         limit: 100,
       }], { signal });

@@ -25,7 +25,7 @@ export function useNotifications() {
       const notifications: Notification[] = [];
       const readNotifications = JSON.parse(localStorage.getItem(`notifications:${user.pubkey}`) || '{}');
 
-      const kinds = [1, 7, 1111, 4550, 4551, 34550];
+      const kinds = [11, 7, 1111, 4550, 4551, 34550];
 
       const events = await nostr.query(
         [{ kinds, '#p': [user.pubkey], limit: 20 }],
@@ -39,7 +39,7 @@ export function useNotifications() {
         const groupId = communityParts && communityParts[0] === '34550' ? communityRef : undefined;
         
         switch (event.kind) {
-          case 1: {
+          case 11: {
             notifications.push({
               id: event.id,
               type: 'tag_post',
