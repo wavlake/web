@@ -64,10 +64,10 @@ export function useNostrPublish() {
           tags.push(["client", "chorus"]);
         }
 
-        // Add protected tag for all events except kind 0 (metadata) and kind 3 (contacts)
-        if (protectedEventKinds.includes(t.kind) && !tags.some((tag) => tag[0] === "-")) {
-          tags.push(["-"]);
-        }
+        // // Add protected tag for all events except kind 0 (metadata) and kind 3 (contacts)
+        // if (protectedEventKinds.includes(t.kind) && !tags.some((tag) => tag[0] === "-")) {
+        //   tags.push(["-"]);
+        // }
 
         const expiration = getPostExpirationTimestamp();
         if (expirationEventKinds.includes(t.kind) && !tags.some((tag) => tag[0] === "expiration") && expiration) {
