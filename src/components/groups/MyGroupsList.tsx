@@ -72,53 +72,39 @@ export function MyGroupsList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Pinned groups first */}
-            {userGroups?.pinned.map(community => (
-              <MyGroupCard
-                key={`pinned-${community.id}`}
-                community={community}
-                role="pinned"
-                isPinned={isGroupPinned(`34550:${community.pubkey}:${community.tags.find(tag => tag[0] === "d")?.[1] || ""}`)}
-                pinGroup={pinGroup}
-                unpinGroup={unpinGroup}
-                isUpdating={isUpdating}
-              />
-            ))}
-            
-            {/* Then other groups */}
-            {userGroups?.owned.map(community => (
-              <MyGroupCard
-                key={`owned-${community.id}`}
-                community={community}
-                role="owner"
-                isPinned={isGroupPinned(`34550:${community.pubkey}:${community.tags.find(tag => tag[0] === "d")?.[1] || ""}`)}
-                pinGroup={pinGroup}
-                unpinGroup={unpinGroup}
-                isUpdating={isUpdating}
-              />
-            ))}
-            {userGroups?.moderated.map(community => (
-              <MyGroupCard
-                key={`moderated-${community.id}`}
-                community={community}
-                role="moderator"
-                isPinned={isGroupPinned(`34550:${community.pubkey}:${community.tags.find(tag => tag[0] === "d")?.[1] || ""}`)}
-                pinGroup={pinGroup}
-                unpinGroup={unpinGroup}
-                isUpdating={isUpdating}
-              />
-            ))}
-            {userGroups?.member.map(community => (
-              <MyGroupCard
-                key={`member-${community.id}`}
-                community={community}
-                role="member"
-                isPinned={isGroupPinned(`34550:${community.pubkey}:${community.tags.find(tag => tag[0] === "d")?.[1] || ""}`)}
-                pinGroup={pinGroup}
-                unpinGroup={unpinGroup}
-                isUpdating={isUpdating}
-              />
-            ))}
+            {/* Use allGroups to avoid duplicates */}
+            {userGroups?.allGroups.map(community => {
+              const dTag = community.tags.find(tag => tag[0] === "d");
+              const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+              const isPinned = isGroupPinned(communityId);
+              
+              // Determine the role
+              let role: "pinned" | "owner" | "moderator" | "member" = "member";
+              
+              if (isPinned) {
+                role = "pinned";
+              } else if (community.pubkey === user.pubkey) {
+                role = "owner";
+              } else if (community.tags.some(tag => 
+                tag[0] === "p" && 
+                tag[1] === user.pubkey && 
+                tag[3] === "moderator"
+              )) {
+                role = "moderator";
+              }
+              
+              return (
+                <MyGroupCard
+                  key={`${role}-${community.id}`}
+                  community={community}
+                  role={role}
+                  isPinned={isPinned}
+                  pinGroup={pinGroup}
+                  unpinGroup={unpinGroup}
+                  isUpdating={isUpdating}
+                />
+              );
+            })}
           </div>
       )}
     </div>
