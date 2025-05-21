@@ -4,6 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { NostrEvent } from "@nostrify/nostrify";
 import { usePinnedGroups, PinnedGroup } from "./usePinnedGroups";
 
+// Helper function to get a unique community ID
+function getCommunityId(community: NostrEvent): string {
+  const dTag = community.tags.find(tag => tag[0] === "d");
+  return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+}
+
 export function useUserGroups() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
@@ -24,6 +30,13 @@ export function useUserGroups() {
       
       // Fetch all communities
       const allCommunities = await nostr.query([{ kinds: [34550], limit: 100 }], { signal });
+      
+      // Create a map of community IDs to community events for faster lookups
+      const communityMap = new Map<string, NostrEvent>();
+      allCommunities.forEach(community => {
+        const communityId = getCommunityId(community);
+        communityMap.set(communityId, community);
+      });
       
       // Owned communities (where user is the creator)
       const ownedCommunities = allCommunities.filter(
@@ -74,10 +87,7 @@ export function useUserGroups() {
           continue;
         }
         
-        const dTag = community.tags.find(tag => tag[0] === "d");
-        if (!dTag) continue;
-        
-        const communityId = `34550:${community.pubkey}:${dTag[1]}`;
+        const communityId = getCommunityId(community);
         const membersList = communityMembersMap.get(communityId);
         
         if (membersList && membersList.includes(user.pubkey)) {
@@ -88,8 +98,8 @@ export function useUserGroups() {
       // Process pinned groups
       const pinnedCommunities: NostrEvent[] = [];
       
-      // Map of community IDs to prevent duplicates
-      const processedCommunityIds = new Set<string>();
+      // Track which communities have been processed for each category
+      const processedInPinned = new Set<string>();
       
       // Process pinned groups first
       for (const pinnedGroup of pinnedGroups) {
@@ -104,39 +114,45 @@ export function useUserGroups() {
         if (community) {
           pinnedCommunities.push(community);
           
-          // Mark this community as processed
-          const communityId = `34550:${community.pubkey}:${identifier}`;
-          processedCommunityIds.add(communityId);
+          // Mark this community as processed in pinned
+          const communityId = getCommunityId(community);
+          processedInPinned.add(communityId);
         }
       }
       
       // Filter out pinned communities from other lists to avoid duplicates
       const filteredOwned = ownedCommunities.filter(community => {
-        const dTag = community.tags.find(tag => tag[0] === "d");
-        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-        return !processedCommunityIds.has(communityId);
+        const communityId = getCommunityId(community);
+        return !processedInPinned.has(communityId);
       });
       
       const filteredModerated = moderatedCommunities.filter(community => {
-        const dTag = community.tags.find(tag => tag[0] === "d");
-        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-        return !processedCommunityIds.has(communityId);
+        const communityId = getCommunityId(community);
+        return !processedInPinned.has(communityId);
       });
       
       const filteredMember = memberCommunities.filter(community => {
-        const dTag = community.tags.find(tag => tag[0] === "d");
-        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-        return !processedCommunityIds.has(communityId);
+        const communityId = getCommunityId(community);
+        return !processedInPinned.has(communityId);
       });
       
-      // We don't need to find additional member communities
-      // Just return the filtered lists we already have
+      // Create a list of all unique groups the user is part of
+      const allGroups = [...pinnedCommunities];
+      
+      // Add other categories ensuring no duplicates
+      for (const community of [...filteredOwned, ...filteredModerated, ...filteredMember]) {
+        const communityId = getCommunityId(community);
+        if (!processedInPinned.has(communityId)) {
+          allGroups.push(community);
+        }
+      }
       
       return {
         pinned: pinnedCommunities,
         owned: filteredOwned,
         moderated: filteredModerated,
-        member: filteredMember
+        member: filteredMember,
+        allGroups // Include all unique groups
       };
     },
     enabled: !!nostr && !!user,
