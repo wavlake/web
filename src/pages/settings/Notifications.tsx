@@ -9,6 +9,7 @@ import { useNotifications, useMarkNotificationAsRead, Notification } from "@/hoo
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthor } from "@/hooks/useAuthor";
 import { formatDistanceToNow } from "date-fns";
+import { GroupReference } from "@/components/groups/GroupReference";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
@@ -83,13 +84,15 @@ export default function Notifications() {
             )}
             <div className="flex-1">
               <div className="font-medium">
+                {notification.pubkey && (notification.type === 'reaction' || notification.type === 'tag_post' || notification.type === 'tag_reply' || notification.type === 'post_approved' || notification.type === 'post_removed') ? `${authorName} ` : ''}
                 {notification.message}
-                {notification.pubkey && ` from ${authorName}`}
+                {notification.pubkey && (notification.type !== 'reaction' && notification.type !== 'tag_post' && notification.type !== 'tag_reply' && notification.type !== 'post_approved' && notification.type !== 'post_removed') && ` from ${authorName}`}
+                {notification.groupId && <GroupReference groupId={notification.groupId} />}
               </div>
               <div className="text-sm text-muted-foreground">
                 {formatDistanceToNow(notification.createdAt * 1000, { addSuffix: true })}
               </div>
-              {linkTo && (
+              {linkTo && notification.groupId && (
                 <Button variant="link" className="p-0 h-auto mt-1" asChild>
                   <Link to={linkTo}>View details</Link>
                 </Button>
@@ -120,7 +123,7 @@ export default function Notifications() {
           <CardHeader>
             <CardTitle>Your Notifications</CardTitle>
             <CardDescription>
-              Stay updated on activity related to your account and communities
+              Stay updated on activity related to your account and groups
             </CardDescription>
           </CardHeader>
           <CardContent>

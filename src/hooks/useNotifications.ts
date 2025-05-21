@@ -33,16 +33,22 @@ export function useNotifications() {
       );
 
       for (const event of events) {
+        // Extract group ID from 'a' tag if present (for all notification types)
+        const communityRef = event.tags.find(tag => tag[0] === 'a')?.[1];
+        const communityParts = communityRef?.split(':');
+        const groupId = communityParts && communityParts[0] === '34550' ? communityRef : undefined;
+        
         switch (event.kind) {
           case 1: {
             notifications.push({
               id: event.id,
               type: 'tag_post',
-              message: `You were tagged in a post`,
+              message: `tagged you in a post`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.id,
-              pubkey: event.pubkey
+              pubkey: event.pubkey,
+              groupId
             });
             break;
           }
@@ -52,11 +58,12 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'reaction',
-              message: `Someone reacted to your post`,
+              message: `reacted to your post`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: targetEventId,
-              pubkey: event.pubkey
+              pubkey: event.pubkey,
+              groupId
             });
             break;
           }
@@ -64,49 +71,52 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'tag_reply',
-              message: `You were tagged in a reply`,
+              message: `tagged you in a reply`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.id,
-              pubkey: event.pubkey
+              pubkey: event.pubkey,
+              groupId
             });
             break;
           }
           case 4550: {
+            // For post approval events, we already have the full community reference in the 'a' tag
             const communityRef = event.tags.find(tag => tag[0] === 'a')?.[1];
-            const communityParts = communityRef?.split(':');
-            const groupId = communityParts?.[2];
             
             notifications.push({
               id: event.id,
               type: 'post_approved',
-              message: `Your post to a group was approved`,
+              message: `approved your post to a group`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.tags.find(tag => tag[0] === 'e')?.[1],
-              groupId
+              pubkey: event.pubkey,
+              groupId: communityRef
             });
             break;
           }
           case 4551: {
+            // For post removal events, we already have the full community reference in the 'a' tag
             const communityRef = event.tags.find(tag => tag[0] === 'a')?.[1];
-            const communityParts = communityRef?.split(':');
-            const groupId = communityParts?.[2];
             
             notifications.push({
               id: event.id,
               type: 'post_removed',
-              message: `Your post to a group was removed`,
+              message: `removed your post from a group`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.tags.find(tag => tag[0] === 'e')?.[1],
-              groupId
+              pubkey: event.pubkey,
+              groupId: communityRef
             });
             break;
           }
           case 34550: {
-            const groupId = event.tags.find(tag => tag[0] === 'd')?.[1];
+            const dTag = event.tags.find(tag => tag[0] === 'd')?.[1];
             const groupName = event.tags.find(tag => tag[0] === 'name')?.[1] || 'Unknown group';
+            // Create the full community reference in the format "34550:pubkey:identifier"
+            const fullGroupId = `34550:${event.pubkey}:${dTag}`;
             
             notifications.push({
               id: event.id,
@@ -115,7 +125,7 @@ export function useNotifications() {
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: event.id,
-              groupId
+              groupId: fullGroupId
             });
             break;
           }
