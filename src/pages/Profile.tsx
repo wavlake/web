@@ -170,7 +170,7 @@ export default function Profile() {
 
       // Get posts by this user
       const userPosts = await nostr.query([{
-        kinds: [1],
+        kinds: [11],
         authors: [pubkey],
         limit: 20,
       }], { signal });

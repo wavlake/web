@@ -59,12 +59,12 @@ export function ReplyForm({
         
         // Root post reference (uppercase tags)
         ["E", postId],
-        ["K", "11"], // Original post is kind 11 (or 1 for backward compatibility)
+        ["K", "11"], // Original post is kind 11
         ["P", postAuthorPubkey],
         
         // Parent reference (lowercase tags)
         ["e", replyToId],
-        ["k", parentId ? "1111" : "11"], // Parent is either a reply (1111) or the original post (11 or 1)
+        ["k", parentId ? "1111" : "11"], // Parent is either a reply (1111) or the original post (11)
         ["p", replyToPubkey],
       ];
       
