@@ -1,5 +1,5 @@
 import { useNostr } from "@nostrify/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
 import { getPostExpirationTimestamp } from "../lib/utils";
 
@@ -8,6 +8,11 @@ interface EventTemplate {
   content?: string;
   tags?: string[][];
   created_at?: number;
+}
+
+interface UseNostrPublishOptions {
+  invalidateQueries?: { queryKey: unknown[] }[];
+  onSuccessCallback?: () => void;
 }
 
 // Group Meta
@@ -50,9 +55,10 @@ const expirationEventKinds = [
   1111, // Comments (replies)
 ];
 
-export function useNostrPublish() {
+export function useNostrPublish(options?: UseNostrPublishOptions) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (t: EventTemplate) => {
@@ -82,6 +88,7 @@ export function useNostrPublish() {
         });
 
         await nostr.event(event, { signal: AbortSignal.timeout(5000) });
+        return event;
       } else {
         throw new Error("User is not logged in");
       }
@@ -89,8 +96,60 @@ export function useNostrPublish() {
     onError: (error) => {
       console.error("Failed to publish event:", error);
     },
-    onSuccess: (data) => {
-      console.log("Event published successfully:", data);
+    onSuccess: (event) => {
+      console.log("Event published successfully:", event);
+      
+      // Invalidate specified queries
+      if (options?.invalidateQueries) {
+        options.invalidateQueries.forEach(query => {
+          queryClient.invalidateQueries(query);
+        });
+      }
+      
+      // Call the onSuccess callback if provided
+      if (options?.onSuccessCallback) {
+        options.onSuccessCallback();
+      }
+      
+      // Auto-invalidate queries based on event kind
+      if (event) {
+        // Get community ID from tags if present
+        const communityTag = event.tags?.find(tag => tag[0] === "a");
+        const communityId = communityTag ? communityTag[1] : undefined;
+        
+        // Invalidate relevant queries based on event kind
+        switch (event.kind) {
+          case 4550: // Approve post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            break;
+          case 4551: // Remove post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["removed-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+            }
+            break;
+          case 14552: // Ban user
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["banned-users", communityId] });
+              // Also invalidate posts since banned users' posts should be hidden
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+            }
+            break;
+          case 11: // Post
+          case 1111: // Reply
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["replies", event.id] });
+            }
+            break;
+        }
+      }
     },
   });
 }

@@ -23,7 +23,11 @@ interface Reaction {
 export function EmojiReactionButton({ postId }: EmojiReactionButtonProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["reactions", postId] }
+    ]
+  });
   const [open, setOpen] = useState(false);
   const { theme } = useTheme();
   
@@ -91,8 +95,7 @@ export function EmojiReactionButton({ postId }: EmojiReactionButtonProps) {
         content: emojiData.emoji, // The emoji character
       });
       
-      // Refetch reactions to update the UI
-      refetch();
+      // Close the emoji picker
       setOpen(false);
       
       toast.success("Reaction added!");
@@ -130,8 +133,7 @@ export function EmojiReactionButton({ postId }: EmojiReactionButtonProps) {
           content: "Deleted reaction",
         });
         
-        // Refetch reactions to update the UI
-        refetch();
+        // Reaction will be removed automatically via query invalidation
         
         toast.success("Reaction removed!");
       } catch (error) {
@@ -150,8 +152,7 @@ export function EmojiReactionButton({ postId }: EmojiReactionButtonProps) {
           content: emoji,
         });
         
-        // Refetch reactions to update the UI
-        refetch();
+        // Reaction will be added automatically via query invalidation
         
         toast.success("Reaction added!");
       } catch (error) {

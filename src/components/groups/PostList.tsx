@@ -367,7 +367,13 @@ interface PostItemProps {
 function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps) {
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["approved-posts", communityId] },
+      { queryKey: ["pending-posts", communityId] },
+      { queryKey: ["pending-posts-count", communityId] }
+    ]
+  });
   const { banUser } = useBannedUsers(communityId);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);

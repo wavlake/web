@@ -31,7 +31,14 @@ export function ReplyForm({
   isNested = false
 }: ReplyFormProps) {
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent, isPending: isPublishing } = useNostrPublish();
+  const { mutateAsync: publishEvent, isPending: isPublishing } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["replies", postId] },
+      { queryKey: ["pending-replies", communityId] },
+      ...(parentId ? [{ queryKey: ["nested-replies", parentId] }] : [])
+    ],
+    onSuccessCallback: onReplySubmitted
+  });
   const { isApprovedMember } = useApprovedMembers(communityId);
   
   const [content, setContent] = useState("");
@@ -77,11 +84,6 @@ export function ReplyForm({
       
       // Reset form
       setContent("");
-      
-      // Call the callback if provided
-      if (onReplySubmitted) {
-        onReplySubmitted();
-      }
       
       if (isUserApproved) {
         toast.success("Reply posted successfully!");

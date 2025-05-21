@@ -160,7 +160,13 @@ interface ReplyItemProps {
 function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmitted, isUserModerator }: ReplyItemProps) {
   const author = useAuthor(reply.pubkey);
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["reply-approvals", communityId] },
+      { queryKey: ["replies", postId] },
+      { queryKey: ["nested-replies", reply.id] }
+    ]
+  });
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { data: nestedReplies, isLoading: isLoadingNested, refetch: refetchNested } = useNestedReplies(reply.id);
   const [showNestedReplies, setShowNestedReplies] = useState(true);

@@ -1,6 +1,6 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 /**
@@ -8,6 +8,7 @@ import { toast } from "sonner";
  */
 export function useBannedUsers(communityId: string) {
   const { nostr } = useNostr();
+  const queryClient = useQueryClient();
   const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Query for banned users
@@ -58,8 +59,10 @@ export function useBannedUsers(communityId: string) {
         content: "",
       });
       
+      // Invalidate relevant queries
+      invalidateRelatedQueries();
+      
       toast.success("User banned successfully!");
-      refetch();
       return true;
     } catch (error) {
       console.error("Error banning user:", error);
@@ -89,14 +92,32 @@ export function useBannedUsers(communityId: string) {
         content: "",
       });
       
+      // Invalidate relevant queries
+      invalidateRelatedQueries();
+      
       toast.success("User unbanned successfully!");
-      refetch();
       return true;
     } catch (error) {
       console.error("Error unbanning user:", error);
       toast.error("Failed to unban user. Please try again.");
       return false;
     }
+  };
+
+  /**
+   * Invalidate all related queries when banned users list changes
+   */
+  const invalidateRelatedQueries = () => {
+    // Invalidate the banned users query
+    queryClient.invalidateQueries({ queryKey: ["banned-users", communityId] });
+    
+    // Invalidate post-related queries since banned users' posts should be hidden/shown
+    queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+    queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+    queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+    
+    // Refetch the current query
+    refetch();
   };
 
   /**
