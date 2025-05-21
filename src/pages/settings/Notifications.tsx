@@ -15,11 +15,6 @@ export default function Notifications() {
   const { data: notifications = [], isLoading, refetch } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
 
-  // Redirect to home if user is not logged in
-  if (!user) {
-    return <Navigate to="/" />;
-  }
-
   // Mark all notifications as read when the page is viewed
   useEffect(() => {
     notifications.forEach(notification => {
@@ -34,7 +29,7 @@ export default function Notifications() {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [notifications]);
+  }, [markAsRead, notifications, refetch]);
 
   const NotificationItem = ({ notification }: { notification: Notification }) => {
     const { data: authorData } = useAuthor(notification.pubkey || "");
@@ -64,6 +59,11 @@ export default function Notifications() {
           linkTo = `/group/${notification.groupId}/settings`;
         }
         break;
+    }
+
+    // Redirect to home if user is not logged in
+    if (!user) {
+      return <Navigate to="/" />;
     }
     
     return (
