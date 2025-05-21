@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LoginDialog from "@/components/auth/LoginDialog";
@@ -10,7 +10,6 @@ import { useNostrLogin, NLogin } from "@nostrify/react/login";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
 import { toast } from "@/hooks/useToast";
-import { useRef } from "react";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
@@ -108,14 +107,16 @@ const Index = () => {
   // Onboarding step 1: Not logged in
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
-        <div className="w-full max-w-md mx-auto p-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg text-center">
-          <h1 className="text-4xl font-extralight mb-4">
-            <div className="text-4xl">welcome to</div>
-            <div className="flex flex-row gap-0 items-baseline justify-center">
-              <span className="text-red-500 font-extrabold text-4xl">+</span>
-              <span className="text-black dark:text-white font-extrabold text-4xl">chorus</span>
-            </div>
+      <>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
+          <div className="w-full max-w-md mx-auto p-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg text-center">
+            <h1 className="text-4xl font-extralight mb-4">
+              <div className="text-4xl">welcome to</div>
+              <div className="flex flex-row gap-0 items-baseline justify-center">
+                <span className="text-red-500 font-extrabold text-4xl">+</span>
+                <span className="text-black dark:text-white font-extrabold text-4xl">chorus</span>
+              </div>
+            </h1>
           </div>
           <div className="text-lg text-muted-foreground mb-8">
             public/private groups are money
@@ -131,7 +132,7 @@ const Index = () => {
           </div>
         </div>
         <LoginDialog isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={handleLogin} />
-      </div>
+      </>
     );
   }
 
@@ -143,7 +144,7 @@ const Index = () => {
           <h2 className="text-2xl font-bold mb-4 text-center">Set up your profile</h2>
           <p className="text-gray-600 mb-6 text-center">
             Add your display name and picture. You can always update them later.
-          </div>
+          </p>
           <EditProfileForm showSkipLink={true} />
         </div>
       </div>
