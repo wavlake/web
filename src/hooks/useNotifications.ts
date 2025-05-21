@@ -58,7 +58,7 @@ export function useNotifications() {
             notifications.push({
               id: event.id,
               type: 'reaction',
-              message: `Someone reacted to your post`,
+              message: `reacted to your post`,
               createdAt: event.created_at,
               read: !!readNotifications[event.id],
               eventId: targetEventId,

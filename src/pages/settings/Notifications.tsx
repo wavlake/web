@@ -84,8 +84,9 @@ export default function Notifications() {
             )}
             <div className="flex-1">
               <div className="font-medium">
+                {notification.pubkey && notification.type === 'reaction' ? `${authorName} ` : ''}
                 {notification.message}
-                {notification.pubkey && ` from ${authorName}`}
+                {notification.pubkey && notification.type !== 'reaction' && ` from ${authorName}`}
                 {notification.groupId && <GroupReference groupId={notification.groupId} />}
               </div>
               <div className="text-sm text-muted-foreground">
