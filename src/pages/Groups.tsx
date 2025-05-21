@@ -53,14 +53,16 @@ export default function Groups() {
       <MyGroupsList />
       
       <div className="flex flex-col mt-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold">All Groups</h2>
+          
+          <div className="md:w-64 lg:w-72">
+            <GroupSearch 
+              onSearch={setSearchQuery} 
+              className="sticky top-0 z-10" 
+            />
+          </div>
         </div>
-        
-        <GroupSearch 
-          onSearch={setSearchQuery} 
-          className="mb-6 sticky top-0 z-10" 
-        />
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {isLoading ? (

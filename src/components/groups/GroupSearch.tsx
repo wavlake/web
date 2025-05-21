@@ -27,7 +27,8 @@ export function GroupSearch({ onSearch, className }: GroupSearchProps) {
   return (
     <div 
       className={cn(
-        "relative flex items-center w-full max-w-full sm:max-w-md mx-auto",
+        "relative flex items-center w-full",
+        "mx-auto md:mx-0", // Center on mobile, left-aligned on desktop
         "transition-all duration-200 ease-in-out",
         "sticky top-0 z-10 bg-background/80 backdrop-blur-sm py-2",
         isFocused && "ring-2 ring-primary/20 rounded-md",
@@ -40,7 +41,7 @@ export function GroupSearch({ onSearch, className }: GroupSearchProps) {
         placeholder="Search groups..."
         value={searchQuery}
         onChange={handleSearch}
-        className="pl-9 pr-10 h-12 w-full focus-visible:ring-0 rounded-full shadow-sm"
+        className="pl-9 pr-10 h-10 md:h-9 w-full focus-visible:ring-0 rounded-full shadow-sm"
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         autoComplete="off"
@@ -50,11 +51,11 @@ export function GroupSearch({ onSearch, className }: GroupSearchProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-2 h-8 w-8 rounded-full hover:bg-muted"
+          className="absolute right-2 h-7 w-7 rounded-full hover:bg-muted"
           onClick={clearSearch}
           type="button"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
           <span className="sr-only">Clear search</span>
         </Button>
       )}
