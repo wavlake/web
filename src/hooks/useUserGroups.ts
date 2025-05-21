@@ -2,15 +2,22 @@ import { useNostr } from "./useNostr";
 import { useCurrentUser } from "./useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
 import { NostrEvent } from "@nostrify/nostrify";
+import { usePinnedGroups, PinnedGroup } from "./usePinnedGroups";
 
 export function useUserGroups() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { pinnedGroups, isLoading: isPinnedGroupsLoading } = usePinnedGroups();
 
   return useQuery({
-    queryKey: ["user-groups", user?.pubkey],
+    queryKey: ["user-groups", user?.pubkey, pinnedGroups],
     queryFn: async (c) => {
-      if (!user || !nostr) return { owned: [] as NostrEvent[], moderated: [] as NostrEvent[], member: [] as NostrEvent[] };
+      if (!user || !nostr) return { 
+        pinned: [] as NostrEvent[], 
+        owned: [] as NostrEvent[], 
+        moderated: [] as NostrEvent[], 
+        member: [] as NostrEvent[] 
+      };
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
@@ -71,11 +78,56 @@ export function useUserGroups() {
           }
         }
       }
+
+      // Process pinned groups
+      const pinnedCommunities: NostrEvent[] = [];
+      
+      // Map of community IDs to prevent duplicates
+      const processedCommunityIds = new Set<string>();
+      
+      // Process pinned groups first
+      for (const pinnedGroup of pinnedGroups) {
+        const [_, pubkey, identifier] = pinnedGroup.communityId.split(":");
+        
+        // Find the community in our fetched communities
+        const community = allCommunities.find(c => {
+          const dTag = c.tags.find(tag => tag[0] === "d");
+          return c.pubkey === pubkey && dTag && dTag[1] === identifier;
+        });
+        
+        if (community) {
+          pinnedCommunities.push(community);
+          
+          // Mark this community as processed
+          const communityId = `34550:${community.pubkey}:${identifier}`;
+          processedCommunityIds.add(communityId);
+        }
+      }
+      
+      // Filter out pinned communities from other lists to avoid duplicates
+      const filteredOwned = ownedCommunities.filter(community => {
+        const dTag = community.tags.find(tag => tag[0] === "d");
+        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+        return !processedCommunityIds.has(communityId);
+      });
+      
+      const filteredModerated = moderatedCommunities.filter(community => {
+        const dTag = community.tags.find(tag => tag[0] === "d");
+        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+        return !processedCommunityIds.has(communityId);
+      });
+      
+      const filteredMember = memberCommunities.filter(community => {
+        const dTag = community.tags.find(tag => tag[0] === "d");
+        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+        return !processedCommunityIds.has(communityId);
+      });
       
       return {
-        owned: ownedCommunities,
-        moderated: moderatedCommunities,
-        member: memberCommunities
+        pinned: pinnedCommunities,
+        owned: filteredOwned,
+        moderated: filteredModerated,
+        member: filteredMember
       };
     },
     enabled: !!nostr && !!user,
