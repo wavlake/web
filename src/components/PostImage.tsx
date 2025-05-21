@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ImagePreview } from './ImagePreview';
+import { ExternalLink } from 'lucide-react';
 
 interface PostImageProps {
   url: string;
@@ -44,5 +45,21 @@ export function PostImage({ url }: PostImageProps) {
     setImageUrl(url);
   }, [url]);
   
-  return <ImagePreview src={imageUrl} alt="Post image" />;
+  return (
+    <div className="relative group">
+      <a 
+        href={url} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <ImagePreview src={imageUrl} alt="Post image" />
+        
+        {/* Small icon in the corner to indicate it's clickable */}
+        <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink size={14} />
+        </div>
+      </a>
+    </div>
+  );
 }

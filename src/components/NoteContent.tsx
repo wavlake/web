@@ -82,18 +82,31 @@ export function NoteContent({
     const parts: React.ReactNode[] = [];
     
     // Helper function to process matches
-    const processMatches = (regex: RegExp, processor: (match: RegExpExecArray) => React.ReactNode) => {
+    const processMatches = (regex: RegExp, processor: (match: RegExpExecArray) => React.ReactNode | null) => {
       regex.lastIndex = 0; // Reset regex
       let match;
-      const matchPositions: {index: number; length: number; node: React.ReactNode}[] = [];
+      const matchPositions: {index: number; length: number; node: React.ReactNode | null}[] = [];
       
       // Find all matches
       while ((match = regex.exec(text)) !== null) {
-        matchPositions.push({
-          index: match.index,
-          length: match[0].length,
-          node: processor(match)
-        });
+        const node = processor(match);
+        
+        // Only add to matches if the processor returned a node (not null)
+        if (node !== null) {
+          matchPositions.push({
+            index: match.index,
+            length: match[0].length,
+            node
+          });
+        } else {
+          // For null nodes (like hidden image URLs), we still need to record the position
+          // but we'll handle them differently when building the content
+          matchPositions.push({
+            index: match.index,
+            length: match[0].length,
+            node: null
+          });
+        }
       }
       
       return matchPositions;
@@ -102,6 +115,15 @@ export function NoteContent({
     // Process URLs
     const urlMatches = processMatches(urlRegex, (match) => {
       const url = match[0];
+      
+      // Check if this URL is an image URL that will be displayed separately
+      const isImageUrl = imageUrls.includes(url);
+      
+      if (isImageUrl) {
+        // Return null for image URLs - they'll be displayed as images below
+        return null;
+      }
+      
       return (
         <a 
           key={`url-${match.index}`}
@@ -185,8 +207,10 @@ export function NoteContent({
           parts.push(text.substring(lastIndex, match.index));
         }
         
-        // Add the special content
-        parts.push(match.node);
+        // Add the special content if it's not null (skip null nodes which are hidden image URLs)
+        if (match.node !== null) {
+          parts.push(match.node);
+        }
         
         // Update lastIndex
         lastIndex = match.index + match.length;
