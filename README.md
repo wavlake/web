@@ -27,7 +27,7 @@ This application implements NIP-72 for moderated communities:
 
 - **Kind 34550**: Community definition events
 - **Kind 4550**: Post approval events
-- **Kind 1**: Standard text note events (posts)
+- **Kind 11**: Text note events (posts)
 
 ## Getting Started
 
