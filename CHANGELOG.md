@@ -19,9 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Switched default relay to Chorus for better reliability
-- Group cards now display comprehensive activity metrics (moderators, posts, participants)
+- Group cards now display focused activity metrics (posts and participants)
 - Improved UI consistency for community statistics with proper loading states
 - Enhanced My Groups display with consistent activity metrics across all group views
+- Removed moderator count badge to focus on activity metrics
 
 ### Fixed
 - Various notification wording improvements and fixes

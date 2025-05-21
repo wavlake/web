@@ -83,11 +83,6 @@ export function GroupCard({ community, isPinned, pinGroup, unpinGroup, isUpdatin
         <CardTitle>{name}</CardTitle>
         <CardDescription>
           <div className="flex flex-wrap gap-2 mt-1">
-            <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-              <Users className="h-3 w-3 mr-1" />
-              {moderatorTags.length} mod{moderatorTags.length !== 1 ? 's' : ''}
-            </div>
-            
             {isLoadingStats ? (
               <>
                 <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
