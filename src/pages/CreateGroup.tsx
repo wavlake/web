@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Upload } from "lucide-react";
 import Header from "@/components/ui/Header";
+import { Separator } from "@/components/ui/separator"; // Added Separator import
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -32,9 +33,9 @@ export default function CreateGroup() {
   if (!user) {
     return (
       <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
-        <h1 className="text-2xl font-bold mb-4">You must be logged in to create a community</h1>
+        <h1 className="text-2xl font-bold mb-4">You must be logged in to create a group</h1>
         <Button asChild>
-          <Link to="/groups">Back to Communities</Link>
+          <Link to="/groups">Back to Groups</Link>
         </Button>
       </div>
     );
@@ -99,11 +100,11 @@ export default function CreateGroup() {
         content: "",
       });
 
-      toast.success("Community created successfully!");
+      toast.success("Group created successfully!");
       navigate("/groups");
     } catch (error) {
       console.error("Error creating community:", error);
-      toast.error("Failed to create community. Please try again.");
+      toast.error("Failed to create group. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,30 +113,31 @@ export default function CreateGroup() {
   return (
     <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
+      <Separator className="my-4" />
 
       <Card>
         <CardHeader>
-          <CardTitle>Create a Community</CardTitle>
+          <CardTitle>Create a Group</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Community Name *</Label>
+              <Label htmlFor="name">Group Name *</Label>
               <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="My Awesome Community"
+                placeholder="My Awesome Group"
                 required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="identifier">
-                Community Identifier *
+                Group Identifier *
                 <span className="text-xs text-muted-foreground ml-2">
-                  (unique identifier for your community)
+                  (unique identifier for your group)
                 </span>
               </Label>
               <Input
@@ -143,7 +145,7 @@ export default function CreateGroup() {
                 name="identifier"
                 value={formData.identifier}
                 onChange={handleInputChange}
-                placeholder="my-awesome-community"
+                placeholder="my-awesome-group"
                 required
               />
             </div>
@@ -155,14 +157,14 @@ export default function CreateGroup() {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Tell people what your community is about..."
+                placeholder="Tell people what your group is about..."
                 rows={4}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Community Image</Label>
+              <Label>Group Image</Label>
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -185,7 +187,7 @@ export default function CreateGroup() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload an image or provide a URL for your community banner
+                    Upload an image or provide a URL for your group banner
                   </p>
                 </div>
 
@@ -214,7 +216,7 @@ export default function CreateGroup() {
               type="submit"
               disabled={isSubmitting || isUploading || !formData.name || !formData.identifier || !formData.description}
             >
-              {isSubmitting || isUploading ? "Creating..." : "Create Community"}
+              {isSubmitting || isUploading ? "Creating..." : "Create Group"}
             </Button>
           </CardFooter>
         </form>

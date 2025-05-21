@@ -55,7 +55,7 @@ export default function GroupSettings() {
         "#d": [parsedId.identifier]
       }], { signal });
       
-      if (events.length === 0) throw new Error("Community not found");
+      if (events.length === 0) throw new Error("Community not found"); // Internal error message
       return events[0];
     },
     enabled: !!nostr && !!parsedId
@@ -127,12 +127,12 @@ export default function GroupSettings() {
     e.preventDefault();
     
     if (!user) {
-      toast.error("You must be logged in to update community settings");
+      toast.error("You must be logged in to update group settings");
       return;
     }
     
     if (!parsedId) {
-      toast.error("Invalid community ID");
+      toast.error("Invalid group ID");
       return;
     }
     
@@ -150,7 +150,7 @@ export default function GroupSettings() {
     }
     
     if (!isModerator && !isOwner) {
-      toast.error("You must be a moderator or the group owner to update community settings");
+      toast.error("You must be a moderator or the group owner to update group settings");
       return;
     }
     
@@ -195,11 +195,11 @@ export default function GroupSettings() {
         content: "",
       });
       
-      toast.success("Community settings updated successfully!");
+      toast.success("Group settings updated successfully!");
       navigate(`/group/${encodeURIComponent(groupId || "")}`);
     } catch (error) {
       console.error("Error updating community settings:", error);
-      toast.error("Failed to update community settings. Please try again.");
+      toast.error("Failed to update group settings. Please try again.");
     }
   };
   
@@ -288,7 +288,7 @@ export default function GroupSettings() {
   if (isLoadingCommunity) {
     return (
       <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
-        <h1 className="text-2xl font-bold mb-4">Loading community settings...</h1>
+        <h1 className="text-2xl font-bold mb-4">Loading group settings...</h1>
       </div>
     );
   }
@@ -296,10 +296,10 @@ export default function GroupSettings() {
   if (!community) {
     return (
       <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
-        <h1 className="text-2xl font-bold mb-4">Community not found</h1>
-        <p>The community you're looking for doesn't exist or has been deleted.</p>
+        <h1 className="text-2xl font-bold mb-4">Group not found</h1>
+        <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-4">
-          <Link to="/groups">Back to Communities</Link>
+          <Link to="/groups">Back to Groups</Link>
         </Button>
       </div>
     );
@@ -309,9 +309,9 @@ export default function GroupSettings() {
     return (
       <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-        <p>You must be a moderator or the group owner to access community settings.</p>
+        <p>You must be a moderator or the group owner to access group settings.</p>
         <Button asChild className="mt-4">
-          <Link to={`/group/${encodeURIComponent(groupId || "")}`}>Back to Community</Link>
+          <Link to={`/group/${encodeURIComponent(groupId || "")}`}>Back to Group</Link>
         </Button>
       </div>
     );
@@ -323,10 +323,10 @@ export default function GroupSettings() {
         <Button variant="ghost" size="sm" asChild className="mr-2">
           <Link to={`/group/${encodeURIComponent(groupId || "")}`}>
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Community
+            Back to Group
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Community Settings</h1>
+        <h1 className="text-2xl font-bold">Group Settings</h1>
       </div>
       
       <Tabs defaultValue="general" className="w-full">
@@ -343,17 +343,17 @@ export default function GroupSettings() {
               <CardHeader>
                 <CardTitle>General Settings</CardTitle>
                 <CardDescription>
-                  Update your community's basic information
+                  Update your group's basic information
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Community Name</Label>
+                  <Label htmlFor="name">Group Name</Label>
                   <Input 
                     id="name" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
-                    placeholder="Enter community name"
+                    placeholder="Enter group name"
                     required
                   />
                 </div>
@@ -364,7 +364,7 @@ export default function GroupSettings() {
                     id="description" 
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)} 
-                    placeholder="Enter community description"
+                    placeholder="Enter group description"
                     rows={4}
                   />
                 </div>
@@ -382,7 +382,7 @@ export default function GroupSettings() {
                     <div className="mt-2 rounded-md overflow-hidden border w-full max-w-xs">
                       <img 
                         src={imageUrl} 
-                        alt="Community preview" 
+                        alt="Group preview" 
                         className="w-full h-auto"
                         onError={(e) => {
                           e.currentTarget.src = "https://placehold.co/400x200?text=Invalid+Image";
@@ -393,7 +393,7 @@ export default function GroupSettings() {
                 </div>
 
                 <div className="mt-4 p-3 bg-muted rounded-md">
-                  <h3 className="text-sm font-medium mb-2">Current Community Information</h3>
+                  <h3 className="text-sm font-medium mb-2">Current Group Information</h3>
                   <p className="text-xs text-muted-foreground mb-1">
                     <span className="font-medium">ID:</span> {parsedId?.identifier}
                   </p>
@@ -424,7 +424,7 @@ export default function GroupSettings() {
                   </CardTitle>
                   <CardDescription>
                     {isOwner 
-                      ? "As the group owner, you can manage who can moderate this community"
+                      ? "As the group owner, you can manage who can moderate this group"
                       : "Only the group owner can add or remove moderators"}
                   </CardDescription>
                 </CardHeader>
@@ -466,7 +466,7 @@ export default function GroupSettings() {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Users className="h-5 w-5 mr-2" />
-                    Community Members
+                    Group Members
                   </CardTitle>
                   <CardDescription>
                     {isOwner 
