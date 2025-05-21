@@ -2,7 +2,7 @@ import { useMarkdown } from "@/hooks/useMarkdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AboutPage() {
-  const html = useMarkdown("/about.md");
+  const html = useMarkdown("/About.md");
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
