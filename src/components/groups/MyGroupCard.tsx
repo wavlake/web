@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NostrEvent } from "@nostrify/nostrify";
 import { UserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { useReliableGroupMembership } from "@/hooks/useReliableGroupMembership";
 
 interface MyGroupCardProps {
   community: NostrEvent;
@@ -36,17 +37,17 @@ export function MyGroupCard({ community, role, isPinned, pinGroup, unpinGroup, i
   const image = imageTag ? imageTag[1] : "/placeholder-community.jpg"; 
   const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
   
-  // Determine the actual role (not just the list it's in)
+  // Use the reliable membership hook to determine the user's role
+  const { data: membership, isLoading: isMembershipLoading } = useReliableGroupMembership(communityId);
+  
+  // Determine the actual role based on membership data
   let displayRole: UserRole = null;
   
-  if (community.pubkey === user?.pubkey) {
-    // User is the owner
+  if (membership?.isOwner) {
     displayRole = "owner";
-  } else if (community.tags.some(tag => tag[0] === "p" && tag[1] === user?.pubkey && tag[3] === "moderator")) {
-    // User is a moderator
+  } else if (membership?.isModerator) {
     displayRole = "moderator";
-  } else if (role === "member") {
-    // User is a member (we trust the role passed from the parent component)
+  } else if (membership?.isMember) {
     displayRole = "member";
   }
 
