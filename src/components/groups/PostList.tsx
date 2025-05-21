@@ -133,7 +133,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const posts = await nostr.query([{ 
-        kinds: [1, 11],
+        kinds: [11],
         "#a": [communityId],
         limit: 50,
       }], { signal });
