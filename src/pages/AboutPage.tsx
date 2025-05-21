@@ -1,8 +1,8 @@
-import { useMarkdown } from "@/hooks/useMarkdown";
+import { useMarkdownWithoutFirstHeading } from "@/hooks/useMarkdownWithoutFirstHeading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AboutPage() {
-  const html = useMarkdown("/About.md");
+  const html = useMarkdownWithoutFirstHeading("/About.md");
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -14,7 +14,7 @@ export default function AboutPage() {
           <div 
             className="prose prose-lg dark:prose-invert max-w-none
                        prose-headings:font-serif prose-headings:font-medium
-                       prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl
+                       prose-h2:text-2xl prose-h3:text-xl
                        prose-p:text-base prose-p:leading-relaxed
                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
                        prose-strong:text-foreground/90 prose-strong:font-semibold
