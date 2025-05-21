@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored community activity indicators showing post count and participant count on group cards
 - Added loading states for community statistics while data is being fetched
 - Enhanced visual presentation of community metrics with badge-style elements
+- Added activity indicators to My Groups section showing post count and active participants
 
 ### Changed
 - Switched default relay to Chorus for better reliability
 - Group cards now display comprehensive activity metrics (moderators, posts, participants)
 - Improved UI consistency for community statistics with proper loading states
+- Enhanced My Groups display with consistent activity metrics across all group views
 
 ### Fixed
 - Various notification wording improvements and fixes
