@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { useCashuWallet } from "@/cashu/hooks/useCashuWallet";
+import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { calculateBalance, formatBalance } from "@/lib/cashu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -25,10 +25,10 @@ import {
   Eraser,
 } from "lucide-react";
 import { useCashuStore } from "@/stores/cashuStore";
-import { generateSecretKey } from "nostr-tools";
+import { derivePrivkeyFromNostrSignature } from "@/lib/nip60";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useCashuToken } from "@/cashu/hooks/useCashuToken";
+import { useCashuToken } from "@/hooks/useCashuToken";
 
 export function CashuWalletCard() {
   const { user } = useCurrentUser();
@@ -54,20 +54,28 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
-  const handleCreateWallet = () => {
+  const handleCreateWallet = async () => {
     if (!user) {
       setError("You must be logged in to create a wallet");
       return;
     }
 
-    const privkey = bytesToHex(generateSecretKey()).slice(2);
-    cashuStore.setPrivkey(privkey);
+    try {
+      const privkey = await derivePrivkeyFromNostrSignature(
+        user.signer,
+        user.pubkey
+      );
+      cashuStore.setPrivkey(privkey);
 
-    // Create a new wallet with the default mint
-    createWallet({
-      privkey,
-      mints: cashuStore.mints.map((m) => m.url),
-    });
+      // Create a new wallet with the default mint
+      createWallet({
+        privkey,
+        mints: cashuStore.mints.map((m) => m.url),
+      });
+    } catch (error) {
+      console.error("Failed to derive private key:", error);
+      setError("Failed to create wallet. Please try again.");
+    }
   };
 
   const handleAddMint = () => {

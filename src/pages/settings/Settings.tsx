@@ -1,14 +1,12 @@
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/ui/Header";
-import { ArrowLeft, Eye, EyeOff, User, Copy, Check, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Eye, EyeOff, Copy, Check } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Navigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { nip19 } from 'nostr-tools';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
@@ -121,32 +119,7 @@ export default function Settings() {
   return (
     <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
       <Header />
-      <div className="my-6">
-        <h1 className="text-3xl font-bold">Settings</h1>
-      </div>
-
-      <div className="space-y-6 mb-6">
-        {/* Notifications Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Manage your notifications and stay updated</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/settings/notifications" className="flex items-center justify-between p-2 hover:bg-accent rounded-md transition-colors">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-primary" />
-                <span>View all notifications</span>
-              </div>
-              {unreadCount > 0 && (
-                <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
-                  {unreadCount} new
-                </span>
-              )}
-            </Link>
-          </CardContent>
-        </Card>
-        
+      <div className="space-y-6 my-6">
         {/* Keys Section */}
         <Card>
           <CardHeader>

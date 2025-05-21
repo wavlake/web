@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useCashuHistory } from "@/cashu/hooks/useCashuHistory";
+import { useCashuHistory } from "@/hooks/useCashuHistory";
 import { useTransactionHistoryStore } from "@/stores/transactionHistoryStore";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";

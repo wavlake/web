@@ -31,7 +31,7 @@ export function GroupCard({ community, isPinned, pinGroup, unpinGroup, isUpdatin
   const descriptionTag = community.tags.find(tag => tag[0] === "description");
   const imageTag = community.tags.find(tag => tag[0] === "image");
   const dTag = community.tags.find(tag => tag[0] === "d");
-  const moderatorTags = community.tags.filter(tag => tag[0] === "p" && tag[3] === "moderator");
+  // No need to track moderator tags for stats display
 
   const name = nameTag ? nameTag[1] : (dTag ? dTag[1] : "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
@@ -83,11 +83,6 @@ export function GroupCard({ community, isPinned, pinGroup, unpinGroup, isUpdatin
         <CardTitle>{name}</CardTitle>
         <CardDescription>
           <div className="flex flex-wrap gap-2 mt-1">
-            <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
-              <Users className="h-3 w-3 mr-1" />
-              {moderatorTags.length} mod{moderatorTags.length !== 1 ? 's' : ''}
-            </div>
-
             {isLoadingStats ? (
               <>
                 <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">

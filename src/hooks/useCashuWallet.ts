@@ -2,12 +2,14 @@ import { useNostr } from '@/hooks/useNostr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CASHU_EVENT_KINDS, CashuWalletStruct, CashuToken, activateMint, updateMintKeys } from '@/lib/cashu';
-import { nip44, NostrEvent } from 'nostr-tools';
+import { nip44, NostrEvent, getPublicKey } from 'nostr-tools';
 import { useCashuStore, Nip60TokenEvent } from '@/stores/cashuStore';
 import { Proof } from '@cashu/cashu-ts';
 import { getLastEventTimestamp } from '@/lib/nostrTimestamps';
 import { NSchema as n } from '@nostrify/nostrify';
 import { z } from 'zod';
+import { useNutzaps } from '@/hooks/useNutzaps';
+import { hexToBytes } from '@noble/hashes/utils';
 
 /**
  * Hook to fetch and manage the user's Cashu wallet
@@ -17,6 +19,7 @@ export function useCashuWallet() {
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
   const cashuStore = useCashuStore();
+  const { createNutzapInfo } = useNutzaps();
 
   // Fetch wallet information (kind 17375)
   const walletQuery = useQuery({
@@ -56,14 +59,18 @@ export function useCashuWallet() {
             .map(([, mint]) => mint)
         };
 
-        for (const mint of walletData.mints) {
+        // reduce mints to unique values
+        walletData.mints = [...new Set(walletData.mints)];
+
+        // fetch the mint info and keysets for each mint
+        Promise.all(walletData.mints.map(async (mint) => {
           const { mintInfo, keysets } = await activateMint(mint);
           cashuStore.addMint(mint);
           cashuStore.setMintInfo(mint, mintInfo);
           cashuStore.setKeysets(mint, keysets);
-          const { keys } = await updateMintKeys(mint);
+          const { keys } = await updateMintKeys(mint, keysets);
           cashuStore.setKeys(mint, keys);
-        }
+        }));
 
         cashuStore.setPrivkey(walletData.privkey);
 
@@ -111,12 +118,28 @@ export function useCashuWallet() {
 
       // Publish event
       await nostr.event(event);
+
+      // Also create or update the nutzap informational event
+      try {
+        await createNutzapInfo({
+          mintOverrides: walletData.mints.map(mint => ({
+            url: mint,
+            units: ['sat']
+          })),
+          p2pkPubkey: "02" + getPublicKey(hexToBytes(walletData.privkey))
+        });
+      } catch (error) {
+        console.error('Failed to create nutzap informational event:', error);
+        // Continue even if nutzap info creation fails
+      }
+
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for event to be published
 
       return event;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashu', 'wallet', user?.pubkey] });
+      queryClient.invalidateQueries({ queryKey: ['nutzap', 'info', user?.pubkey] });
     }
   });
 
