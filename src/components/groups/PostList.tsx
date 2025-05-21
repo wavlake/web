@@ -334,20 +334,6 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end mb-2">
-        <div className="flex gap-3 text-sm">
-          <span className="flex items-center">
-            <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-            {approvedCount} approved
-          </span>
-          {!showOnlyApproved && pendingCount > 0 && (
-            <span className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-amber-500 mr-1"></span>
-              {pendingCount} pending
-            </span>
-          )}
-        </div>
-      </div>
       {sortedPosts.map((post) => (
         <PostItem 
           key={post.id} 

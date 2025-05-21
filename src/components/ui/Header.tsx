@@ -10,8 +10,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ className }) => (
   <div className={`flex justify-between items-center mb-2 ${className || ''}`}>
     <Link to="/" className="contents">
-      <h1 className="text-4xl font-bold flex flex-row gap-0 items-center"> {/* Changed to text-4xl font-bold */}
-        <span className="text-red-500 font-extrabold text-5xl">+</span> {/* Changed to text-5xl */}
+      <h1 className="text-5xl font-bold flex flex-row gap-0 items-center"> {/* Changed to text-4xl font-bold */}
+        <span className="text-red-500 font-extrabold text-6xl">+</span> {/* Changed to text-5xl */}
         chorus
       </h1>
     </Link>
