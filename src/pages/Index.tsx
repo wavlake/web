@@ -34,6 +34,14 @@ const Index = () => {
     setNewUser(val);
     sessionStorage.setItem("newUser", val ? "true" : "false");
   }, []);
+  
+  // Ensure newUser is set correctly when user logs in without metadata
+  useEffect(() => {
+    if (currentUser && !currentUser.metadata?.name && !currentUser.metadata?.about && !currentUser.metadata?.picture) {
+      // If user has no profile data, treat them as a new user
+      setNewUserState(true);
+    }
+  }, [currentUser, setNewUserState]);
 
   // Check if the user has filled out their profile (basic check: has name or about or picture)
   useEffect(() => {
@@ -42,7 +50,7 @@ const Index = () => {
     } else {
       setProfileComplete(false);
     }
-  }, [currentUser]);
+  }, [currentUser, currentUser?.metadata]);
 
   // Redirect to /groups after profile is complete
   useEffect(() => {
@@ -100,22 +108,22 @@ const Index = () => {
   // Onboarding step 1: Not logged in
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white p-8">
-        <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg text-center">
-          <h1 className="text-4xl font-extralight mb-4">
-            <div className="text-4xl">welcome to</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 p-8">
+        <div className="w-full max-w-md mx-auto p-8 bg-background rounded-2xl shadow-lg text-center">
+          <div className="mb-4">
+            <div className="text-4xl font-extralight text-foreground">welcome to</div>
             <div className="flex flex-row gap-0 items-baseline justify-center">
               <span className="text-red-500 font-extrabold text-4xl">+</span>
-              <span className="text-black font-extrabold text-4xl">chorus</span>
+              <span className="text-foreground font-extrabold text-4xl">chorus</span>
             </div>
-          </h1>
-          <p className="text-lg text-gray-600 mb-8">
+          </div>
+          <div className="text-lg text-muted-foreground mb-8">
             public/private groups are money
-          </p>
+          </div>
           <Button size="lg" className="w-full mb-4" onClick={handleCreateAccount} disabled={creating}>
             {creating ? "Creating..." : "Start"}
           </Button>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Have a Nostr/+chorus account?{' '}
             <button type="button" className="text-primary font-medium hover:underline" onClick={() => setLoginOpen(true)}>
               Sign in
@@ -127,23 +135,27 @@ const Index = () => {
     );
   }
 
-  // Onboarding step 2: New user (just created account)
-  if (currentUser && newUser) {
+  // Onboarding step 2: New user (just created account) or user without metadata
+  if (currentUser && (newUser || !profileComplete)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">
-        <div className="w-full max-w-lg mx-auto p-8 bg-white rounded-2xl shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 text-center">Set up your profile</h2>
-          <p className="text-gray-600 mb-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950">
+        <div className="w-full max-w-lg mx-auto p-8 bg-background rounded-2xl shadow-lg">
+          <h2 className="text-2xl font-bold mb-4 text-center text-foreground">Set up your profile</h2>
+          <div className="text-muted-foreground mb-6 text-center">
             Add your display name and picture. You can always update them later.
-          </p>
+          </div>
           <EditProfileForm showSkipLink={true} />
         </div>
       </div>
     );
   }
 
-  // Fallback (should not be seen)
-  return null;
+  // Fallback (should redirect to /groups in most cases)
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground">
+      <div>Redirecting to groups...</div>
+    </div>
+  );
 };
 
 export default Index;

@@ -495,7 +495,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           <div className="flex items-start justify-between">
             <div>
               <Link to={`/profile/${post.pubkey}`} className="hover:underline">
-                <p className="font-semibold text-sm leading-tight">{displayName}</p> 
+                <span className="font-semibold text-sm leading-tight block">{displayName}</span> 
               </Link>
               <div className="flex items-center text-xs text-muted-foreground mt-0 flex-wrap">
                 <span className="mr-1.5 hover:underline cursor-help" title={post.pubkey}>@{authorIdentifier}</span>

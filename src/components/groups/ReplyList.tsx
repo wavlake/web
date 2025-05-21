@@ -243,7 +243,7 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
             <div className={`${reply.isPendingApproval ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-muted/50'} rounded-lg p-3`}>
               <div className="flex items-center justify-between mb-1">
                 <Link to={`/profile/${reply.pubkey}`} className="hover:underline">
-                  <p className="font-semibold text-sm">{displayName}</p>
+                  <span className="font-semibold text-sm block">{displayName}</span>
                 </Link>
                 <div className="flex items-center">
                   {reply.isApproved && (
