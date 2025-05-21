@@ -77,12 +77,26 @@ export async function activateMint(mintUrl: string): Promise<{ mintInfo: GetInfo
   return { mintInfo, keysets };
 }
 
-export async function updateMintKeys(mintUrl: string): Promise<{ keys: Record<string, MintKeys>[] }> {
+export async function updateMintKeys(mintUrl: string, keysets: MintKeyset[]): Promise<{ keys: Record<string, MintKeys>[] }> {
   const mint = new CashuMint(mintUrl);
   const wallet = new CashuWallet(mint);
-  const keysets = await wallet.getKeySets();
-  const keys = await Promise.all(keysets.map(async (keyset) => {
-    return { [keyset.id]: await wallet.getKeys(keyset.id) };
-  }));
-  return { keys };
+
+  // get keysets from store
+  const keysetsLocal = useCashuStore.getState().mints.find((m) => m.url === mintUrl)?.keysets;
+  let keysLocal = useCashuStore.getState().mints.find((m) => m.url === mintUrl)?.keys;
+
+  if (!keysetsLocal || !keysLocal) {
+    const allKeys = await wallet.getAllKeys()
+    const keys = allKeys.map((key) => ({ [key.id]: key }));
+    return { keys };
+  } else if (keysetsLocal !== keysets) {
+    // get all keys for each keyset where keysetLocal != keyset and add them to the keysLocal
+    const keys = await Promise.all(keysets.map(async (keyset) => {
+      return { [keyset.id]: await wallet.getKeys(keyset.id) };
+    }));
+    keysLocal = keysLocal.concat(keys);
+    return { keys: keysLocal };
+  } else {
+    return { keys: keysLocal };
+  }
 }

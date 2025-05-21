@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useCashuHistory } from "@/cashu/hooks/useCashuHistory";
+import { useCashuHistory } from "@/hooks/useCashuHistory";
 import { useTransactionHistoryStore } from "@/stores/transactionHistoryStore";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
@@ -22,9 +22,9 @@ export function CashuHistoryCard() {
   useEffect(() => {
     if (queryHistory && queryHistory.length > 0) {
       // The store will handle duplicates internally
-      for (const entry of queryHistory) {
+      queryHistory.forEach((entry) => {
         transactionHistoryStore.addHistoryEntry(entry);
-      }
+      });
     }
   }, [queryHistory, transactionHistoryStore]);
 

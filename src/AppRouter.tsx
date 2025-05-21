@@ -10,7 +10,7 @@ import Profile from "./pages/Profile";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import Settings from "./pages/settings/Settings";
 import Notifications from "./pages/settings/Notifications";
-import CashuWallet from "./cashu/pages/CashuWallet";
+import CashuWallet from "./pages/CashuWallet";
 import LinkPreviewTest from "./pages/LinkPreviewTest";
 
 export function AppRouter() {
