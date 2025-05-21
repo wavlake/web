@@ -24,6 +24,7 @@ import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator"; // Added Separator import
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -58,7 +59,7 @@ export default function GroupDetail() {
         "#d": [parsedId.identifier]
       }], { signal });
 
-      if (events.length === 0) throw new Error("Community not found");
+      if (events.length === 0) throw new Error("Community not found"); // This error message is internal, can stay
       return events[0];
     },
     enabled: !!nostr && !!parsedId,
@@ -96,12 +97,12 @@ export default function GroupDetail() {
   const imageTag = community?.tags.find(tag => tag[0] === "image");
   const moderatorTags = community?.tags.filter(tag => tag[0] === "p" && tag[3] === "moderator") || [];
 
-  const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Community");
+  const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : "/placeholder-community.jpg";
+  const image = imageTag ? imageTag[1] : "/placeholder-community.jpg"; // Placeholder image path, might not need changing
 
   useEffect(() => {
-    if (name && name !== "Unnamed Community") {
+    if (name && name !== "Unnamed Group") { // Adjusted check
       document.title = `+chorus - ${name}`;
     } else {
       document.title = "+chorus"; // Default if name isn't available
@@ -117,7 +118,8 @@ export default function GroupDetail() {
     return (
       <div className="container mx-auto py-4 px-6">
         <Header />
-        <h1 className="text-2xl font-bold mb-4">Loading community...</h1>
+        <Separator className="my-4" />
+        <h1 className="text-2xl font-bold mb-4">Loading group...</h1>
       </div>
     );
   }
@@ -125,10 +127,10 @@ export default function GroupDetail() {
   if (!community) {
     return (
       <div className="container mx-auto py-4 px-6">
-        <h1 className="text-2xl font-bold mb-4">Community not found</h1>
-        <p>The community you're looking for doesn't exist or has been deleted.</p>
+        <h1 className="text-2xl font-bold mb-4">Group not found</h1>
+        <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-4">
-          <Link to="/groups">Back to Communities</Link>
+          <Link to="/groups">Back to Groups</Link>
         </Button>
       </div>
     );
@@ -137,6 +139,7 @@ export default function GroupDetail() {
   return (
     <div className="container mx-auto py-4 px-6">
       <Header />
+      <Separator className="my-4" />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div className="md:col-span-2">
@@ -146,7 +149,7 @@ export default function GroupDetail() {
               alt={name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.src = "https://placehold.co/1200x400?text=Community";
+                e.currentTarget.src = "https://placehold.co/1200x400?text=Group";
               }}
             />
             
@@ -160,7 +163,7 @@ export default function GroupDetail() {
                       size="icon" 
                       className="absolute top-3 right-3 h-9 w-9 rounded-full bg-background/80 shadow-md"
                       onClick={() => {
-                        const communityId = `34550:${parsedId?.pubkey}:${parsedId?.identifier}`;
+                        const communityId = `34550:${parsedId?.pubkey}:${parsedId?.identifier}`; // Keep communityId for protocol consistency
                         if (isGroupPinned(communityId)) {
                           unpinGroup(communityId);
                         } else {
@@ -203,15 +206,15 @@ export default function GroupDetail() {
                 </CardTitle>
                 <CardDescription>
                   {isOwner
-                    ? "You are the owner of this community"
-                    : "You are a moderator of this community"}
+                    ? "You are the owner of this group"
+                    : "You are a moderator of this group"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center py-4">
                 <Button asChild variant="outline" className="w-full">
                   <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="w-full flex items-center justify-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Manage Community
+                    Manage Group
                   </Link>
                 </Button>
               </CardContent>
@@ -224,7 +227,7 @@ export default function GroupDetail() {
                   Join this group
                 </CardTitle>
                 <CardDescription>
-                  Request to join this community to participate in discussions
+                  Request to join this group to participate in discussions
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center py-4">
@@ -327,7 +330,7 @@ export default function GroupDetail() {
         <TabsContent value="about">
           <Card>
             <CardHeader>
-              <CardTitle>About this Community</CardTitle>
+              <CardTitle>About this Group</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>

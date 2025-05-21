@@ -49,7 +49,7 @@ export function PendingPostsList({ communityId }: PendingPostsListProps) {
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>No pending posts</AlertTitle>
           <AlertDescription>
-            All posts have been reviewed. There are currently no posts waiting for approval in this community.
+            All posts have been reviewed. There are currently no posts waiting for approval in this group.
           </AlertDescription>
         </Alert>
       ) : (
@@ -59,7 +59,7 @@ export function PendingPostsList({ communityId }: PendingPostsListProps) {
             <AlertTitle>Pending Approval</AlertTitle>
             <AlertDescription>
               These posts are from users who are not approved members, moderators, or the group owner.
-              They need your approval before they will be visible to all community members.
+              They need your approval before they will be visible to all group members.
             </AlertDescription>
           </Alert>
           

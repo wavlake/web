@@ -46,7 +46,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         >
           <a href="/create-group">
             <Plus className='w-4 h-4 font-bold' />
-            <span>Create Community</span>
+            <span>Create Group</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

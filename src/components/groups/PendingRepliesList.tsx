@@ -44,7 +44,7 @@ export function PendingRepliesList({ communityId }: PendingRepliesListProps) {
         <CheckCircle className="h-4 w-4" />
         <AlertTitle>No pending replies</AlertTitle>
         <AlertDescription>
-          All replies have been reviewed. There are currently no replies waiting for approval in this community.
+          All replies have been reviewed. There are currently no replies waiting for approval in this group.
         </AlertDescription>
       </Alert>
     );
@@ -64,7 +64,7 @@ export function PendingRepliesList({ communityId }: PendingRepliesListProps) {
         <AlertTitle>Pending Reply Approval</AlertTitle>
         <AlertDescription>
           These replies are from users who are not approved members, moderators, or the group owner. 
-          They need your approval before they will be visible to all community members.
+          They need your approval before they will be visible to all group members.
         </AlertDescription>
       </Alert>
       
