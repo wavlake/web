@@ -91,7 +91,7 @@ export default function Notifications() {
               <div className="text-sm text-muted-foreground">
                 {formatDistanceToNow(notification.createdAt * 1000, { addSuffix: true })}
               </div>
-              {linkTo && (
+              {linkTo && notification.groupId && (
                 <Button variant="link" className="p-0 h-auto mt-1" asChild>
                   <Link to={linkTo}>View details</Link>
                 </Button>
