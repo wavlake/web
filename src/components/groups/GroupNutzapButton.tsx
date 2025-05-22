@@ -18,6 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
+import { formatBalance } from "@/lib/cashu";
 
 interface GroupNutzapButtonProps {
   groupId: string;
@@ -40,11 +43,23 @@ export function GroupNutzapButton({
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [comment, setComment] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
 
   const handleOpenDialog = () => {
     if (!user) {
@@ -70,7 +85,7 @@ export function GroupNutzapButton({
       return;
     }
 
-    if (!amount || isNaN(parseInt(amount))) {
+    if (!amount || isNaN(parseFloat(amount))) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -81,8 +96,25 @@ export function GroupNutzapButton({
       // Fetch recipient's nutzap info (group owner)
       const recipientInfo = await fetchNutzapInfo(ownerPubkey);
 
-      // Generate token with the specified amount and get proofs for the nutzap
-      const amountValue = parseInt(amount);
+      // Convert amount based on currency preference
+      let amountValue: number;
+      
+      if (showSats) {
+        amountValue = parseInt(amount);
+      } else {
+        // Convert USD to sats
+        if (!btcPrice) {
+          toast.error("Bitcoin price not available");
+          return;
+        }
+        const usdAmount = parseFloat(amount);
+        amountValue = Math.round(usdAmount / btcPrice.USD * 100000000); // Convert USD to sats
+      }
+
+      if (amountValue < 1) {
+        toast.error("Amount must be at least 1 sat");
+        return;
+      }
 
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
@@ -102,7 +134,7 @@ export function GroupNutzapButton({
         tags: [["a", groupId]] // Add the group identifier as an a-tag
       });
 
-      toast.success(`Successfully sent ${amountValue} sats to group owner`);
+      toast.success(`Successfully sent ${formatAmount(amountValue)} to group owner`);
       setAmount("");
       setComment("");
       setIsDialogOpen(false);
@@ -137,12 +169,12 @@ export function GroupNutzapButton({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
-                Amount (sats)
+                Amount {showSats ? "(sats)" : "(USD)"}
               </Label>
               <Input
                 id="amount"
                 type="number"
-                placeholder="100"
+                placeholder={showSats ? "100" : "0.10"}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="col-span-3"
