@@ -1,6 +1,6 @@
-# Chorus - Grow and give back to the communities that matter to you
+# +Chorus - Grow and give back to the communities that matter to you
 
-Chorus is a decentralized, privacy-conscious, user-moderated groups platform inspired by the early promise of Facebook Groups reimagined on the Nostr protocol. It supports secure, pseudonymous communities where users can create, join, and contribute freely.
++chorus is a decentralized, privacy-conscious, user-moderated groups platform inspired by the early promise of Facebook Groups reimagined on the Nostr protocol. It supports secure, pseudonymous communities where users can create, join, and contribute freely.
 
 ## Key Features
 
