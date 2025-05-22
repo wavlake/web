@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
@@ -36,6 +40,7 @@ export function NutzapButton({
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -82,9 +87,12 @@ export function NutzapButton({
       // Generate token with the specified amount and get proofs for the nutzap
       const amountValue = parseInt(amount);
 
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -94,7 +102,7 @@ export function NutzapButton({
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
         eventId: postId,
         relayHint,
       });
