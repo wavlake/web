@@ -49,6 +49,7 @@ import {
   PendingTransaction,
 } from "@/stores/transactionHistoryStore";
 import { v4 as uuidv4 } from "uuid";
+import { useWalletUiStore } from "@/stores/walletUiStore";
 
 interface TokenEvent {
   id: string;
@@ -62,8 +63,9 @@ export function CashuWalletLightningCard() {
   const { createHistory } = useCashuHistory();
   const cashuStore = useCashuStore();
   const transactionHistoryStore = useTransactionHistoryStore();
+  const walletUiStore = useWalletUiStore();
+  const isExpanded = walletUiStore.expandedCards.lightning;
   const [activeTab, setActiveTab] = useState("receive");
-  const [isExpanded, setIsExpanded] = useState(true);
 
   const [receiveAmount, setReceiveAmount] = useState("");
   const [invoice, setInvoice] = useState("");
@@ -409,7 +411,7 @@ export function CashuWalletLightningCard() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => walletUiStore.toggleCardExpansion("lightning")}
           aria-label={isExpanded ? "Collapse" : "Expand"}
         >
           {isExpanded ? (

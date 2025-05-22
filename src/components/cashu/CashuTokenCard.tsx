@@ -31,6 +31,7 @@ import { useCashuHistory } from "@/hooks/useCashuHistory";
 import { useTransactionHistoryStore } from "@/stores/transactionHistoryStore";
 import { format } from "date-fns";
 import { getEncodedTokenV4 } from "@cashu/cashu-ts";
+import { useWalletUiStore } from "@/stores/walletUiStore";
 
 export function CashuTokenCard() {
   const { user } = useCurrentUser();
@@ -48,6 +49,8 @@ export function CashuTokenCard() {
     isLoading,
     error: hookError,
   } = useCashuToken();
+  const walletUiStore = useWalletUiStore();
+  const isExpanded = walletUiStore.expandedCards.token;
 
   const [activeTab, setActiveTab] = useState("receive");
   const [amount, setAmount] = useState("");
@@ -56,7 +59,6 @@ export function CashuTokenCard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
 
   // Get recent transactions (last 3)
   const recentTransactions = transactionHistoryStore
@@ -158,7 +160,7 @@ export function CashuTokenCard() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => walletUiStore.toggleCardExpansion("token")}
           aria-label={isExpanded ? "Collapse" : "Expand"}
         >
           {isExpanded ? (
@@ -291,51 +293,6 @@ export function CashuTokenCard() {
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
-
-          {/* Recent Transactions section */}
-          {/* {recentTransactions.length > 0 && (
-            <div className="mt-6 pt-4 border-t">
-              <div className="flex items-center mb-3">
-                <Clock className="h-4 w-4 mr-2" />
-                <h3 className="text-sm font-medium">Recent Transactions</h3>
-              </div>
-              <div className="space-y-3">
-                {recentTransactions.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex items-center">
-                      {entry.direction === "in" ? (
-                        <ArrowDownLeft className="h-3 w-3 mr-2 text-green-600" />
-                      ) : (
-                        <ArrowUpRight className="h-3 w-3 mr-2 text-red-600" />
-                      )}
-                      <span>
-                        {entry.direction === "in" ? "Received" : "Sent"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={
-                          entry.direction === "in"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }
-                      >
-                        {entry.direction === "in" ? "+" : "-"}
-                        {entry.amount} sats
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {entry.timestamp &&
-                          format(new Date(entry.timestamp * 1000), "MMM d")}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )} */}
         </CardContent>
       )}
     </Card>

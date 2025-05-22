@@ -41,6 +41,7 @@ import { useNutzapInfo } from "@/hooks/useNutzaps";
 import { useNostr } from "@/hooks/useNostr";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 import { getLastEventTimestamp } from "@/lib/nostrTimestamps";
+import { useWalletUiStore } from "@/stores/walletUiStore";
 
 export function NutzapCard() {
   const { user } = useCurrentUser();
@@ -59,6 +60,8 @@ export function NutzapCard() {
     useRedeemNutzap();
   const nutzapInfoQuery = useNutzapInfo(user?.pubkey);
   const { verifyMintCompatibility } = useVerifyMintCompatibility();
+  const walletUiStore = useWalletUiStore();
+  const isExpanded = walletUiStore.expandedCards.nutzap;
 
   const [activeTab, setActiveTab] = useState("receive");
   const [recipientNpub, setRecipientNpub] = useState("");
@@ -71,7 +74,6 @@ export function NutzapCard() {
   );
   const [copying, setCopying] = useState(false);
   const [receivedNutzaps, setReceivedNutzaps] = useState<ReceivedNutzap[]>([]);
-  const [isExpanded, setIsExpanded] = useState(true);
 
   // Get user's npub
   const userNpub = user ? nip19.npubEncode(user.pubkey) : "";
@@ -365,7 +367,7 @@ export function NutzapCard() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => walletUiStore.toggleCardExpansion("nutzap")}
           aria-label={isExpanded ? "Collapse" : "Expand"}
         >
           {isExpanded ? (
