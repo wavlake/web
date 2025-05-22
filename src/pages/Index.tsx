@@ -10,6 +10,8 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
 import { toast } from "@/hooks/useToast";
 import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { Smartphone } from "lucide-react";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
@@ -99,6 +101,18 @@ const Index = () => {
             <Button variant="link" size="sm" className="text-primary font-medium hover:underline p-0 h-auto" onClick={() => setLoginOpen(true)}>
               Sign in
             </Button>
+          </div>
+          
+          {/* PWA Install Section */}
+          <div className="mt-8 p-4 bg-muted/50 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Smartphone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Get the App</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Install +chorus for the best experience
+            </p>
+            <PWAInstallButton variant="outline" size="sm" className="w-full max-w-[200px]" />
           </div>
         </div>
         <LoginDialog isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={handleLogin} />

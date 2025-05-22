@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap, DollarSign } from "lucide-react";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
@@ -19,6 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
+import { formatBalance } from "@/lib/cashu";
 
 interface GroupNutzapButtonProps {
   groupId: string;
@@ -28,12 +35,12 @@ interface GroupNutzapButtonProps {
   className?: string;
 }
 
-export function GroupNutzapButton({ 
-  groupId, 
-  ownerPubkey, 
-  variant = "default", 
+export function GroupNutzapButton({
+  groupId,
+  ownerPubkey,
+  variant = "default",
   size = "default",
-  className = ""
+  className = "",
 }: GroupNutzapButtonProps) {
   const { user } = useCurrentUser();
   const { wallet } = useCashuWallet();
@@ -41,28 +48,43 @@ export function GroupNutzapButton({
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [comment, setComment] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
+
   const handleOpenDialog = () => {
     if (!user) {
       toast.error("You must be logged in to send eCash");
       return;
     }
-    
+
     if (!wallet) {
       toast.error("You need to set up a Cashu wallet first");
       return;
     }
-    
+
     if (!cashuStore.activeMintUrl) {
-      toast.error("No active mint selected. Please select a mint in your wallet settings.");
+      toast.error(
+        "No active mint selected. Please select a mint in your wallet settings."
+      );
       return;
     }
-    
+
     setIsDialogOpen(true);
   };
 
@@ -71,7 +93,7 @@ export function GroupNutzapButton({
       return;
     }
 
-    if (!amount || isNaN(parseInt(amount))) {
+    if (!amount || isNaN(parseFloat(amount))) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -82,12 +104,32 @@ export function GroupNutzapButton({
       // Fetch recipient's nutzap info (group owner)
       const recipientInfo = await fetchNutzapInfo(ownerPubkey);
 
-      // Generate token with the specified amount and get proofs for the nutzap
-      const amountValue = parseInt(amount);
+      // Convert amount based on currency preference
+      let amountValue: number;
+
+      if (showSats) {
+        amountValue = parseInt(amount);
+      } else {
+        // Convert USD to sats
+        if (!btcPrice) {
+          toast.error("Bitcoin price not available");
+          return;
+        }
+        const usdAmount = parseFloat(amount);
+        amountValue = Math.round((usdAmount / btcPrice.USD) * 100000000); // Convert USD to sats
+      }
+
+      if (amountValue < 1) {
+        toast.error("Amount must be at least 1 sat");
+        return;
+      }
+
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
 
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -97,13 +139,15 @@ export function GroupNutzapButton({
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
         // Instead of eventId, we'll add the a-tag in the tags array
         // We're using the groupId which is in the format "34550:pubkey:identifier"
-        tags: [["a", groupId]] // Add the group identifier as an a-tag
+        tags: [["a", groupId]], // Add the group identifier as an a-tag
       });
 
-      toast.success(`Successfully sent ${amountValue} sats to group owner`);
+      toast.success(
+        `Successfully sent ${formatAmount(amountValue)} to group owner`
+      );
       setAmount("");
       setComment("");
       setIsDialogOpen(false);
@@ -138,12 +182,12 @@ export function GroupNutzapButton({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
-                Amount (sats)
+                Amount {showSats ? "(sats)" : "(USD)"}
               </Label>
               <Input
                 id="amount"
                 type="number"
-                placeholder="100"
+                placeholder={showSats ? "100" : "0.10"}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="col-span-3"
@@ -163,8 +207,8 @@ export function GroupNutzapButton({
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSendNutzap}
               disabled={isProcessing || isSending || isFetching || !amount}
             >

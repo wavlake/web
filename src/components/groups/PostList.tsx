@@ -625,11 +625,11 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`)} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share Post
+                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
                       <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5" /> Report Post
+                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
                       </DropdownMenuItem>
                     )}
                     {isModerator && (
@@ -637,14 +637,14 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                         <DropdownMenuSeparator />
                         {!isApproved && (
                           <DropdownMenuItem onClick={handleApprovePost} className="text-xs">
-                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve Post
+                            <CheckCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Approve Post
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => setIsRemoveDialogOpen(true)} className="text-red-600 text-xs">
-                          <XCircle className="h-3.5 w-3.5 mr-1.5" /> Remove Post
+                          <XCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Remove Post
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsBanDialogOpen(true)} className="text-red-600 text-xs">
-                          <Ban className="h-3.5 w-3.5 mr-1.5" /> Ban User
+                          <Ban className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Ban User
                         </DropdownMenuItem>
                       </>
                     )}
@@ -696,11 +696,11 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`)} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share Post
+                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
                       <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5" /> Report Post
+                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -711,17 +711,17 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
         </div>
       </div>
 
-      {/* Content Section - aligned with author info */}
-      <div className="pt-1 pb-1.5 pl-[2.875rem] pr-3">
-        <div className="whitespace-pre-wrap break-words text-sm mt-1 ml-3">
+      {/* Content Section - takes full width */}
+      <div className="pt-1 pb-1.5 pl-3 pr-3">
+        <div className="whitespace-pre-wrap break-words text-sm mt-1">
           <NoteContent event={post} />
         </div>
       </div>
 
-      {/* Footer Section - aligned with author info and content */}
-      <div className="flex-col pt-1.5 pl-[2.875rem] pr-3">
+      {/* Footer Section - aligned with icons */}
+      <div className="flex-col pt-1.5 pl-3 pr-3">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-12 ml-1.5">
+          <div className="flex items-center gap-12">
             <Button
               variant="ghost"
               size="sm"

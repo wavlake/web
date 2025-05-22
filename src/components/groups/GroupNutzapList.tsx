@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Zap, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 interface GroupNutzapListProps {
   groupId: string;
@@ -16,7 +17,7 @@ interface GroupNutzapListProps {
 export function GroupNutzapList({ groupId }: GroupNutzapListProps) {
   const { data: nutzaps, isLoading, error } = useGroupNutzaps(groupId);
   const { data: btcPrice } = useBitcoinPrice();
-  const [showSats, setShowSats] = useState(false);
+  const { showSats, toggleCurrency } = useCurrencyDisplayStore();
 
   if (isLoading) {
     return (
@@ -59,7 +60,7 @@ export function GroupNutzapList({ groupId }: GroupNutzapListProps) {
     <div className="space-y-4">
       <div className="text-right">
         <button
-          onClick={() => setShowSats(!showSats)}
+          onClick={() => toggleCurrency()}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Show in {showSats ? 'USD' : 'sats'}

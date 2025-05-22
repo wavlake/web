@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Zap, DollarSign } from "lucide-react";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
+import { formatBalance } from "@/lib/cashu";
 import { Proof } from "@cashu/cashu-ts";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 // Define Nutzap interface
 interface Nutzap {
@@ -27,6 +30,8 @@ interface NutzapListProps {
 export function NutzapList({ postId }: NutzapListProps) {
   const { nostr } = useNostr();
   const [showAll, setShowAll] = useState(false);
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
 
   // Query for nutzaps for this post
   const { data: nutzaps, isLoading } = useQuery({
@@ -112,6 +117,16 @@ export function NutzapList({ postId }: NutzapListProps) {
   // Calculate total amount
   const totalAmount = nutzaps.reduce((sum, nutzap) => sum + nutzap.amount, 0);
 
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
+
   // Limit to 3 nutzaps unless showAll is true
   const displayNutzaps = showAll ? nutzaps : nutzaps.slice(0, 3);
 
@@ -120,13 +135,13 @@ export function NutzapList({ postId }: NutzapListProps) {
       <div className="flex items-center gap-1 mb-2">
         <DollarSign className="h-3.5 w-3.5 text-amber-500" />
         <span className="text-xs font-medium">
-          {totalAmount} sats in {nutzaps.length} eCash
+          {formatAmount(totalAmount)} in {nutzaps.length} eCash
         </span>
       </div>
 
       <div className="space-y-2">
         {displayNutzaps.map((nutzap) => (
-          <NutzapItem key={nutzap.id} nutzap={nutzap} />
+          <NutzapItem key={nutzap.id} nutzap={nutzap} formatAmount={formatAmount} />
         ))}
       </div>
 
@@ -146,9 +161,10 @@ export function NutzapList({ postId }: NutzapListProps) {
 
 interface NutzapItemProps {
   nutzap: Nutzap;
+  formatAmount: (sats: number) => string;
 }
 
-function NutzapItem({ nutzap }: NutzapItemProps) {
+function NutzapItem({ nutzap, formatAmount }: NutzapItemProps) {
   const author = useAuthor(nutzap.pubkey);
 
   const metadata = author.data?.metadata;
@@ -164,7 +180,7 @@ function NutzapItem({ nutzap }: NutzapItemProps) {
       <div className="flex items-center gap-1">
         <span className="text-xs font-medium">{displayName}</span>
         <span className="text-xs text-muted-foreground">
-          {nutzap.amount} sats
+          {formatAmount(nutzap.amount)}
         </span>
         {nutzap.content && (
           <span className="text-xs text-muted-foreground">

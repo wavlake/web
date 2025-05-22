@@ -3,27 +3,28 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
+import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
+import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useAuthor } from "@/hooks/useAuthor";
+
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
-import { MemberManagement } from "@/components/groups/MemberManagement";
-import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
+import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { GroupNutzapButton } from "@/components/groups/GroupNutzapButton";
 import { GroupNutzapTotal } from "@/components/groups/GroupNutzapTotal";
 import { GroupNutzapList } from "@/components/groups/GroupNutzapList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff, Flag, Zap, DollarSign } from "lucide-react";
+import { Users, Settings, MessageSquare, CheckCircle, DollarSign } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
-import { usePinnedGroups } from "@/hooks/usePinnedGroups";
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function GroupDetail() {
@@ -35,11 +36,10 @@ export default function GroupDetail() {
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
   const [currentPostCount, setCurrentPostCount] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
-  const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
+
   
   const searchParams = new URLSearchParams(location.search);
   const reportId = searchParams.get('reportId');
-  const membersTab = searchParams.get('membersTab');
   const hash = location.hash.replace('#', '');
 
   useEffect(() => {
@@ -76,6 +76,8 @@ export default function GroupDetail() {
 
   const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
+  const { data: openReportsCount = 0 } = useOpenReportsCount(groupId || '');
+  const { pendingRequestsCount = 0 } = usePendingJoinRequests(groupId || '');
   const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
 
   // Set active tab based on URL hash only
@@ -120,7 +122,7 @@ export default function GroupDetail() {
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
   const imageTag = community?.tags.find(tag => tag[0] === "image");
-  const moderatorTags = community?.tags.filter(tag => tag[0] === "p" && tag[3] === "moderator") || [];
+
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
@@ -193,15 +195,50 @@ export default function GroupDetail() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button asChild variant="outline" size="sm" className="justify-start">
-                      <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm" className="relative justify-start">
+                      <Link 
+                        to={`/group/${encodeURIComponent(groupId || '')}/settings${
+                          openReportsCount > 0 ? '?tab=reports' : 
+                          pendingRequestsCount > 0 ? '?tab=members' : ''
+                        }`} 
+                        className="flex items-center gap-2"
+                      >
                         <Settings className="h-4 w-4" />
                         <span>Manage Group</span>
+                        {openReportsCount > 0 && (
+                          <Badge 
+                            variant="destructive" 
+                            className={`absolute -top-2 h-5 w-5 p-0 flex items-center justify-center text-xs z-10 ${
+                              pendingRequestsCount > 0 ? 'right-0' : '-right-2'
+                            }`}
+                          >
+                            {openReportsCount > 99 ? '99+' : openReportsCount}
+                          </Badge>
+                        )}
+                        {pendingRequestsCount > 0 && (
+                          <Badge 
+                            className={`absolute -top-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600 ${
+                              openReportsCount > 0 ? 'right-3' : '-right-2'
+                            }`}
+                          >
+                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                          </Badge>
+                        )}
                       </Link>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     {isOwner ? "Owner settings" : "Moderator settings"}
+                    {openReportsCount > 0 && (
+                      <div className="text-red-400 text-xs mt-1">
+                        {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''} - Click to review
+                      </div>
+                    )}
+                    {pendingRequestsCount > 0 && (
+                      <div className="text-blue-400 text-xs mt-1">
+                        {pendingRequestsCount} pending join request{pendingRequestsCount !== 1 ? 's' : ''} - Click to review
+                      </div>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -294,34 +331,7 @@ export default function GroupDetail() {
 
         <TabsContent value="members" className="space-y-4">
           <div className="max-w-3xl mx-auto">
-            {isModerator && (
-              <div className="mb-6">
-                <MemberManagement communityId={groupId || ''} isModerator={isModerator} />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    Group Owner & Moderators
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {community && <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />}
-                    {moderatorTags
-                      .filter(tag => tag[1] !== community?.pubkey)
-                      .map((tag) => (
-                        <ModeratorItem key={tag[1]} pubkey={tag[1]} />
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <ApprovedMembersList communityId={groupId || ''} />
-            </div>
+            <SimpleMembersList communityId={groupId || ''} />
           </div>
         </TabsContent>
       </Tabs>
@@ -329,33 +339,3 @@ export default function GroupDetail() {
   );
 }
 
-function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreator?: boolean }) {
-  const author = useAuthor(pubkey);
-  const metadata = author.data?.metadata;
-
-  const displayName = metadata?.name || pubkey.slice(0, 8);
-  const profileImage = metadata?.picture;
-
-  return (
-    <Link to={`/profile/${pubkey}`} className="block hover:bg-muted rounded-md transition-colors">
-      <div className="flex items-center space-x-3 p-2">
-        <Avatar className="rounded-md">
-          <AvatarImage src={profileImage} />
-          <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{displayName}</p>
-          {isCreator ? (
-            <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2 py-0.5">
-              Group Owner
-            </span>
-          ) : (
-            <span className="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5">
-              Moderator
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -19,15 +20,38 @@ import { parseNostrAddress } from "@/lib/nostr-utils";
 import type { NostrEvent } from "@nostrify/nostrify";
 import Header from "@/components/ui/Header";
 import { ReportsList } from "@/components/groups/ReportsList";
+import { MemberManagement } from "@/components/groups/MemberManagement";
 
 
 export default function GroupSettings() {
   const { groupId } = useParams<{ groupId: string }>();
+  const location = useLocation();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const navigate = useNavigate();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  
+  // Get the tab parameter from URL
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabParam === 'reports' ? 'reports' : 
+    tabParam === 'members' ? 'members' : 
+    'general'
+  );
+  
+  // Update active tab when URL parameters change
+  useEffect(() => {
+    const newTabParam = new URLSearchParams(location.search).get('tab');
+    if (newTabParam === 'reports') {
+      setActiveTab('reports');
+    } else if (newTabParam === 'members') {
+      setActiveTab('members');
+    } else if (!newTabParam) {
+      setActiveTab('general');
+    }
+  }, [location.search]);
 
   // Form state
   const [name, setName] = useState("");
@@ -384,19 +408,38 @@ export default function GroupSettings() {
         </Button>
       </div>
 
-      <Tabs defaultValue="general" className="w-full space-y-6">
-        <TabsList className={isOwner || isModerator ? "grid w-full grid-cols-2" : "grid w-full grid-cols-1"}>
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            General
-          </TabsTrigger>
-          {(isOwner || isModerator) && (
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <FileWarning className="h-4 w-4" />
-              Reports
-            </TabsTrigger>
-          )}
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <div className="w-full max-w-xs">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a section" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  General
+                </div>
+              </SelectItem>
+              {(isOwner || isModerator) && (
+                <SelectItem value="members">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Members
+                  </div>
+                </SelectItem>
+              )}
+              {(isOwner || isModerator) && (
+                <SelectItem value="reports">
+                  <div className="flex items-center gap-2">
+                    <FileWarning className="h-4 w-4" />
+                    Reports
+                  </div>
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
         <TabsContent value="general" className="space-y-6 mt-3">
           <form onSubmit={handleSubmit} className="w-full space-y-8">
@@ -568,6 +611,12 @@ export default function GroupSettings() {
             )}
           </form>
         </TabsContent>
+
+        {(isOwner || isModerator) && (
+          <TabsContent value="members" className="mt-3">
+            <MemberManagement communityId={groupId || ""} isModerator={isModerator} />
+          </TabsContent>
+        )}
 
         {(isOwner || isModerator) && (
           <TabsContent value="reports" className="mt-3">
