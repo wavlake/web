@@ -1,5 +1,4 @@
 import { EditProfileForm } from "@/components/EditProfileForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/ui/Header";
 import { Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -15,15 +14,9 @@ export default function ProfileSettings() {
   return (
     <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
-      <div className="space-y-6 my-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EditProfileForm />
-          </CardContent>
-        </Card>
+      <div className="my-6">
+        <h1 className="text-2xl font-bold mb-6">Edit Profile</h1>
+        <EditProfileForm />
       </div>
     </div>
   );

@@ -16,12 +16,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload } from 'lucide-react';
 import { NSchema as n, type NostrMetadata } from '@nostrify/nostrify';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface EditProfileFormProps {
   showSkipLink?: boolean;
@@ -54,6 +54,8 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
     defaultValues: {
       name: '',
       picture: '',
+      about: '',
+      website: '',
     },
   });
 
@@ -63,6 +65,8 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
       form.reset({
         name: metadata.name || '',
         picture: metadata.picture || '',
+        about: metadata.about || '',
+        website: metadata.website || '',
       });
     }
   }, [metadata, form]);
@@ -178,134 +182,139 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your name" {...field} />
-              </FormControl>
-              <FormDescription>
-                This is the name that will be displayed to others.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="picture"
-          render={({ field }) => (
-            <ImageUploadField
-              field={field}
-              label="Profile Picture"
-              description="Upload an image for your profile picture."
-              previewType="square"
-              onUpload={(file) => uploadPicture(file, 'picture')}
-            />
-          )}
-        />
-
-
-
-        <div className="flex flex-col gap-2">
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full max-w-[200px] flex items-center justify-center gap-2 mx-auto"
-            disabled={isPending || isUploading}
-          >
-            {(isPending || isUploading) && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Save
-          </Button>
-
-          {showSkipLink && (
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                className="text-muted-foreground"
-                onClick={() => navigate('/groups')}
-              >
-                Skip for now
-              </Button>
-            </div>
-          )}
-        </div>
-      </form>
-    </Form>
-  );
-};
-
-// Reusable component for image upload fields
-interface ImageUploadFieldProps {
-  field: {
-    value: string | undefined;
-    onChange: (value: string) => void;
-    name: string;
-    onBlur: () => void;
-  };
-  label: string;
-  description: string;
-  previewType: 'square' | 'wide';
-  onUpload: (file: File) => void;
-}
-
-const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
-  field,
-  label,
-  description,
-  previewType,
-  onUpload,
-}) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <div className="flex items-center gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              onUpload(file);
-            }
-          }}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Image
-        </Button>
-        {field.value && (
-          <div className={`h-10 ${previewType === 'square' ? 'w-10' : 'w-24'} rounded overflow-hidden`}>
-            <img
-              src={field.value}
-              alt={`${label} preview`}
-              className="h-full w-full object-cover"
+    <div className="max-w-2xl mx-auto">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="flex flex-col items-center mb-6">
+            <FormField
+              control={form.control}
+              name="picture"
+              render={({ field }) => (
+                <div className="text-center">
+                  <div className="mb-4 relative mx-auto">
+                    <Avatar className="h-24 w-24 rounded-full mx-auto">
+                      <AvatarImage src={field.value} />
+                      <AvatarFallback className="text-xl">
+                        {form.getValues().name?.slice(0, 2).toUpperCase() || 'UP'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-0 right-0">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8 rounded-full shadow"
+                        onClick={() => document.getElementById('picture-upload')?.click()}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      <input
+                        id="picture-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadPicture(file, 'picture');
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <FormDescription className="text-center text-sm">
+                    Upload a profile picture
+                  </FormDescription>
+                  <FormMessage />
+                </div>
+              )}
             />
           </div>
-        )}
-      </div>
-      <FormDescription>
-        {description}
-      </FormDescription>
-      <FormMessage />
-    </FormItem>
+
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your name" {...field} className="bg-background" />
+                  </FormControl>
+                  <FormDescription>
+                    This is the name that will be displayed to others.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="about"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>About</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Tell others about yourself" 
+                      {...field} 
+                      className="bg-background resize-none min-h-[100px]" 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    A short bio that describes who you are.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://yourwebsite.com" {...field} className="bg-background" />
+                  </FormControl>
+                  <FormDescription>
+                    Your personal website or social media profile.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2 pt-4">
+            <Button
+              type="submit"
+              className="w-full max-w-[200px] flex items-center justify-center gap-2 mx-auto"
+              disabled={isPending || isUploading}
+            >
+              {(isPending || isUploading) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Profile
+            </Button>
+
+            {showSkipLink && (
+              <div className="text-center mt-2">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-muted-foreground"
+                  onClick={() => navigate('/groups')}
+                >
+                  Skip for now
+                </Button>
+              </div>
+            )}
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 };
