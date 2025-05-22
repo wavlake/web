@@ -235,18 +235,15 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     }
 
     try {
-      // First remove the user from approved members if they are in that list
-      if (uniqueApprovedMembers.includes(pubkey)) {
-        await handleRemoveMember(pubkey);
-      }
-      
-      // Then ban the user
+      // Ban the user - this will automatically remove them from the approved list
+      // thanks to our enhanced useBannedUsers hook
       await banUser(pubkey);
-      
-      toast.success("User banned successfully!");
       
       // Switch to banned tab
       setActiveTab("banned");
+      
+      // Refetch members list to ensure UI is updated
+      refetchMembers();
     } catch (error) {
       console.error("Error banning user:", error);
       toast.error("Failed to ban user. Please try again.");
