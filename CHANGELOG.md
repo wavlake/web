@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed NIP-07 browser extension login recognition issue by adding fallback mechanism in useCurrentUser hook
-- **Fixed Cashu wallet authentication for NIP-07 users** - Enhanced useCurrentUser hook with asynchronous window.nostr detection to properly authenticate browser extension users in wallet functionality
 - Enhanced EditProfileForm to preserve all existing metadata fields when updating profile, preventing loss of profile data like about, banner, nip05, lud16, website, etc. when using the minimal edit interface
 - Fixed DOM nesting validation warnings in MyGroupCard component by replacing div elements with span elements inside CardDescription
 - Various notification wording improvements and fixes

@@ -39,7 +39,7 @@ export function useCashuWallet() {
 
       try {
         // Decrypt wallet content
-        if (!user.signer || !user.signer.nip44) {
+        if (!user.signer.nip44) {
           throw new Error('NIP-44 encryption not supported by your signer');
         }
 
@@ -97,14 +97,14 @@ export function useCashuWallet() {
         return null;
       }
     },
-    enabled: !!user && !!user.signer && !!user.signer.nip44
+    enabled: !!user
   });
 
   // Create or update wallet
   const createWalletMutation = useMutation({
     mutationFn: async (walletData: CashuWalletStruct) => {
       if (!user) throw new Error('User not logged in');
-      if (!user.signer || !user.signer.nip44) {
+      if (!user.signer.nip44) {
         throw new Error('NIP-44 encryption not supported by your signer');
       }
 
@@ -190,18 +190,9 @@ export function useCashuWallet() {
 
       for (const event of events) {
         try {
-          if (!user.signer || !user.signer.nip44) {
+          if (!user.signer.nip44) {
             throw new Error('NIP-44 encryption not supported by your signer');
           }
-
-          // Check if event.content is valid before attempting decryption
-          if (!event.content || typeof event.content !== 'string') {
-            console.warn('Invalid or empty event content, skipping event:', event.id);
-            continue;
-          }
-
-          // Log the content for debugging (truncated for security)
-          console.log('Attempting to decrypt event:', event.id, 'content length:', event.content.length);
 
           const decrypted = await user.signer.nip44.decrypt(user.pubkey, event.content);
           const tokenData = JSON.parse(decrypted) as CashuToken;
@@ -215,21 +206,19 @@ export function useCashuWallet() {
           cashuStore.addProofs(tokenData.proofs, event.id);
 
         } catch (error) {
-          console.error('Failed to decrypt token data for event:', event.id, error);
-          console.error('Event content preview:', event.content ? event.content.substring(0, 100) + '...' : 'null');
-          // Continue processing other events instead of failing completely
+          console.error('Failed to decrypt token data:', error);
         }
       }
 
       return nip60TokenEvents;
     },
-    enabled: !!user && !!user.signer && !!user.signer.nip44
+    enabled: !!user
   });
 
   const updateProofsMutation = useMutation({
     mutationFn: async ({ mintUrl, proofsToAdd, proofsToRemove }: { mintUrl: string, proofsToAdd: Proof[], proofsToRemove: Proof[] }): Promise<NostrEvent | null> => {
       if (!user) throw new Error('User not logged in');
-      if (!user.signer || !user.signer.nip44) {
+      if (!user.signer.nip44) {
         throw new Error('NIP-44 encryption not supported by your signer');
       }
 
