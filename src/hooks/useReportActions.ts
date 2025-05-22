@@ -42,18 +42,6 @@ export function useReportActions() {
     const { reportId, communityId, pubkey, eventId, action, reason } = options;
 
     try {
-      // Mark the report as handled
-      await publishEvent({
-        kind: 1985, // Using kind 1985 (Label) to mark the report as handled
-        tags: [
-          ["e", reportId],
-          ["a", communityId],
-          ["l", `report-action:${action}`],
-          ["L", "chorus.report.action"]
-        ],
-        content: reason || `Action taken: ${action}`,
-      });
-
       // Take the appropriate action based on moderator decision
       switch (action) {
         case "remove_content":
@@ -138,6 +126,34 @@ export function useReportActions() {
           // No additional action needed
           break;
       }
+
+      // After the action has been successfully taken, submit a Kind 4554 event
+      // to mark the report as handled
+      let actionType = "";
+      switch (action) {
+        case "no_action":
+          actionType = "closed without action";
+          break;
+        case "remove_content":
+          actionType = "content removed";
+          break;
+        case "remove_user":
+          actionType = "user removed";
+          break;
+        case "ban_user":
+          actionType = "user banned";
+          break;
+      }
+
+      await publishEvent({
+        kind: 4554, // New event type for report resolution
+        tags: [
+          ["e", reportId], // Reference to the original report event
+          ["a", communityId],
+          ["t", actionType] // Tag indicating what action was taken
+        ],
+        content: reason || `Report resolved: ${actionType}`,
+      });
 
       toast.success("Action taken successfully");
       return true;

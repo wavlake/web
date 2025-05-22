@@ -294,6 +294,13 @@ function ReportItem({ report, onAction }: ReportItemProps) {
         return <Badge variant="outline">Other</Badge>;
     }
   };
+  
+  const getStatusBadge = () => {
+    if (report.isClosed) {
+      return <Badge variant="outline" className="bg-muted text-muted-foreground">Closed</Badge>;
+    }
+    return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Open</Badge>;
+  };
 
   return (
     <Card>
@@ -301,7 +308,7 @@ function ReportItem({ report, onAction }: ReportItemProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            Report {getReportTypeBadge()}
+            Report {getReportTypeBadge()} {getStatusBadge()}
           </CardTitle>
           <span className="text-xs text-muted-foreground">{reportTime}</span>
         </div>
@@ -333,6 +340,18 @@ function ReportItem({ report, onAction }: ReportItemProps) {
           </div>
         )}
         
+        {report.isClosed && (
+          <div className="mb-3 border border-muted p-2 rounded-md bg-muted/20">
+            <p className="text-sm font-medium mb-1 flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-500" /> 
+              Resolution: <span className="font-normal">{report.resolutionAction}</span>
+            </p>
+            {report.resolutionReason && (
+              <p className="text-sm mt-1">{report.resolutionReason}</p>
+            )}
+          </div>
+        )}
+        
         {report.reportedEventId && (
           <>
             {isLoadingPost ? (
@@ -361,44 +380,50 @@ function ReportItem({ report, onAction }: ReportItemProps) {
       </CardContent>
       
       <CardFooter className="pt-2 flex flex-wrap gap-2">
-        <Button 
-          size="sm" 
-          variant="outline" 
-          className="text-green-600" 
-          onClick={() => onAction("no_action")}
-        >
-          <CheckCircle className="h-4 w-4 mr-1" /> No Action
-        </Button>
-        
-        {report.reportedEventId && (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="text-amber-600" 
-            onClick={() => onAction("remove_content")}
-          >
-            <XCircle className="h-4 w-4 mr-1" /> Remove Content
-          </Button>
-        )}
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline">
-              <MoreHorizontal className="h-4 w-4 mr-1" /> More Actions
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onAction("remove_user")}>
-              <UserX className="h-4 w-4 mr-2" /> Remove User
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onAction("ban_user")}
-              className="text-red-600"
+        {!report.isClosed ? (
+          <>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-green-600" 
+              onClick={() => onAction("no_action")}
             >
-              <Ban className="h-4 w-4 mr-2" /> Ban User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <CheckCircle className="h-4 w-4 mr-1" /> No Action
+            </Button>
+            
+            {report.reportedEventId && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-amber-600" 
+                onClick={() => onAction("remove_content")}
+              >
+                <XCircle className="h-4 w-4 mr-1" /> Remove Content
+              </Button>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <MoreHorizontal className="h-4 w-4 mr-1" /> More Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onAction("remove_user")}>
+                  <UserX className="h-4 w-4 mr-2" /> Remove User
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onAction("ban_user")}
+                  className="text-red-600"
+                >
+                  <Ban className="h-4 w-4 mr-2" /> Ban User
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">This report has been resolved.</p>
+        )}
       </CardFooter>
     </Card>
   );
