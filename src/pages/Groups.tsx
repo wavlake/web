@@ -11,6 +11,7 @@ import { GroupCard } from "@/components/groups/GroupCard";
 import { GroupSearch } from "@/components/groups/GroupSearch";
 import { useState } from "react";
 import { useGroupStats } from "@/hooks/useGroupStats";
+import { useUserGroups } from "@/hooks/useUserGroups";
 
 export default function Groups() {
   const { nostr } = useNostr();
@@ -28,11 +29,35 @@ export default function Groups() {
     enabled: !!nostr,
   });
 
+  // Get user's groups
+  const { data: userGroups } = useUserGroups();
+
   // Query for community stats (posts and participants)
   const { data: communityStats, isLoading: isLoadingStats } = useGroupStats(communities);
 
-  // Filter communities based on search query
+  // Helper function to get community ID
+  const getCommunityId = (community) => {
+    const dTag = community.tags.find(tag => tag[0] === "d");
+    return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+  };
+
+  // Create a set of user's group IDs for efficient lookup
+  const userGroupIds = new Set();
+  if (userGroups?.allGroups) {
+    for (const group of userGroups.allGroups) {
+      userGroupIds.add(getCommunityId(group));
+    }
+  }
+
+  // Filter communities based on search query and exclude user's groups
   const filteredCommunities = communities?.filter(community => {
+    // Skip if this community is already in user's groups
+    const communityId = getCommunityId(community);
+    if (userGroupIds.has(communityId)) {
+      return false;
+    }
+
+    // Apply search filter if there's a query
     if (!searchQuery) return true;
 
     const nameTag = community.tags.find(tag => tag[0] === "name");
