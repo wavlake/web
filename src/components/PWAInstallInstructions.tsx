@@ -123,7 +123,7 @@ export function PWAInstallInstructions({ isOpen, onClose }: PWAInstallInstructio
                   <div className="w-6 h-6 rounded-full bg-green-500 text-white text-sm flex items-center justify-center font-medium">1</div>
                   <div>
                     <p className="font-medium">Open the menu</p>
-                    <p className="text-sm text-muted-foreground">Tap the three dots (⋮) in the top-right corner</p>
+                    <p className="text-sm text-muted-foreground">Tap the three dots (⋮) in the corner</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
