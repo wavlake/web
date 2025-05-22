@@ -260,12 +260,12 @@ function PostCard({ post, profileImage, displayName, displayNameFull }: {
             </div>
             
             {extractGroupInfo(post) && (
-              <div className="mt-4">
+              <div className="mt-2">
                 <PostGroupLink post={post} />
               </div>
             )}
             
-            <div className="mt-4 pt-3 border-t flex items-center justify-between text-muted-foreground">
+            <div className="mt-2 pt-3 border-t flex items-center justify-between text-muted-foreground">
               <div className="flex items-center gap-5">
                 <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground">
                   <MessageCircle className="h-4 w-4" />
@@ -485,7 +485,7 @@ export default function Profile() {
 
   if (author.isLoading) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
           {/* Banner skeleton */}
@@ -506,7 +506,7 @@ export default function Profile() {
                 </div>
               </div>
               
-              <div className="mt-6 space-y-2">
+              <div className="mt-3 space-y-2">
                 <Skeleton className="h-4 w-full max-w-2xl" />
                 <Skeleton className="h-4 w-5/6 max-w-2xl" />
                 <Skeleton className="h-4 w-4/6 max-w-xl" />
@@ -570,11 +570,11 @@ export default function Profile() {
   }
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
       
       {/* Profile Banner */}
-      <div className="w-full h-48 md:h-64 rounded-xl bg-muted/50 overflow-hidden mt-6 mb-8">
+      <div className="w-full h-48 md:h-64 rounded-xl bg-muted/50 overflow-hidden mt-3 mb-8">
         {banner ? (
           <img 
             src={banner} 
@@ -675,7 +675,7 @@ export default function Profile() {
           
           {/* About section */}
           {about && (
-            <div className="mt-6 text-base whitespace-pre-wrap max-w-3xl">
+            <div className="mt-3 text-base whitespace-pre-wrap max-w-3xl">
               {about}
             </div>
           )}
@@ -688,13 +688,13 @@ export default function Profile() {
           <TabsList className="mb-8 border-b rounded-none w-full justify-start h-auto p-0 bg-transparent">
             <TabsTrigger 
               value="posts"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 text-base"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-1 px-4 text-base"
             >
               Posts
             </TabsTrigger>
             <TabsTrigger 
               value="groups"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 text-base"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-1 px-4 text-base"
             >
               Groups
             </TabsTrigger>

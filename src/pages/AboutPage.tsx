@@ -29,10 +29,10 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
       
-      <div className="max-w-3xl mx-auto mt-6 space-y-6">
+      <div className="max-w-3xl mx-auto mt-3 space-y-6">
         {/* PWA Status Card */}
         <Card className="border-primary/20">
           <CardHeader>

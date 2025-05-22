@@ -26,7 +26,7 @@ export default function FaqPage() {
     <div className="container mx-auto py-4 px-6">
       <Header />
       
-      <div className="max-w-3xl mx-auto mt-6">
+      <div className="max-w-3xl mx-auto mt-3">
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-3xl font-bold">FAQ</CardTitle>

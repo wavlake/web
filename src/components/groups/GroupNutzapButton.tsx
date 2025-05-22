@@ -11,6 +11,7 @@ import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
 import { Proof } from "@cashu/cashu-ts";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -163,7 +164,7 @@ export function GroupNutzapButton({
       <Button
         variant={variant}
         size={size}
-        className={`flex items-center ${className}`}
+        className={cn("justify-start", className)}
         onClick={handleOpenDialog}
       >
         <DollarSign className="h-4 w-4 mr-2" />
