@@ -172,7 +172,7 @@ export function ReportsList({ communityId }: ReportsListProps) {
                 ) : approvedMembers?.includes(selectedReport.reportedPubkey) ? (
                   <p className="mt-1">User is currently in the approved members list.</p>
                 ) : (
-                  <p className="mt-1 text-amber-600">Note: This user is not currently in the approved members list.</p>
+                  <p className="mt-1 text-amber-600 font-medium">Warning: This user is not currently in the approved members list. No action will be taken.</p>
                 )}
                 <p className="mt-1">User ID: <code className="bg-muted px-1 py-0.5 rounded">{selectedReport.reportedPubkey.slice(0, 8)}...{selectedReport.reportedPubkey.slice(-4)}</code></p>
               </div>

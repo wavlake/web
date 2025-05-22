@@ -119,7 +119,7 @@ export function useReportActions() {
           
           if (result.success) {
             if (result.message === "User is not in the approved members list") {
-              toast.info("User was already not in the approved members list");
+              toast.warning("User was not found in the approved members list");
             } else {
               toast.success("User removed from approved members list");
             }

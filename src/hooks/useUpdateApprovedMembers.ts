@@ -62,6 +62,7 @@ export function useUpdateApprovedMembers() {
       
       // Check if the user is in the approved list
       if (!currentApprovedMembers.includes(pubkey)) {
+        // Return success but with a message indicating the user wasn't found
         return { 
           success: true, 
           message: "User is not in the approved members list" 
