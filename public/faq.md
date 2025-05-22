@@ -66,7 +66,7 @@ You can request that relays delete your content. However, because the protocol i
 
 ## What are zaps and how do they work?
 
-+chorus supports zaps — small, instant Bitcoin payments that let you reward creators, support groups, or crowdfund ideas. These payments are powered by the [Cashu](https://cashu.space/) protocol, which adds an extra layer of privacy by allowing value to move without revealing your identity or wallet.
++chorus supports zaps — small, instant eCash payments that let you reward creators, support groups, or crowdfund ideas. These payments are powered by the [Cashu](https://cashu.space/) protocol, which adds an extra layer of privacy by allowing value to move without revealing your identity or wallet.
 
 In short, +chorus makes it easy to support the people and projects you care about — right from the conversation.
 
@@ -89,7 +89,7 @@ That's totally cool. +chorus is designed for people who have never used Nostr be
 - Implements [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) for encrypted payloads
 
 **Cashu Integration**
-- Built-in Cashu wallet for instant Bitcoin payments
+- Built-in Cashu wallet for instant eCash payments
 - Support for multiple Cashu mints
 - Private, non-custodial transactions
 - Encrypted transaction history
