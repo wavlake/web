@@ -63,7 +63,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
 
   return useMutation({
     mutationFn: async (t: EventTemplate) => {
-      if (user) {
+      if (user && user.signer) {
         const tags = t.tags ?? [];
 
         // Add the client tag if it doesn't exist

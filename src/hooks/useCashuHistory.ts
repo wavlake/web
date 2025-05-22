@@ -162,7 +162,7 @@ export function useCashuHistory() {
       // Sort by timestamp (newest first)
       return history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     },
-    enabled: !!user && !!user.signer.nip44
+    enabled: !!user && !!user.signer && !!user.signer.nip44
   });
 
   return {

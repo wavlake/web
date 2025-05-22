@@ -26,7 +26,7 @@ export function useNutzapRedemption() {
       createdTokenEventId: string;
     }) => {
       if (!user) throw new Error('User not logged in');
-      if (!user.signer.nip44) {
+      if (!user.signer || !user.signer.nip44) {
         throw new Error('NIP-44 encryption not supported by your signer');
       }
 
