@@ -175,7 +175,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             queryClient.invalidateQueries({ queryKey: ["user-groups", event.pubkey] });
             break;
             
-          case 7: // Reactions
+          case 7: {
             // Find the event being reacted to
             const reactedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
             if (reactedEventId) {
@@ -183,6 +183,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
               queryClient.invalidateQueries({ queryKey: ["likes", reactedEventId] });
             }
             break;
+          }
             
           case 11: // Post
             if (communityId) {
@@ -193,7 +194,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             queryClient.invalidateQueries({ queryKey: ["user-posts", event.pubkey] });
             break;
             
-          case 1111: // Reply
+          case 1111: {
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
@@ -207,17 +208,19 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
               queryClient.invalidateQueries({ queryKey: ["nested-replies", parentPostId] });
             }
             break;
+          }
             
           case 4552: // Request to join group
-          case 4553: // Request to leave group
+          case 4553: {
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["join-requests", communityId] });
               queryClient.invalidateQueries({ queryKey: ["join-request", communityId] });
               queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
             }
             break;
-            
-          case CASHU_EVENT_KINDS.ZAP: // Nutzap event (9321)
+          }
+          
+          case CASHU_EVENT_KINDS.ZAP: {
             // Find the event being zapped
             const zappedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
             if (zappedEventId) {
@@ -230,6 +233,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
               queryClient.invalidateQueries({ queryKey: ["nutzap", "received", recipientPubkey] });
             }
             break;
+          }
         }
       }
     },
