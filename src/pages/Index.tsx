@@ -108,25 +108,32 @@ const Index = () => {
   if (!currentUser) {
     return (
       <>
-        <div className="min-h-screen flex flex-col items-center justify-start pt-[20vh] bg-background dark:bg-dark-background p-8">
-          <div className="w-full max-w-md mx-auto px-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg text-center">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
+          <div className="w-full max-w-md mx-auto px-8 text-center mb-8">
             <h1 className="text-4xl font-extralight mb-4">
-              <div className="text-4xl">welcome to</div>
-              <div className="flex flex-row gap-0 items-baseline justify-center">
-                <span className="text-red-500 font-extrabold text-4xl">+</span>
-                <span className="text-black dark:text-white font-extrabold text-4xl">chorus</span>
+              <div className="flex flex-row items-baseline justify-center">
+                <span className="font-extralight mr-2">welcome to</span>
+                <div className="flex flex-row items-baseline">
+                  <span className="text-red-500 font-extrabold">+</span>
+                  <span className="text-black dark:text-white font-extrabold">chorus</span>
+                </div>
               </div>
             </h1>
+            <div className="text-lg text-muted-foreground font-extralight">
+              public/private groups are money
+            </div>
           </div>
-          <div className="text-lg text-muted-foreground mb-8 font-extralight">
-            public/private groups are money
-          </div>
-          <Button size="lg" className="w-full mb-4 text-lg font-medium dark:bg-blue-600 bg-blue-500 border-2 dark:border-blue-500 border-blue-400 text-white" onClick={handleCreateAccount} disabled={creating}>
-            {creating ? "Creating..." : "Start"}
+          <Button
+            variant="outline"
+            onClick={handleCreateAccount}
+            disabled={creating}
+            className="w-full max-w-[200px] flex items-center justify-center gap-2 mb-6"
+          >
+            {creating ? "Creating..." : "Get Started"}
           </Button>
-          <div className="text-sm text-muted-foreground flex flex-col gap-0 mt-6">
-            Have a Nostr/+chorus account?{' '}
-            <Button variant="link" size="lg" className="text-primary font-medium hover:underline" onClick={() => setLoginOpen(true)}>
+          <div className="text-sm text-muted-foreground flex items-center justify-center mt-6">
+            <span>Have a Nostr/+chorus account?</span>&nbsp;
+            <Button variant="link" size="sm" className="text-primary font-medium hover:underline p-0 h-auto" onClick={() => setLoginOpen(true)}>
               Sign in
             </Button>
           </div>
