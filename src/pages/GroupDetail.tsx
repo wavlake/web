@@ -20,7 +20,10 @@ import { ReportsList } from "@/components/groups/ReportsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff, Flag } from "lucide-react";
+import { GroupNutzapButton } from "@/components/groups/GroupNutzapButton";
+import { GroupNutzapTotal } from "@/components/groups/GroupNutzapTotal";
+import { GroupNutzapList } from "@/components/groups/GroupNutzapList";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff, Flag, Zap } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
@@ -189,7 +192,20 @@ export default function GroupDetail() {
               </TooltipProvider>
             )}
           </div>
-          <p className="text-lg mb-3">{description}</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-lg">{description}</p>
+            <div className="flex items-center gap-3">
+              <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+              {user && community && (
+                <GroupNutzapButton 
+                  groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} 
+                  ownerPubkey={community.pubkey}
+                  variant="outline"
+                  size="sm"
+                />
+              )}
+            </div>
+          </div>
         </div>
 
         <div>
@@ -261,6 +277,10 @@ export default function GroupDetail() {
               Reports
             </TabsTrigger>
           )}
+          <TabsTrigger value="nutzaps">
+            <Zap className="h-4 w-4 mr-2" />
+            Nutzaps
+          </TabsTrigger>
           <TabsTrigger value="about">
             <Info className="h-4 w-4 mr-2" />
             About
@@ -334,6 +354,19 @@ export default function GroupDetail() {
             <ReportsList communityId={groupId || ''} />
           </TabsContent>
         )}
+        
+        <TabsContent value="nutzaps" className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Group Nutzaps</h2>
+            {user && community && (
+              <GroupNutzapButton 
+                groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} 
+                ownerPubkey={community.pubkey}
+              />
+            )}
+          </div>
+          <GroupNutzapList groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+        </TabsContent>
         
         <TabsContent value="about">
           <Card>
