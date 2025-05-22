@@ -103,42 +103,42 @@ export function MyGroupCard({ community, role, isPinned, pinGroup, unpinGroup, i
             <Users className="h-4 w-4 mr-1" />
             {moderatorTags.length} moderator{moderatorTags.length !== 1 ? 's' : ''}
           </span>
-          <div className="flex flex-wrap gap-2 mt-1">
+          <span className="flex flex-wrap gap-2 mt-1">
             {isLoadingStats ? (
               <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
                   <MessageSquare className="h-3 w-3 mr-1" />
                   Loading...
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
+                </span>
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs opacity-70">
                   <Activity className="h-3 w-3 mr-1" />
                   Loading...
-                </div>
+                </span>
               </>
             ) : stats ? (
               <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
                   <MessageSquare className="h-3 w-3 mr-1" />
                   {stats.posts} post{stats.posts !== 1 ? 's' : ''}
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                </span>
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
                   <Activity className="h-3 w-3 mr-1" />
                   {stats.participants.size} participant{stats.participants.size !== 1 ? 's' : ''}
-                </div>
+                </span>
               </>
             ) : (
               <>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
                   <MessageSquare className="h-3 w-3 mr-1" />
                   0 posts
-                </div>
-                <div className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
+                </span>
+                <span className="inline-flex items-center px-2 py-1 bg-muted rounded-md text-xs">
                   <Activity className="h-3 w-3 mr-1" />
                   0 participants
-                </div>
+                </span>
               </>
             )}
-          </div>
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
