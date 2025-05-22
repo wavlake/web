@@ -54,7 +54,11 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
-  const { mutate: handleCreateWallet, isPending: isCreatingWallet, error: createWalletError } = useCreateCashuWallet();
+  const {
+    mutate: handleCreateWallet,
+    isPending: isCreatingWallet,
+    error: createWalletError,
+  } = useCreateCashuWallet();
 
   // Update error state when createWalletError changes
   useEffect(() => {
@@ -285,9 +289,6 @@ export function CashuWalletCard() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <p className="text-xs text-muted-foreground">NIP-60 Cashu Wallet</p>
-      </CardFooter>
     </Card>
   );
 }
