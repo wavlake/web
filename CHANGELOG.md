@@ -19,7 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed NIP-07 browser extension login recognition issue by adding fallback mechanism in useCurrentUser hook
+- Enhanced EditProfileForm to preserve all existing metadata fields when updating profile, preventing loss of profile data like about, banner, nip05, lud16, website, etc. when using the minimal edit interface
 - Fixed DOM nesting validation warnings in MyGroupCard component by replacing div elements with span elements inside CardDescription
+- Various notification wording improvements and fixes
+- Removed unnecessary "view details" links where not applicable
+- Resolved merge conflicts in LoginArea and Groups components
+- Fixed TypeScript errors in LoginArea component preventing build
+- Restored missing activity indicators that were lost during merge
 
 ### Changed
 - Switched default relay to Chorus for better reliability
@@ -27,13 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved UI consistency for community statistics with proper loading states
 - Enhanced My Groups display with consistent activity metrics across all group views
 - Removed moderator count badge to focus on activity metrics
-
-### Fixed
-- Various notification wording improvements and fixes
-- Removed unnecessary "view details" links where not applicable
-- Resolved merge conflicts in LoginArea and Groups components
-- Fixed TypeScript errors in LoginArea component preventing build
-- Restored missing activity indicators that were lost during merge
 
 ## [0.1.0] - 2025-01-21
 
