@@ -182,7 +182,6 @@ export default function GroupDetail() {
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
               <div className="flex flex-col gap-1">
                 <h1 className="text-2xl font-bold">{name}</h1>
-                <p className="text-base mb-4">{description}</p>
               </div>
               <div className="flex items-center gap-2">
                 {/* Manage Group button moved to the right column */}
@@ -221,6 +220,11 @@ export default function GroupDetail() {
               <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
             </div>
           </div>
+        </div>
+        
+        {/* Group description moved outside the grid to span full width */}
+        <div className="w-full mt-4">
+          <p className="text-base text-muted-foreground">{description}</p>
         </div>
       </div>
 
