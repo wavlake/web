@@ -166,30 +166,30 @@ export default function GroupDetail() {
                 <p className="text-base mb-4">{description}</p>
               </div>
               <div className="flex items-center gap-2">
-                {isModerator && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button asChild variant="outline" size="sm">
-                          <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            Manage Group
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isOwner ? "Owner settings" : "Moderator settings"}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+                {/* Manage Group button moved to the right column */}
               </div>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 min-w-[140px] py-2">
-            {!isModerator && (
+            {!isModerator ? (
               <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Manage Group
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isOwner ? "Owner settings" : "Moderator settings"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {user && community && (
               <GroupNutzapButton
