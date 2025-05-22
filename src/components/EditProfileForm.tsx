@@ -27,10 +27,22 @@ interface EditProfileFormProps {
   showSkipLink?: boolean;
 }
 
+/**
+ * EditProfileForm provides a minimal interface for editing profile name and picture.
+ * 
+ * IMPORTANT: This form preserves ALL existing metadata fields from the user's kind 0 event
+ * when publishing updates. Only the fields shown in the UI (name, picture) can be modified,
+ * but all other fields (about, banner, nip05, lud16, website, etc.) are preserved.
+ * 
+ * This ensures that using this minimal edit interface doesn't accidentally delete
+ * other profile information that may have been set elsewhere.
+ */
 export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Get current user and their complete metadata from relays
+  // This ensures we have all existing profile fields to preserve
   const { user, metadata } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
@@ -102,21 +114,43 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
     }
 
     try {
-      // Combine existing metadata with new values
-      const data = { ...metadata, ...values };
+      // Start with existing metadata to preserve all fields
+      const existingMetadata = metadata || {};
+      
+      // Combine existing metadata with new values, ensuring we preserve all existing fields
+      const data = {
+        ...existingMetadata,
+        ...values
+      };
 
-      // Clean up empty values
-      for (const key in data) {
-        if (data[key] === '') {
+      // Only remove empty values that were explicitly set to empty (not originally empty)
+      for (const key in values) {
+        if (values[key as keyof NostrMetadata] === '') {
           delete data[key];
         }
       }
 
-      // Publish the metadata event (kind 0)
-      await publishEvent({
+      console.log('Publishing profile update:', {
+        original: existingMetadata,
+        updates: values,
+        final: data
+      });
+
+      // Prepare the kind 0 event
+      const eventToPublish = {
         kind: 0,
         content: JSON.stringify(data),
+      };
+
+      console.log('Complete kind 0 event being published:', {
+        event: eventToPublish,
+        parsedContent: data,
+        contentString: JSON.stringify(data),
+        preservedFields: Object.keys(data)
       });
+
+      // Publish the metadata event (kind 0) with all preserved fields
+      await publishEvent(eventToPublish);
 
       // Invalidate queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['logins'] });
@@ -124,8 +158,10 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
 
       toast({
         title: 'Success',
-        description: 'Your profile has been updated',
+        description: 'Your profile has been updated successfully',
       });
+
+      console.log('Profile updated successfully. Preserved fields:', Object.keys(data));
 
       // If this was part of onboarding, navigate to groups page
       if (showSkipLink) {

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed moderator count badge to focus on activity metrics
 
 ### Fixed
+- Enhanced EditProfileForm to preserve all existing metadata fields when updating profile, preventing loss of profile data like about, banner, nip05, lud16, website, etc. when using the minimal edit interface
 - Various notification wording improvements and fixes
 - Removed unnecessary "view details" links where not applicable
 - Resolved merge conflicts in LoginArea and Groups components
