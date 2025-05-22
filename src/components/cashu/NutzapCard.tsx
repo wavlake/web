@@ -43,6 +43,9 @@ import { useNostr } from "@/hooks/useNostr";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 import { getLastEventTimestamp } from "@/lib/nostrTimestamps";
 import { useWalletUiStore } from "@/stores/walletUiStore";
+import { formatBalance } from "@/lib/cashu";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 export function NutzapCard() {
   const { user } = useCurrentUser();
@@ -63,6 +66,8 @@ export function NutzapCard() {
   const { verifyMintCompatibility } = useVerifyMintCompatibility();
   const walletUiStore = useWalletUiStore();
   const isExpanded = walletUiStore.expandedCards.nutzap;
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
 
   const [activeTab, setActiveTab] = useState("receive");
   const [recipientNpub, setRecipientNpub] = useState("");
@@ -78,6 +83,16 @@ export function NutzapCard() {
 
   // Get user's npub
   const userNpub = user ? nip19.npubEncode(user.pubkey) : "";
+
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
 
   // Set up subscription for real-time nutzaps
   useEffect(() => {
@@ -190,19 +205,19 @@ export function NutzapCard() {
 
               // Show success notification for redeemed nutzap
               setSuccess(
-                `New eCash received and redeemed! ${proofs.reduce(
+                `New eCash received and redeemed! ${formatAmount(proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
-                )} sats`
+                ))}`
               );
             } catch (error) {
               console.error("Failed to auto-redeem nutzap:", error);
               // Just show the notification without auto-redemption
               setSuccess(
-                `New eCash received! ${proofs.reduce(
+                `New eCash received! ${formatAmount(proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
-                )} sats`
+                ))}`
               );
             }
 
@@ -253,7 +268,7 @@ export function NutzapCard() {
       return;
     }
 
-    if (!amount || isNaN(parseInt(amount))) {
+    if (!amount || isNaN(parseFloat(amount))) {
       setError("Please enter a valid amount");
       return;
     }
@@ -285,8 +300,25 @@ export function NutzapCard() {
 
       console.log("Recipient info", recipientInfo);
 
-      // Generate token (mint) with the specified amount and get proofs for the nutzap
-      const amountValue = parseInt(amount);
+      // Convert amount based on currency preference
+      let amountValue: number;
+      
+      if (showSats) {
+        amountValue = parseInt(amount);
+      } else {
+        // Convert USD to sats
+        if (!btcPrice) {
+          setError("Bitcoin price not available");
+          return;
+        }
+        const usdAmount = parseFloat(amount);
+        amountValue = Math.round(usdAmount / btcPrice.USD * 100000000); // Convert USD to sats
+      }
+
+      if (amountValue < 1) {
+        setError("Amount must be at least 1 sat");
+        return;
+      }
 
       // Verify mint compatibility and get a compatible mint URL
       const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
@@ -306,7 +338,7 @@ export function NutzapCard() {
         mintUrl: compatibleMintUrl,
       });
 
-      setSuccess(`Successfully sent ${amountValue} sats`);
+      setSuccess(`Successfully sent ${formatAmount(amountValue)}`);
       setAmount("");
       setComment("");
       setRecipientNpub("");
@@ -334,10 +366,10 @@ export function NutzapCard() {
       );
 
       setSuccess(
-        `Successfully redeemed ${nutzap.proofs.reduce(
+        `Successfully redeemed ${formatAmount(nutzap.proofs.reduce(
           (sum, p) => sum + p.amount,
           0
-        )} sats`
+        ))}`
       );
     } catch (error) {
       console.error("Error redeeming nutzap:", error);
@@ -404,11 +436,11 @@ export function NutzapCard() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount (sats)</Label>
+                <Label htmlFor="amount">Amount {showSats ? "(sats)" : "(USD)"}</Label>
                 <Input
                   id="amount"
                   type="number"
-                  placeholder="100"
+                  placeholder={showSats ? "100" : "0.10"}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
@@ -486,11 +518,10 @@ export function NutzapCard() {
                             <div className="mt-1 text-sm">{nutzap.content}</div>
                           )}
                           <div className="mt-1 font-semibold">
-                            {nutzap.proofs.reduce(
+                            {formatAmount(nutzap.proofs.reduce(
                               (sum, p) => sum + p.amount,
                               0
-                            )}{" "}
-                            sats
+                            ))}
                           </div>
                         </div>
                         <div>

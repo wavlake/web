@@ -711,17 +711,17 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
         </div>
       </div>
 
-      {/* Content Section - aligned with author info */}
-      <div className="pt-1 pb-1.5 pl-[2.875rem] pr-3">
-        <div className="whitespace-pre-wrap break-words text-sm mt-1 ml-3">
+      {/* Content Section - takes full width */}
+      <div className="pt-1 pb-1.5 pl-3 pr-3">
+        <div className="whitespace-pre-wrap break-words text-sm mt-1">
           <NoteContent event={post} />
         </div>
       </div>
 
-      {/* Footer Section - aligned with author info and content */}
-      <div className="flex-col pt-1.5 pl-[2.875rem] pr-3">
+      {/* Footer Section - aligned with icons */}
+      <div className="flex-col pt-1.5 pl-3 pr-3">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-12 ml-1.5">
+          <div className="flex items-center gap-12">
             <Button
               variant="ghost"
               size="sm"

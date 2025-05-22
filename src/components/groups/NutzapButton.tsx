@@ -25,6 +25,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
+import { formatBalance } from "@/lib/cashu";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 interface NutzapButtonProps {
   postId: string;
@@ -42,6 +45,8 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
   const { verifyMintCompatibility } = useVerifyMintCompatibility();
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -92,6 +97,16 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
     enabled: !!nostr && !!postId,
   });
 
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
+
   const handleOpenDialog = () => {
     if (!user) {
       toast.error("You must be logged in to send eCash");
@@ -118,7 +133,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
       return;
     }
 
-    if (!amount || isNaN(parseInt(amount))) {
+    if (!amount || isNaN(parseFloat(amount))) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -129,8 +144,25 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
       // Fetch recipient's nutzap info
       const recipientInfo = await fetchNutzapInfo(authorPubkey);
 
-      // Generate token with the specified amount and get proofs for the nutzap
-      const amountValue = parseInt(amount);
+      // Convert amount based on currency preference
+      let amountValue: number;
+      
+      if (showSats) {
+        amountValue = parseInt(amount);
+      } else {
+        // Convert USD to sats
+        if (!btcPrice) {
+          toast.error("Bitcoin price not available");
+          return;
+        }
+        const usdAmount = parseFloat(amount);
+        amountValue = Math.round(usdAmount / btcPrice.USD * 100000000); // Convert USD to sats
+      }
+
+      if (amountValue < 1) {
+        toast.error("Amount must be at least 1 sat");
+        return;
+      }
 
       // Verify mint compatibility and get a compatible mint URL
       const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
@@ -152,7 +184,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
         relayHint,
       });
 
-      toast.success(`Successfully sent ${amountValue} sats`);
+      toast.success(`Successfully sent ${formatAmount(amountValue)}`);
       setAmount("");
       setComment("");
       setIsDialogOpen(false);
@@ -173,7 +205,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
         onClick={handleOpenDialog}
       >
         <DollarSign className={`h-3.5 w-3.5 ${nutzapTotal && nutzapTotal > 0 ? 'text-orange-500' : ''}`} />
-        {nutzapTotal && nutzapTotal > 0 ? <span className="text-xs ml-0.5">{nutzapTotal}</span> : null}
+        {nutzapTotal && nutzapTotal > 0 ? <span className="text-xs ml-0.5">{formatAmount(nutzapTotal)}</span> : null}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -187,12 +219,12 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
-                Amount (sats)
+                Amount {showSats ? "(sats)" : "(USD)"}
               </Label>
               <Input
                 id="amount"
                 type="number"
-                placeholder="100"
+                placeholder={showSats ? "100" : "0.10"}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="col-span-3"

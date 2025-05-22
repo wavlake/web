@@ -4,6 +4,7 @@ import { formatBalance } from "@/lib/cashu";
 import { Zap, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef } from "react";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 interface GroupNutzapTotalProps {
   groupId: string;
@@ -13,7 +14,7 @@ interface GroupNutzapTotalProps {
 export function GroupNutzapTotal({ groupId, className = "" }: GroupNutzapTotalProps) {
   const { total, isLoading: isLoadingTotal } = useGroupNutzapTotal(groupId);
   const { data: btcPrice, isLoading: isLoadingPrice } = useBitcoinPrice();
-  const [showSats, setShowSats] = useState(false);
+  const { showSats, toggleCurrency } = useCurrencyDisplayStore();
   const [isFlashing, setIsFlashing] = useState(false);
   const prevValueRef = useRef<string>("");
 
@@ -39,7 +40,7 @@ export function GroupNutzapTotal({ groupId, className = "" }: GroupNutzapTotalPr
 
   return (
     <button
-      onClick={() => setShowSats(!showSats)}
+      onClick={() => toggleCurrency()}
       className={`flex items-center text-amber-500 hover:text-amber-600 transition-colors cursor-pointer ${className}`}
       title="Click to toggle between USD and sats"
     >
