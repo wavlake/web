@@ -23,8 +23,8 @@ export function useReportActions() {
     ]
   });
   const { user } = useCurrentUser();
-  // We'll initialize the hook with the communityId from the options
-  const { banUser } = useBannedUsers(options.communityId);
+  // We'll initialize the banUser function inside handleReportAction
+  const { banUser } = useBannedUsers();
 
   const handleReportAction = async (options: ReportActionOptions) => {
     if (!user) {
@@ -80,7 +80,7 @@ export function useReportActions() {
           break;
           
         case "ban_user":
-          // Ban the user
+          // Ban the user with the specific communityId
           await banUser(pubkey, communityId);
           break;
           
