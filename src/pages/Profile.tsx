@@ -141,7 +141,7 @@ function UserGroupsList({
                   alt={group.name}
                   className="h-full w-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = "https://placehold.co/100x100?text=Group";
+                    e.currentTarget.src = "/placeholder-community.svg";
                   }}
                 />
               </div>
@@ -419,7 +419,7 @@ export default function Profile() {
 
   if (author.isLoading) {
     return (
-      <div className="container mx-auto py-4 px-6">
+      <div className="container mx-auto py-3 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
           <Card className="mb-8">
@@ -554,12 +554,12 @@ export default function Profile() {
   }
 
   return (
-    <div className="container mx-auto py-4 px-6"> {/* Changed padding */}
+    <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
       <div className="space-y-6 my-6">
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-start gap-6">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24 rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback className="text-xl">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -678,7 +678,7 @@ export default function Profile() {
               {posts.map((post) => (
                 <Card key={post.id}>
                   <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                    <Avatar>
+                    <Avatar className="rounded-md">
                       <AvatarImage src={profileImage} />
                       <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
@@ -746,7 +746,7 @@ export default function Profile() {
               {posts.map((post) => (
                 <Card key={post.id}>
                   <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                    <Avatar>
+                    <Avatar className="rounded-md">
                       <AvatarImage src={profileImage} />
                       <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>

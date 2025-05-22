@@ -27,14 +27,13 @@ This application implements NIP-72 for moderated communities:
 
 - **Kind 34550**: Community definition events
 - **Kind 4550**: Post approval events
-- **Kind 1**: Standard text note events (posts)
+- **Kind 11**: Text note events (posts)
 
 ## Getting Started
 
 1. Clone the repository
-2. Install dependencies: `npm install`
-3. Start the development server: `npm run dev`
-4. Open your browser to the displayed URL (usually http://localhost:5173)
+2. Start the development server: `npm run dev`
+3. Open your browser to the displayed URL (usually http://localhost:5173)
 
 ## Building for Production
 

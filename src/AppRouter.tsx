@@ -10,8 +10,10 @@ import Profile from "./pages/Profile";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import Settings from "./pages/settings/Settings";
 import Notifications from "./pages/settings/Notifications";
-import CashuWallet from "./cashu/pages/CashuWallet";
+import CashuWallet from "./pages/CashuWallet";
 import LinkPreviewTest from "./pages/LinkPreviewTest";
+import AboutPage from "@/pages/AboutPage";
+import FaqPage from "@/pages/FaqPage";
 
 export function AppRouter() {
   return (
@@ -28,6 +30,8 @@ export function AppRouter() {
         <Route path="/settings/notifications" element={<Notifications />} />
         <Route path="/wallet" element={<CashuWallet />} />
         <Route path="/link-preview-test" element={<LinkPreviewTest />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/faq" element={<FaqPage />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

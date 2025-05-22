@@ -1,27 +1,26 @@
 import { LoginArea } from "@/components/auth/LoginArea";
-import { CashuHistoryCard } from "@/cashu/components/CashuHistoryCard";
-import { CashuTokenCard } from "@/cashu/components/CashuTokenCard";
+import { CashuHistoryCard } from "@/components/cashu/CashuHistoryCard";
+import { CashuTokenCard } from "@/components/cashu/CashuTokenCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { CashuWalletLightningCard } from "@/cashu/components/CashuWalletLightningCard";
-import { CashuWalletCard } from "@/cashu/components/CashuWalletCard";
+import { CashuWalletLightningCard } from "@/components/cashu/CashuWalletLightningCard";
+import { CashuWalletCard } from "@/components/cashu/CashuWalletCard";
+import { NutzapCard } from "@/components/cashu/NutzapCard";
+import Header from "@/components/ui/Header";
+import { Separator } from "@/components/ui/separator";
 
 export function CashuWallet() {
   const { user } = useCurrentUser();
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Cashu Wallet</h1>
-          <p className="text-muted-foreground">NIP-60 Cashu ecash wallet</p>
-        </div>
-        <LoginArea />
-      </div>
+    <div className="container mx-auto py-3 px-3 sm:px-4">
+      <Header />
+      <Separator className="my-4" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CashuWalletCard />
+        <NutzapCard />
         <CashuWalletLightningCard />
-        <CashuTokenCard />
+        {/* <CashuTokenCard /> */}
         <CashuHistoryCard />
       </div>
 

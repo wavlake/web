@@ -144,10 +144,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="mb-4 text-sm text-muted-foreground">
-          Make sure you have a name set for your profile.
-        </div>
-
         <FormField
           control={form.control}
           name="name"
@@ -184,13 +180,14 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
         <div className="flex flex-col gap-2">
           <Button
             type="submit"
-            className="w-full font-medium dark:bg-blue-600 bg-blue-500 border-2 dark:border-blue-500 border-blue-400 text-white"
+            variant="outline"
+            className="w-full max-w-[200px] flex items-center justify-center gap-2 mx-auto"
             disabled={isPending || isUploading}
           >
             {(isPending || isUploading) && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Save Profile
+            Save
           </Button>
 
           {showSkipLink && (

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useCashuWallet } from "@/cashu/hooks/useCashuWallet";
+import { useCashuWallet } from "@/hooks/useCashuWallet";
 import {
   AlertCircle,
   ArrowDownLeft,
@@ -22,12 +22,13 @@ import {
   Scan,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useCashuToken } from "@/cashu/hooks/useCashuToken";
+import { useCashuToken } from "@/hooks/useCashuToken";
 import QRCode from "react-qr-code";
 import { useCashuStore } from "@/stores/cashuStore";
-import { useCashuHistory } from "@/cashu/hooks/useCashuHistory";
+import { useCashuHistory } from "@/hooks/useCashuHistory";
 import { useTransactionHistoryStore } from "@/stores/transactionHistoryStore";
 import { format } from "date-fns";
+import { getEncodedTokenV4 } from "@cashu/cashu-ts";
 
 export function CashuTokenCard() {
   const { user } = useCurrentUser();
@@ -78,9 +79,18 @@ export function CashuTokenCard() {
       setGeneratedToken("");
 
       const amountValue = parseInt(amount);
-      const token = await sendToken(cashuStore.activeMintUrl, amountValue);
+      const proofs = await sendToken(cashuStore.activeMintUrl, amountValue);
+      const token = getEncodedTokenV4({
+        mint: cashuStore.activeMintUrl,
+        proofs: proofs.map((p) => ({
+          id: p.id || "",
+          amount: p.amount,
+          secret: p.secret || "",
+          C: p.C || "",
+        })),
+      });
 
-      setGeneratedToken(token);
+      setGeneratedToken(token as string);
       setSuccess(`Token generated for ${amountValue} sats`);
     } catch (error) {
       console.error("Error generating token:", error);
@@ -222,10 +232,11 @@ export function CashuTokenCard() {
 
           <TabsContent value="receive" className="space-y-4 mt-4">
             <div className="space-y-2">
+              <Label htmlFor="token">Token</Label>
               <div className="relative">
                 <Input
                   id="token"
-                  placeholder="Cashu token"
+                  placeholder="cashuB..."
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                 />

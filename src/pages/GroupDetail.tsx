@@ -16,10 +16,11 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
 import { PendingPostsList } from "@/components/groups/PendingPostsList";
+import { ReportsList } from "@/components/groups/ReportsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff, Flag } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
@@ -70,27 +71,22 @@ export default function GroupDetail() {
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .some(tag => tag[1] === user.pubkey));
 
-  console.log("Current user pubkey:", user?.pubkey);
-  console.log("Community creator pubkey:", community?.pubkey);
-  console.log("Is owner:", isOwner);
-  console.log("Is moderator:", isModerator);
-  
   // Query for pending posts count using our custom hook
   const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
-  
+
   // Query for pending replies
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
-  
+
   // Calculate total pending items (posts + replies)
   const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
-  
+
   // Set active tab to "pending" if there are pending posts/replies and user is a moderator
   useEffect(() => {
     // Only change tab if we have pending items and user is a moderator
     if (isModerator && totalPendingCount > 0) {
       setActiveTab("pending");
     }
-  }, [isModerator, totalPendingCount, setActiveTab]);
+  }, [isModerator, totalPendingCount]);
 
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
@@ -99,7 +95,7 @@ export default function GroupDetail() {
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : "/placeholder-community.jpg"; // Placeholder image path, might not need changing
+  const image = imageTag ? imageTag[1] : "/placeholder-community.svg"; // Placeholder image path, might not need changing
 
   useEffect(() => {
     if (name && name !== "Unnamed Group") { // Adjusted check
@@ -116,7 +112,7 @@ export default function GroupDetail() {
 
   if (isLoadingCommunity || !parsedId) {
     return (
-      <div className="container mx-auto py-4 px-6">
+      <div className="container mx-auto py-3 px-3 sm:px-4">
         <Header />
         <Separator className="my-4" />
         <h1 className="text-2xl font-bold mb-4">Loading group...</h1>
@@ -126,7 +122,7 @@ export default function GroupDetail() {
 
   if (!community) {
     return (
-      <div className="container mx-auto py-4 px-6">
+      <div className="container mx-auto py-3 px-3 sm:px-4">
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-4">
@@ -137,10 +133,10 @@ export default function GroupDetail() {
   }
 
   return (
-    <div className="container mx-auto py-4 px-6">
+    <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
       <Separator className="my-4" />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <div className="md:col-span-2">
           <div className="h-48 rounded-lg overflow-hidden mb-4 relative group"> {/* Added relative and group */}
@@ -149,18 +145,18 @@ export default function GroupDetail() {
               alt={name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.src = "https://placehold.co/1200x400?text=Group";
+                e.currentTarget.src = "/placeholder-community.svg";
               }}
             />
-            
+
             {/* Pin/Unpin Button */}
             {user && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
+                    <Button
+                      variant="secondary"
+                      size="icon"
                       className="absolute top-3 right-3 h-9 w-9 rounded-full bg-background/80 shadow-md"
                       onClick={() => {
                         const communityId = `34550:${parsedId?.pubkey}:${parsedId?.identifier}`; // Keep communityId for protocol consistency
@@ -178,15 +174,15 @@ export default function GroupDetail() {
                         <Pin className="h-5 w-5" />
                       )}
                       <span className="sr-only">
-                        {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`) 
-                          ? "Unpin from My Groups" 
+                        {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`)
+                          ? "Unpin from My Groups"
                           : "Pin to My Groups"}
                       </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`) 
-                      ? "Unpin from My Groups" 
+                    {isGroupPinned(`34550:${parsedId?.pubkey}:${parsedId?.identifier}`)
+                      ? "Unpin from My Groups"
                       : "Pin to My Groups"}
                   </TooltipContent>
                 </Tooltip>
@@ -259,6 +255,12 @@ export default function GroupDetail() {
             <Users className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
+          {isModerator && (
+            <TabsTrigger value="reports">
+              <Flag className="h-4 w-4 mr-2" />
+              Reports
+            </TabsTrigger>
+          )}
           <TabsTrigger value="about">
             <Info className="h-4 w-4 mr-2" />
             About
@@ -285,13 +287,13 @@ export default function GroupDetail() {
             </div>
           </div>
 
-          <PostList 
-            communityId={groupId || ''} 
-            showOnlyApproved={showOnlyApproved} 
+          <PostList
+            communityId={groupId || ''}
+            showOnlyApproved={showOnlyApproved}
             onPostCountChange={setCurrentPostCount} // Passed callback
           />
         </TabsContent>
-        
+
         {isModerator && (
           <TabsContent value="pending" className="space-y-6">
             <PendingPostsList communityId={groupId || ''} />
@@ -315,7 +317,7 @@ export default function GroupDetail() {
                 <div className="space-y-4">
                   {community && <ModeratorItem key={community.pubkey} pubkey={community.pubkey} isCreator />}
                   {moderatorTags
-                    .filter(tag => tag[1] !== community?.pubkey) 
+                    .filter(tag => tag[1] !== community?.pubkey)
                     .map((tag) => (
                       <ModeratorItem key={tag[1]} pubkey={tag[1]} />
                     ))}
@@ -327,6 +329,12 @@ export default function GroupDetail() {
           </div>
         </TabsContent>
 
+        {isModerator && (
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsList communityId={groupId || ''} />
+          </TabsContent>
+        )}
+        
         <TabsContent value="about">
           <Card>
             <CardHeader>
@@ -367,7 +375,7 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
   return (
     <Link to={`/profile/${pubkey}`} className="block hover:bg-muted rounded-md transition-colors">
       <div className="flex items-center space-x-3 p-2">
-        <Avatar>
+        <Avatar className="rounded-md">
           <AvatarImage src={profileImage} />
           <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>

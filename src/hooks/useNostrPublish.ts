@@ -1,13 +1,19 @@
 import { useNostr } from "@nostrify/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
 import { getPostExpirationTimestamp } from "../lib/utils";
+import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 
 interface EventTemplate {
   kind: number;
   content?: string;
   tags?: string[][];
   created_at?: number;
+}
+
+interface UseNostrPublishOptions {
+  invalidateQueries?: { queryKey: unknown[] }[];
+  onSuccessCallback?: () => void;
 }
 
 // Group Meta
@@ -50,9 +56,10 @@ const expirationEventKinds = [
   1111, // Comments (replies)
 ];
 
-export function useNostrPublish() {
+export function useNostrPublish(options?: UseNostrPublishOptions) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (t: EventTemplate) => {
@@ -82,6 +89,7 @@ export function useNostrPublish() {
         });
 
         await nostr.event(event, { signal: AbortSignal.timeout(5000) });
+        return event;
       } else {
         throw new Error("User is not logged in");
       }
@@ -89,8 +97,145 @@ export function useNostrPublish() {
     onError: (error) => {
       console.error("Failed to publish event:", error);
     },
-    onSuccess: (data) => {
-      console.log("Event published successfully:", data);
+    onSuccess: (event) => {
+      console.log("Event published successfully:", event);
+      
+      // Invalidate specified queries
+      if (options?.invalidateQueries) {
+        options.invalidateQueries.forEach(query => {
+          queryClient.invalidateQueries(query);
+        });
+      }
+      
+      // Call the onSuccess callback if provided
+      if (options?.onSuccessCallback) {
+        options.onSuccessCallback();
+      }
+      
+      // Auto-invalidate queries based on event kind
+      if (event) {
+        // Get community ID from tags if present
+        const communityTag = event.tags?.find(tag => tag[0] === "a");
+        const communityId = communityTag ? communityTag[1] : undefined;
+        
+        // Invalidate relevant queries based on event kind
+        switch (event.kind) {
+          case 0: // Profile metadata
+            queryClient.invalidateQueries({ queryKey: ['author', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['follower-count', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['following-count', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['logins'] });
+            break;
+            
+          case 3: // Contacts (follow list)
+            queryClient.invalidateQueries({ queryKey: ['follow-list', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['follower-count'] });
+            queryClient.invalidateQueries({ queryKey: ['following-count'] });
+            break;
+            
+          case 4550: // Approve post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            break;
+            
+          case 4551: // Remove post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["removed-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            break;
+            
+          case 14550: // Approved members list
+          case 14551: // Declined members list
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["declined-users", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["reliable-group-membership", communityId] });
+            }
+            break;
+            
+          case 14552: // Ban user
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["banned-users", communityId] });
+              // Also invalidate posts since banned users' posts should be hidden
+              queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            break;
+            
+          case 14553: // Pinned groups
+            queryClient.invalidateQueries({ queryKey: ["pinned-groups", event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ["user-groups", event.pubkey] });
+            break;
+            
+          case 7: {
+            // Find the event being reacted to
+            const reactedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (reactedEventId) {
+              queryClient.invalidateQueries({ queryKey: ["reactions", reactedEventId] });
+              queryClient.invalidateQueries({ queryKey: ["likes", reactedEventId] });
+            }
+            break;
+          }
+            
+          case 11: // Post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            // Also invalidate user posts
+            queryClient.invalidateQueries({ queryKey: ["user-posts", event.pubkey] });
+            break;
+            
+          case 1111: {
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-replies", communityId] });
+            }
+            
+            // Find the post being replied to
+            const parentPostId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (parentPostId) {
+              queryClient.invalidateQueries({ queryKey: ["replies", parentPostId] });
+              queryClient.invalidateQueries({ queryKey: ["nested-replies", parentPostId] });
+            }
+            break;
+          }
+            
+          case 4552: // Request to join group
+          case 4553: {
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["join-requests", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["join-request", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
+            }
+            break;
+          }
+          
+          case CASHU_EVENT_KINDS.ZAP: {
+            // Find the event being zapped
+            const zappedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (zappedEventId) {
+              queryClient.invalidateQueries({ queryKey: ["nutzaps", zappedEventId] });
+            }
+            
+            // Find the recipient
+            const recipientPubkey = event.tags.find(tag => tag[0] === "p")?.[1];
+            if (recipientPubkey) {
+              queryClient.invalidateQueries({ queryKey: ["nutzap", "received", recipientPubkey] });
+            }
+            break;
+          }
+        }
+      }
     },
   });
 }

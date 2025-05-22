@@ -160,7 +160,13 @@ interface ReplyItemProps {
 function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmitted, isUserModerator }: ReplyItemProps) {
   const author = useAuthor(reply.pubkey);
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["reply-approvals", communityId] },
+      { queryKey: ["replies", postId] },
+      { queryKey: ["nested-replies", reply.id] }
+    ]
+  });
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { data: nestedReplies, isLoading: isLoadingNested, refetch: refetchNested } = useNestedReplies(reply.id);
   const [showNestedReplies, setShowNestedReplies] = useState(true);
@@ -233,7 +239,7 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
       <div className="pt-2">
         <div className="flex items-start gap-3">
           <Link to={`/profile/${reply.pubkey}`}>
-            <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+            <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity rounded-md">
               <AvatarImage src={profileImage} />
               <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>

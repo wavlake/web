@@ -1,5 +1,5 @@
 import { useNostr } from "@/hooks/useNostr";
-import { useState, useEffect } from "react"; // Added useEffect
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,14 +10,17 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { toast } from "sonner";
-import { MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp, Flag } from "lucide-react";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
+import { NutzapButton } from "@/components/groups/NutzapButton";
+import { NutzapList } from "@/components/groups/NutzapList";
 import { NostrEvent } from "@nostrify/nostrify";
 import { nip19 } from 'nostr-tools';
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { ReplyList } from "./ReplyList";
+import { ReportDialog } from "./ReportDialog";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -367,11 +370,60 @@ interface PostItemProps {
 function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps) {
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
-  const { mutateAsync: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish({
+    invalidateQueries: [
+      { queryKey: ["approved-posts", communityId] },
+      { queryKey: ["pending-posts", communityId] },
+      { queryKey: ["pending-posts-count", communityId] }
+    ]
+  });
   const { banUser } = useBannedUsers(communityId);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+
+  // Extract expiration timestamp from post tags
+  const expirationTag = post.tags.find(tag => tag[0] === "expiration");
+  const expirationTimestamp = expirationTag ? parseInt(expirationTag[1]) : null;
+
+  // Update time remaining every minute
+  useEffect(() => {
+    if (!expirationTimestamp) return;
+    
+    const calculateTimeRemaining = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const secondsRemaining = expirationTimestamp - now;
+      
+      if (secondsRemaining <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+      
+      // Format the time remaining
+      if (secondsRemaining < 60) {
+        setTimeRemaining(`${secondsRemaining}s`);
+      } else if (secondsRemaining < 3600) {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 60)}m`);
+      } else if (secondsRemaining < 86400) {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 3600)}h`);
+      } else if (secondsRemaining < 2592000) { // 30 days
+        setTimeRemaining(`${Math.floor(secondsRemaining / 86400)}d`);
+      } else if (secondsRemaining < 31536000) { // 365 days
+        setTimeRemaining(`${Math.floor(secondsRemaining / 2592000)}mo`);
+      } else {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 31536000)}y`);
+      }
+    };
+    
+    // Calculate immediately
+    calculateTimeRemaining();
+    
+    // Then update every minute
+    const interval = setInterval(calculateTimeRemaining, 60000);
+    return () => clearInterval(interval);
+  }, [expirationTimestamp]);
 
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 12);
@@ -455,7 +507,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
     <div className="py-2.5 px-3 hover:bg-muted/10 transition-colors rounded-md border border-transparent hover:border-border/30">
       <div className="flex flex-row items-start gap-2.5"> 
         <Link to={`/profile/${post.pubkey}`} className="flex-shrink-0">
-          <Avatar className="h-9 w-9 cursor-pointer hover:opacity-80 transition-opacity">
+          <Avatar className="h-9 w-9 cursor-pointer hover:opacity-80 transition-opacity rounded-md">
             <AvatarImage src={profileImage} alt={displayName} />
             <AvatarFallback>{displayName.slice(0, 1).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -481,6 +533,15 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mr-1 flex-shrink-0"></span>
                     Pending
                   </span>
+                )}
+                {timeRemaining && (
+                  <>
+                    <span className="mr-1.5 ml-1.5">·</span>
+                    <span className="text-red-500 dark:text-red-400 flex items-center whitespace-nowrap" title="This post will disappear after this time">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-1 flex-shrink-0 animate-pulse"></span>
+                      Expires in {timeRemaining}
+                    </span>
+                  </>
                 )}
               </div>
             </div>
@@ -552,11 +613,26 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
             {showReplies ? <ChevronUp className="h-3 w-3 ml-0.5" /> : <ChevronDown className="h-3 w-3 ml-0.5" />}
           </Button>
           <EmojiReactionButton postId={post.id} /> 
+          <NutzapButton postId={post.id} authorPubkey={post.pubkey} />
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5">
             <Share2 className="h-3.5 w-3.5 mr-1" />
             <span className="text-xs">Share</span>
           </Button>
+          {user && user.pubkey !== post.pubkey && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5 ml-auto"
+              onClick={() => setIsReportDialogOpen(true)}
+            >
+              <Flag className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Report</span>
+            </Button>
+          )}
         </div>
+        
+        {/* Display nutzaps for this post */}
+        <NutzapList postId={post.id} />
         
         {showReplies && (
           <div className="w-full mt-2.5">
@@ -568,6 +644,16 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           </div>
         )}
       </div>
+      
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        pubkey={post.pubkey}
+        eventId={post.id}
+        communityId={communityId}
+        contentPreview={post.content}
+      />
     </div>
   );
 }

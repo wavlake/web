@@ -13,8 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { useCashuWallet } from "@/cashu/hooks/useCashuWallet";
-import { calculateBalance, formatBalance } from "@/lib/cashu";
+import { useCashuWallet } from "@/hooks/useCashuWallet";
+import { calculateBalance, defaultMints, formatBalance } from "@/lib/cashu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AlertCircle,
@@ -25,10 +25,10 @@ import {
   Eraser,
 } from "lucide-react";
 import { useCashuStore } from "@/stores/cashuStore";
-import { generateSecretKey } from "nostr-tools";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { useCashuToken } from "@/cashu/hooks/useCashuToken";
+import { useCashuToken } from "@/hooks/useCashuToken";
+import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 
 export function CashuWalletCard() {
   const { user } = useCurrentUser();
@@ -54,21 +54,14 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
-  const handleCreateWallet = () => {
-    if (!user) {
-      setError("You must be logged in to create a wallet");
-      return;
+  const { mutate: handleCreateWallet, isPending: isCreatingWallet, error: createWalletError } = useCreateCashuWallet();
+
+  // Update error state when createWalletError changes
+  useEffect(() => {
+    if (createWalletError) {
+      setError(createWalletError.message);
     }
-
-    const privkey = bytesToHex(generateSecretKey()).slice(2);
-    cashuStore.setPrivkey(privkey);
-
-    // Create a new wallet with the default mint
-    createWallet({
-      privkey,
-      mints: cashuStore.mints.map((m) => m.url),
-    });
-  };
+  }, [createWalletError]);
 
   const handleAddMint = () => {
     if (!wallet || !wallet.mints) return;
@@ -144,7 +137,7 @@ export function CashuWalletCard() {
     return mintUrl.replace("https://", "");
   };
 
-  if (isLoading) {
+  if (isLoading || isCreatingWallet) {
     return (
       <Card>
         <CardHeader>
@@ -163,7 +156,7 @@ export function CashuWalletCard() {
           <CardDescription>You don't have a Cashu wallet yet</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleCreateWallet} disabled={!user}>
+          <Button onClick={() => handleCreateWallet()} disabled={!user}>
             Create Wallet
           </Button>
           {!user && (
