@@ -370,42 +370,48 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="requests" className="flex items-center">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Requests
-              {pendingRequests.length > 0 && (
-                <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-                  {pendingRequests.length}
+          <div className="mb-4 overflow-x-auto">
+            <TabsList className="w-full min-w-max grid grid-cols-4 h-auto">
+              <TabsTrigger value="requests" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Requests</span>
+                <span className="sm:hidden">Req</span>
+                {pendingRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                    {pendingRequests.length > 9 ? '9+' : pendingRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="members" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Members</span>
+                <span className="sm:hidden">Mem</span>
+                <span className="absolute -top-1 -right-1 bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {uniqueApprovedMembers.length > 9 ? '9+' : uniqueApprovedMembers.length}
                 </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="members" className="flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Members
-              <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                {uniqueApprovedMembers.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="declined" className="flex items-center">
-              <UserX className="h-4 w-4 mr-2" />
-              Declined
-              {uniqueDeclinedUsers.length > 0 && (
-                <span className="ml-2 bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                  {uniqueDeclinedUsers.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="banned" className="flex items-center">
-              <Ban className="h-4 w-4 mr-2" />
-              Banned
-              {uniqueBannedUsers.length > 0 && (
-                <span className="ml-2 bg-red-100 text-red-600 rounded-full px-2 py-0.5 text-xs">
-                  {uniqueBannedUsers.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+              </TabsTrigger>
+              <TabsTrigger value="declined" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+                <UserX className="h-4 w-4" />
+                <span className="hidden sm:inline">Declined</span>
+                <span className="sm:hidden">Dec</span>
+                {uniqueDeclinedUsers.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                    {uniqueDeclinedUsers.length > 9 ? '9+' : uniqueDeclinedUsers.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="banned" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+                <Ban className="h-4 w-4" />
+                <span className="hidden sm:inline">Banned</span>
+                <span className="sm:hidden">Ban</span>
+                {uniqueBannedUsers.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-100 text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                    {uniqueBannedUsers.length > 9 ? '9+' : uniqueBannedUsers.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="requests">
             {isLoadingRequests ? (
@@ -567,40 +573,44 @@ function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps
   
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
-      <div className="flex items-center gap-3">
-        <Link to={`/profile/${request.pubkey}`}>
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Link to={`/profile/${request.pubkey}`} className="flex-shrink-0">
           <Avatar>
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>
-        <div>
-          <Link to={`/profile/${request.pubkey}`} className="font-medium hover:underline">
+        <div className="min-w-0 flex-1">
+          <Link to={`/profile/${request.pubkey}`} className="font-medium hover:underline block truncate">
             {displayName}
           </Link>
           <p className="text-xs text-muted-foreground">
-            Requested {new Date(request.created_at * 1000).toLocaleString()}
+            Requested {new Date(request.created_at * 1000).toLocaleDateString()}
           </p>
           {joinReason && (
-            <p className="text-sm mt-1 max-w-md">
+            <p className="text-sm mt-1 break-words overflow-hidden" style={{ 
+              display: '-webkit-box', 
+              WebkitLineClamp: 2, 
+              WebkitBoxOrient: 'vertical' 
+            }}>
               "{joinReason}"
             </p>
           )}
         </div>
       </div>
-      <div className="flex gap-2 ml-auto">
+      <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-red-600"
+          className="text-red-600 flex-1 sm:flex-none"
           onClick={onDecline}
         >
-          <XCircle className="h-4 w-4 mr-1" />
-          Decline
+          <XCircle className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Decline</span>
         </Button>
-        <Button size="sm" onClick={onApprove}>
-          <CheckCircle className="h-4 w-4 mr-1" />
-          Approve
+        <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-none">
+          <CheckCircle className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Approve</span>
         </Button>
       </div>
     </div>
@@ -624,52 +634,54 @@ function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemPro
   const isCurrentUser = user?.pubkey === pubkey;
   
   return (
-    <div className="flex items-center justify-between p-3 border rounded-md">
-      <div className="flex items-center gap-3">
-        <Link to={`/profile/${pubkey}`}>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
           <Avatar>
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>
-        <div>
-          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline">
+        <div className="min-w-0 flex-1">
+          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline block truncate">
             {displayName}
           </Link>
-          {isCurrentUser && (
-            <span className="ml-2 text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5">
-              You
-            </span>
-          )}
-          {isBanned && (
-            <span className="ml-2 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
-              Banned
-            </span>
-          )}
+          <div className="flex flex-wrap gap-1 mt-1">
+            {isCurrentUser && (
+              <span className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5">
+                You
+              </span>
+            )}
+            {isBanned && (
+              <span className="text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
+                Banned
+              </span>
+            )}
+          </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
         {onBan && !isBanned && (
           <Button 
             variant="outline" 
             size="sm" 
-            className="text-red-600"
+            className="text-red-600 flex-1 sm:flex-none"
             onClick={onBan}
             disabled={isCurrentUser}
           >
-            <Ban className="h-4 w-4 mr-1" />
-            Ban
+            <Ban className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Ban</span>
           </Button>
         )}
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-red-600"
+          className="text-red-600 flex-1 sm:flex-none"
           onClick={onRemove}
           disabled={isCurrentUser}
         >
-          <XCircle className="h-4 w-4 mr-1" />
-          {isBanned ? "Unban" : "Remove"}
+          <XCircle className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">{isBanned ? "Unban" : "Remove"}</span>
         </Button>
       </div>
     </div>
@@ -689,19 +701,19 @@ function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
   const profileImage = metadata?.picture;
   
   return (
-    <div className="flex items-center justify-between p-3 border rounded-md">
-      <div className="flex items-center gap-3">
-        <Link to={`/profile/${pubkey}`}>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
           <Avatar>
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>
-        <div>
-          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline">
+        <div className="min-w-0 flex-1">
+          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline block truncate">
             {displayName}
           </Link>
-          <span className="ml-2 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
+          <span className="inline-block mt-1 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
             Declined
           </span>
         </div>
@@ -709,9 +721,10 @@ function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
       <Button 
         size="sm"
         onClick={onApprove}
+        className="w-full sm:w-auto flex-shrink-0"
       >
-        <CheckCircle className="h-4 w-4 mr-1" />
-        Approve
+        <CheckCircle className="h-4 w-4 sm:mr-1" />
+        <span className="hidden sm:inline">Approve</span>
       </Button>
     </div>
   );
