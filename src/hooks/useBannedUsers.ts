@@ -75,54 +75,8 @@ export function useBannedUsers(communityId?: string) {
         content: "",
       });
       
-      // Check if the user is in the approved users list and remove them if they are
-      try {
-        // Get current approved members list
-        const approvedMembersEvents = await nostr.query([{ 
-          kinds: [14550],
-          "#a": [effectiveCommunityId],
-          limit: 10,
-        }], { signal: AbortSignal.timeout(5000) });
-
-        // Extract all approved member pubkeys from the events
-        const approvedMembers = approvedMembersEvents?.flatMap(event => 
-          event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-        ) || [];
-
-        // Remove duplicates
-        const uniqueApprovedMembers = [...new Set(approvedMembers)];
-
-        // Check if the user is in the approved list
-        if (uniqueApprovedMembers.includes(pubkey)) {
-          // Filter out the user to remove
-          const updatedMembers = uniqueApprovedMembers.filter(pk => pk !== pubkey);
-          
-          // Create a new list with the user removed
-          const approvedTags = [
-            ["a", effectiveCommunityId],
-            ...updatedMembers.map(pk => ["p", pk])
-          ];
-
-          // Create updated approved members event (kind 14550)
-          await publishEvent({
-            kind: 14550,
-            tags: approvedTags,
-            content: "",
-          });
-          
-          // Invalidate approved members queries
-          queryClient.invalidateQueries({ queryKey: ["approved-members", effectiveCommunityId] });
-          queryClient.invalidateQueries({ queryKey: ["approved-members-list", effectiveCommunityId] });
-          
-          console.log(`User ${pubkey} was automatically removed from approved users list`);
-        }
-      } catch (error) {
-        console.error("Error checking/removing user from approved list:", error);
-        // Continue with the ban process even if removing from approved list fails
-      }
-      
       // Invalidate relevant queries
-      invalidateRelatedQueries(effectiveCommunityId);
+      invalidateRelatedQueries();
       
       toast.success("User banned successfully!");
       return true;
@@ -163,7 +117,7 @@ export function useBannedUsers(communityId?: string) {
       });
       
       // Invalidate relevant queries
-      invalidateRelatedQueries(effectiveCommunityId);
+      invalidateRelatedQueries();
       
       toast.success("User unbanned successfully!");
       return true;

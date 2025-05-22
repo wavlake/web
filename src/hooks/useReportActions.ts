@@ -120,14 +120,6 @@ export function useReportActions() {
         case "ban_user":
           // Ban the user with the specific communityId
           await banUser(pubkey, communityId);
-          
-          // Also explicitly remove from approved list to ensure consistency
-          try {
-            await removeFromApprovedList(pubkey, communityId);
-          } catch (error) {
-            console.error("Error removing banned user from approved list:", error);
-            // Continue even if this fails, as the ban is more important
-          }
           break;
           
         case "no_action":
