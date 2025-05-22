@@ -13,7 +13,7 @@ We give you the keys. You drive the conversation.
 - Join conversations in public communities that align with your work  
 - Stay anonymous or show up with intention — use a pseudonym, stay private, or bring your existing Nostr identity  
 - Use it on the go — fast, lightweight, and mobile-ready  
-- Crowdfund your cause through community-driven micropayments using Bitcoin via the [Cashu](https://cashu.space/) protocol
+- Crowdfund your cause through community-driven micropayments using eCash via the [Cashu](https://cashu.space/) protocol
 - Support the voices you believe in — pay fellow contributors, reward organizers, fund projects
 - Receive support for your own work, activism, or ideas from a like-minded community
 

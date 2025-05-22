@@ -1,8 +1,8 @@
-# Chorus - Grow and give back to the communities that matter to you
+# +chorus - Grow and give back to the communities that matter to you
 
-Chorus is a decentralized, privacy-conscious, user-moderated groups platform inspired by the early promise of Facebook Groups reimagined on the Nostr protocol. It supports secure, pseudonymous communities where users can create, join, and contribute freely.
++chorus is a simple, decentralized space for communities to gather, share, and exchange value for value, built on the open Nostr protocol.
 
-## 🌟 Key Features
+## Key Features
 
 - **Create & Curate Communities**: Start your own space with a custom name, image, and description — and moderate it your way
 - **Browse & Join Groups**: Discover and participate in public communities that match your interests
@@ -23,7 +23,7 @@ Chorus is a decentralized, privacy-conscious, user-moderated groups platform ins
 - **User-Moderated**: Communities are managed by their members
 - **Claim Your Handle**: Link your profile to a human-readable handle (like an email or domain)
 
-### 💰 Built-in Payments & Support
+### Built-in Payments & Support
 - **Cashu Integration**: Native support for the [Cashu](https://cashu.space/) protocol
 - **Community Funding**: Crowdfund causes through community-driven micropayments
 - **Support Creators**: Pay fellow contributors and reward organizers
@@ -33,7 +33,7 @@ Chorus is a decentralized, privacy-conscious, user-moderated groups platform ins
 - **Instant Transfers**: Fast, lightweight transactions
 - **Multiple Mints**: Support for various Cashu mints
 
-## 🔧 Supported NIPs
+## Supported NIPs
 
 Chorus implements several Nostr Improvement Proposals (NIPs) to provide a rich feature set:
 
@@ -71,7 +71,7 @@ Chorus implements several Nostr Improvement Proposals (NIPs) to provide a rich f
   - Kind 10019: Zap info (payment configuration)
   - Kind 9321: Zap events (actual payments)
 
-## 🚀 Getting Started
+## Getting Started
 
 1. **Visit the Site**: Open [chorus.community](https://chorus.community) in your browser
 2. **Create an Account**: Use any Nostr key or generate a new one
@@ -79,7 +79,7 @@ Chorus implements several Nostr Improvement Proposals (NIPs) to provide a rich f
 4. **Start Contributing**: Create posts, reply to others, and engage with your communities
 5. **Set Up Payments**: Configure your Cashu wallet to start supporting others
 
-## 💻 Development
+## Development
 
 ### Technology Stack
 - **Frontend**: React 18.x with TypeScript
@@ -94,9 +94,6 @@ Chorus implements several Nostr Improvement Proposals (NIPs) to provide a rich f
 # Clone the repository
 git clone https://github.com/andotherstuff/chorus.git
 
-# Install dependencies
-npm install
-
 # Start development server
 npm run dev
 
@@ -104,15 +101,15 @@ npm run dev
 npm run build
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## 🌐 Links
+## Links
 
 - [Website](https://chorus.community)
 - [GitHub](https://github.com/andotherstuff/chorus)
