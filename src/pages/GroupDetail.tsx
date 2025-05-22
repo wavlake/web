@@ -4,6 +4,7 @@ import { useNostr } from "@/hooks/useNostr";
 import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
+import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ export default function GroupDetail() {
   const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
   const { data: openReportsCount = 0 } = useOpenReportsCount(groupId || '');
+  const { pendingRequestsCount = 0 } = usePendingJoinRequests(groupId || '');
   const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
 
   // Set active tab based on URL hash only
@@ -198,7 +200,10 @@ export default function GroupDetail() {
                   <TooltipTrigger asChild>
                     <Button asChild variant="outline" size="sm" className="relative">
                       <Link 
-                        to={`/group/${encodeURIComponent(groupId || '')}/settings${openReportsCount > 0 ? '?tab=reports' : ''}`} 
+                        to={`/group/${encodeURIComponent(groupId || '')}/settings${
+                          openReportsCount > 0 ? '?tab=reports' : 
+                          pendingRequestsCount > 0 ? '?tab=members' : ''
+                        }`} 
                         className="flex items-center gap-2"
                       >
                         <Settings className="h-4 w-4" />
@@ -211,6 +216,20 @@ export default function GroupDetail() {
                             {openReportsCount > 99 ? '99+' : openReportsCount}
                           </Badge>
                         )}
+                        {pendingRequestsCount > 0 && openReportsCount === 0 && (
+                          <Badge 
+                            className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
+                          >
+                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                          </Badge>
+                        )}
+                        {pendingRequestsCount > 0 && openReportsCount > 0 && (
+                          <Badge 
+                            className="absolute -top-2 -left-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
+                          >
+                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                          </Badge>
+                        )}
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -219,6 +238,11 @@ export default function GroupDetail() {
                     {openReportsCount > 0 && (
                       <div className="text-red-400 text-xs mt-1">
                         {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''} - Click to review
+                      </div>
+                    )}
+                    {pendingRequestsCount > 0 && (
+                      <div className="text-blue-400 text-xs mt-1">
+                        {pendingRequestsCount} pending join request{pendingRequestsCount !== 1 ? 's' : ''} - Click to review
                       </div>
                     )}
                   </TooltipContent>
