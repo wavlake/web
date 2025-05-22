@@ -34,11 +34,10 @@ export default function GroupDetail() {
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
-  const [currentPostCount, setCurrentPostCount] = useState(0); // State for post count
+  const [currentPostCount, setCurrentPostCount] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
   
-  // Get URL parameters and hash
   const searchParams = new URLSearchParams(location.search);
   const reportId = searchParams.get('reportId');
   const membersTab = searchParams.get('membersTab');
@@ -53,8 +52,6 @@ export default function GroupDetail() {
     }
   }, [groupId]);
 
-  // We'll move the pending posts count query after isModerator is defined
-
   const { data: community, isLoading: isLoadingCommunity } = useQuery({
     queryKey: ["community", parsedId?.pubkey, parsedId?.identifier],
     queryFn: async (c) => {
@@ -67,7 +64,7 @@ export default function GroupDetail() {
         "#d": [parsedId.identifier]
       }], { signal });
 
-      if (events.length === 0) throw new Error("Community not found"); // This error message is internal, can stay
+      if (events.length === 0) throw new Error("Community not found");
       return events[0];
     },
     enabled: !!nostr && !!parsedId,
@@ -78,38 +75,25 @@ export default function GroupDetail() {
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .some(tag => tag[1] === user.pubkey));
 
-  // Query for pending posts count using our custom hook
   const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
-
-  // Query for pending replies
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
-
-  // Calculate total pending items (posts + replies)
   const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
 
-  // Set active tab based on URL hash, parameters, or pending items
   useEffect(() => {
-    // Define valid tab values
     const validTabs = ["posts", "members", "nutzaps"];
     
-    // First priority: Check if there's a hash in the URL that matches a valid tab
     if (hash && validTabs.includes(hash)) {
       setActiveTab(hash);
     } 
-    // If the hash references an invalid tab, default to "posts"
     else if (hash) {
       setActiveTab("posts");
     }
-    // For backward compatibility, try to handle old parameters
     else if (reportId && isModerator) {
-      // Instead of "reports" tab which doesn't exist, default to "posts"
       setActiveTab("posts");
     }
     else if (isModerator && totalPendingCount > 0) {
-      // Instead of "pending" tab which doesn't exist, default to "posts" 
       setActiveTab("posts");
     }
-    // Default case - fallback to posts tab
     else if (!activeTab || !validTabs.includes(activeTab)) {
       setActiveTab("posts");
     }
@@ -122,20 +106,18 @@ export default function GroupDetail() {
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : "/placeholder-community.svg"; // Placeholder image path, might not need changing
+  const image = imageTag ? imageTag[1] : "/placeholder-community.svg";
 
   useEffect(() => {
-    if (name && name !== "Unnamed Group") { // Adjusted check
+    if (name && name !== "Unnamed Group") {
       document.title = `+chorus - ${name}`;
     } else {
-      document.title = "+chorus"; // Default if name isn't available
+      document.title = "+chorus";
     }
-    // Optional: Reset title when component unmounts
     return () => {
       document.title = "+chorus";
     };
-  }, [name]); // Dependency array ensures this runs when 'name' changes
-
+  }, [name]);
 
   if (isLoadingCommunity || !parsedId) {
     return (
@@ -165,47 +147,50 @@ export default function GroupDetail() {
       <Separator className="my-4" />
 
       <div className="relative mb-6">
-        <div className="h-36 rounded-lg overflow-hidden mb-2 relative group">
-          <img
-            src={image}
-            alt={name}
-            className="w-full h-full object-cover object-center"
-            onError={(e) => {
-              e.currentTarget.src = "/placeholder-community.svg";
-            }}
-          />
-        </div>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
+              <img
+                src={image}
+                alt={name}
+                className="w-full h-full object-cover object-center"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder-community.svg";
+                }}
+              />
+            </div>
 
-        <div className="flex flex-row items-start justify-between gap-4 mb-2">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold">{name}</h1>
-            <p className="text-base mb-4">{description}</p>
+            <div className="flex flex-row items-start justify-between gap-4 mb-2">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold">{name}</h1>
+                <p className="text-base mb-4">{description}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {isModerator && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
+                            <Settings className="h-4 w-4" />
+                            Manage Group
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isOwner ? "Owner settings" : "Moderator settings"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {isModerator && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button asChild variant="outline" size="sm">
-                      <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Manage Group
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isOwner ? "Owner settings" : "Moderator settings"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+
+          <div className="flex flex-col gap-2 min-w-[140px] py-2">
+            {!isModerator && (
+              <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
             )}
-          </div>
-        </div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
-          </div>
-          <div className="flex items-center gap-4">
             {user && community && (
               <GroupNutzapButton
                 groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
@@ -213,9 +198,9 @@ export default function GroupDetail() {
                 variant="outline"
               />
             )}
-            {!isModerator && (
-              <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
-            )}
+            <div className="flex justify-center">
+              <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+            </div>
           </div>
         </div>
       </div>
@@ -241,14 +226,12 @@ export default function GroupDetail() {
         </div>
 
         <TabsContent value="posts" className="space-y-4">
-          {/* Emphasize the create post form if user is logged in */}
           {user && (
             <div className="max-w-3xl mx-auto">
               <CreatePostForm communityId={groupId || ''} />
             </div>
           )}
 
-          {/* Move toggle to top and align to the right for easy access */}
           <div className="flex items-center justify-end mb-4 gap-2 max-w-3xl mx-auto">
             <div className="flex items-center space-x-2">
               <Switch
@@ -263,7 +246,6 @@ export default function GroupDetail() {
             </div>
           </div>
 
-          {/* Center and limit width for better readability */}
           <div className="max-w-3xl mx-auto">
             <PostList
               communityId={groupId || ''}
@@ -285,7 +267,6 @@ export default function GroupDetail() {
           </div>
           <GroupNutzapList groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
         </TabsContent>
-
 
         <TabsContent value="members" className="space-y-4">
           <div className="max-w-3xl mx-auto">
