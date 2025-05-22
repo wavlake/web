@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
-import { calculateBalance, formatBalance } from "@/lib/cashu";
+import { calculateBalance, defaultMints, formatBalance } from "@/lib/cashu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AlertCircle,
@@ -38,10 +38,6 @@ export function CashuWalletCard() {
   const [newMint, setNewMint] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [expandedMint, setExpandedMint] = useState<string | null>(null);
-  const defaultMints = [
-    // "https://mint.chorus.community",
-    "https://testnut.cashu.space",
-  ];
 
   // Calculate total balance across all mints
   const balances = calculateBalance(cashuStore.proofs);

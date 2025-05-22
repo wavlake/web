@@ -1,7 +1,7 @@
 import { useNostr } from '@/hooks/useNostr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CASHU_EVENT_KINDS, CashuWalletStruct, CashuToken, activateMint, updateMintKeys } from '@/lib/cashu';
+import { CASHU_EVENT_KINDS, CashuWalletStruct, CashuToken, activateMint, updateMintKeys, defaultMints } from '@/lib/cashu';
 import { nip44, NostrEvent, getPublicKey } from 'nostr-tools';
 import { useCashuStore, Nip60TokenEvent } from '@/stores/cashuStore';
 import { Proof } from '@cashu/cashu-ts';
@@ -58,6 +58,14 @@ export function useCashuWallet() {
             .filter(([key]) => key === 'mint')
             .map(([, mint]) => mint)
         };
+
+        // if the default mint is not in the wallet, add it
+        for (const mint of defaultMints) {
+          if (!walletData.mints.includes(mint)) {
+            walletData.mints.push(mint);
+          }
+        }
+
 
         // remove trailing slashes from mints
         walletData.mints = walletData.mints.map(mint => mint.replace(/\/$/, ''));
