@@ -358,29 +358,22 @@ export default function Profile() {
       <div className="container mx-auto py-3 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
-          <div className="mb-8">
-            <div className="flex flex-row items-start gap-6">
-              <Skeleton className="h-24 w-24 rounded-full" />
+          <div className="mb-6">
+            <div className="flex items-start gap-4">
+              <Skeleton className="h-16 w-16 rounded-full" />
               <div className="flex-1">
                 <div className="flex items-start justify-between">
                   <div>
                     <Skeleton className="h-6 w-48 mb-1" />
-                    <Skeleton className="h-4 w-32 mb-2" />
-
-                    <div className="mt-1">
-                      <Skeleton className="h-4 w-32 mb-1" />
-                    </div>
-
-                    <div className="mt-1">
-                      <Skeleton className="h-4 w-48 mb-2" />
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-32" />
                     </div>
                   </div>
-
-                  <Skeleton className="h-9 w-24" />
                 </div>
 
-                <div className="mt-4">
-                  <Skeleton className="h-4 w-full mb-2" />
+                <div className="mt-2">
                   <Skeleton className="h-4 w-full mb-2" />
                   <Skeleton className="h-4 w-2/3" />
                 </div>
@@ -489,41 +482,52 @@ export default function Profile() {
       <Header />
       <div className="space-y-6 my-6">
         {/* Profile Header - No Card, Clean Design */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start gap-6">
-            <Avatar className="h-24 w-24 rounded-full">
+        <div className="mb-6">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16 rounded-full">
               <AvatarImage src={profileImage} />
-              <AvatarFallback className="text-xl">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="text-lg">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 mt-4 sm:mt-0">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 mt-2 sm:mt-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div>
-                  <h1 className="text-2xl font-bold">{displayNameFull}</h1>
-                  {displayName !== displayNameFull && (
-                    <p className="text-muted-foreground">@{displayName}</p>
-                  )}
-
-                  <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold">{displayNameFull}</h1>
+                    {isCurrentUser && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        asChild
+                      >
+                        <Link to="/settings/profile">Edit</Link>
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                    {displayName !== displayNameFull && (
+                      <span className="text-sm text-muted-foreground">@{displayName}</span>
+                    )}
+                    
+                    {nip05 && (
+                      <span className="text-sm">
+                        <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
+                      </span>
+                    )}
+                    
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs pl-0"
+                      className="h-6 px-2 text-xs"
                       onClick={copyPubkeyToClipboard}
                     >
                       <span className="truncate max-w-[120px]">{pubkey?.slice(0, 8)}...</span>
                       <Copy className="h-3 w-3 ml-1" />
                     </Button>
-                  </div>
-
-                  {nip05 && (
-                    <div className="mt-1 text-sm">
-                      <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
-                    </div>
-                  )}
-
-                  {website && (
-                    <div className="mt-2">
+                    
+                    {website && (
                       <a
                         href={website.startsWith('http') ? website : `https://${website}`}
                         target="_blank"
@@ -533,24 +537,13 @@ export default function Profile() {
                         {website}
                         <ExternalLink className="h-3 w-3 ml-1" />
                       </a>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-
-                {isCurrentUser && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 sm:mt-0"
-                    asChild
-                  >
-                    <Link to="/settings/profile">Edit Profile</Link>
-                  </Button>
-                )}
               </div>
 
               {about && (
-                <div className="mt-4 text-sm whitespace-pre-wrap">
+                <div className="mt-2 text-sm whitespace-pre-wrap">
                   {about}
                 </div>
               )}
