@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
@@ -25,13 +29,18 @@ interface NutzapButtonProps {
   relayHint?: string;
 }
 
-export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonProps) {
+export function NutzapButton({
+  postId,
+  authorPubkey,
+  relayHint,
+}: NutzapButtonProps) {
   const { user } = useCurrentUser();
   const { wallet } = useCashuWallet();
   const cashuStore = useCashuStore();
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -43,17 +52,19 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
       toast.error("You must be logged in to send nutzaps");
       return;
     }
-    
+
     if (!wallet) {
       toast.error("You need to set up a Cashu wallet first");
       return;
     }
-    
+
     if (!cashuStore.activeMintUrl) {
-      toast.error("No active mint selected. Please select a mint in your wallet settings.");
+      toast.error(
+        "No active mint selected. Please select a mint in your wallet settings."
+      );
       return;
     }
-    
+
     setIsDialogOpen(true);
   };
 
@@ -76,9 +87,12 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
       // Generate token with the specified amount and get proofs for the nutzap
       const amountValue = parseInt(amount);
 
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -88,9 +102,9 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
         eventId: postId,
-        relayHint
+        relayHint,
       });
 
       toast.success(`Successfully sent ${amountValue} sats`);
@@ -153,8 +167,8 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSendNutzap}
               disabled={isProcessing || isSending || isFetching || !amount}
             >
