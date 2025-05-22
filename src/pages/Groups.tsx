@@ -1,7 +1,6 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Separator } from "@/components/ui/separator";
 import Header from "@/components/ui/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -196,10 +195,10 @@ export default function Groups() {
   );
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
 
-      <div className="flex flex-col mt-4">
+      <div className="flex flex-col mt-2">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
           <div className="w-full md:w-64 lg:w-72">
             <GroupSearch

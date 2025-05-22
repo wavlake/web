@@ -68,9 +68,9 @@ export function CashuWallet() {
   }, [user, wallet]); // Depend on both user and wallet being loaded
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
-      <Separator className="my-4" />
+      <Separator className="my-2" />
 
       {isProcessingToken && (
         <div className="mb-6 p-4 bg-muted rounded-lg flex items-center space-x-3">

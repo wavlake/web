@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Header from "@/components/ui/Header";
-import { Separator } from "@/components/ui/separator"; // Added Separator import
 
 export default function CreateGroup() {
   const navigate = useNavigate();
@@ -31,7 +30,7 @@ export default function CreateGroup() {
 
   if (!user) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <h1 className="text-2xl font-bold mb-4">You must be logged in to create a group</h1>
         <Button asChild>
           <Link to="/groups">Back to Groups</Link>
@@ -110,9 +109,8 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
-      <Separator className="my-4" />
 
       <Card>
         <CardHeader>

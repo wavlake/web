@@ -96,7 +96,7 @@ const Index = () => {
           >
             {creating ? "Creating..." : "Get Started"}
           </Button>
-          <div className="text-sm text-muted-foreground flex items-center justify-center mt-6">
+          <div className="text-sm text-muted-foreground flex items-center justify-center mt-3">
             <span>Have a Nostr/+chorus account?</span>&nbsp;
             <Button variant="link" size="sm" className="text-primary font-medium hover:underline p-0 h-auto" onClick={() => setLoginOpen(true)}>
               Sign in
