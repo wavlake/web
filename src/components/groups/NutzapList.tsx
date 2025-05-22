@@ -127,7 +127,7 @@ export function NutzapList({ postId }: NutzapListProps) {
       <div className="flex items-center gap-1 mb-2">
         <Zap className="h-3.5 w-3.5 text-amber-500" />
         <span className="text-xs font-medium">
-          {totalAmount} sats from {nutzaps.length} cash zap
+          {totalAmount} sats from {nutzaps.length} zap
           {nutzaps.length !== 1 ? "s" : ""}
         </span>
       </div>
