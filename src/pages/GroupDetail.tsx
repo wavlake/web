@@ -3,9 +3,11 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
+import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -77,6 +79,7 @@ export default function GroupDetail() {
 
   const { data: pendingPostsCount = 0 } = usePendingPostsCount(groupId || '');
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
+  const { data: openReportsCount = 0 } = useOpenReportsCount(groupId || '');
   const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
 
   // Set active tab based on URL hash only
@@ -196,15 +199,28 @@ export default function GroupDetail() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="relative">
                       <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
                         <Settings className="h-4 w-4" />
                         Manage Group
+                        {openReportsCount > 0 && (
+                          <Badge 
+                            variant="destructive" 
+                            className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                          >
+                            {openReportsCount > 99 ? '99+' : openReportsCount}
+                          </Badge>
+                        )}
                       </Link>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     {isOwner ? "Owner settings" : "Moderator settings"}
+                    {openReportsCount > 0 && (
+                      <div className="text-red-400 text-xs mt-1">
+                        {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
