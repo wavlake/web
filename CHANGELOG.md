@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced visual presentation of community metrics with badge-style elements
 - Added activity indicators to My Groups section showing post count and active participants
 
+### Fixed
+- Fixed NIP-07 browser extension login recognition issue by adding fallback mechanism in useCurrentUser hook
+- Fixed DOM nesting validation warnings in MyGroupCard component by replacing div elements with span elements inside CardDescription
+
 ### Changed
 - Switched default relay to Chorus for better reliability
 - Group cards now display focused activity metrics (posts and participants)
