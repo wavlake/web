@@ -1,6 +1,6 @@
 # +chorus - Grow and give back to the communities that matter to you
 
-+chorus is a simple, decentralized space for communities to gather, share, and exchange value for value, built on the open Nostr protocol.
++chorus is a simple space for communities to gather, share, and support each other. It is built on the decentralized Nostr protocol.
 
 ## Key Features
 
