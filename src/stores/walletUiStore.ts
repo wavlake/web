@@ -18,9 +18,9 @@ export const useWalletUiStore = create<WalletUiState>()(
       // All cards collapsed by default
       expandedCards: {
         token: false,
-        lightning: false,
+        lightning: true,
         nutzap: false,
-        history: false,
+        history: true,
       },
       toggleCardExpansion: (cardKey) =>
         set((state) => ({
