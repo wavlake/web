@@ -24,8 +24,10 @@ import { Button } from "@/components/ui/button";
 import { useCashuStore } from "@/stores/cashuStore";
 import { mintTokensFromPaidInvoice } from "@/lib/cashuLightning";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
-import { SpendingHistoryEntry } from "@/lib/cashu";
+import { SpendingHistoryEntry, formatBalance } from "@/lib/cashu";
 import { useWalletUiStore } from "@/stores/walletUiStore";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 export function CashuHistoryCard() {
   const { history: queryHistory, isLoading, createHistory } = useCashuHistory();
@@ -36,6 +38,18 @@ export function CashuHistoryCard() {
   const walletUiStore = useWalletUiStore();
   const isExpanded = walletUiStore.expandedCards.history;
   const [visibleEntries, setVisibleEntries] = useState(5);
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice } = useBitcoinPrice();
+
+  // Format amount based on user preference
+  const formatAmount = (sats: number) => {
+    if (showSats) {
+      return formatBalance(sats);
+    } else if (btcPrice) {
+      return formatUSD(satsToUSD(sats, btcPrice.USD));
+    }
+    return formatBalance(sats);
+  };
 
   // Get combined history from the store for display
   const history = transactionHistoryStore.getCombinedHistory();
@@ -181,7 +195,7 @@ export function CashuHistoryCard() {
                         }
                       >
                         {entry.direction === "in" ? "+" : "-"}
-                        {entry.amount} sats
+                        {formatAmount(parseInt(entry.amount))}
                       </span>
                     </div>
                     {entry.timestamp && (
