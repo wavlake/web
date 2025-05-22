@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { JoinRequestMenuItem } from "@/components/groups/JoinRequestMenuItem";
-import { useReliableGroupMembership } from "@/hooks/useReliableGroupMembership";
 
 interface GroupCardProps {
   community: NostrEvent;
@@ -58,18 +57,6 @@ export function GroupCard({
   const image = imageTag ? imageTag[1] : "/placeholder-community.svg";
   const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
 
-  // Use the reliable membership hook to determine the user's role if not passed directly
-  const { data: membership } = useReliableGroupMembership(
-    user != null && userRole === undefined ? communityId : undefined
-  );
-
-  // Determine role from props or from membership data
-  const displayRole = userRole ??
-    (membership?.isOwner ? "owner" :
-    membership?.isModerator ? "moderator" :
-    membership?.isMember ? "member" :
-    null);
-
   const handleTogglePin = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -92,7 +79,7 @@ export function GroupCard({
   };
 
   // Determine if user is a member or owner of this group
-  const isUserMember = isMember ?? (displayRole !== null);
+  const isUserMember = isMember ?? Boolean(userRole);
 
   // Style adjustments based on membership
   const cardStyle = cn(
@@ -104,9 +91,9 @@ export function GroupCard({
   return (
     <Link to={`/group/${encodeURIComponent(communityId)}`}>
       <Card className={cardStyle}>
-        {displayRole && (
+        {userRole && (
           <div className="absolute top-2 right-10 z-10">
-            <RoleBadge role={displayRole} />
+            <RoleBadge role={userRole} />
           </div>
         )}
 
