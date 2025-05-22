@@ -2,6 +2,7 @@ import { useNostr } from "@nostrify/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
 import { getPostExpirationTimestamp } from "../lib/utils";
+import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 
 interface EventTemplate {
   kind: number;
@@ -119,33 +120,114 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
         
         // Invalidate relevant queries based on event kind
         switch (event.kind) {
+          case 0: // Profile metadata
+            queryClient.invalidateQueries({ queryKey: ['author', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['follower-count', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['following-count', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['logins'] });
+            break;
+            
+          case 3: // Contacts (follow list)
+            queryClient.invalidateQueries({ queryKey: ['follow-list', event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ['follower-count'] });
+            queryClient.invalidateQueries({ queryKey: ['following-count'] });
+            break;
+            
           case 4550: // Approve post
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
             }
             break;
+            
           case 4551: // Remove post
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["removed-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
             }
             break;
+            
+          case 14550: // Approved members list
+          case 14551: // Declined members list
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["declined-users", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["reliable-group-membership", communityId] });
+            }
+            break;
+            
           case 14552: // Ban user
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["banned-users", communityId] });
               // Also invalidate posts since banned users' posts should be hidden
               queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
             }
             break;
+            
+          case 14553: // Pinned groups
+            queryClient.invalidateQueries({ queryKey: ["pinned-groups", event.pubkey] });
+            queryClient.invalidateQueries({ queryKey: ["user-groups", event.pubkey] });
+            break;
+            
+          case 7: // Reactions
+            // Find the event being reacted to
+            const reactedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (reactedEventId) {
+              queryClient.invalidateQueries({ queryKey: ["reactions", reactedEventId] });
+              queryClient.invalidateQueries({ queryKey: ["likes", reactedEventId] });
+            }
+            break;
+            
           case 11: // Post
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+            }
+            // Also invalidate user posts
+            queryClient.invalidateQueries({ queryKey: ["user-posts", event.pubkey] });
+            break;
+            
           case 1111: // Reply
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
               queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
-              queryClient.invalidateQueries({ queryKey: ["replies", event.id] });
+              queryClient.invalidateQueries({ queryKey: ["pending-replies", communityId] });
+            }
+            
+            // Find the post being replied to
+            const parentPostId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (parentPostId) {
+              queryClient.invalidateQueries({ queryKey: ["replies", parentPostId] });
+              queryClient.invalidateQueries({ queryKey: ["nested-replies", parentPostId] });
+            }
+            break;
+            
+          case 4552: // Request to join group
+          case 4553: // Request to leave group
+            if (communityId) {
+              queryClient.invalidateQueries({ queryKey: ["join-requests", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["join-request", communityId] });
+              queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
+            }
+            break;
+            
+          case CASHU_EVENT_KINDS.ZAP: // Nutzap event (9321)
+            // Find the event being zapped
+            const zappedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
+            if (zappedEventId) {
+              queryClient.invalidateQueries({ queryKey: ["nutzaps", zappedEventId] });
+            }
+            
+            // Find the recipient
+            const recipientPubkey = event.tags.find(tag => tag[0] === "p")?.[1];
+            if (recipientPubkey) {
+              queryClient.invalidateQueries({ queryKey: ["nutzap", "received", recipientPubkey] });
             }
             break;
         }
