@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -24,11 +24,27 @@ import { ReportsList } from "@/components/groups/ReportsList";
 
 export default function GroupSettings() {
   const { groupId } = useParams<{ groupId: string }>();
+  const location = useLocation();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const navigate = useNavigate();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  
+  // Get the tab parameter from URL
+  const searchParams = new URLSearchParams(location.search);
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabParam === 'reports' ? 'reports' : 'general');
+  
+  // Update active tab when URL parameters change
+  useEffect(() => {
+    const newTabParam = new URLSearchParams(location.search).get('tab');
+    if (newTabParam === 'reports') {
+      setActiveTab('reports');
+    } else if (!newTabParam) {
+      setActiveTab('general');
+    }
+  }, [location.search]);
 
   // Form state
   const [name, setName] = useState("");
@@ -389,7 +405,7 @@ export default function GroupSettings() {
         </Button>
       </div>
 
-      <Tabs defaultValue="general" className="w-full space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
         <TabsList className={isOwner || isModerator ? "grid w-full grid-cols-2" : "grid w-full grid-cols-1"}>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />

@@ -200,7 +200,10 @@ export default function GroupDetail() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button asChild variant="outline" size="sm" className="relative">
-                      <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
+                      <Link 
+                        to={`/group/${encodeURIComponent(groupId || '')}/settings${openReportsCount > 0 ? '?tab=reports' : ''}`} 
+                        className="flex items-center gap-2"
+                      >
                         <Settings className="h-4 w-4" />
                         Manage Group
                         {openReportsCount > 0 && (
@@ -218,7 +221,7 @@ export default function GroupDetail() {
                     {isOwner ? "Owner settings" : "Moderator settings"}
                     {openReportsCount > 0 && (
                       <div className="text-red-400 text-xs mt-1">
-                        {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''}
+                        {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''} - Click to review
                       </div>
                     )}
                   </TooltipContent>
