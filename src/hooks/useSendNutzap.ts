@@ -27,7 +27,7 @@ export function useFetchNutzapInfo() {
       ], { signal: AbortSignal.timeout(5000) });
 
       if (events.length === 0) {
-        throw new Error('Recipient has no nutzap informational event');
+        throw new Error('Recipient has no Cash wallet');
       }
 
       const event = events[0];
@@ -138,10 +138,10 @@ export function useSendNutzap() {
       if (eventId) {
         queryClient.invalidateQueries({ queryKey: ['nutzaps', eventId] });
       }
-      
+
       // Also invalidate recipient's received nutzaps
-      queryClient.invalidateQueries({ 
-        queryKey: ['nutzap', 'received', recipientInfo.event.pubkey] 
+      queryClient.invalidateQueries({
+        queryKey: ['nutzap', 'received', recipientInfo.event.pubkey]
       });
 
       // Return the event

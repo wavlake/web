@@ -27,34 +27,39 @@ interface Nutzap {
 export function NutzapList({ postId }: NutzapListProps) {
   const { nostr } = useNostr();
   const [showAll, setShowAll] = useState(false);
-  
+
   // Query for nutzaps for this post
   const { data: nutzaps, isLoading } = useQuery({
     queryKey: ["nutzaps", postId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [CASHU_EVENT_KINDS.ZAP],
-        "#e": [postId],
-        limit: 50,
-      }], { signal });
-      
+
+      const events = await nostr.query(
+        [
+          {
+            kinds: [CASHU_EVENT_KINDS.ZAP],
+            "#e": [postId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
+
       const processedNutzaps: Nutzap[] = [];
-      
+
       for (const event of events) {
         try {
           // Get the mint URL from tags
-          const mintTag = event.tags.find(tag => tag[0] === "u");
+          const mintTag = event.tags.find((tag) => tag[0] === "u");
           if (!mintTag) continue;
           const mintUrl = mintTag[1];
-          
+
           // Get proofs from tags
-          const proofTags = event.tags.filter(tag => tag[0] === "proof");
+          const proofTags = event.tags.filter((tag) => tag[0] === "proof");
           if (proofTags.length === 0) continue;
-          
+
           const proofs = proofTags
-            .map(tag => {
+            .map((tag) => {
               try {
                 return JSON.parse(tag[1]);
               } catch (e) {
@@ -63,12 +68,12 @@ export function NutzapList({ postId }: NutzapListProps) {
               }
             })
             .filter(Boolean);
-          
+
           if (proofs.length === 0) continue;
-          
+
           // Calculate total amount
           const amount = proofs.reduce((sum, proof) => sum + proof.amount, 0);
-          
+
           // Create nutzap object
           const nutzap: Nutzap = {
             id: event.id,
@@ -77,21 +82,21 @@ export function NutzapList({ postId }: NutzapListProps) {
             content: event.content,
             proofs,
             mintUrl,
-            amount
+            amount,
           };
-          
+
           processedNutzaps.push(nutzap);
         } catch (error) {
           console.error("Error processing nutzap:", error);
         }
       }
-      
+
       // Sort by most recent first
       return processedNutzaps.sort((a, b) => b.createdAt - a.createdAt);
     },
     enabled: !!nostr && !!postId,
   });
-  
+
   if (isLoading) {
     return (
       <div className="space-y-2 mt-2">
@@ -106,38 +111,41 @@ export function NutzapList({ postId }: NutzapListProps) {
       </div>
     );
   }
-  
+
   if (!nutzaps || nutzaps.length === 0) {
     return null;
   }
-  
+
   // Calculate total amount
   const totalAmount = nutzaps.reduce((sum, nutzap) => sum + nutzap.amount, 0);
-  
+
   // Limit to 3 nutzaps unless showAll is true
   const displayNutzaps = showAll ? nutzaps : nutzaps.slice(0, 3);
-  
+
   return (
     <div className="mt-2 border-t pt-2">
       <div className="flex items-center gap-1 mb-2">
         <Zap className="h-3.5 w-3.5 text-amber-500" />
-        <span className="text-xs font-medium">{totalAmount} sats from {nutzaps.length} nutzap{nutzaps.length !== 1 ? 's' : ''}</span>
+        <span className="text-xs font-medium">
+          {totalAmount} sats from {nutzaps.length} cash zap
+          {nutzaps.length !== 1 ? "s" : ""}
+        </span>
       </div>
-      
+
       <div className="space-y-2">
         {displayNutzaps.map((nutzap) => (
           <NutzapItem key={nutzap.id} nutzap={nutzap} />
         ))}
       </div>
-      
+
       {nutzaps.length > 3 && (
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="text-xs mt-1 h-6 px-2"
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? "Show less" : `Show ${nutzaps.length - 3} more nutzaps`}
+          {showAll ? "Show less" : `Show ${nutzaps.length - 3} more Cash zaps`}
         </Button>
       )}
     </div>
@@ -150,11 +158,11 @@ interface NutzapItemProps {
 
 function NutzapItem({ nutzap }: NutzapItemProps) {
   const author = useAuthor(nutzap.pubkey);
-  
+
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || nutzap.pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
-  
+
   return (
     <div className="flex items-center gap-2">
       <Avatar className="h-5 w-5">
@@ -163,9 +171,13 @@ function NutzapItem({ nutzap }: NutzapItemProps) {
       </Avatar>
       <div className="flex items-center gap-1">
         <span className="text-xs font-medium">{displayName}</span>
-        <span className="text-xs text-muted-foreground">{nutzap.amount} sats</span>
+        <span className="text-xs text-muted-foreground">
+          {nutzap.amount} sats
+        </span>
         {nutzap.content && (
-          <span className="text-xs text-muted-foreground">- "{nutzap.content}"</span>
+          <span className="text-xs text-muted-foreground">
+            - "{nutzap.content}"
+          </span>
         )}
       </div>
     </div>
