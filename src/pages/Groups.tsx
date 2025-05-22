@@ -11,6 +11,7 @@ import { GroupCard } from "@/components/groups/GroupCard";
 import { GroupSearch } from "@/components/groups/GroupSearch";
 import { useState } from "react";
 import { useGroupStats } from "@/hooks/useGroupStats";
+import { useUserGroups } from "@/hooks/useUserGroups";
 
 export default function Groups() {
   const { nostr } = useNostr();
@@ -28,11 +29,35 @@ export default function Groups() {
     enabled: !!nostr,
   });
 
+  // Get user's groups
+  const { data: userGroups } = useUserGroups();
+
   // Query for community stats (posts and participants)
   const { data: communityStats, isLoading: isLoadingStats } = useGroupStats(communities);
 
-  // Filter communities based on search query
+  // Helper function to get community ID
+  const getCommunityId = (community) => {
+    const dTag = community.tags.find(tag => tag[0] === "d");
+    return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+  };
+
+  // Create a set of user's group IDs for efficient lookup
+  const userGroupIds = new Set();
+  if (userGroups?.allGroups) {
+    for (const group of userGroups.allGroups) {
+      userGroupIds.add(getCommunityId(group));
+    }
+  }
+
+  // Filter communities based on search query and exclude user's groups
   const filteredCommunities = communities?.filter(community => {
+    // Skip if this community is already in user's groups
+    const communityId = getCommunityId(community);
+    if (userGroupIds.has(communityId)) {
+      return false;
+    }
+
+    // Apply search filter if there's a query
     if (!searchQuery) return true;
 
     const nameTag = community.tags.find(tag => tag[0] === "name");
@@ -56,11 +81,14 @@ export default function Groups() {
 
       <div className="flex flex-col mt-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <div className="md:w-64 lg:w-72">
-            <GroupSearch
-              onSearch={setSearchQuery}
-              className="sticky top-0 z-10"
-            />
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold">All Groups</h2>
+            <div className="md:w-64 lg:w-72">
+              <GroupSearch
+                onSearch={setSearchQuery}
+                className="sticky top-0 z-10"
+              />
+            </div>
           </div>
         </div>
 
