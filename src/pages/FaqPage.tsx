@@ -12,7 +12,13 @@ export default function FaqPage() {
   const headings = doc.querySelectorAll('h2');
   const faqItems = Array.from(headings).map(heading => {
     const question = heading.textContent || '';
-    const answer = heading.nextElementSibling?.innerHTML || '';
+    // Get all content until the next h2
+    let answer = '';
+    let currentElement = heading.nextElementSibling;
+    while (currentElement && currentElement.tagName !== 'H2') {
+      answer += currentElement.outerHTML;
+      currentElement = currentElement.nextElementSibling;
+    }
     return { question, answer };
   });
 
