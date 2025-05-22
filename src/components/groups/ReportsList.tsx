@@ -3,13 +3,14 @@ import { useGroupReports, Report } from "@/hooks/useGroupReports";
 import { useReportActions, ModeratorAction } from "@/hooks/useReportActions";
 import { useAuthor } from "@/hooks/useAuthor";
 import { usePostById } from "@/hooks/usePostById";
+import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle, XCircle, UserX, Ban, MoreHorizontal } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle, UserX, Ban, MoreHorizontal, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   DropdownMenu,
@@ -37,6 +38,7 @@ interface ReportsListProps {
 export function ReportsList({ communityId }: ReportsListProps) {
   const { data: reports, isLoading, refetch } = useGroupReports(communityId);
   const { handleReportAction, isPending } = useReportActions();
+  const { approvedMembers, isLoading: isLoadingApprovedMembers } = useApprovedMembers(communityId);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [actionType, setActionType] = useState<ModeratorAction | null>(null);
   const [actionReason, setActionReason] = useState("");
@@ -157,6 +159,26 @@ export function ReportsList({ communityId }: ReportsListProps) {
             </div>
           )}
           
+          {selectedReport && actionType === "remove_user" && (
+            <div className="border border-muted rounded-md p-3 bg-muted/20 my-2">
+              <p className="text-sm font-medium mb-1">User to be removed:</p>
+              <div className="flex items-center gap-2 my-2">
+                <UserAvatar pubkey={selectedReport.reportedPubkey} />
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                <p>This will update the Kind 14550 approved members list to remove this user.</p>
+                {isLoadingApprovedMembers ? (
+                  <p className="mt-1 italic">Checking membership status...</p>
+                ) : approvedMembers?.includes(selectedReport.reportedPubkey) ? (
+                  <p className="mt-1">User is currently in the approved members list.</p>
+                ) : (
+                  <p className="mt-1 text-amber-600">Note: This user is not currently in the approved members list.</p>
+                )}
+                <p className="mt-1">User ID: <code className="bg-muted px-1 py-0.5 rounded">{selectedReport.reportedPubkey.slice(0, 8)}...{selectedReport.reportedPubkey.slice(-4)}</code></p>
+              </div>
+            </div>
+          )}
+          
           <div className="py-2">
             <Label htmlFor="action-reason">Reason (optional)</Label>
             <Textarea
@@ -203,6 +225,35 @@ function PostContentPreview({ eventId }: PostContentPreviewProps) {
   return (
     <div className="text-sm whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
       {post.content}
+    </div>
+  );
+}
+
+interface UserAvatarProps {
+  pubkey: string;
+}
+
+function UserAvatar({ pubkey }: UserAvatarProps) {
+  const author = useAuthor(pubkey);
+  const displayName = author.data?.metadata?.name || pubkey.slice(0, 8);
+  const profileImage = author.data?.metadata?.picture;
+  
+  if (author.isLoading) {
+    return <Skeleton className="h-10 w-10 rounded-full" />;
+  }
+  
+  return (
+    <div className="flex items-center gap-2">
+      <Avatar className="h-10 w-10">
+        <AvatarImage src={profileImage} />
+        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div>
+        <Link to={`/profile/${pubkey}`} className="font-medium text-sm hover:underline">
+          {displayName}
+        </Link>
+        <p className="text-xs text-muted-foreground">{pubkey.slice(0, 8)}...{pubkey.slice(-4)}</p>
+      </div>
     </div>
   );
 }

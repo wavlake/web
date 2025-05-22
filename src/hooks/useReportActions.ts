@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { useNostr } from "@/hooks/useNostr";
 import { NostrEvent } from "@nostrify/nostrify";
+import { useUpdateApprovedMembers } from "@/hooks/useUpdateApprovedMembers";
 
 export type ModeratorAction = "remove_content" | "remove_user" | "ban_user" | "no_action";
 
@@ -17,7 +18,7 @@ export interface ReportActionOptions {
 }
 
 export function useReportActions() {
-  const { mutateAsync: publishEvent, isPending } = useNostrPublish({
+  const { mutateAsync: publishEvent, isPending: isPublishPending } = useNostrPublish({
     invalidateQueries: [
       { queryKey: ["group-reports"] },
       { queryKey: ["approved-posts"] },
@@ -28,6 +29,9 @@ export function useReportActions() {
   // We'll initialize the banUser function inside handleReportAction
   const { banUser } = useBannedUsers();
   const { nostr } = useNostr();
+  const { removeFromApprovedList, isPending: isRemovePending } = useUpdateApprovedMembers();
+  
+  const isPending = isPublishPending || isRemovePending;
 
   const handleReportAction = async (options: ReportActionOptions) => {
     if (!user) {
@@ -111,14 +115,18 @@ export function useReportActions() {
           
         case "remove_user":
           // Remove user from approved members list
-          await publishEvent({
-            kind: 14550, // Approved members list
-            tags: [
-              ["a", communityId],
-              ["remove", pubkey]
-            ],
-            content: "Removed user based on report",
-          });
+          const result = await removeFromApprovedList(pubkey, communityId);
+          
+          if (result.success) {
+            if (result.message === "User is not in the approved members list") {
+              toast.info("User was already not in the approved members list");
+            } else {
+              toast.success("User removed from approved members list");
+            }
+          } else {
+            toast.error(result.message);
+            throw new Error(result.message);
+          }
           break;
           
         case "ban_user":
