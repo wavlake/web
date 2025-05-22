@@ -94,9 +94,6 @@ Chorus implements several Nostr Improvement Proposals (NIPs) to provide a rich f
 # Clone the repository
 git clone https://github.com/andotherstuff/chorus.git
 
-# Install dependencies
-npm install
-
 # Start development server
 npm run dev
 
