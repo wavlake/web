@@ -3,10 +3,12 @@ import { useNostr } from '@nostrify/react';
 import { useCallback, useMemo } from 'react';
 
 import { useAuthor } from './useAuthor.ts';
+import { useLoggedInAccounts } from './useLoggedInAccounts.ts';
 
 export function useCurrentUser() {
   const { nostr } = useNostr();
   const { logins } = useNostrLogin();
+  const { currentUser: loggedInAccount } = useLoggedInAccounts();
 
   const loginToUser = useCallback((login: NLoginType): NUser  => {
     switch (login.type) {
@@ -38,11 +40,25 @@ export function useCurrentUser() {
   }, [logins, loginToUser]);
 
   const user = users[0] as NUser | undefined;
-  const author = useAuthor(user?.pubkey);
+  
+  // Fallback to useLoggedInAccounts if no user found through Nostrify
+  const fallbackUser = useMemo(() => {
+    if (user || !loggedInAccount) return null;
+    
+    // Create a compatible user object from loggedInAccount
+    return {
+      pubkey: loggedInAccount.pubkey,
+      signer: typeof window !== 'undefined' && (window as any).nostr ? (window as any).nostr : null,
+      method: 'extension' as const
+    } as any;
+  }, [user, loggedInAccount]);
+  
+  const finalUser = user || fallbackUser;
+  const author = useAuthor(finalUser?.pubkey);
 
   return {
-    user,
-    users,
+    user: finalUser,
+    users: finalUser ? [finalUser] : [],
     ...author.data,
   };
 }

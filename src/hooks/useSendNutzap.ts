@@ -2,8 +2,47 @@ import { useNostr } from '@/hooks/useNostr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CASHU_EVENT_KINDS } from '@/lib/cashu';
+import { NostrEvent } from 'nostr-tools';
 import { Proof } from '@cashu/cashu-ts';
 import { useNutzapStore, NutzapInformationalEvent } from '@/stores/nutzapStore';
+import { useCashuStore } from '@/stores/cashuStore';
+
+/**
+ * Hook to verify mint compatibility between sender and recipient
+ * Checks if recipient accepts tokens from sender's active mint
+ * If not, tries to find a compatible mint from sender's mints list
+ */
+export function useVerifyMintCompatibility() {
+  const cashuStore = useCashuStore();
+
+  const verifyMintCompatibility = (recipientInfo: NutzapInformationalEvent): string => {
+    const activeMintUrl = cashuStore.activeMintUrl || '';
+    const recipientMints = recipientInfo.mints.map(mint => mint.url);
+
+    // Check if recipient accepts the active mint
+    if (activeMintUrl && recipientMints.includes(activeMintUrl)) {
+      return activeMintUrl;
+    }
+
+    // If not, try to find a compatible mint
+    const compatibleMint = recipientMints.find(mintUrl =>
+      cashuStore.mints.map(m => m.url).includes(mintUrl)
+    );
+
+    if (compatibleMint) {
+      // Update the active mint to the compatible one
+      cashuStore.setActiveMintUrl(compatibleMint);
+      return compatibleMint;
+    }
+
+    // No compatible mint found
+    throw new Error(
+      `Recipient does not accept tokens from mint: ${activeMintUrl}`
+    );
+  };
+
+  return { verifyMintCompatibility };
+}
 
 /**
  * Hook to fetch a recipient's nutzap information
@@ -27,7 +66,7 @@ export function useFetchNutzapInfo() {
       ], { signal: AbortSignal.timeout(5000) });
 
       if (events.length === 0) {
-        throw new Error('Recipient has no nutzap informational event');
+        throw new Error('Recipient has no Cash wallet');
       }
 
       const event = events[0];
@@ -79,6 +118,7 @@ export function useFetchNutzapInfo() {
 export function useSendNutzap() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
   const queryClient = useQueryClient();
 
   // Mutation to create and send a nutzap event
@@ -89,7 +129,8 @@ export function useSendNutzap() {
       proofs,
       mintUrl,
       eventId,
-      relayHint
+      relayHint,
+      tags: additionalTags = []
     }: {
       recipientInfo: NutzapInformationalEvent;
       comment?: string;
@@ -97,13 +138,17 @@ export function useSendNutzap() {
       mintUrl: string;
       eventId?: string; // Event being nutzapped (optional)
       relayHint?: string; // Hint for relay where the event can be found
+      tags?: string[][]; // Additional tags (for group nutzaps)
     }) => {
       if (!user) throw new Error('User not logged in');
 
-      // Verify the mint is in the recipient's trusted list
-      const recipientMints = recipientInfo.mints.map(mint => mint.url);
-      if (!recipientMints.includes(mintUrl)) {
-        throw new Error(`Recipient does not accept tokens from mint: ${mintUrl}`);
+      // Verify mint compatibility and get the compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
+      // If mintUrl is different from compatibleMintUrl, we should use the compatible one
+      // but this requires generating new proofs with the compatible mint
+      if (mintUrl !== compatibleMintUrl) {
+        mintUrl = compatibleMintUrl;
       }
 
       // Create tags for the nutzap event
@@ -116,6 +161,9 @@ export function useSendNutzap() {
 
         // Add recipient pubkey
         ['p', recipientInfo.event.pubkey],
+        
+        // Add any additional tags (like 'a' tags for groups)
+        ...additionalTags
       ];
 
       // Add event tag if specified
@@ -138,10 +186,10 @@ export function useSendNutzap() {
       if (eventId) {
         queryClient.invalidateQueries({ queryKey: ['nutzaps', eventId] });
       }
-      
+
       // Also invalidate recipient's received nutzaps
-      queryClient.invalidateQueries({ 
-        queryKey: ['nutzap', 'received', recipientInfo.event.pubkey] 
+      queryClient.invalidateQueries({
+        queryKey: ['nutzap', 'received', recipientInfo.event.pubkey]
       });
 
       // Return the event

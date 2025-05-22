@@ -1,8 +1,8 @@
 import { useNostr } from "./useNostr";
 import { useCurrentUser } from "./useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
-import type { NostrEvent } from "@nostrify/nostrify";
-import { usePinnedGroups, PinnedGroup } from "./usePinnedGroups";
+import type { NostrEvent, NostrFilter } from "@nostrify/nostrify";
+import { usePinnedGroups } from "./usePinnedGroups";
 
 // Helper function to get a unique community ID
 function getCommunityId(community: NostrEvent): string {
@@ -26,16 +26,102 @@ export function useUserGroups() {
         allGroups: [] as NostrEvent[] // Added to track all groups the user is part of
       };
 
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(7000)]); // Increased timeout
 
-      // Fetch all communities
-      const allCommunities = await nostr.query(
+      // Step 1: Directly fetch communities where the user is listed as a member
+      // This query fetches approved members lists where the user is explicitly listed
+      const membershipLists = await nostr.query(
+        [{ kinds: [14550], "#p": [user.pubkey], limit: 100 }],
+        { signal }
+      );
+
+      // Extract community IDs from the membership lists
+      const communityIds = new Set<string>();
+      for (const list of membershipLists) {
+        const communityRef = list.tags.find(tag => tag[0] === "a");
+        if (communityRef) {
+          communityIds.add(communityRef[1]);
+        }
+      }
+
+      // Step 2: Fetch all communities the user owns or is moderating
+      const ownedModeratedCommunities = await nostr.query(
         [
-          { kinds: [34550], '#p': [user.pubkey] },
-          { kinds: [34550], authors: [user.pubkey] },
+          { kinds: [34550], authors: [user.pubkey] }, // Owned
+          { kinds: [34550], "#p": [user.pubkey] },    // Possibly moderated
         ],
         { signal },
       );
+
+      // Add these communities to our ID set as well
+      for (const community of ownedModeratedCommunities) {
+        const communityId = getCommunityId(community);
+        communityIds.add(communityId);
+      }
+
+      // Step 3: Fetch all the community details for communities the user is part of
+      // This includes communities where the user is a member, moderator, or owner
+      const allCommunityIds = [...communityIds];
+      
+      // Break the query into batches if there are many communities
+      const batchSize = 20;
+      const communityBatches: string[][] = [];
+      
+      for (let i = 0; i < allCommunityIds.length; i += batchSize) {
+        const batch = allCommunityIds.slice(i, i + batchSize);
+        communityBatches.push(batch);
+      }
+
+      // Query all communities the user is part of
+      let allCommunities: NostrEvent[] = [];
+      
+      // If there are communities to fetch, proceed
+      if (communityBatches.length > 0) {
+        // Make batch queries for community information
+        const communityPromises = communityBatches.map(batch => {
+          // For each community ID, we need to extract kind, pubkey, and identifier
+          const filters: NostrFilter[] = batch.map(id => {
+            const parts = id.split(":");
+            if (parts.length === 3) {
+              return {
+                kinds: [parseInt(parts[0])], 
+                authors: [parts[1]],
+                "#d": [parts[2]]
+              };
+            }
+            return { kinds: [0] }; // Fallback filter that won't match anything
+          }).filter(f => f.kinds[0] !== 0); // Filter out any fallback filters
+          
+          return nostr.query(filters, { signal });
+        });
+
+        // Wait for all batches to complete
+        const communityBatchResults = await Promise.all(communityPromises);
+        allCommunities = communityBatchResults.flat();
+      }
+
+      // Also fetch communities the user has pinned
+      if (pinnedGroups.length > 0) {
+        const pinnedFilters = pinnedGroups.map(pinned => {
+          const [kindStr, pubkey, identifier] = pinned.communityId.split(":");
+          const kind = parseInt(kindStr, 10);
+          return {
+            kinds: [isNaN(kind) ? 34550 : kind],
+            authors: [pubkey],
+            "#d": [identifier],
+            limit: 1
+          };
+        });
+
+        const pinnedCommunityEvents = await nostr.query(pinnedFilters, { signal });
+        
+        // Add to our all communities collection
+        for (const event of pinnedCommunityEvents) {
+          if (!allCommunities.some(c => c.id === event.id)) {
+            allCommunities.push(event);
+          }
+        }
+      }
 
       // Create a map of community IDs to community events for faster lookups
       const communityMap = new Map<string, NostrEvent>();
@@ -44,12 +130,11 @@ export function useUserGroups() {
         communityMap.set(communityId, community);
       }
 
-      // Owned communities (where user is the creator)
+      // Categorize communities
       const ownedCommunities = allCommunities.filter(
         (community) => community.pubkey === user.pubkey
       );
 
-      // Moderated communities (where user is listed as a moderator)
       const moderatedCommunities = allCommunities.filter(
         (community) =>
           community.pubkey !== user.pubkey && // Not already counted as owned
@@ -60,70 +145,55 @@ export function useUserGroups() {
           )
       );
 
-      // Fetch all approved members lists
+      // Step 4: Fetch all approved members lists for the communities we've found
       const approvedMembersLists = await nostr.query([
         {
           kinds: [14550],
-          '#a': [...communityMap.keys()], // Use the keys from the community map
+          '#a': [...communityMap.keys()], // Use the community IDs
+          '#p': [user.pubkey], // Only get lists that include the user
           limit: 200
         }
       ], { signal });
 
-      // Create a map of community IDs to their approved members lists
-      const communityMembersMap = new Map<string, string[]>();
-
+      // Create a set of community IDs where user is a member
+      const memberCommunityIds = new Set<string>();
+      
       for (const list of approvedMembersLists) {
         const communityRef = list.tags.find(tag => tag[0] === "a");
         if (communityRef) {
           const communityId = communityRef[1];
-          const memberPubkeys = list.tags
-            .filter(tag => tag[0] === "p")
-            .map(tag => tag[1]);
-
-          communityMembersMap.set(communityId, memberPubkeys);
+          const isUserIncluded = list.tags.some(tag => 
+            tag[0] === "p" && tag[1] === user.pubkey
+          );
+          
+          if (isUserIncluded) {
+            memberCommunityIds.add(communityId);
+          }
         }
       }
 
-      // Communities where user is an approved member
-      const memberCommunities: NostrEvent[] = [];
-
-      // Check each community to see if the user is a member
-      for (const community of allCommunities) {
-        // Skip if already in owned or moderated
-        if (ownedCommunities.includes(community) || moderatedCommunities.includes(community)) {
-          continue;
-        }
-
+      // Find communities where user is just a member (not owner or moderator)
+      const memberCommunities = allCommunities.filter(community => {
         const communityId = getCommunityId(community);
-        const membersList = communityMembersMap.get(communityId);
-
-        if (membersList?.includes(user.pubkey)) {
-          memberCommunities.push(community);
-        }
-      }
+        return memberCommunityIds.has(communityId) && 
+          !ownedCommunities.includes(community) &&
+          !moderatedCommunities.includes(community);
+      });
 
       // Process pinned groups
       const pinnedCommunities: NostrEvent[] = [];
-
-      // Track which communities have been processed for each category
       const processedInPinned = new Set<string>();
 
-      // Process pinned groups first
       for (const pinnedGroup of pinnedGroups) {
-        const [_, pubkey, identifier] = pinnedGroup.communityId.split(":");
-
-        // Find the community in our fetched communities
-        const community = allCommunities.find(c => {
-          const dTag = c.tags.find(tag => tag[0] === "d");
-          return c.pubkey === pubkey && dTag && dTag[1] === identifier;
-        });
-
-        if (community) {
-          pinnedCommunities.push(community);
-
-          // Mark this community as processed in pinned
-          const communityId = getCommunityId(community);
-          processedInPinned.add(communityId);
+        const communityId = pinnedGroup.communityId;
+        
+        // Find the community in our fetched communities using the map
+        for (const [id, community] of communityMap.entries()) {
+          if (id === communityId) {
+            pinnedCommunities.push(community);
+            processedInPinned.add(id);
+            break;
+          }
         }
       }
 
@@ -144,15 +214,7 @@ export function useUserGroups() {
       });
 
       // Create a list of all unique groups the user is part of
-      const allGroups = [...pinnedCommunities];
-
-      // Add other categories ensuring no duplicates
-      for (const community of [...filteredOwned, ...filteredModerated, ...filteredMember]) {
-        const communityId = getCommunityId(community);
-        if (!processedInPinned.has(communityId)) {
-          allGroups.push(community);
-        }
-      }
+      const allGroups = [...pinnedCommunities, ...filteredOwned, ...filteredModerated, ...filteredMember];
 
       return {
         pinned: pinnedCommunities,
