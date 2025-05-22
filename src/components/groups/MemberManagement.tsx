@@ -5,7 +5,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -370,34 +371,43 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="mb-4 overflow-x-auto">
-            <TabsList className="w-full min-w-max grid grid-cols-4 h-auto">
-              <TabsTrigger value="requests" className="flex flex-col items-center gap-1 p-2 text-xs relative">
-                <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Requests</span>
-                <span className="sm:hidden">Req</span>
-                {pendingRequests.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {pendingRequests.length > 9 ? '9+' : pendingRequests.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="members" className="flex flex-col items-center gap-1 p-2 text-xs">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Members</span>
-                <span className="sm:hidden">Mem</span>
-              </TabsTrigger>
-              <TabsTrigger value="declined" className="flex flex-col items-center gap-1 p-2 text-xs">
-                <UserX className="h-4 w-4" />
-                <span className="hidden sm:inline">Declined</span>
-                <span className="sm:hidden">Dec</span>
-              </TabsTrigger>
-              <TabsTrigger value="banned" className="flex flex-col items-center gap-1 p-2 text-xs">
-                <Ban className="h-4 w-4" />
-                <span className="hidden sm:inline">Banned</span>
-                <span className="sm:hidden">Ban</span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="mb-4 w-full max-w-xs">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select member category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="requests">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Requests</span>
+                    {pendingRequests.length > 0 && (
+                      <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs ml-auto">
+                        {pendingRequests.length > 9 ? '9+' : pendingRequests.length}
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+                <SelectItem value="members">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Members</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="declined">
+                  <div className="flex items-center gap-2">
+                    <UserX className="h-4 w-4" />
+                    <span>Declined</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="banned">
+                  <div className="flex items-center gap-2">
+                    <Ban className="h-4 w-4" />
+                    <span>Banned</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <TabsContent value="requests">
