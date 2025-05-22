@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useNostr } from "@/hooks/useNostr";
 import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
+  const location = useLocation();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
@@ -36,6 +37,12 @@ export default function GroupDetail() {
   const [currentPostCount, setCurrentPostCount] = useState(0); // State for post count
   const [activeTab, setActiveTab] = useState("posts");
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
+  
+  // Get URL parameters and hash
+  const searchParams = new URLSearchParams(location.search);
+  const reportId = searchParams.get('reportId');
+  const membersTab = searchParams.get('membersTab');
+  const hash = location.hash.replace('#', '');
 
   useEffect(() => {
     if (groupId) {
@@ -76,6 +83,25 @@ export default function GroupDetail() {
 
   // Query for pending replies
   const { data: pendingReplies = [] } = usePendingReplies(groupId || '');
+
+  // Calculate total pending items (posts + replies)
+  const totalPendingCount = (pendingPostsCount || 0) + pendingReplies.length;
+
+  // Set active tab based on URL hash, parameters, or pending items
+  useEffect(() => {
+    // First priority: Check if there's a hash in the URL that matches a tab
+    if (hash && ["posts", "pending", "members", "reports", "about"].includes(hash)) {
+      setActiveTab(hash);
+    } 
+    // Second priority: Check for reportId parameter
+    else if (reportId && isModerator) {
+      setActiveTab("reports");
+    }
+    // Third priority: Check for pending items
+    else if (isModerator && totalPendingCount > 0) {
+      setActiveTab("pending");
+    }
+  }, [hash, reportId, isModerator, totalPendingCount]);
 
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
