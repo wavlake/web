@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useCashuToken } from "@/hooks/useCashuToken";
 import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 
 export function CashuWalletCard() {
   const { user } = useCurrentUser();
@@ -37,10 +38,10 @@ export function CashuWalletCard() {
   const cashuStore = useCashuStore();
   const { cleanSpentProofs } = useCashuToken();
   const { data: btcPrice } = useBitcoinPrice();
+  const { showSats, toggleCurrency } = useCurrencyDisplayStore();
   const [newMint, setNewMint] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [expandedMint, setExpandedMint] = useState<string | null>(null);
-  const [showSats, setShowSats] = useState(false);
   const [flashingMints, setFlashingMints] = useState<Record<string, boolean>>({});
 
   // Calculate total balance across all mints
@@ -211,7 +212,7 @@ export function CashuWalletCard() {
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium">Mints</h3>
             <button
-              onClick={() => setShowSats(!showSats)}
+              onClick={() => toggleCurrency()}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Show in {showSats ? 'USD' : 'sats'}
