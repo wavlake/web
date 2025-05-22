@@ -211,21 +211,18 @@ export default function GroupDetail() {
                         {openReportsCount > 0 && (
                           <Badge 
                             variant="destructive" 
-                            className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                            className={`absolute -top-2 h-5 w-5 p-0 flex items-center justify-center text-xs z-10 ${
+                              pendingRequestsCount > 0 ? 'right-0' : '-right-2'
+                            }`}
                           >
                             {openReportsCount > 99 ? '99+' : openReportsCount}
                           </Badge>
                         )}
-                        {pendingRequestsCount > 0 && openReportsCount === 0 && (
+                        {pendingRequestsCount > 0 && (
                           <Badge 
-                            className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
-                          >
-                            {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
-                          </Badge>
-                        )}
-                        {pendingRequestsCount > 0 && openReportsCount > 0 && (
-                          <Badge 
-                            className="absolute -top-2 -left-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
+                            className={`absolute -top-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600 ${
+                              openReportsCount > 0 ? 'right-3' : '-right-2'
+                            }`}
                           >
                             {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
                           </Badge>
