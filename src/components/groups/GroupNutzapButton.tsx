@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Zap, DollarSign } from "lucide-react";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
@@ -30,12 +34,12 @@ interface GroupNutzapButtonProps {
   className?: string;
 }
 
-export function GroupNutzapButton({ 
-  groupId, 
-  ownerPubkey, 
-  variant = "default", 
+export function GroupNutzapButton({
+  groupId,
+  ownerPubkey,
+  variant = "default",
   size = "default",
-  className = ""
+  className = "",
 }: GroupNutzapButtonProps) {
   const { user } = useCurrentUser();
   const { wallet } = useCashuWallet();
@@ -43,6 +47,7 @@ export function GroupNutzapButton({
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
   const { showSats } = useCurrencyDisplayStore();
   const { data: btcPrice } = useBitcoinPrice();
 
@@ -66,17 +71,19 @@ export function GroupNutzapButton({
       toast.error("You must be logged in to send eCash");
       return;
     }
-    
+
     if (!wallet) {
       toast.error("You need to set up a Cashu wallet first");
       return;
     }
-    
+
     if (!cashuStore.activeMintUrl) {
-      toast.error("No active mint selected. Please select a mint in your wallet settings.");
+      toast.error(
+        "No active mint selected. Please select a mint in your wallet settings."
+      );
       return;
     }
-    
+
     setIsDialogOpen(true);
   };
 
@@ -98,7 +105,7 @@ export function GroupNutzapButton({
 
       // Convert amount based on currency preference
       let amountValue: number;
-      
+
       if (showSats) {
         amountValue = parseInt(amount);
       } else {
@@ -108,7 +115,7 @@ export function GroupNutzapButton({
           return;
         }
         const usdAmount = parseFloat(amount);
-        amountValue = Math.round(usdAmount / btcPrice.USD * 100000000); // Convert USD to sats
+        amountValue = Math.round((usdAmount / btcPrice.USD) * 100000000); // Convert USD to sats
       }
 
       if (amountValue < 1) {
@@ -116,9 +123,12 @@ export function GroupNutzapButton({
         return;
       }
 
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -128,13 +138,15 @@ export function GroupNutzapButton({
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
         // Instead of eventId, we'll add the a-tag in the tags array
         // We're using the groupId which is in the format "34550:pubkey:identifier"
-        tags: [["a", groupId]] // Add the group identifier as an a-tag
+        tags: [["a", groupId]], // Add the group identifier as an a-tag
       });
 
-      toast.success(`Successfully sent ${formatAmount(amountValue)} to group owner`);
+      toast.success(
+        `Successfully sent ${formatAmount(amountValue)} to group owner`
+      );
       setAmount("");
       setComment("");
       setIsDialogOpen(false);
@@ -194,8 +206,8 @@ export function GroupNutzapButton({
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSendNutzap}
               disabled={isProcessing || isSending || isFetching || !amount}
             >
