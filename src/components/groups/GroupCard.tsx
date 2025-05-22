@@ -72,6 +72,7 @@ export function GroupCard({
 
   const handleTogglePin = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
 
     if (!user) {
       toast.error("Please log in to pin/unpin groups.");
@@ -95,112 +96,114 @@ export function GroupCard({
 
   // Style adjustments based on membership
   const cardStyle = cn(
-    "overflow-hidden flex flex-col relative group h-full",
+    "overflow-hidden flex flex-col relative group h-full transition-colors hover:bg-accent/5 cursor-pointer",
     isPinned && "ring-1 ring-primary/20",
     isUserMember && "bg-primary/5" // Subtle highlight for groups the user is a member of
   );
 
   return (
-    <Card className={cardStyle}>
-      {displayRole && (
-        <div className="absolute top-2 right-10 z-10">
-          <RoleBadge role={displayRole} />
-        </div>
-      )}
+    <Link to={`/group/${encodeURIComponent(communityId)}`}>
+      <Card className={cardStyle}>
+        {displayRole && (
+          <div className="absolute top-2 right-10 z-10">
+            <RoleBadge role={displayRole} />
+          </div>
+        )}
 
-      <CardHeader className="flex flex-row items-center space-y-0 gap-3 pt-4 pb-2 px-3">
-        <Link to={`/group/${encodeURIComponent(communityId)}`} className="flex items-center gap-3">
-          <Avatar className="h-12 w-12 rounded-md">
-            <AvatarImage src={image} alt={name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <CardTitle className="text-sm font-medium leading-tight hover:underline">{name}</CardTitle>
-            <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
-              {isLoadingStats ? (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    ...
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    ...
-                  </div>
-                </>
-              ) : stats ? (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    {stats.posts}
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    {stats.participants.size}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    0
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    0
-                  </div>
-                </>
-              )}
+        <CardHeader className="flex flex-row items-center space-y-0 gap-3 pt-4 pb-2 px-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12 rounded-md">
+              <AvatarImage src={image} alt={name} />
+              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-medium leading-tight">{name}</CardTitle>
+              <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                {isLoadingStats ? (
+                  <>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
+                      <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                      ...
+                    </div>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
+                      <Activity className="h-2.5 w-2.5 mr-0.5" />
+                      ...
+                    </div>
+                  </>
+                ) : stats ? (
+                  <>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                      <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                      {stats.posts}
+                    </div>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                      <Activity className="h-2.5 w-2.5 mr-0.5" />
+                      {stats.participants.size}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                      <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                      0
+                    </div>
+                    <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                      <Activity className="h-2.5 w-2.5 mr-0.5" />
+                      0
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </Link>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="px-3 pb-3 pt-0">
-        <div className="line-clamp-2 text-xs">{description}</div>
-      </CardContent>
+        <CardContent className="px-3 pb-3 pt-0">
+          <div className="line-clamp-2 text-xs">{description}</div>
+        </CardContent>
 
-      {user && (
-        <DropdownMenu>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80"
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={isUpdating}
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                    <span className="sr-only">Group options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                Group options
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <DropdownMenuContent align="end" className="w-40">
-            {isPinned ? (
-              <DropdownMenuItem onClick={handleTogglePin}>
-                <PinOff className="h-4 w-4 mr-2" />
-                Unpin group
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={handleTogglePin}>
-                <Pin className="h-4 w-4 mr-2" />
-                Pin group
-              </DropdownMenuItem>
-            )}
-            {!isUserMember && <JoinRequestMenuItem communityId={communityId} />}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </Card>
+        {user && (
+          <DropdownMenu>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80"
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={isUpdating}
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                      <span className="sr-only">Group options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Group options
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <DropdownMenuContent align="end" className="w-40" onClick={(e) => e.stopPropagation()}>
+              {isPinned ? (
+                <DropdownMenuItem onClick={handleTogglePin}>
+                  <PinOff className="h-4 w-4 mr-2" />
+                  Unpin group
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={handleTogglePin}>
+                  <Pin className="h-4 w-4 mr-2" />
+                  Pin group
+                </DropdownMenuItem>
+              )}
+              {!isUserMember && <JoinRequestMenuItem communityId={communityId} />}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </Card>
+    </Link>
   );
 }
