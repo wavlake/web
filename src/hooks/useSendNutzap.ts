@@ -89,7 +89,8 @@ export function useSendNutzap() {
       proofs,
       mintUrl,
       eventId,
-      relayHint
+      relayHint,
+      tags: additionalTags = []
     }: {
       recipientInfo: NutzapInformationalEvent;
       comment?: string;
@@ -97,6 +98,7 @@ export function useSendNutzap() {
       mintUrl: string;
       eventId?: string; // Event being nutzapped (optional)
       relayHint?: string; // Hint for relay where the event can be found
+      tags?: string[][]; // Additional tags (for group nutzaps)
     }) => {
       if (!user) throw new Error('User not logged in');
 
@@ -116,6 +118,9 @@ export function useSendNutzap() {
 
         // Add recipient pubkey
         ['p', recipientInfo.event.pubkey],
+        
+        // Add any additional tags (like 'a' tags for groups)
+        ...additionalTags
       ];
 
       // Add event tag if specified
