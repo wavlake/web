@@ -4,7 +4,7 @@ import { formatBalance } from "@/lib/cashu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Zap } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface GroupNutzapListProps {
@@ -45,7 +45,7 @@ export function GroupNutzapList({ groupId }: GroupNutzapListProps) {
     return (
       <Card>
         <CardContent className="pt-6 text-center text-muted-foreground">
-          No nutzaps for this group yet.
+          No eCash for this group yet.
         </CardContent>
       </Card>
     );
@@ -98,7 +98,7 @@ function NutzapItem({ event }: { event: any }) {
             </div>
           </Link>
           <div className="flex items-center text-amber-500">
-            <Zap className="h-4 w-4 mr-1" />
+            <DollarSign className="h-4 w-4 mr-1" />
             <span className="font-medium">{formatBalance(totalAmount)}</span>
           </div>
         </div>

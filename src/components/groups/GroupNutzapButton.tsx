@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
@@ -48,7 +48,7 @@ export function GroupNutzapButton({
 
   const handleOpenDialog = () => {
     if (!user) {
-      toast.error("You must be logged in to send nutzaps");
+      toast.error("You must be logged in to send eCash");
       return;
     }
     
@@ -122,8 +122,8 @@ export function GroupNutzapButton({
         className={`flex items-center ${className}`}
         onClick={handleOpenDialog}
       >
-        <Zap className="h-4 w-4 mr-2" />
-        <span>Nutzap Group</span>
+        <DollarSign className="h-4 w-4 mr-2" />
+        <span>eCash Group</span>
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -131,7 +131,7 @@ export function GroupNutzapButton({
           <DialogHeader>
             <DialogTitle>Support this Group</DialogTitle>
             <DialogDescription>
-              Send a Cashu token to the group owner to show your support.
+              Send eCash to the group owner to show your support.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -167,7 +167,7 @@ export function GroupNutzapButton({
               onClick={handleSendNutzap}
               disabled={isProcessing || isSending || isFetching || !amount}
             >
-              {isProcessing ? "Sending..." : "Send Nutzap"}
+              {isProcessing ? "Sending..." : "Send eCash"}
             </Button>
           </DialogFooter>
         </DialogContent>
