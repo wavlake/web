@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { AlertTriangle, CheckCircle, XCircle, UserX, Ban, MoreHorizontal, User } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle, UserX, Ban, MoreHorizontal, User, Inbox as InboxIcon, Archive as ArchiveIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ReportsListProps {
   communityId: string;
@@ -43,6 +44,7 @@ export function ReportsList({ communityId }: ReportsListProps) {
   const [actionType, setActionType] = useState<ModeratorAction | null>(null);
   const [actionReason, setActionReason] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("open");
 
   const handleAction = async () => {
     if (!selectedReport || !actionType) return;
@@ -116,15 +118,74 @@ export function ReportsList({ communityId }: ReportsListProps) {
     );
   }
 
+  // Separate reports into open and closed
+  const openReports = reports.filter(report => !report.isClosed);
+  const closedReports = reports.filter(report => report.isClosed);
+
+  // Count for badges
+  const openCount = openReports.length;
+  const closedCount = closedReports.length;
+
   return (
     <div className="space-y-4">
-      {reports.map((report) => (
-        <ReportItem 
-          key={report.id} 
-          report={report} 
-          onAction={(action) => openActionDialog(report, action)} 
-        />
-      ))}
+      <Tabs defaultValue="open" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 mb-4">
+          <TabsTrigger value="open" className="flex items-center gap-2">
+            <InboxIcon className="h-4 w-4" /> 
+            Open Reports
+            {openCount > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                {openCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="closed" className="flex items-center gap-2">
+            <ArchiveIcon className="h-4 w-4" /> 
+            Closed Reports
+            {closedCount > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {closedCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="open" className="space-y-4">
+          {openReports.length === 0 ? (
+            <Card className="p-8 text-center">
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500 opacity-50" />
+              <p className="text-muted-foreground mb-2">No open reports</p>
+              <p className="text-sm">All reports have been handled. Great job!</p>
+            </Card>
+          ) : (
+            openReports.map((report) => (
+              <ReportItem 
+                key={report.id} 
+                report={report} 
+                onAction={(action) => openActionDialog(report, action)} 
+              />
+            ))
+          )}
+        </TabsContent>
+        
+        <TabsContent value="closed" className="space-y-4">
+          {closedReports.length === 0 ? (
+            <Card className="p-8 text-center">
+              <ArchiveIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground mb-2">No closed reports</p>
+              <p className="text-sm">Closed reports will appear here after you take action on them.</p>
+            </Card>
+          ) : (
+            closedReports.map((report) => (
+              <ReportItem 
+                key={report.id} 
+                report={report} 
+                onAction={(action) => openActionDialog(report, action)} 
+              />
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
