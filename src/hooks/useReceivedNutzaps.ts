@@ -206,6 +206,9 @@ export function useReceivedNutzaps() {
             zappedEvent = eventTag[1];
           }
 
+          // log the event
+          console.log('nutzap event', event);
+
           // Add to received nutzaps
           receivedNutzaps.push({
             id: event.id,
