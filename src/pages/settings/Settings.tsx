@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/ui/Header";
-import { Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Eye, EyeOff, Copy, Check, Smartphone } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Navigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { nip19 } from 'nostr-tools';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 export default function Settings() {
   const { user } = useCurrentUser();
@@ -176,6 +177,31 @@ export default function Settings() {
                   "Your private key is stored locally. Keep it secure and never share it with anyone."
                 }
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PWA Install Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Install App
+            </CardTitle>
+            <CardDescription>Get the full app experience by installing +chorus on your device</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Install +chorus as a Progressive Web App (PWA) for:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Faster loading and offline access</li>
+                <li>• Native app-like experience</li>
+                <li>• Quick access from your home screen</li>
+                <li>• Push notifications (when available)</li>
+              </ul>
+              <PWAInstallButton variant="default" className="w-full sm:w-auto" />
             </div>
           </CardContent>
         </Card>

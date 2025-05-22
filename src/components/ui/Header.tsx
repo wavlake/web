@@ -1,4 +1,5 @@
 import { LoginArea } from "@/components/auth/LoginArea";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 import type React from "react";
 import { Link } from "react-router-dom";
 
@@ -14,7 +15,8 @@ const Header: React.FC<HeaderProps> = ({ className }) => (
         chorus
       </h1>
     </Link>
-    <div className="flex items-center">
+    <div className="flex items-center gap-2">
+      <PWAInstallButton variant="ghost" size="sm" className="hidden sm:flex" />
       <LoginArea />
     </div>
   </div>

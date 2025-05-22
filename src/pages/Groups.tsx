@@ -12,6 +12,8 @@ import { useGroupStats } from "@/hooks/useGroupStats";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { GroupCard } from "@/components/groups/GroupCard";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
+import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import type { NostrEvent } from "@nostrify/nostrify";
 import type { UserRole } from "@/hooks/useUserRole";
 
@@ -26,6 +28,19 @@ export default function Groups() {
   const { user } = useCurrentUser();
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showPWAInstructions, setShowPWAInstructions] = useState(false);
+
+  // Listen for PWA instructions event from banner
+  useEffect(() => {
+    const handleOpenPWAInstructions = () => {
+      setShowPWAInstructions(true);
+    };
+
+    window.addEventListener('open-pwa-instructions', handleOpenPWAInstructions);
+    return () => {
+      window.removeEventListener('open-pwa-instructions', handleOpenPWAInstructions);
+    };
+  }, []);
 
   // Fetch all communities with improved error handling and timeout
   const { data: allGroups, isLoading: isGroupsLoading } = useQuery({
@@ -250,6 +265,15 @@ export default function Groups() {
           )}
         </div>
       </div>
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
+
+      {/* PWA Install Instructions Dialog */}
+      <PWAInstallInstructions
+        isOpen={showPWAInstructions}
+        onClose={() => setShowPWAInstructions(false)}
+      />
     </div>
   );
 }
