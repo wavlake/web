@@ -2,7 +2,7 @@
 
 ## What is +chorus?
 
-**+chorus** is a simple, decentralized space for communities to gather, share, and grow — built by the team at [And Other Stuff (AOS)](https://andotherstuff.org/) on the open [Nostr](https://github.com/nostr-protocol/nostr) protocol.
++chorus is a simple, decentralized space for communities to gather, share, and grow — built by the team at [And Other Stuff (AOS)](https://andotherstuff.org/) on the open [Nostr](https://github.com/nostr-protocol/nostr) protocol.
 
 **You can use +chorus to create or join groups, post freely, and connect with others** — without handing over your personal data or relying on big tech.
 
@@ -22,7 +22,7 @@ If you're sharing your voice, leading a community, or building something meaning
 
 ## Do I need a wallet to send or receive payments?
 
-No wallet? No problem. You'll find a wallet page under your screen name in the top right corner. With one click, we will have you set up and ready to send and receive eCash.
+No wallet? No problem. Click on your screen name in the top-right corner and select **Wallet** to set up eCash. With one click, we will have you ready to send and receive funds.
 
 ## Do I need to create an account?
 
