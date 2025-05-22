@@ -39,6 +39,11 @@ export const CASHU_EVENT_KINDS = {
   ZAP: 9321,     // ZAP events
 };
 
+export const defaultMints = [
+  // "https://mint.chorus.community",
+  "https://testnut.cashu.space",
+];
+
 // Helper function to calculate total balance from tokens
 export function calculateBalance(proofs: Proof[]): Record<string, number> {
   const balances: { [mint: string]: number } = {};

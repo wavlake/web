@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
-import { calculateBalance, formatBalance } from "@/lib/cashu";
+import { calculateBalance, defaultMints, formatBalance } from "@/lib/cashu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AlertCircle,
@@ -54,6 +54,13 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
+  // Effect to automatically create wallet if it doesn't exist
+  useEffect(() => {
+    if (!wallet && !isLoading) {
+      handleCreateWallet();
+    }
+  }, [wallet, isLoading]);
+
   const handleCreateWallet = async () => {
     if (!user) {
       setError("You must be logged in to create a wallet");
@@ -68,9 +75,13 @@ export function CashuWalletCard() {
       cashuStore.setPrivkey(privkey);
 
       // Create a new wallet with the default mint
+      const mints = cashuStore.mints.map((m) => m.url);
+      // add default mints
+      mints.push(...defaultMints);
+
       createWallet({
         privkey,
-        mints: cashuStore.mints.map((m) => m.url),
+        mints,
       });
     } catch (error) {
       console.error("Failed to derive private key:", error);
