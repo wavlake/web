@@ -48,7 +48,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 p-1.5 rounded-full w-full text-foreground max-w-56"
+          className="flex items-center gap-2 p-1.5 rounded-full w-full text-foreground max-w-56 focus:outline-none"
         >
           <Avatar className="w-8 h-8 rounded-md">
             <AvatarImage

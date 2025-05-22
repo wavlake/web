@@ -18,7 +18,6 @@ import { ArrowLeft, Save, UserPlus, Users, Shield, Trash2, FileWarning } from "l
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import type { NostrEvent } from "@nostrify/nostrify";
 import Header from "@/components/ui/Header";
-import { Separator } from "@/components/ui/separator";
 import { ReportsList } from "@/components/groups/ReportsList";
 
 
@@ -339,9 +338,8 @@ export default function GroupSettings() {
 
   if (isLoadingCommunity) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
-        <Separator className="my-4" />
         <h1 className="text-2xl font-bold mb-4">Loading group settings...</h1>
       </div>
     );
@@ -349,12 +347,11 @@ export default function GroupSettings() {
 
   if (!community) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
-        <Separator className="my-4" />
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
-        <Button asChild className="mt-4">
+        <Button asChild className="mt-2">
           <Link to="/groups">Back to Groups</Link>
         </Button>
       </div>
@@ -363,12 +360,11 @@ export default function GroupSettings() {
 
   if (!isModerator && !isOwner) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
-        <Separator className="my-4" />
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
         <p>You must be a moderator or the group owner to access group settings.</p>
-        <Button asChild className="mt-4">
+        <Button asChild className="mt-2">
           <Link to={`/group/${encodeURIComponent(groupId || "")}`}>Back to Group</Link>
         </Button>
       </div>
@@ -376,9 +372,8 @@ export default function GroupSettings() {
   }
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
-      <Separator className="my-4" />
 
       <div className="flex mb-6">
         <Button variant="ghost" asChild className="p-0 text-2xl">
@@ -403,7 +398,7 @@ export default function GroupSettings() {
           )}
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6 mt-6">
+        <TabsContent value="general" className="space-y-6 mt-3">
           <form onSubmit={handleSubmit} className="w-full space-y-8">
             <Card>
               <CardHeader>
@@ -469,7 +464,7 @@ export default function GroupSettings() {
                   />
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-3 flex justify-end">
                   <Button type="submit">
                     <Save className="h-4 w-4 mr-2" />
                     Save Changes
@@ -575,7 +570,7 @@ export default function GroupSettings() {
         </TabsContent>
 
         {(isOwner || isModerator) && (
-          <TabsContent value="reports" className="mt-6">
+          <TabsContent value="reports" className="mt-3">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">

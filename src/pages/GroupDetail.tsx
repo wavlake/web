@@ -25,7 +25,6 @@ import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -140,9 +139,8 @@ export default function GroupDetail() {
 
   if (isLoadingCommunity || !parsedId) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
-        <Separator className="my-4" />
         <h1 className="text-2xl font-bold mb-4">Loading group...</h1>
       </div>
     );
@@ -150,10 +148,10 @@ export default function GroupDetail() {
 
   if (!community) {
     return (
-      <div className="container mx-auto py-3 px-3 sm:px-4">
+      <div className="container mx-auto py-1 px-3 sm:px-4">
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
-        <Button asChild className="mt-4">
+        <Button asChild className="mt-2">
           <Link to="/groups">Back to Groups</Link>
         </Button>
       </div>
@@ -161,11 +159,10 @@ export default function GroupDetail() {
   }
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
-      <Separator className="my-4" />
 
-      <div className="relative mb-6">
+      <div className="relative mb-6 mt-4">
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
@@ -196,10 +193,10 @@ export default function GroupDetail() {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="justify-start">
                       <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
                         <Settings className="h-4 w-4" />
-                        Manage Group
+                        <span>Manage Group</span>
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -223,7 +220,7 @@ export default function GroupDetail() {
         </div>
         
         {/* Group description moved outside the grid to span full width */}
-        <div className="w-full mt-4">
+        <div className="w-full mt-2">
           <p className="text-base text-muted-foreground">{description}</p>
         </div>
       </div>

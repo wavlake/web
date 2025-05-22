@@ -6,10 +6,10 @@ export default function AboutPage() {
   const html = useMarkdownWithoutFirstHeading("/About.md");
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
       
-      <div className="max-w-3xl mx-auto mt-6">
+      <div className="max-w-3xl mx-auto mt-3">
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-3xl font-bold">About +chorus</CardTitle>

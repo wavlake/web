@@ -117,7 +117,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container mx-auto py-3 px-3 sm:px-4">
+    <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
       <div className="space-y-6 my-6">
         {/* Keys Section */}
