@@ -10,13 +10,8 @@ import { NostrEvent } from "@nostrify/nostrify";
 export function useUpdateApprovedMembers() {
   const { nostr } = useNostr();
   const queryClient = useQueryClient();
-  const { mutateAsync: publishEvent, isPending } = useNostrPublish({
-    invalidateQueries: [
-      { queryKey: ["approved-members-list"] },
-      { queryKey: ["approved-posts"] },
-      { queryKey: ["pending-posts"] }
-    ]
-  });
+  // We'll use more specific invalidation in the methods instead of here
+  const { mutateAsync: publishEvent, isPending } = useNostrPublish();
 
   /**
    * Fetch the current approved members list for a community
@@ -85,8 +80,13 @@ export function useUpdateApprovedMembers() {
         content: "",
       });
       
-      // Invalidate queries
+      // Invalidate queries with more specific keys
       queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["pending-posts", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["pending-posts-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["group-membership", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["reliable-group-membership", communityId] });
       
       return { 
         success: true, 

@@ -134,9 +134,15 @@ export function useSendNutzap() {
       // Publish the event to the recipient's relays
       await nostr.event(event);
 
+      // Invalidate relevant queries
       if (eventId) {
         queryClient.invalidateQueries({ queryKey: ['nutzaps', eventId] });
       }
+      
+      // Also invalidate recipient's received nutzaps
+      queryClient.invalidateQueries({ 
+        queryKey: ['nutzap', 'received', recipientInfo.event.pubkey] 
+      });
 
       // Return the event
       return {
