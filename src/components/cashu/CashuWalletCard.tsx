@@ -38,6 +38,10 @@ export function CashuWalletCard() {
   const [newMint, setNewMint] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [expandedMint, setExpandedMint] = useState<string | null>(null);
+  const defaultMints = [
+    // "https://mint.chorus.community",
+    "https://testnut.cashu.space",
+  ];
 
   // Calculate total balance across all mints
   const balances = calculateBalance(cashuStore.proofs);
@@ -54,6 +58,13 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
+  // Effect to automatically create wallet if it doesn't exist
+  useEffect(() => {
+    if (!wallet && !isLoading) {
+      handleCreateWallet();
+    }
+  }, [wallet, isLoading]);
+
   const handleCreateWallet = async () => {
     if (!user) {
       setError("You must be logged in to create a wallet");
@@ -68,9 +79,13 @@ export function CashuWalletCard() {
       cashuStore.setPrivkey(privkey);
 
       // Create a new wallet with the default mint
+      const mints = cashuStore.mints.map((m) => m.url);
+      // add default mints
+      mints.push(...defaultMints);
+
       createWallet({
         privkey,
-        mints: cashuStore.mints.map((m) => m.url),
+        mints,
       });
     } catch (error) {
       console.error("Failed to derive private key:", error);
