@@ -41,14 +41,29 @@ export default function Groups() {
     }
   }, [activeTab]);
 
-  // Fetch all communities
+  // Fetch all communities with improved error handling and timeout
   const { data: allGroups, isLoading: isGroupsLoading } = useQuery({
     queryKey: ["communities"],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{ kinds: [34550], limit: 100 }], { signal });
-      return events;
+      try {
+        // Increase timeout to 8 seconds to allow more time for relays to respond
+        const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
+        const events = await nostr.query([{ kinds: [34550], limit: 100 }], { signal });
+        
+        // Ensure we always return an array, even if the query fails
+        return Array.isArray(events) ? events : [];
+      } catch (error) {
+        console.error("Error fetching communities:", error);
+        // Return empty array on error instead of throwing
+        return [];
+      }
     },
+    // Add retry logic for better reliability
+    retry: 3,
+    retryDelay: 1000,
+    // Ensure stale data is shown while revalidating
+    staleTime: 60000, // 1 minute
+    gcTime: 300000, // 5 minutes
   });
 
   // Get user's groups
@@ -87,7 +102,7 @@ export default function Groups() {
 
   // Filter and sort all groups
   const sortedAndFilteredGroups = useMemo(() => {
-    if (!allGroups) return [];
+    if (!allGroups || allGroups.length === 0) return [];
 
     // Function to check if a group matches the search query
     const matchesSearch = (community: NostrEvent) => {
@@ -107,43 +122,59 @@ export default function Groups() {
       );
     };
 
-    return allGroups
+    // Create a stable copy of the array to avoid mutation issues
+    const stableGroups = [...allGroups];
+
+    return stableGroups
       .filter(matchesSearch)
       .sort((a, b) => {
-        const aId = getCommunityId(a);
-        const bId = getCommunityId(b);
+        // Ensure both a and b are valid objects
+        if (!a || !b) return 0;
+        
+        try {
+          const aId = getCommunityId(a);
+          const bId = getCommunityId(b);
 
-        const aIsPinned = isGroupPinned(aId);
-        const bIsPinned = isGroupPinned(bId);
+          const aIsPinned = isGroupPinned(aId);
+          const bIsPinned = isGroupPinned(bId);
 
-        // First priority: pinned groups
-        if (aIsPinned && !bIsPinned) return -1;
-        if (!aIsPinned && bIsPinned) return 1;
+          // First priority: pinned groups
+          if (aIsPinned && !bIsPinned) return -1;
+          if (!aIsPinned && bIsPinned) return 1;
 
-        const aIsMember = userMembershipMap.has(aId);
-        const bIsMember = userMembershipMap.has(bId);
+          const aIsMember = userMembershipMap.has(aId);
+          const bIsMember = userMembershipMap.has(bId);
 
-        // Second priority: groups that the user is a member of
-        if (aIsMember && !bIsMember) return -1;
-        if (!aIsMember && bIsMember) return 1;
+          // Second priority: groups that the user is a member of
+          if (aIsMember && !bIsMember) return -1;
+          if (!aIsMember && bIsMember) return 1;
 
-        // If both are pinned or both are not pinned and both are member or both are not member,
-        // sort alphabetically by name
-        const aNameTag = a.tags.find(tag => tag[0] === "name");
-        const bNameTag = b.tags.find(tag => tag[0] === "name");
+          // If both are pinned or both are not pinned and both are member or both are not member,
+          // sort alphabetically by name
+          const aNameTag = a.tags.find(tag => tag[0] === "name");
+          const bNameTag = b.tags.find(tag => tag[0] === "name");
 
-        const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
-        const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
+          const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
+          const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
 
-        return aName.localeCompare(bName);
+          return aName.localeCompare(bName);
+        } catch (error) {
+          console.error("Error sorting groups:", error);
+          return 0;
+        }
       });
   }, [allGroups, searchQuery, isGroupPinned, userMembershipMap]);
 
-  // Loading state skeleton
+  // Loading state skeleton with stable keys
+  const skeletonKeys = useMemo(() => 
+    Array.from({ length: 12 }).map((_, index) => `skeleton-group-${index}`),
+    []
+  );
+  
   const renderSkeletons = () => (
     <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-      {Array.from({ length: 12 }).map((_, index) => (
-        <Card key={`skeleton-group-${index}-${Date.now()}`} className="overflow-hidden flex flex-col h-[140px]">
+      {skeletonKeys.map((key) => (
+        <Card key={key} className="overflow-hidden flex flex-col h-[140px]">
           <CardHeader className="flex flex-row items-center space-y-0 gap-3 pt-4 pb-2 px-3">
             <Skeleton className="h-12 w-12 rounded-md" />
             <div className="space-y-1 flex-1">
@@ -209,29 +240,35 @@ export default function Groups() {
           <TabsContent value="posts" className="space-y-4">
             {isGroupsLoading || isUserGroupsLoading ? (
               renderSkeletons()
-            ) : sortedAndFilteredGroups.length > 0 ? (
+            ) : allGroups && sortedAndFilteredGroups && sortedAndFilteredGroups.length > 0 ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                 {sortedAndFilteredGroups.map((community) => {
-                  const communityId = getCommunityId(community);
-                  const isPinned = isGroupPinned(communityId);
-                  const userRole = userMembershipMap.get(communityId);
-                  const isMember = userMembershipMap.has(communityId);
-                  const stats = communityStats ? communityStats[communityId] : undefined;
+                  if (!community) return null;
+                  try {
+                    const communityId = getCommunityId(community);
+                    const isPinned = isGroupPinned(communityId);
+                    const userRole = userMembershipMap.get(communityId);
+                    const isMember = userMembershipMap.has(communityId);
+                    const stats = communityStats ? communityStats[communityId] : undefined;
 
-                  return (
-                    <GroupCard
-                      key={community.id}
-                      community={community}
-                      isPinned={isPinned}
-                      pinGroup={pinGroup}
-                      unpinGroup={unpinGroup}
-                      isUpdating={isUpdating}
-                      stats={stats}
-                      isLoadingStats={isLoadingStats}
-                      isMember={isMember}
-                      userRole={userRole}
-                    />
-                  );
+                    return (
+                      <GroupCard
+                        key={`${community.id}-${communityId}`}
+                        community={community}
+                        isPinned={isPinned}
+                        pinGroup={pinGroup}
+                        unpinGroup={unpinGroup}
+                        isUpdating={isUpdating}
+                        stats={stats}
+                        isLoadingStats={isLoadingStats}
+                        isMember={isMember}
+                        userRole={userRole}
+                      />
+                    );
+                  } catch (error) {
+                    console.error("Error rendering group card:", error);
+                    return null;
+                  }
                 })}
               </div>
             ) : searchQuery ? (
@@ -259,29 +296,35 @@ export default function Groups() {
           <TabsContent value="my-groups" className="space-y-4">
             {isGroupsLoading || isUserGroupsLoading ? (
               renderSkeletons()
-            ) : userGroups && userGroups.allGroups.length > 0 ? (
+            ) : userGroups && userGroups.allGroups && userGroups.allGroups.length > 0 ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                 {userGroups.allGroups.map((community) => {
-                  const communityId = getCommunityId(community);
-                  const isPinned = isGroupPinned(communityId);
-                  const userRole = userMembershipMap.get(communityId);
-                  const isMember = userMembershipMap.has(communityId);
-                  const stats = communityStats ? communityStats[communityId] : undefined;
+                  if (!community) return null;
+                  try {
+                    const communityId = getCommunityId(community);
+                    const isPinned = isGroupPinned(communityId);
+                    const userRole = userMembershipMap.get(communityId);
+                    const isMember = userMembershipMap.has(communityId);
+                    const stats = communityStats ? communityStats[communityId] : undefined;
 
-                  return (
-                    <GroupCard
-                      key={community.id}
-                      community={community}
-                      isPinned={isPinned}
-                      pinGroup={pinGroup}
-                      unpinGroup={unpinGroup}
-                      isUpdating={isUpdating}
-                      stats={stats}
-                      isLoadingStats={isLoadingStats}
-                      isMember={isMember}
-                      userRole={userRole}
-                    />
-                  );
+                    return (
+                      <GroupCard
+                        key={`${community.id}-${communityId}`}
+                        community={community}
+                        isPinned={isPinned}
+                        pinGroup={pinGroup}
+                        unpinGroup={unpinGroup}
+                        isUpdating={isUpdating}
+                        stats={stats}
+                        isLoadingStats={isLoadingStats}
+                        isMember={isMember}
+                        userRole={userRole}
+                      />
+                    );
+                  } catch (error) {
+                    console.error("Error rendering group card in my-groups:", error);
+                    return null;
+                  }
                 })}
               </div>
             ) : (
@@ -300,26 +343,32 @@ export default function Groups() {
             ) : allGroups && allGroups.length > 0 ? (
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                 {allGroups.map((community) => {
-                  const communityId = getCommunityId(community);
-                  const isPinned = isGroupPinned(communityId);
-                  const userRole = userMembershipMap.get(communityId);
-                  const isMember = userMembershipMap.has(communityId);
-                  const stats = communityStats ? communityStats[communityId] : undefined;
+                  if (!community) return null;
+                  try {
+                    const communityId = getCommunityId(community);
+                    const isPinned = isGroupPinned(communityId);
+                    const userRole = userMembershipMap.get(communityId);
+                    const isMember = userMembershipMap.has(communityId);
+                    const stats = communityStats ? communityStats[communityId] : undefined;
 
-                  return (
-                    <GroupCard
-                      key={community.id}
-                      community={community}
-                      isPinned={isPinned}
-                      pinGroup={pinGroup}
-                      unpinGroup={unpinGroup}
-                      isUpdating={isUpdating}
-                      stats={stats}
-                      isLoadingStats={isLoadingStats}
-                      isMember={isMember}
-                      userRole={userRole}
-                    />
-                  );
+                    return (
+                      <GroupCard
+                        key={`${community.id}-${communityId}`}
+                        community={community}
+                        isPinned={isPinned}
+                        pinGroup={pinGroup}
+                        unpinGroup={unpinGroup}
+                        isUpdating={isUpdating}
+                        stats={stats}
+                        isLoadingStats={isLoadingStats}
+                        isMember={isMember}
+                        userRole={userRole}
+                      />
+                    );
+                  } catch (error) {
+                    console.error("Error rendering group card in all-groups:", error);
+                    return null;
+                  }
                 })}
               </div>
             ) : (
