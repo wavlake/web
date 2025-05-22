@@ -3,9 +3,8 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-// useFollowList import removed
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NoteContent } from "@/components/NoteContent";
@@ -107,9 +106,9 @@ function UserGroupsList({
 
   if (!groups || groups.length === 0) {
     return (
-      <Card className="p-6 text-center">
+      <div className="p-6 text-center bg-muted/30 rounded-lg">
         <p className="text-muted-foreground">This user is not a member of any groups yet</p>
-      </Card>
+      </div>
     );
   }
 
@@ -164,7 +163,6 @@ export default function Profile() {
   const author = useAuthor(pubkey);
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
-  // Follow list hooks removed
 
   // Query for user's posts
   const { data: posts, isLoading: isLoadingPosts } = useQuery({
@@ -185,8 +183,6 @@ export default function Profile() {
     },
     enabled: !!nostr && !!pubkey,
   });
-
-  // Follower and following count queries removed
 
   // Query for groups the user is a part of
   const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
@@ -350,8 +346,6 @@ export default function Profile() {
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
 
-  // Follow-related code removed
-
   const copyPubkeyToClipboard = () => {
     if (pubkey) {
       navigator.clipboard.writeText(pubkey);
@@ -364,8 +358,8 @@ export default function Profile() {
       <div className="container mx-auto py-3 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-start gap-6">
+          <div className="mb-8">
+            <div className="flex flex-row items-start gap-6">
               <Skeleton className="h-24 w-24 rounded-full" />
               <div className="flex-1">
                 <div className="flex items-start justify-between">
@@ -380,8 +374,6 @@ export default function Profile() {
                     <div className="mt-1">
                       <Skeleton className="h-4 w-48 mb-2" />
                     </div>
-
-                    {/* Followers and following stats loading state removed */}
                   </div>
 
                   <Skeleton className="h-9 w-24" />
@@ -393,8 +385,8 @@ export default function Profile() {
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               </div>
-            </CardHeader>
-          </Card>
+            </div>
+          </div>
 
           {/* Mobile loading state - Groups first, then Posts */}
           <div className="md:hidden space-y-8 mb-8">
@@ -417,23 +409,23 @@ export default function Profile() {
               <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardHeader className="flex flex-row items-start gap-4 pb-2">
+                  <div key={i} className="bg-background border-b pb-4 mb-4">
+                    <div className="flex flex-row items-start gap-4 pb-2">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div>
                         <Skeleton className="h-4 w-32 mb-1" />
                         <Skeleton className="h-3 w-24" />
                       </div>
-                    </CardHeader>
-                    <CardContent className="pb-2">
+                    </div>
+                    <div className="pb-2 pl-14">
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                    <CardFooter className="pt-0 pb-3">
+                    </div>
+                    <div className="pt-2 pl-14">
                       <Skeleton className="h-6 w-32" />
-                    </CardFooter>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -445,8 +437,8 @@ export default function Profile() {
               <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
               <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardHeader className="flex flex-row items-start gap-4 pb-2">
+                  <div key={i} className="bg-background border-b pb-4 mb-4">
+                    <div className="flex flex-row items-start gap-4 pb-2">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
@@ -456,16 +448,16 @@ export default function Profile() {
                           </div>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent className="pb-2">
+                    </div>
+                    <div className="pb-2 pl-14">
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                    <CardFooter className="pt-0 pb-3">
+                    </div>
+                    <div className="pt-2 pl-14">
                       <Skeleton className="h-6 w-32" />
-                    </CardFooter>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -496,109 +488,180 @@ export default function Profile() {
     <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
       <div className="space-y-6 my-6">
-      <Card className="mb-8">
-        <CardHeader className="flex flex-row items-start gap-6">
-          <Avatar className="h-24 w-24 rounded-md">
-            <AvatarImage src={profileImage} />
-            <AvatarFallback className="text-xl">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+        {/* Profile Header - No Card, Clean Design */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            <Avatar className="h-24 w-24 rounded-full">
+              <AvatarImage src={profileImage} />
+              <AvatarFallback className="text-xl">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
 
-          <div className="flex-1">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">{displayNameFull}</h1>
-                {displayName !== displayNameFull && (
-                  <p className="text-muted-foreground">@{displayName}</p>
-                )}
+            <div className="flex-1 mt-4 sm:mt-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold">{displayNameFull}</h1>
+                  {displayName !== displayNameFull && (
+                    <p className="text-muted-foreground">@{displayName}</p>
+                  )}
 
-                <div className="flex items-center mt-1 text-sm text-muted-foreground">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={copyPubkeyToClipboard}
-                  >
-                    <span className="truncate max-w-[120px]">{pubkey?.slice(0, 8)}...</span>
-                    <Copy className="h-3 w-3 ml-1" />
-                  </Button>
+                  <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs pl-0"
+                      onClick={copyPubkeyToClipboard}
+                    >
+                      <span className="truncate max-w-[120px]">{pubkey?.slice(0, 8)}...</span>
+                      <Copy className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+
+                  {nip05 && (
+                    <div className="mt-1 text-sm">
+                      <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
+                    </div>
+                  )}
+
+                  {website && (
+                    <div className="mt-2">
+                      <a
+                        href={website.startsWith('http') ? website : `https://${website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary flex items-center hover:underline"
+                      >
+                        {website}
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </a>
+                    </div>
+                  )}
                 </div>
 
-                {nip05 && (
-                  <div className="mt-1 text-sm">
-                    <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
-                  </div>
+                {isCurrentUser && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 sm:mt-0"
+                    asChild
+                  >
+                    <Link to="/settings/profile">Edit Profile</Link>
+                  </Button>
                 )}
-
-                {website && (
-                  <div className="mt-2">
-                    <a
-                      href={website.startsWith('http') ? website : `https://${website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary flex items-center hover:underline"
-                    >
-                      {website}
-                      <ExternalLink className="h-3 w-3 ml-1" />
-                    </a>
-                  </div>
-                )}
-
-                {/* Followers and following stats removed */}
               </div>
 
-              {/* Follow button removed */}
+              {about && (
+                <div className="mt-4 text-sm whitespace-pre-wrap">
+                  {about}
+                </div>
+              )}
             </div>
+          </div>
+        </div>
 
-            {about && (
-              <div className="mt-4 text-sm whitespace-pre-wrap">
-                {about}
+        {/* Mobile layout - Groups first, then Posts */}
+        <div className="md:hidden space-y-8 mb-8">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Groups</h2>
+            <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
+
+            {isLoadingPosts ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border-b pb-4 mb-4">
+                    <div className="flex flex-row items-center gap-4 pb-2">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <div className="pb-2 pl-16">
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : posts && posts.length > 0 ? (
+              <div className="space-y-6">
+                {posts.map((post) => (
+                  <div key={post.id} className="border-b pb-4 mb-4 last:border-0">
+                    <div className="flex flex-row items-start gap-4 pb-2">
+                      <Avatar className="rounded-full">
+                        <AvatarImage src={profileImage} />
+                        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1">
+                        <div>
+                          <p className="font-semibold">{displayNameFull}</p>
+                          <div className="text-xs text-muted-foreground">
+                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pl-14 whitespace-pre-wrap break-words">
+                      <NoteContent event={post} className="text-sm" />
+                    </div>
+
+                    {extractGroupInfo(post) && (
+                      <div className="pt-3 pl-14">
+                        <PostGroupLink post={post} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-muted/30 rounded-lg">
+                <p className="text-muted-foreground">No posts from this user yet</p>
               </div>
             )}
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Mobile layout - Groups first, then Posts */}
-      <div className="md:hidden space-y-8 mb-8">
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Groups</h2>
-          <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
+        {/* Desktop layout - Posts and Groups side by side */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
+          <div className="col-span-2">
+            <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
 
-          {isLoadingPosts ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
+            {isLoadingPosts ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border-b pb-4 mb-4">
+                    <div className="flex flex-row items-center gap-4 pb-2">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : posts && posts.length > 0 ? (
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <Card key={post.id}>
-                  <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                    <Avatar className="rounded-md">
-                      <AvatarImage src={profileImage} />
-                      <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    <div className="pb-2 pl-16">
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : posts && posts.length > 0 ? (
+              <div className="space-y-6">
+                {posts.map((post) => (
+                  <div key={post.id} className="border-b pb-4 mb-4 last:border-0">
+                    <div className="flex flex-row items-start gap-4 pb-2">
+                      <Avatar className="rounded-full">
+                        <AvatarImage src={profileImage} />
+                        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
 
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
+                      <div className="flex-1">
                         <div>
                           <p className="font-semibold">{displayNameFull}</p>
                           <div className="text-xs text-muted-foreground">
@@ -607,102 +670,31 @@ export default function Profile() {
                         </div>
                       </div>
                     </div>
-                  </CardHeader>
 
-                  <CardContent className="pb-2">
-                    <div className="whitespace-pre-wrap break-words">
+                    <div className="pl-14 whitespace-pre-wrap break-words">
                       <NoteContent event={post} className="text-sm" />
                     </div>
-                  </CardContent>
 
-                  {extractGroupInfo(post) && (
-                    <CardFooter className="pt-0 pb-3">
-                      <PostGroupLink post={post} />
-                    </CardFooter>
-                  )}
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No posts from this user yet</p>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop layout - Posts and Groups side by side */}
-      <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
-        <div className="col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-
-          {isLoadingPosts ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : posts && posts.length > 0 ? (
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <Card key={post.id}>
-                  <CardHeader className="flex flex-row items-start gap-4 pb-2">
-                    <Avatar className="rounded-md">
-                      <AvatarImage src={profileImage} />
-                      <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">{displayNameFull}</p>
-                          <div className="text-xs text-muted-foreground">
-                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
-                          </div>
-                        </div>
+                    {extractGroupInfo(post) && (
+                      <div className="pt-3 pl-14">
+                        <PostGroupLink post={post} />
                       </div>
-                    </div>
-                  </CardHeader>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-muted/30 rounded-lg">
+                <p className="text-muted-foreground">No posts from this user yet</p>
+              </div>
+            )}
+          </div>
 
-                  <CardContent className="pb-2">
-                    <div className="whitespace-pre-wrap break-words">
-                      <NoteContent event={post} className="text-sm" />
-                    </div>
-                  </CardContent>
-
-                  {extractGroupInfo(post) && (
-                    <CardFooter className="pt-0 pb-3">
-                      <PostGroupLink post={post} />
-                    </CardFooter>
-                  )}
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No posts from this user yet</p>
-            </Card>
-          )}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Groups</h2>
+            <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
+          </div>
         </div>
-
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Groups</h2>
-          <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
-        </div>
-      </div>
       </div>
     </div>
   );
