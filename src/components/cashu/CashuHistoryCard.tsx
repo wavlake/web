@@ -35,7 +35,7 @@ export function CashuHistoryCard() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const walletUiStore = useWalletUiStore();
   const isExpanded = walletUiStore.expandedCards.history;
-  const [visibleEntries, setVisibleEntries] = useState(10);
+  const [visibleEntries, setVisibleEntries] = useState(5);
 
   // Get combined history from the store for display
   const history = transactionHistoryStore.getCombinedHistory();
@@ -103,7 +103,7 @@ export function CashuHistoryCard() {
   };
 
   const showMore = () => {
-    setVisibleEntries((prev) => prev + 10);
+    setVisibleEntries((prev) => prev + 5);
   };
 
   if (isLoading && history.length === 0) {
