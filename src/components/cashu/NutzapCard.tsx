@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  DollarSign,
   Zap,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -189,7 +190,7 @@ export function NutzapCard() {
 
               // Show success notification for redeemed nutzap
               setSuccess(
-                `New Zap received and redeemed! ${proofs.reduce(
+                `New eCash received and redeemed! ${proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
                 )} sats`
@@ -198,7 +199,7 @@ export function NutzapCard() {
               console.error("Failed to auto-redeem nutzap:", error);
               // Just show the notification without auto-redemption
               setSuccess(
-                `New Zap received! ${proofs.reduce(
+                `New eCash received! ${proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
                 )} sats`
@@ -350,7 +351,7 @@ export function NutzapCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Cash Zaps</CardTitle>
+          <CardTitle>eCash</CardTitle>
           <CardDescription>Create a wallet first</CardDescription>
         </CardHeader>
       </Card>
@@ -361,7 +362,7 @@ export function NutzapCard() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Cash Zaps</CardTitle>
+          <CardTitle>eCash</CardTitle>
           <CardDescription>Send and receive Cash via Nostr</CardDescription>
         </div>
         <Button
@@ -434,8 +435,8 @@ export function NutzapCard() {
                   isSending
                 }
               >
-                {isSending ? "Sending..." : "Send Zap"}
-                <Zap className="h-4 w-4 ml-2" />
+                {isSending ? "Sending..." : "Send eCash"}
+                <DollarSign className="h-4 w-4 ml-2" />
               </Button>
             </TabsContent>
 
@@ -463,7 +464,7 @@ export function NutzapCard() {
               )}
 
               {isLoadingNutzaps && receivedNutzaps.length === 0 ? (
-                <div className="text-center py-4">Loading incoming zaps...</div>
+                <div className="text-center py-4">Loading incoming eCash...</div>
               ) : receivedNutzaps.length > 0 ? (
                 <div className="space-y-4">
                   {receivedNutzaps.map((nutzap) => (
@@ -519,7 +520,7 @@ export function NutzapCard() {
                 </div>
               ) : (
                 <div className="text-center py-4 text-sm text-muted-foreground">
-                  No incoming zaps received yet
+                  No incoming eCash received yet
                 </div>
               )}
 

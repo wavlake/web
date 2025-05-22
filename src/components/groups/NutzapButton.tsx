@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 import {
   useSendNutzap,
   useFetchNutzapInfo,
@@ -94,7 +94,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
 
   const handleOpenDialog = () => {
     if (!user) {
-      toast.error("You must be logged in to send nutzaps");
+      toast.error("You must be logged in to send eCash");
       return;
     }
 
@@ -172,7 +172,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true 
         className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
         onClick={handleOpenDialog}
       >
-        <Zap className={`h-3.5 w-3.5 ${nutzapTotal && nutzapTotal > 0 ? 'text-orange-500' : ''}`} />
+        <DollarSign className={`h-3.5 w-3.5 ${nutzapTotal && nutzapTotal > 0 ? 'text-orange-500' : ''}`} />
         {nutzapTotal && nutzapTotal > 0 ? <span className="text-xs ml-0.5">{nutzapTotal}</span> : null}
       </Button>
 

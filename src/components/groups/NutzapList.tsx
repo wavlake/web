@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Zap } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 import { Proof } from "@cashu/cashu-ts";
 
@@ -118,10 +118,9 @@ export function NutzapList({ postId }: NutzapListProps) {
   return (
     <div className="mt-2 border-t pt-2">
       <div className="flex items-center gap-1 mb-2">
-        <Zap className="h-3.5 w-3.5 text-amber-500" />
+        <DollarSign className="h-3.5 w-3.5 text-amber-500" />
         <span className="text-xs font-medium">
-          {totalAmount} sats from {nutzaps.length} zap
-          {nutzaps.length !== 1 ? "s" : ""}
+          {totalAmount} sats in {nutzaps.length} eCash
         </span>
       </div>
 
@@ -138,7 +137,7 @@ export function NutzapList({ postId }: NutzapListProps) {
           className="text-xs mt-1 h-6 px-2"
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? "Show less" : `Show ${nutzaps.length - 3} more Cash zaps`}
+          {showAll ? "Show less" : `Show ${nutzaps.length - 3} more eCash`}
         </Button>
       )}
     </div>
