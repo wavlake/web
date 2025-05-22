@@ -25,10 +25,10 @@ import {
   Eraser,
 } from "lucide-react";
 import { useCashuStore } from "@/stores/cashuStore";
-import { derivePrivkeyFromNostrSignature } from "@/lib/nip60";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useCashuToken } from "@/hooks/useCashuToken";
+import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 
 export function CashuWalletCard() {
   const { user } = useCurrentUser();
@@ -54,40 +54,14 @@ export function CashuWalletCard() {
     }
   }, [wallet, cashuStore]);
 
-  // Effect to automatically create wallet if it doesn't exist
+  const { mutate: handleCreateWallet, isPending: isCreatingWallet, error: createWalletError } = useCreateCashuWallet();
+
+  // Update error state when createWalletError changes
   useEffect(() => {
-    if (!wallet && !isLoading) {
-      handleCreateWallet();
+    if (createWalletError) {
+      setError(createWalletError.message);
     }
-  }, [wallet, isLoading]);
-
-  const handleCreateWallet = async () => {
-    if (!user) {
-      setError("You must be logged in to create a wallet");
-      return;
-    }
-
-    try {
-      const privkey = await derivePrivkeyFromNostrSignature(
-        user.signer,
-        user.pubkey
-      );
-      cashuStore.setPrivkey(privkey);
-
-      // Create a new wallet with the default mint
-      const mints = cashuStore.mints.map((m) => m.url);
-      // add default mints
-      mints.push(...defaultMints);
-
-      createWallet({
-        privkey,
-        mints,
-      });
-    } catch (error) {
-      console.error("Failed to derive private key:", error);
-      setError("Failed to create wallet. Please try again.");
-    }
-  };
+  }, [createWalletError]);
 
   const handleAddMint = () => {
     if (!wallet || !wallet.mints) return;
@@ -163,7 +137,7 @@ export function CashuWalletCard() {
     return mintUrl.replace("https://", "");
   };
 
-  if (isLoading) {
+  if (isLoading || isCreatingWallet) {
     return (
       <Card>
         <CardHeader>
@@ -182,7 +156,7 @@ export function CashuWalletCard() {
           <CardDescription>You don't have a Cashu wallet yet</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleCreateWallet} disabled={!user}>
+          <Button onClick={() => handleCreateWallet()} disabled={!user}>
             Create Wallet
           </Button>
           {!user && (
