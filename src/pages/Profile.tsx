@@ -3,14 +3,14 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFollowList } from "@/hooks/useFollowList";
+// useFollowList import removed
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NoteContent } from "@/components/NoteContent";
 import { Link } from "react-router-dom";
-import { ExternalLink, Copy, UserPlus, UserMinus, Loader2, Users } from "lucide-react";
+import { ExternalLink, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -164,12 +164,7 @@ export default function Profile() {
   const author = useAuthor(pubkey);
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
-  const {
-    isFollowing,
-    followUser,
-    unfollowUser,
-    isPending: isFollowActionPending
-  } = useFollowList(user?.pubkey);
+  // Follow list hooks removed
 
   // Query for user's posts
   const { data: posts, isLoading: isLoadingPosts } = useQuery({
@@ -397,18 +392,7 @@ export default function Profile() {
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
 
-  // Check if the current user is following this profile
-  const following = pubkey ? isFollowing(pubkey) : false;
-
-  const handleFollowAction = () => {
-    if (!pubkey || !user) return;
-
-    if (following) {
-      unfollowUser(pubkey);
-    } else {
-      followUser(pubkey);
-    }
-  };
+  // Follow-related code removed
 
   const copyPubkeyToClipboard = () => {
     if (pubkey) {
@@ -616,23 +600,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              {user && !isCurrentUser && (
-                <Button
-                  variant={following ? "outline" : "default"}
-                  size="sm"
-                  onClick={handleFollowAction}
-                  disabled={isFollowActionPending || !user}
-                >
-                  {isFollowActionPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : following ? (
-                    <UserMinus className="h-4 w-4 mr-2" />
-                  ) : (
-                    <UserPlus className="h-4 w-4 mr-2" />
-                  )}
-                  {following ? "Unfollow" : "Follow"}
-                </Button>
-              )}
+              {/* Follow button removed */}
             </div>
 
             {about && (
