@@ -382,33 +382,20 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="members" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+              <TabsTrigger value="members" className="flex flex-col items-center gap-1 p-2 text-xs">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Members</span>
                 <span className="sm:hidden">Mem</span>
-                <span className="absolute -top-1 -right-1 bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                  {uniqueApprovedMembers.length > 9 ? '9+' : uniqueApprovedMembers.length}
-                </span>
               </TabsTrigger>
-              <TabsTrigger value="declined" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+              <TabsTrigger value="declined" className="flex flex-col items-center gap-1 p-2 text-xs">
                 <UserX className="h-4 w-4" />
                 <span className="hidden sm:inline">Declined</span>
                 <span className="sm:hidden">Dec</span>
-                {uniqueDeclinedUsers.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {uniqueDeclinedUsers.length > 9 ? '9+' : uniqueDeclinedUsers.length}
-                  </span>
-                )}
               </TabsTrigger>
-              <TabsTrigger value="banned" className="flex flex-col items-center gap-1 p-2 text-xs relative">
+              <TabsTrigger value="banned" className="flex flex-col items-center gap-1 p-2 text-xs">
                 <Ban className="h-4 w-4" />
                 <span className="hidden sm:inline">Banned</span>
                 <span className="sm:hidden">Ban</span>
-                {uniqueBannedUsers.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-100 text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {uniqueBannedUsers.length > 9 ? '9+' : uniqueBannedUsers.length}
-                  </span>
-                )}
               </TabsTrigger>
             </TabsList>
           </div>
