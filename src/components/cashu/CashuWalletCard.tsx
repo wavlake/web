@@ -56,13 +56,6 @@ export function CashuWalletCard() {
 
   const { mutate: handleCreateWallet, isPending: isCreatingWallet, error: createWalletError } = useCreateCashuWallet();
 
-  // Effect to automatically create wallet if it doesn't exist
-  useEffect(() => {
-    if (!wallet && !isLoading && !isCreatingWallet) {
-      handleCreateWallet();
-    }
-  }, [wallet, isLoading, isCreatingWallet, handleCreateWallet]);
-
   // Update error state when createWalletError changes
   useEffect(() => {
     if (createWalletError) {
