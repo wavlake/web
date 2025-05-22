@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LoginDialog from "@/components/auth/LoginDialog";
 import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { generateFakeName } from "@/lib/utils";
-import { useNostr } from "@nostrify/react";
 import { useNostrLogin, NLogin } from "@nostrify/react/login";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
@@ -14,63 +13,22 @@ import { toast } from "@/hooks/useToast";
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [profileComplete, setProfileComplete] = useState(false);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
-  const { nostr } = useNostr();
   const { addLogin } = useNostrLogin();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const [newUser, setNewUser] = useState(false);
 
-  // Track if the user is new (created in this session)
-  const [newUser, setNewUser] = useState(() => {
-    // Read from sessionStorage if available
-    const stored = sessionStorage.getItem("newUser");
-    return stored === "true";
-  });
-
-  // Helper to update both state and sessionStorage
-  const setNewUserState = useCallback((val: boolean) => {
-    setNewUser(val);
-    sessionStorage.setItem("newUser", val ? "true" : "false");
-  }, []);
-
-  // Ensure newUser is set correctly when user logs in without metadata
+  // Redirect to /groups after user is logged in
   useEffect(() => {
-    if (currentUser && !currentUser.metadata?.name && !currentUser.metadata?.about && !currentUser.metadata?.picture) {
-      // If user has no profile data, treat them as a new user
-      setNewUserState(true);
-    }
-  }, [currentUser, setNewUserState]);
-
-  // Check if the user has filled out their profile (basic check: has name or about or picture)
-  useEffect(() => {
-    if (currentUser && (currentUser.metadata?.name || currentUser.metadata?.about || currentUser.metadata?.picture)) {
-      setProfileComplete(true);
-    } else {
-      setProfileComplete(false);
-    }
-  }, [currentUser, currentUser?.metadata]);
-
-  // Redirect to /groups after profile is complete
-  useEffect(() => {
-    if (profileComplete && currentUser) {
+    if (currentUser && !newUser) {
       navigate("/groups", { replace: true });
     }
-  }, [profileComplete, currentUser, navigate]);
-
-  // If a user logs in and newUser is true, but they are not a new account, set newUser to false
-  useEffect(() => {
-    if (
-      currentUser &&
-      newUser &&
-      (currentUser.metadata?.name || currentUser.metadata?.about || currentUser.metadata?.picture)
-    ) {
-      setNewUserState(false);
-    }
-  }, [currentUser, newUser, setNewUserState]);
+  }, [newUser, currentUser, navigate]);
 
   // Handle account creation inline
   const handleCreateAccount = async () => {
+    setNewUser(true);
     setCreating(true);
     try {
       // Generate new secret key
@@ -88,10 +46,12 @@ const Index = () => {
             kind: 0,
             content: JSON.stringify({ name: fakeName, display_name: fakeName }),
           });
-        } catch {}
+        } catch {
+          // fallthrough
+        }
       }, 100);
       toast({ title: "Account created", description: "You are now logged in." });
-      setNewUserState(true); // Mark as new user
+      setNewUser(true); // Mark as new user
     } catch (e) {
       toast({ title: "Error", description: "Failed to create account. Please try again.", variant: "destructive" });
     } finally {
@@ -137,7 +97,7 @@ const Index = () => {
   }
 
   // Onboarding step 2: New user (just created account) or user without metadata
-  if (currentUser && (newUser || !profileComplete)) {
+  if (currentUser && newUser) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
         <div className="w-full max-w-lg mx-auto p-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg">
