@@ -392,8 +392,7 @@ export function CashuWalletLightningCard() {
               // Show generated invoice
               <div className="space-y-4">
                 <div className="bg-muted p-4 rounded-md flex items-center justify-center">
-                  {/* Placeholder for QR code - in a real app, use a QR code library */}
-                  <div className="border border-border w-48 h-48 flex items-center justify-center">
+                  <div className="border border-border w-48 h-48 flex items-center justify-center bg-white p-2 rounded-md">
                     <QRCode value={invoice} size={180} />
                   </div>
                 </div>
