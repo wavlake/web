@@ -120,6 +120,22 @@ export function useReportActions() {
         case "ban_user":
           // Ban the user with the specific communityId
           await banUser(pubkey, communityId);
+          
+          // Also remove the user from the approved users list
+          const removeResult = await removeFromApprovedList(pubkey, communityId);
+          
+          if (removeResult.success) {
+            if (removeResult.message === "User is not in the approved members list") {
+              // User wasn't in approved list, that's fine
+              console.log("User was not in approved members list when banned");
+            } else {
+              console.log("User removed from approved members list during ban");
+            }
+          } else {
+            // Log the error but don't fail the entire ban operation
+            console.error("Failed to remove user from approved list during ban:", removeResult.message);
+            toast.warning("User was banned but could not be removed from approved members list");
+          }
           break;
           
         case "no_action":

@@ -237,7 +237,7 @@ export function ReportsList({ communityId }: ReportsListProps) {
               {actionType === "remove_user" && 
                 "This will remove the user from the approved members list. They will need to request to join again."}
               {actionType === "ban_user" && 
-                "This will ban the user from the group. All their content will be hidden and they won't be able to post."}
+                "This will ban the user from the group and remove them from the approved members list. All their content will be hidden and they won't be able to post."}
               {actionType === "no_action" && 
                 "This will mark the report as reviewed with no action taken. The report will be archived."}
             </AlertDialogDescription>
