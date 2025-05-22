@@ -12,6 +12,18 @@ Whether you're organizing a movement or supporting one, +chorus gives you the to
 
 With +chorus, we give you the keys. You drive the conversation — and the economy around it.
 
+## How can I send or receive funds through +chorus?
+
++chorus makes it easy to support the people and projects you care about — and just as easy to receive support for your own work.
+
+You can send small, instant eCash payments to show appreciation, fund ideas, or back a cause. These payments are powered by a privacy-first system called [Cashu](https://cashu.space).
+
+If you're sharing your voice, leading a community, or building something meaningful, others can support you directly — right in the conversation.
+
+## Do I need a wallet to send or receive payments?
+
+No wallet? No problem. You'll find a wallet page under your screen name in the top right corner. With one click, we will have you set up and ready to send and receive eCash.
+
 ## Do I need to create an account?
 
 Nope. There are no accounts to create. +chorus uses cryptographic key pairs instead of usernames and passwords.
@@ -63,12 +75,6 @@ Posts are stored on public relays. +chorus helps you create and manage posts and
 ## Can I remove something I posted?
 
 You can request that relays delete your content. However, because the protocol is decentralized, content can persist if relays or users choose to keep it.
-
-## What are zaps and how do they work?
-
-+chorus supports zaps — small, instant eCash payments that let you reward creators, support groups, or crowdfund ideas. These payments are powered by the [Cashu](https://cashu.space/) protocol, which adds an extra layer of privacy by allowing value to move without revealing your identity or wallet.
-
-In short, +chorus makes it easy to support the people and projects you care about — right from the conversation.
 
 ## How can I access +chorus?
 
