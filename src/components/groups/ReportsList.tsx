@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGroupReports, Report } from "@/hooks/useGroupReports";
 import { useReportActions, ModeratorAction } from "@/hooks/useReportActions";
 import { useAuthor } from "@/hooks/useAuthor";
+import { usePostById } from "@/hooks/usePostById";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -144,6 +145,13 @@ export function ReportsList({ communityId }: ReportsListProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           
+          {selectedReport?.reportedEventId && actionType === "remove_content" && (
+            <div className="border border-muted rounded-md p-3 bg-muted/20 my-2">
+              <p className="text-sm font-medium mb-1">Content to be removed:</p>
+              <PostContentPreview eventId={selectedReport.reportedEventId} />
+            </div>
+          )}
+          
           <div className="py-2">
             <Label htmlFor="action-reason">Reason (optional)</Label>
             <Textarea
@@ -172,6 +180,28 @@ export function ReportsList({ communityId }: ReportsListProps) {
   );
 }
 
+interface PostContentPreviewProps {
+  eventId: string;
+}
+
+function PostContentPreview({ eventId }: PostContentPreviewProps) {
+  const { data: post, isLoading } = usePostById(eventId);
+  
+  if (isLoading) {
+    return <Skeleton className="h-16 w-full" />;
+  }
+  
+  if (!post) {
+    return <p className="text-sm text-muted-foreground italic">Content not found or has been deleted</p>;
+  }
+  
+  return (
+    <div className="text-sm whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+      {post.content}
+    </div>
+  );
+}
+
 interface ReportItemProps {
   report: Report;
   onAction: (action: ModeratorAction) => void;
@@ -180,6 +210,7 @@ interface ReportItemProps {
 function ReportItem({ report, onAction }: ReportItemProps) {
   const reporterAuthor = useAuthor(report.pubkey);
   const reportedAuthor = useAuthor(report.reportedPubkey);
+  const { data: reportedPost, isLoading: isLoadingPost } = usePostById(report.reportedEventId);
   
   const reporterName = reporterAuthor.data?.metadata?.name || report.pubkey.slice(0, 8);
   const reporterImage = reporterAuthor.data?.metadata?.picture;
@@ -247,10 +278,29 @@ function ReportItem({ report, onAction }: ReportItemProps) {
         )}
         
         {report.reportedEventId && (
-          <div className="text-xs text-muted-foreground">
-            <span>Reported content ID: </span>
-            <code className="bg-muted px-1 py-0.5 rounded">{report.reportedEventId.slice(0, 10)}...{report.reportedEventId.slice(-4)}</code>
-          </div>
+          <>
+            {isLoadingPost ? (
+              <div className="my-3">
+                <Skeleton className="h-20 w-full rounded-md" />
+              </div>
+            ) : reportedPost ? (
+              <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
+                <p className="text-sm font-medium mb-1">Reported content:</p>
+                <div className="text-sm whitespace-pre-wrap break-words">{reportedPost.content}</div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <span>Posted: {formatDistanceToNow(new Date(reportedPost.created_at * 1000), { addSuffix: true })}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
+                <p className="text-sm text-muted-foreground italic">Content not found or has been deleted</p>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              <span>Content ID: </span>
+              <code className="bg-muted px-1 py-0.5 rounded">{report.reportedEventId.slice(0, 10)}...{report.reportedEventId.slice(-4)}</code>
+            </div>
+          </>
         )}
       </CardContent>
       
