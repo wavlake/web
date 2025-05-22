@@ -18,8 +18,8 @@ export function CashuWallet() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CashuWalletCard />
-        <NutzapCard />
         <CashuWalletLightningCard />
+        {/* <NutzapCard /> */}
         {/* <CashuTokenCard /> */}
         <CashuHistoryCard />
       </div>

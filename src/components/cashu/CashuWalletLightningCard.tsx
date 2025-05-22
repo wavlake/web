@@ -22,7 +22,10 @@ import {
   AlertCircle,
   ArrowDownLeft,
   ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  Loader2,
   QrCode,
   Zap,
 } from "lucide-react";
@@ -41,7 +44,12 @@ import { MeltQuoteResponse, MintQuoteResponse, Proof } from "@cashu/cashu-ts";
 import { CashuToken } from "@/lib/cashu";
 import { NostrEvent } from "nostr-tools";
 import QRCode from "react-qr-code";
-import { set } from "date-fns";
+import {
+  useTransactionHistoryStore,
+  PendingTransaction,
+} from "@/stores/transactionHistoryStore";
+import { v4 as uuidv4 } from "uuid";
+import { useWalletUiStore } from "@/stores/walletUiStore";
 
 interface TokenEvent {
   id: string;
@@ -54,6 +62,9 @@ export function CashuWalletLightningCard() {
   const { wallet, isLoading, updateProofs, tokens = [] } = useCashuWallet();
   const { createHistory } = useCashuHistory();
   const cashuStore = useCashuStore();
+  const transactionHistoryStore = useTransactionHistoryStore();
+  const walletUiStore = useWalletUiStore();
+  const isExpanded = walletUiStore.expandedCards.lightning;
   const [activeTab, setActiveTab] = useState("receive");
 
   const [receiveAmount, setReceiveAmount] = useState("");
@@ -70,6 +81,10 @@ export function CashuWalletLightningCard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
+  const [pendingTransactionId, setPendingTransactionId] = useState<
+    string | null
+  >(null);
 
   // Handle receive tab
   const handleCreateInvoice = async () => {
@@ -99,8 +114,30 @@ export function CashuWalletLightningCard() {
       setcurrentMeltQuoteId(invoiceData.quoteId);
       setPaymentRequest(invoiceData.paymentRequest);
 
+      // Create pending transaction
+      const pendingTxId = uuidv4();
+      const pendingTransaction: PendingTransaction = {
+        id: pendingTxId,
+        direction: "in",
+        amount: amount.toString(),
+        timestamp: Math.floor(Date.now() / 1000),
+        status: "pending",
+        mintUrl: cashuStore.activeMintUrl,
+        quoteId: invoiceData.quoteId,
+        paymentRequest: invoiceData.paymentRequest,
+      };
+
+      // Store the pending transaction
+      transactionHistoryStore.addPendingTransaction(pendingTransaction);
+      setPendingTransactionId(pendingTxId);
+
       // Start polling for payment status
-      checkPaymentStatus(cashuStore.activeMintUrl, invoiceData.quoteId, amount);
+      checkPaymentStatus(
+        cashuStore.activeMintUrl,
+        invoiceData.quoteId,
+        amount,
+        pendingTxId
+      );
     } catch (error) {
       console.error("Error creating invoice:", error);
       setError(
@@ -116,7 +153,8 @@ export function CashuWalletLightningCard() {
   const checkPaymentStatus = async (
     mintUrl: string,
     quoteId: string,
-    amount: number
+    amount: number,
+    pendingTxId: string
   ) => {
     try {
       // Check if payment has been received
@@ -147,6 +185,10 @@ export function CashuWalletLightningCard() {
           console.error("Error creating token:", err);
         }
 
+        // Remove the pending transaction
+        transactionHistoryStore.removePendingTransaction(pendingTxId);
+        setPendingTransactionId(null);
+
         setSuccess(`Received ${amount} sats via Lightning!`);
         setInvoice("");
         setcurrentMeltQuoteId("");
@@ -156,7 +198,7 @@ export function CashuWalletLightningCard() {
         setTimeout(() => {
           if (currentMeltQuoteId === quoteId) {
             // Only continue if we're still waiting for this payment
-            checkPaymentStatus(mintUrl, quoteId, amount);
+            checkPaymentStatus(mintUrl, quoteId, amount, pendingTxId);
           }
         }, 5000);
       }
@@ -175,7 +217,7 @@ export function CashuWalletLightningCard() {
         setTimeout(() => {
           if (currentMeltQuoteId === quoteId) {
             // Only continue if we're still waiting for this payment
-            checkPaymentStatus(mintUrl, quoteId, amount);
+            checkPaymentStatus(mintUrl, quoteId, amount, pendingTxId);
           }
         }, 5000);
       }
@@ -203,6 +245,7 @@ export function CashuWalletLightningCard() {
     // Create melt quote
     const mintUrl = cashuStore.activeMintUrl;
     try {
+      setIsLoadingInvoice(true);
       const meltQuote = await createMeltQuote(mintUrl, value);
       setcurrentMeltQuoteId(meltQuote.quote);
       console.log(meltQuote);
@@ -216,6 +259,9 @@ export function CashuWalletLightningCard() {
         "Failed to create melt quote: " +
           (error instanceof Error ? error.message : String(error))
       );
+      setcurrentMeltQuoteId(""); // Reset quote ID on error
+    } finally {
+      setIsLoadingInvoice(false);
     }
   };
 
@@ -231,6 +277,10 @@ export function CashuWalletLightningCard() {
     if (!sendInvoice) {
       setError("Please enter a Lightning invoice");
       return;
+    }
+
+    if (error && sendInvoice) {
+      await handleInvoiceInput(sendInvoice);
     }
 
     if (!cashuStore.activeMintUrl) {
@@ -259,9 +309,11 @@ export function CashuWalletLightningCard() {
         0
       );
 
-      if (totalProofsAmount < invoiceAmount) {
+      if (totalProofsAmount < invoiceAmount + (invoiceFeeReserve || 0)) {
         setError(
-          `Insufficient balance: have ${totalProofsAmount} sats, need ${invoiceAmount} sats`
+          `Insufficient balance: have ${totalProofsAmount} sats, need ${
+            invoiceAmount + (invoiceFeeReserve || 0)
+          } sats`
         );
         setIsProcessing(false);
         return;
@@ -304,9 +356,17 @@ export function CashuWalletLightningCard() {
         "Failed to pay Lightning invoice: " +
           (error instanceof Error ? error.message : String(error))
       );
+      setcurrentMeltQuoteId(""); // Reset quote ID on error
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // If the component unmounts or the user cancels, make sure we don't remove the pending transaction
+  const handleCancel = () => {
+    setInvoice("");
+    setcurrentMeltQuoteId("");
+    // Don't remove the pending transaction, leave it in the history
   };
 
   if (isLoading) {
@@ -343,170 +403,201 @@ export function CashuWalletLightningCard() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Lightning</CardTitle>
-        <CardDescription>Send and receive via Lightning</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Lightning</CardTitle>
+          <CardDescription>Withdraw or deposit Bitcoin</CardDescription>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => walletUiStore.toggleCardExpansion("lightning")}
+          aria-label={isExpanded ? "Collapse" : "Expand"}
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="receive">
-              <ArrowDownLeft className="h-4 w-4 mr-2" />
-              Receive
-            </TabsTrigger>
-            <TabsTrigger value="send">
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              Send
-            </TabsTrigger>
-          </TabsList>
+      {isExpanded && (
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="receive">
+                <ArrowDownLeft className="h-4 w-4 mr-2" />
+                Receive
+              </TabsTrigger>
+              <TabsTrigger value="send">
+                <ArrowUpRight className="h-4 w-4 mr-2" />
+                Send
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="receive" className="space-y-4">
-            {!invoice ? (
-              // Show form to create invoice
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (sats)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    placeholder="100"
-                    value={receiveAmount}
-                    onChange={(e) => setReceiveAmount(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={handleCreateInvoice}
-                  disabled={
-                    isProcessing || !cashuStore.activeMintUrl || !receiveAmount
-                  }
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  {isProcessing
-                    ? "Creating Invoice..."
-                    : "Create Lightning Invoice"}
-                </Button>
-              </>
-            ) : (
-              // Show generated invoice
-              <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-md flex items-center justify-center">
-                  {/* Placeholder for QR code - in a real app, use a QR code library */}
-                  <div className="border border-border w-48 h-48 flex items-center justify-center">
-                    <QRCode value={invoice} size={180} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Lightning Invoice</Label>
-                  <div className="relative">
+            <TabsContent value="receive" className="space-y-4">
+              {!invoice ? (
+                // Show form to create invoice
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount (sats)</Label>
                     <Input
-                      readOnly
-                      value={invoice}
-                      className="pr-10 font-mono text-xs break-all"
+                      id="amount"
+                      type="number"
+                      placeholder="100"
+                      value={receiveAmount}
+                      onChange={(e) => setReceiveAmount(e.target.value)}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0"
-                      onClick={copyInvoiceToClipboard}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Waiting for payment...
+
+                  <Button
+                    className="w-full"
+                    onClick={handleCreateInvoice}
+                    disabled={
+                      isProcessing ||
+                      !cashuStore.activeMintUrl ||
+                      !receiveAmount
+                    }
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    {isProcessing
+                      ? "Creating Invoice..."
+                      : "Create Lightning Invoice"}
+                  </Button>
+                </>
+              ) : (
+                // Show generated invoice
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-md flex items-center justify-center">
+                    <div className="border border-border w-48 h-48 flex items-center justify-center bg-white p-2 rounded-md">
+                      <QRCode value={invoice} size={180} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Lightning Invoice</Label>
+                    <div className="relative">
+                      <Input
+                        readOnly
+                        value={invoice}
+                        className="pr-10 font-mono text-xs break-all"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0"
+                        onClick={copyInvoiceToClipboard}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Waiting for payment...
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleCancel}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="send" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Invoice</Label>
+                <div className="relative">
+                  <Input
+                    id="invoice"
+                    placeholder="Lightning invoice"
+                    value={sendInvoice}
+                    onChange={(e) => handleInvoiceInput(e.target.value)}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0"
+                    onClick={startQrScanner}
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {invoiceAmount && (
+                <div className="rounded-md border p-4">
+                  <p className="text-sm font-medium">Invoice Amount</p>
+                  <p className="text-2xl font-bold">
+                    {invoiceAmount} sats
+                    {invoiceFeeReserve && (
+                      <>
+                        <span className="text-xs font-bold pl-2 text-muted-foreground">
+                          + max {invoiceFeeReserve} sats fee
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
+              )}
 
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="flex-1"
                   onClick={() => {
-                    setInvoice("");
-                    setcurrentMeltQuoteId("");
+                    setSendInvoice("");
+                    setInvoiceAmount(null);
+                    setInvoiceFeeReserve(null);
                   }}
                 >
                   Cancel
                 </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="send" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Invoice</Label>
-              <div className="relative">
-                <Input
-                  id="invoice"
-                  placeholder="Lightning invoice"
-                  value={sendInvoice}
-                  onChange={(e) => handleInvoiceInput(e.target.value)}
-                />
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0"
-                  onClick={startQrScanner}
+                  className="flex-1"
+                  onClick={handlePayInvoice}
+                  disabled={
+                    isProcessing ||
+                    isLoadingInvoice ||
+                    !sendInvoice ||
+                    !invoiceAmount
+                  }
                 >
-                  <QrCode className="h-4 w-4" />
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isLoadingInvoice ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Pay Invoice"
+                  )}
                 </Button>
               </div>
-            </div>
+            </TabsContent>
+          </Tabs>
 
-            {invoiceAmount && (
-              <div className="rounded-md border p-4">
-                <p className="text-sm font-medium">Invoice Amount</p>
-                <p className="text-2xl font-bold">
-                  {invoiceAmount} sats
-                  {invoiceFeeReserve && (
-                    <>
-                      <span className="text-xs font-bold pl-2 text-muted-foreground">
-                        + max {invoiceFeeReserve} sats fee
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-            )}
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setSendInvoice("");
-                  setInvoiceAmount(null);
-                  setInvoiceFeeReserve(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handlePayInvoice}
-                disabled={isProcessing || !sendInvoice || !invoiceAmount}
-              >
-                {isProcessing ? "Processing..." : "Pay Invoice"}
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {error && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="mt-4">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
+          {success && (
+            <Alert className="mt-4">
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useGroupReports, Report } from "@/hooks/useGroupReports";
 import { useReportActions, ModeratorAction } from "@/hooks/useReportActions";
 import { useAuthor } from "@/hooks/useAuthor";
 import { usePostById } from "@/hooks/usePostById";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +38,7 @@ interface ReportsListProps {
 }
 
 export function ReportsList({ communityId }: ReportsListProps) {
+  const location = useLocation();
   const { data: reports, isLoading, refetch } = useGroupReports(communityId);
   const { handleReportAction, isPending } = useReportActions();
   const { approvedMembers, isLoading: isLoadingApprovedMembers } = useApprovedMembers(communityId);
@@ -45,6 +47,35 @@ export function ReportsList({ communityId }: ReportsListProps) {
   const [actionReason, setActionReason] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("open");
+  
+  // Reference to the highlighted report element
+  const highlightedReportRef = useRef<HTMLDivElement>(null);
+  
+  // Check URL parameters for reportId
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const reportId = searchParams.get('reportId');
+    
+    if (reportId && reports) {
+      // Find the report with the matching ID
+      const report = reports.find(r => r.id === reportId);
+      
+      if (report) {
+        // Set the active tab based on whether the report is closed or open
+        setActiveTab(report.isClosed ? "closed" : "open");
+        
+        // Set this report as selected to highlight it
+        setSelectedReport(report);
+        
+        // Scroll to the report after rendering
+        setTimeout(() => {
+          if (highlightedReportRef.current) {
+            highlightedReportRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+    }
+  }, [reports, location.search]);
 
   const handleAction = async () => {
     if (!selectedReport || !actionType) return;
@@ -162,7 +193,9 @@ export function ReportsList({ communityId }: ReportsListProps) {
               <ReportItem 
                 key={report.id} 
                 report={report} 
-                onAction={(action) => openActionDialog(report, action)} 
+                onAction={(action) => openActionDialog(report, action)}
+                isHighlighted={selectedReport?.id === report.id}
+                ref={selectedReport?.id === report.id ? highlightedReportRef : undefined}
               />
             ))
           )}
@@ -180,7 +213,9 @@ export function ReportsList({ communityId }: ReportsListProps) {
               <ReportItem 
                 key={report.id} 
                 report={report} 
-                onAction={(action) => openActionDialog(report, action)} 
+                onAction={(action) => openActionDialog(report, action)}
+                isHighlighted={selectedReport?.id === report.id}
+                ref={selectedReport?.id === report.id ? highlightedReportRef : undefined}
               />
             ))
           )}
@@ -322,170 +357,178 @@ function UserAvatar({ pubkey }: UserAvatarProps) {
 interface ReportItemProps {
   report: Report;
   onAction: (action: ModeratorAction) => void;
+  isHighlighted?: boolean;
 }
 
-function ReportItem({ report, onAction }: ReportItemProps) {
-  const reporterAuthor = useAuthor(report.pubkey);
-  const reportedAuthor = useAuthor(report.reportedPubkey);
-  const { data: reportedPost, isLoading: isLoadingPost } = usePostById(report.reportedEventId);
-  
-  const reporterName = reporterAuthor.data?.metadata?.name || report.pubkey.slice(0, 8);
-  const reporterImage = reporterAuthor.data?.metadata?.picture;
-  
-  const reportedName = reportedAuthor.data?.metadata?.name || report.reportedPubkey.slice(0, 8);
-  const reportedImage = reportedAuthor.data?.metadata?.picture;
-  
-  const reportTime = formatDistanceToNow(new Date(report.created_at * 1000), { addSuffix: true });
-  
-  const getReportTypeBadge = () => {
-    switch (report.reportType) {
-      case "nudity":
-        return <Badge variant="destructive">Nudity</Badge>;
-      case "malware":
-        return <Badge variant="destructive">Malware/Scam</Badge>;
-      case "profanity":
-        return <Badge variant="destructive">Profanity</Badge>;
-      case "illegal":
-        return <Badge variant="destructive">Illegal Content</Badge>;
-      case "spam":
-        return <Badge>Spam</Badge>;
-      case "impersonation":
-        return <Badge variant="destructive">Impersonation</Badge>;
-      default:
-        return <Badge variant="outline">Other</Badge>;
-    }
-  };
-  
-  const getStatusBadge = () => {
-    if (report.isClosed) {
-      return <Badge variant="outline" className="bg-muted text-muted-foreground">Closed</Badge>;
-    }
-    return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Open</Badge>;
-  };
+const ReportItem = React.forwardRef<HTMLDivElement, ReportItemProps>(
+  ({ report, onAction, isHighlighted = false }, ref) => {
+    const reporterAuthor = useAuthor(report.pubkey);
+    const reportedAuthor = useAuthor(report.reportedPubkey);
+    const { data: reportedPost, isLoading: isLoadingPost } = usePostById(report.reportedEventId);
+    
+    const reporterName = reporterAuthor.data?.metadata?.name || report.pubkey.slice(0, 8);
+    const reporterImage = reporterAuthor.data?.metadata?.picture;
+    
+    const reportedName = reportedAuthor.data?.metadata?.name || report.reportedPubkey.slice(0, 8);
+    const reportedImage = reportedAuthor.data?.metadata?.picture;
+    
+    const reportTime = formatDistanceToNow(new Date(report.created_at * 1000), { addSuffix: true });
+    
+    const getReportTypeBadge = () => {
+      switch (report.reportType) {
+        case "nudity":
+          return <Badge variant="destructive">Nudity</Badge>;
+        case "malware":
+          return <Badge variant="destructive">Malware/Scam</Badge>;
+        case "profanity":
+          return <Badge variant="destructive">Profanity</Badge>;
+        case "illegal":
+          return <Badge variant="destructive">Illegal Content</Badge>;
+        case "spam":
+          return <Badge>Spam</Badge>;
+        case "impersonation":
+          return <Badge variant="destructive">Impersonation</Badge>;
+        default:
+          return <Badge variant="outline">Other</Badge>;
+      }
+    };
+    
+    const getStatusBadge = () => {
+      if (report.isClosed) {
+        return <Badge variant="outline" className="bg-muted text-muted-foreground">Closed</Badge>;
+      }
+      return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Open</Badge>;
+    };
 
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            Report {getReportTypeBadge()} {getStatusBadge()}
-          </CardTitle>
-          <span className="text-xs text-muted-foreground">{reportTime}</span>
-        </div>
-        <CardDescription>
-          Reported by <Link to={`/profile/${report.pubkey}`} className="underline">{reporterName}</Link>
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="flex items-center gap-3 mb-3 p-2 bg-muted/50 rounded-md">
-          <Link to={`/profile/${report.reportedPubkey}`}>
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={reportedImage} />
-              <AvatarFallback>{reportedName.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-          </Link>
-          <div>
-            <Link to={`/profile/${report.reportedPubkey}`} className="font-medium text-sm hover:underline">
-              {reportedName}
+    return (
+      <Card 
+        ref={ref}
+        className={isHighlighted ? "ring-2 ring-primary ring-offset-2" : ""}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Report {getReportTypeBadge()} {getStatusBadge()}
+            </CardTitle>
+            <span className="text-xs text-muted-foreground">{reportTime}</span>
+          </div>
+          <CardDescription>
+            Reported by <Link to={`/profile/${report.pubkey}`} className="underline">{reporterName}</Link>
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="pb-2">
+          <div className="flex items-center gap-3 mb-3 p-2 bg-muted/50 rounded-md">
+            <Link to={`/profile/${report.reportedPubkey}`}>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={reportedImage} />
+                <AvatarFallback>{reportedName.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
             </Link>
-            <p className="text-xs text-muted-foreground">Reported user</p>
-          </div>
-        </div>
-        
-        {report.reason && (
-          <div className="mb-3">
-            <p className="text-sm font-medium mb-1">Report reason:</p>
-            <p className="text-sm bg-muted/30 p-2 rounded-md">{report.reason}</p>
-          </div>
-        )}
-        
-        {report.isClosed && (
-          <div className="mb-3 border border-muted p-2 rounded-md bg-muted/20">
-            <p className="text-sm font-medium mb-1 flex items-center gap-1">
-              <CheckCircle className="h-4 w-4 text-green-500" /> 
-              Resolution: <span className="font-normal">{report.resolutionAction}</span>
-            </p>
-            {report.resolutionReason && (
-              <p className="text-sm mt-1">{report.resolutionReason}</p>
-            )}
-          </div>
-        )}
-        
-        {report.reportedEventId && (
-          <>
-            {isLoadingPost ? (
-              <div className="my-3">
-                <Skeleton className="h-20 w-full rounded-md" />
-              </div>
-            ) : reportedPost ? (
-              <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
-                <p className="text-sm font-medium mb-1">Reported content:</p>
-                <div className="text-sm whitespace-pre-wrap break-words">{reportedPost.content}</div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <span>Posted: {formatDistanceToNow(new Date(reportedPost.created_at * 1000), { addSuffix: true })}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
-                <p className="text-sm text-muted-foreground italic">Content not found or has been deleted</p>
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              <span>Content ID: </span>
-              <code className="bg-muted px-1 py-0.5 rounded">{report.reportedEventId.slice(0, 10)}...{report.reportedEventId.slice(-4)}</code>
+            <div>
+              <Link to={`/profile/${report.reportedPubkey}`} className="font-medium text-sm hover:underline">
+                {reportedName}
+              </Link>
+              <p className="text-xs text-muted-foreground">Reported user</p>
             </div>
-          </>
-        )}
-      </CardContent>
-      
-      <CardFooter className="pt-2 flex flex-wrap gap-2">
-        {!report.isClosed ? (
-          <>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="text-green-600" 
-              onClick={() => onAction("no_action")}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" /> No Action
-            </Button>
-            
-            {report.reportedEventId && (
+          </div>
+          
+          {report.reason && (
+            <div className="mb-3">
+              <p className="text-sm font-medium mb-1">Report reason:</p>
+              <p className="text-sm bg-muted/30 p-2 rounded-md">{report.reason}</p>
+            </div>
+          )}
+          
+          {report.isClosed && (
+            <div className="mb-3 border border-muted p-2 rounded-md bg-muted/20">
+              <p className="text-sm font-medium mb-1 flex items-center gap-1">
+                <CheckCircle className="h-4 w-4 text-green-500" /> 
+                Resolution: <span className="font-normal">{report.resolutionAction}</span>
+              </p>
+              {report.resolutionReason && (
+                <p className="text-sm mt-1">{report.resolutionReason}</p>
+              )}
+            </div>
+          )}
+          
+          {report.reportedEventId && (
+            <>
+              {isLoadingPost ? (
+                <div className="my-3">
+                  <Skeleton className="h-20 w-full rounded-md" />
+                </div>
+              ) : reportedPost ? (
+                <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
+                  <p className="text-sm font-medium mb-1">Reported content:</p>
+                  <div className="text-sm whitespace-pre-wrap break-words">{reportedPost.content}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <span>Posted: {formatDistanceToNow(new Date(reportedPost.created_at * 1000), { addSuffix: true })}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="my-3 border border-muted rounded-md p-3 bg-muted/20">
+                  <p className="text-sm text-muted-foreground italic">Content not found or has been deleted</p>
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground">
+                <span>Content ID: </span>
+                <code className="bg-muted px-1 py-0.5 rounded">{report.reportedEventId.slice(0, 10)}...{report.reportedEventId.slice(-4)}</code>
+              </div>
+            </>
+          )}
+        </CardContent>
+        
+        <CardFooter className="pt-2 flex flex-wrap gap-2">
+          {!report.isClosed ? (
+            <>
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-amber-600" 
-                onClick={() => onAction("remove_content")}
+                className="text-green-600" 
+                onClick={() => onAction("no_action")}
               >
-                <XCircle className="h-4 w-4 mr-1" /> Remove Content
+                <CheckCircle className="h-4 w-4 mr-1" /> No Action
               </Button>
-            )}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <MoreHorizontal className="h-4 w-4 mr-1" /> More Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onAction("remove_user")}>
-                  <UserX className="h-4 w-4 mr-2" /> Remove User
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => onAction("ban_user")}
-                  className="text-red-600"
+              
+              {report.reportedEventId && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-amber-600" 
+                  onClick={() => onAction("remove_content")}
                 >
-                  <Ban className="h-4 w-4 mr-2" /> Ban User
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">This report has been resolved.</p>
-        )}
-      </CardFooter>
-    </Card>
-  );
-}
+                  <XCircle className="h-4 w-4 mr-1" /> Remove Content
+                </Button>
+              )}
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <MoreHorizontal className="h-4 w-4 mr-1" /> More Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onAction("remove_user")}>
+                    <UserX className="h-4 w-4 mr-2" /> Remove User
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onAction("ban_user")}
+                    className="text-red-600"
+                  >
+                    <Ban className="h-4 w-4 mr-2" /> Ban User
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">This report has been resolved.</p>
+          )}
+        </CardFooter>
+      </Card>
+    );
+  }
+);
+
+ReportItem.displayName = "ReportItem";

@@ -17,7 +17,10 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Check,
+  ChevronDown,
+  ChevronUp,
   Copy,
+  DollarSign,
   Zap,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -28,13 +31,18 @@ import {
   ReceivedNutzap,
   useRedeemNutzap,
 } from "@/hooks/useReceivedNutzaps";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { nip19 } from "nostr-tools";
 import { Proof } from "@cashu/cashu-ts";
 import { useNutzapInfo } from "@/hooks/useNutzaps";
 import { useNostr } from "@/hooks/useNostr";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 import { getLastEventTimestamp } from "@/lib/nostrTimestamps";
+import { useWalletUiStore } from "@/stores/walletUiStore";
 
 export function NutzapCard() {
   const { user } = useCurrentUser();
@@ -52,6 +60,9 @@ export function NutzapCard() {
   const { mutateAsync: redeemNutzap, isPending: isRedeemingNutzap } =
     useRedeemNutzap();
   const nutzapInfoQuery = useNutzapInfo(user?.pubkey);
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
+  const walletUiStore = useWalletUiStore();
+  const isExpanded = walletUiStore.expandedCards.nutzap;
 
   const [activeTab, setActiveTab] = useState("receive");
   const [recipientNpub, setRecipientNpub] = useState("");
@@ -179,7 +190,7 @@ export function NutzapCard() {
 
               // Show success notification for redeemed nutzap
               setSuccess(
-                `New Zap received and redeemed! ${proofs.reduce(
+                `New eCash received and redeemed! ${proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
                 )} sats`
@@ -188,7 +199,7 @@ export function NutzapCard() {
               console.error("Failed to auto-redeem nutzap:", error);
               // Just show the notification without auto-redemption
               setSuccess(
-                `New Zap received! ${proofs.reduce(
+                `New eCash received! ${proofs.reduce(
                   (sum, p) => sum + p.amount,
                   0
                 )} sats`
@@ -277,17 +288,12 @@ export function NutzapCard() {
       // Generate token (mint) with the specified amount and get proofs for the nutzap
       const amountValue = parseInt(amount);
 
-      // Verify the mint is in the recipient's trusted list
-      const recipientMints = recipientInfo.mints.map((mint) => mint.url);
-      if (!recipientMints.includes(cashuStore.activeMintUrl)) {
-        throw new Error(
-          `Recipient does not accept tokens from mint: ${cashuStore.activeMintUrl}`
-        );
-      }
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
 
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -297,7 +303,7 @@ export function NutzapCard() {
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
       });
 
       setSuccess(`Successfully sent ${amountValue} sats`);
@@ -345,7 +351,7 @@ export function NutzapCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Nostr Zaps</CardTitle>
+          <CardTitle>eCash</CardTitle>
           <CardDescription>Create a wallet first</CardDescription>
         </CardHeader>
       </Card>
@@ -354,178 +360,195 @@ export function NutzapCard() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Nostr Zaps</CardTitle>
-        <CardDescription>
-          Send and receive Cashu tokens via Nostr
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>eCash</CardTitle>
+          <CardDescription>Send and receive Cash via Nostr</CardDescription>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => walletUiStore.toggleCardExpansion("nutzap")}
+          aria-label={isExpanded ? "Collapse" : "Expand"}
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="receive">
-              <ArrowDownLeft className="h-4 w-4 mr-2" />
-              Receive
-            </TabsTrigger>
-            <TabsTrigger value="send">
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              Send
-            </TabsTrigger>
-          </TabsList>
+      {isExpanded && (
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="receive">
+                <ArrowDownLeft className="h-4 w-4 mr-2" />
+                Receive
+              </TabsTrigger>
+              <TabsTrigger value="send">
+                <ArrowUpRight className="h-4 w-4 mr-2" />
+                Send
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="send" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient">Recipient (npub)</Label>
-              <Input
-                id="recipient"
-                placeholder="npub1..."
-                value={recipientNpub}
-                onChange={(e) => setRecipientNpub(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (sats)</Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="100"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="comment">Comment (optional)</Label>
-              <Input
-                id="comment"
-                placeholder="Thanks for the content!"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handleSendNutzap}
-              disabled={
-                !cashuStore.activeMintUrl ||
-                !amount ||
-                !recipientNpub ||
-                !user ||
-                isSending
-              }
-            >
-              {isSending ? "Sending..." : "Send Zap"}
-              <Zap className="h-4 w-4 ml-2" />
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="receive" className="space-y-4 mt-4">
-            {user && (
-              <div className="border rounded-md p-3 mb-4">
-                <Label className="text-sm text-muted-foreground mb-1 block">
-                  Your Nostr ID (npub)
-                </Label>
-                <div className="flex items-center">
-                  <div className="text-sm font-mono truncate flex-1 bg-muted p-2 rounded-l-md">
-                    {userNpub}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-l-none"
-                    onClick={() => copyToClipboard(userNpub)}
-                    disabled={copying}
-                  >
-                    {copying ? "Copied!" : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
+            <TabsContent value="send" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="recipient">Recipient (npub)</Label>
+                <Input
+                  id="recipient"
+                  placeholder="npub1..."
+                  value={recipientNpub}
+                  onChange={(e) => setRecipientNpub(e.target.value)}
+                />
               </div>
-            )}
 
-            {isLoadingNutzaps && receivedNutzaps.length === 0 ? (
-              <div className="text-center py-4">Loading incoming zaps...</div>
-            ) : receivedNutzaps.length > 0 ? (
-              <div className="space-y-4">
-                {receivedNutzaps.map((nutzap) => (
-                  <div
-                    key={nutzap.id}
-                    className={`border rounded-md p-3 ${
-                      nutzap.redeemed ? "bg-muted/50" : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="text-sm font-medium">
-                          From: {nutzap.pubkey.slice(0, 8)}...
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(nutzap.createdAt * 1000).toLocaleString()}
-                        </div>
-                        {nutzap.content && (
-                          <div className="mt-1 text-sm">{nutzap.content}</div>
-                        )}
-                        <div className="mt-1 font-semibold">
-                          {nutzap.proofs.reduce((sum, p) => sum + p.amount, 0)}{" "}
-                          sats
-                        </div>
-                      </div>
-                      <div>
-                        {nutzap.redeemed ? (
-                          <div className="text-xs flex items-center text-green-600">
-                            <Check className="h-3 w-3 mr-1" />
-                            Redeemed
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (sats)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="100"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="comment">Comment (optional)</Label>
+                <Input
+                  id="comment"
+                  placeholder="Thanks for the content!"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={handleSendNutzap}
+                disabled={
+                  !cashuStore.activeMintUrl ||
+                  !amount ||
+                  !recipientNpub ||
+                  !user ||
+                  isSending
+                }
+              >
+                {isSending ? "Sending..." : "Send eCash"}
+                <DollarSign className="h-4 w-4 ml-2" />
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="receive" className="space-y-4 mt-4">
+              {user && (
+                <div className="border rounded-md p-3 mb-4">
+                  <Label className="text-sm text-muted-foreground mb-1 block">
+                    Your Nostr ID (npub)
+                  </Label>
+                  <div className="flex items-center">
+                    <div className="text-sm font-mono truncate flex-1 bg-muted p-2 rounded-l-md">
+                      {userNpub}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-l-none"
+                      onClick={() => copyToClipboard(userNpub)}
+                      disabled={copying}
+                    >
+                      {copying ? "Copied!" : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isLoadingNutzaps && receivedNutzaps.length === 0 ? (
+                <div className="text-center py-4">Loading incoming eCash...</div>
+              ) : receivedNutzaps.length > 0 ? (
+                <div className="space-y-4">
+                  {receivedNutzaps.map((nutzap) => (
+                    <div
+                      key={nutzap.id}
+                      className={`border rounded-md p-3 ${
+                        nutzap.redeemed ? "bg-muted/50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-sm font-medium">
+                            From: {nutzap.pubkey.slice(0, 8)}...
                           </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleRedeemNutzap(nutzap)}
-                            disabled={
-                              isRedeemingNutzap ||
-                              redeemingNutzapId === nutzap.id
-                            }
-                          >
-                            {redeemingNutzapId === nutzap.id
-                              ? "Redeeming..."
-                              : "Redeem"}
-                          </Button>
-                        )}
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(nutzap.createdAt * 1000).toLocaleString()}
+                          </div>
+                          {nutzap.content && (
+                            <div className="mt-1 text-sm">{nutzap.content}</div>
+                          )}
+                          <div className="mt-1 font-semibold">
+                            {nutzap.proofs.reduce(
+                              (sum, p) => sum + p.amount,
+                              0
+                            )}{" "}
+                            sats
+                          </div>
+                        </div>
+                        <div>
+                          {nutzap.redeemed ? (
+                            <div className="text-xs flex items-center text-green-600">
+                              <Check className="h-3 w-3 mr-1" />
+                              Redeemed
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleRedeemNutzap(nutzap)}
+                              disabled={
+                                isRedeemingNutzap ||
+                                redeemingNutzapId === nutzap.id
+                              }
+                            >
+                              {redeemingNutzapId === nutzap.id
+                                ? "Redeeming..."
+                                : "Redeem"}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                No incoming zaps received yet
-              </div>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  No incoming eCash received yet
+                </div>
+              )}
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => refetchNutzaps()}
-              disabled={isLoadingNutzaps}
-            >
-              Refresh
-            </Button>
-          </TabsContent>
-        </Tabs>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => refetchNutzaps()}
+                disabled={isLoadingNutzaps}
+              >
+                Refresh
+              </Button>
+            </TabsContent>
+          </Tabs>
 
-        {(error || sendError) && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error || String(sendError)}</AlertDescription>
-          </Alert>
-        )}
+          {(error || sendError) && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error || String(sendError)}</AlertDescription>
+            </Alert>
+          )}
 
-        {success && (
-          <Alert className="mt-4">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
+          {success && (
+            <Alert className="mt-4">
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }

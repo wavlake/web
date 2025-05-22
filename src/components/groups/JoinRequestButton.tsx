@@ -8,15 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UserPlus, CheckCircle, Clock, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface JoinRequestButtonProps {
   communityId: string;
   isModerator?: boolean;
   initialOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  className?: string;
 }
 
-export function JoinRequestButton({ communityId, isModerator = false, initialOpen = false, onOpenChange }: JoinRequestButtonProps) {
+export function JoinRequestButton({ communityId, isModerator = false, initialOpen = false, onOpenChange, className }: JoinRequestButtonProps) {
   const [open, setOpen] = useState(initialOpen);
   const [joinReason, setJoinReason] = useState("");
   const { user } = useCurrentUser();
@@ -117,7 +119,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
 
   if (!user) {
     return (
-      <Button variant="outline" disabled className="w-full">
+      <Button variant="outline" disabled className={className}>
         <UserPlus className="h-4 w-4 mr-2" />
         Log in to join
       </Button>
@@ -126,7 +128,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
 
   if (isCheckingRequest || isCheckingApproval || isCheckingDeclined) {
     return (
-      <Button variant="outline" disabled className="w-full">
+      <Button variant="outline" disabled className={className}>
         <Clock className="h-4 w-4 mr-2 animate-spin" />
         Checking status...
       </Button>
@@ -136,7 +138,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
   // If user is in both approved and declined lists, treat them as approved
   if (isApprovedMember) {
     return (
-      <Button variant="outline" disabled className="text-green-600 border-green-600 w-full">
+      <Button variant="outline" disabled className={cn("text-green-600 border-green-600", className)}>
         <CheckCircle className="h-4 w-4 mr-2" />
         Member
       </Button>
@@ -145,7 +147,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
 
   if (existingRequest) {
     return (
-      <Button variant="outline" disabled className="w-full">
+      <Button variant="outline" disabled className={className}>
         <Clock className="h-4 w-4 mr-2" />
         Request pending
       </Button>
@@ -154,7 +156,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
   
   if (isDeclinedUser) {
     return (
-      <Button variant="outline" disabled className="text-red-600 border-red-600">
+      <Button variant="outline" disabled className={cn("text-red-600 border-red-600", className)}>
         <XCircle className="h-4 w-4 mr-2" />
         Request declined
       </Button>
@@ -164,7 +166,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className={className}>
           <UserPlus className="h-4 w-4 mr-2" />
           Request to join
         </Button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -13,7 +13,7 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { toast } from "sonner";
 import { UserPlus, Users, CheckCircle, XCircle, UserX, Ban } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 interface MemberManagementProps {
   communityId: string;
@@ -23,6 +23,7 @@ interface MemberManagementProps {
 export function MemberManagement({ communityId, isModerator }: MemberManagementProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const location = useLocation();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { 
     bannedUsers: uniqueBannedUsers, 
@@ -31,6 +32,16 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     unbanUser 
   } = useBannedUsers(communityId);
   const [activeTab, setActiveTab] = useState("requests");
+  
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const membersTab = searchParams.get('membersTab');
+    
+    if (membersTab && ['requests', 'members', 'declined', 'banned'].includes(membersTab)) {
+      setActiveTab(membersTab);
+    }
+  }, [location.search]);
 
   // Query for join requests
   const { data: joinRequests, isLoading: isLoadingRequests, refetch: refetchRequests } = useQuery({

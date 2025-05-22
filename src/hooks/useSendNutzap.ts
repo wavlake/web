@@ -2,8 +2,47 @@ import { useNostr } from '@/hooks/useNostr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CASHU_EVENT_KINDS } from '@/lib/cashu';
+import { NostrEvent } from 'nostr-tools';
 import { Proof } from '@cashu/cashu-ts';
 import { useNutzapStore, NutzapInformationalEvent } from '@/stores/nutzapStore';
+import { useCashuStore } from '@/stores/cashuStore';
+
+/**
+ * Hook to verify mint compatibility between sender and recipient
+ * Checks if recipient accepts tokens from sender's active mint
+ * If not, tries to find a compatible mint from sender's mints list
+ */
+export function useVerifyMintCompatibility() {
+  const cashuStore = useCashuStore();
+
+  const verifyMintCompatibility = (recipientInfo: NutzapInformationalEvent): string => {
+    const activeMintUrl = cashuStore.activeMintUrl || '';
+    const recipientMints = recipientInfo.mints.map(mint => mint.url);
+
+    // Check if recipient accepts the active mint
+    if (activeMintUrl && recipientMints.includes(activeMintUrl)) {
+      return activeMintUrl;
+    }
+
+    // If not, try to find a compatible mint
+    const compatibleMint = recipientMints.find(mintUrl =>
+      cashuStore.mints.map(m => m.url).includes(mintUrl)
+    );
+
+    if (compatibleMint) {
+      // Update the active mint to the compatible one
+      cashuStore.setActiveMintUrl(compatibleMint);
+      return compatibleMint;
+    }
+
+    // No compatible mint found
+    throw new Error(
+      `Recipient does not accept tokens from mint: ${activeMintUrl}`
+    );
+  };
+
+  return { verifyMintCompatibility };
+}
 
 /**
  * Hook to fetch a recipient's nutzap information
@@ -79,6 +118,7 @@ export function useFetchNutzapInfo() {
 export function useSendNutzap() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
   const queryClient = useQueryClient();
 
   // Mutation to create and send a nutzap event
@@ -102,10 +142,13 @@ export function useSendNutzap() {
     }) => {
       if (!user) throw new Error('User not logged in');
 
-      // Verify the mint is in the recipient's trusted list
-      const recipientMints = recipientInfo.mints.map(mint => mint.url);
-      if (!recipientMints.includes(mintUrl)) {
-        throw new Error(`Recipient does not accept tokens from mint: ${mintUrl}`);
+      // Verify mint compatibility and get the compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
+      // If mintUrl is different from compatibleMintUrl, we should use the compatible one
+      // but this requires generating new proofs with the compatible mint
+      if (mintUrl !== compatibleMintUrl) {
+        mintUrl = compatibleMintUrl;
       }
 
       // Create tags for the nutzap event

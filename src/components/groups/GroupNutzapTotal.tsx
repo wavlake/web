@@ -1,6 +1,6 @@
 import { useGroupNutzapTotal } from "@/hooks/useGroupNutzaps";
 import { formatBalance } from "@/lib/cashu";
-import { Zap } from "lucide-react";
+import { Zap, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface GroupNutzapTotalProps {
@@ -21,7 +21,7 @@ export function GroupNutzapTotal({ groupId, className = "" }: GroupNutzapTotalPr
 
   return (
     <div className={`flex items-center text-amber-500 ${className}`}>
-      <Zap className="h-4 w-4 mr-1" />
+      <DollarSign className="h-4 w-4 mr-1" />
       <span>{formatBalance(total)}</span>
     </div>
   );

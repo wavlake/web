@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
-import { useSendNutzap, useFetchNutzapInfo } from "@/hooks/useSendNutzap";
+import { Zap, DollarSign } from "lucide-react";
+import {
+  useSendNutzap,
+  useFetchNutzapInfo,
+  useVerifyMintCompatibility,
+} from "@/hooks/useSendNutzap";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useCashuToken } from "@/hooks/useCashuToken";
@@ -18,33 +22,79 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNostr } from "@/hooks/useNostr";
+import { useQuery } from "@tanstack/react-query";
+import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 
 interface NutzapButtonProps {
   postId: string;
   authorPubkey: string;
   relayHint?: string;
+  showText?: boolean;
 }
 
-export function NutzapButton({
-  postId,
-  authorPubkey,
-  relayHint,
-}: NutzapButtonProps) {
+export function NutzapButton({ postId, authorPubkey, relayHint, showText = true }: NutzapButtonProps) {
+  const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { wallet } = useCashuWallet();
   const cashuStore = useCashuStore();
   const { sendToken } = useCashuToken();
   const { sendNutzap, isSending } = useSendNutzap();
   const { fetchNutzapInfo, isFetching } = useFetchNutzapInfo();
+  const { verifyMintCompatibility } = useVerifyMintCompatibility();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [comment, setComment] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Query to get all nutzaps for this post
+  const { data: nutzapTotal } = useQuery({
+    queryKey: ["nutzap-total", postId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+
+      const events = await nostr.query([{
+        kinds: [CASHU_EVENT_KINDS.ZAP],
+        "#e": [postId],
+        limit: 50,
+      }], { signal });
+
+      let totalAmount = 0;
+
+      for (const event of events) {
+        try {
+          // Get proofs from tags
+          const proofTags = event.tags.filter(tag => tag[0] === "proof");
+          if (proofTags.length === 0) continue;
+
+          const proofs = proofTags
+            .map(tag => {
+              try {
+                return JSON.parse(tag[1]);
+              } catch (e) {
+                return null;
+              }
+            })
+            .filter(Boolean);
+
+          // Calculate amount and add to total
+          for (const proof of proofs) {
+            totalAmount += proof.amount;
+          }
+        } catch (error) {
+          console.error("Error processing nutzap:", error);
+        }
+      }
+
+      return totalAmount;
+    },
+    enabled: !!nostr && !!postId,
+  });
+
   const handleOpenDialog = () => {
     if (!user) {
-      toast.error("You must be logged in to send nutzaps");
+      toast.error("You must be logged in to send eCash");
       return;
     }
 
@@ -82,9 +132,12 @@ export function NutzapButton({
       // Generate token with the specified amount and get proofs for the nutzap
       const amountValue = parseInt(amount);
 
+      // Verify mint compatibility and get a compatible mint URL
+      const compatibleMintUrl = verifyMintCompatibility(recipientInfo);
+
       // Send token using p2pk pubkey from recipient info
       const proofs = (await sendToken(
-        cashuStore.activeMintUrl,
+        compatibleMintUrl,
         amountValue,
         recipientInfo.p2pkPubkey
       )) as Proof[];
@@ -94,7 +147,7 @@ export function NutzapButton({
         recipientInfo,
         comment,
         proofs,
-        mintUrl: cashuStore.activeMintUrl,
+        mintUrl: compatibleMintUrl,
         eventId: postId,
         relayHint,
       });
@@ -119,8 +172,8 @@ export function NutzapButton({
         className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
         onClick={handleOpenDialog}
       >
-        <Zap className="h-3.5 w-3.5 mr-1" />
-        <span className="text-xs">Zap</span>
+        <DollarSign className={`h-3.5 w-3.5 ${nutzapTotal && nutzapTotal > 0 ? 'text-orange-500' : ''}`} />
+        {nutzapTotal && nutzapTotal > 0 ? <span className="text-xs ml-0.5">{nutzapTotal}</span> : null}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
