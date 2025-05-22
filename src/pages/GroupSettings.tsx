@@ -31,6 +31,7 @@ export default function GroupSettings() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [communityGuidelines, setCommunityGuidelines] = useState("");
   const [moderators, setModerators] = useState<string[]>([]);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export default function GroupSettings() {
       const nameTag = communityEvent.tags.find(tag => tag[0] === "name");
       const descriptionTag = communityEvent.tags.find(tag => tag[0] === "description");
       const imageTag = communityEvent.tags.find(tag => tag[0] === "image");
+      const guidelinesTag = communityEvent.tags.find(tag => tag[0] === "guidelines");
 
       const modTags = communityEvent.tags.filter(tag =>
         tag[0] === "p" && (
@@ -97,6 +99,7 @@ export default function GroupSettings() {
       setName(nameTag ? nameTag[1] : "");
       setDescription(descriptionTag ? descriptionTag[1] : "");
       setImageUrl(imageTag ? imageTag[1] : "");
+      setCommunityGuidelines(guidelinesTag ? guidelinesTag[1] : "");
 
       const modPubkeys = modTags.map(tag => tag[1]);
 
@@ -159,6 +162,9 @@ export default function GroupSettings() {
       tags.push(["d", parsedId.identifier]);
       tags.push(["name", name]);
       tags.push(["description", description]);
+      if (communityGuidelines) {
+        tags.push(["guidelines", communityGuidelines]);
+      }
 
       if (imageUrl) {
         const communityEvent = community as NostrEvent;
@@ -360,17 +366,6 @@ export default function GroupSettings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter group description"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="image">Image URL</Label>
                   <Input
                     id="image"
@@ -391,6 +386,28 @@ export default function GroupSettings() {
                       />
                     </div>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Enter group description"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="guidelines">Community Guidelines (Optional)</Label>
+                  <Textarea
+                    id="guidelines"
+                    value={communityGuidelines}
+                    onChange={(e) => setCommunityGuidelines(e.target.value)}
+                    placeholder="Enter community guidelines"
+                    rows={4}
+                  />
                 </div>
 
                 <div className="mt-4 p-3 bg-muted rounded-md">
