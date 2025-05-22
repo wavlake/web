@@ -22,11 +22,18 @@ export function useBannedUsers(communityId?: string) {
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
-      const events = await nostr.query([{ 
+      // Create the filter object
+      const filter: Record<string, any> = {
         kinds: [14552],
-        "#a": [communityId],
         limit: 50,
-      }], { signal });
+      };
+      
+      // Only add the community filter if communityId is defined
+      if (communityId) {
+        filter["#a"] = [communityId];
+      }
+      
+      const events = await nostr.query([filter], { signal });
       
       return events;
     },
