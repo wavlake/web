@@ -25,7 +25,11 @@ interface NutzapButtonProps {
   relayHint?: string;
 }
 
-export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonProps) {
+export function NutzapButton({
+  postId,
+  authorPubkey,
+  relayHint,
+}: NutzapButtonProps) {
   const { user } = useCurrentUser();
   const { wallet } = useCashuWallet();
   const cashuStore = useCashuStore();
@@ -43,17 +47,19 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
       toast.error("You must be logged in to send nutzaps");
       return;
     }
-    
+
     if (!wallet) {
       toast.error("You need to set up a Cashu wallet first");
       return;
     }
-    
+
     if (!cashuStore.activeMintUrl) {
-      toast.error("No active mint selected. Please select a mint in your wallet settings.");
+      toast.error(
+        "No active mint selected. Please select a mint in your wallet settings."
+      );
       return;
     }
-    
+
     setIsDialogOpen(true);
   };
 
@@ -90,7 +96,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
         proofs,
         mintUrl: cashuStore.activeMintUrl,
         eventId: postId,
-        relayHint
+        relayHint,
       });
 
       toast.success(`Successfully sent ${amountValue} sats`);
@@ -114,15 +120,15 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
         onClick={handleOpenDialog}
       >
         <Zap className="h-3.5 w-3.5 mr-1" />
-        <span className="text-xs">Nutzap</span>
+        <span className="text-xs">Zap</span>
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Send Nutzap</DialogTitle>
+            <DialogTitle>Send Cash</DialogTitle>
             <DialogDescription>
-              Send a Cashu token to the author of this post.
+              Send Cash to the author of this post.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -153,12 +159,12 @@ export function NutzapButton({ postId, authorPubkey, relayHint }: NutzapButtonPr
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               onClick={handleSendNutzap}
               disabled={isProcessing || isSending || isFetching || !amount}
             >
-              {isProcessing ? "Sending..." : "Send Nutzap"}
+              {isProcessing ? "Sending..." : "Send Cash"}
             </Button>
           </DialogFooter>
         </DialogContent>
