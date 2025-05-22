@@ -6,7 +6,7 @@ Chorus is a decentralized, privacy-conscious, user-moderated groups platform ins
 
 - **Create & Curate Communities**: Start your own space with a custom name, image, and description — and moderate it your way
 - **Browse & Join Groups**: Discover and participate in public communities that match your interests
-- **Post Freely**: Share notes and images with your groups via the [Nostr protocol](hhttps://github.com/nostr-protocol)
+- **Post Freely**: Share notes and images with your groups via the [Nostr protocol](https://github.com/nostr-protocol)
 - **Built-in Payments to Give & Get Support**: Contribute to the communities you care about or receive support for your work using simple, privacy-respecting payments powered by [Cashu](https://cashu.space)
 - **Pseudonymous Profiles**: Find like-minded people and follow their work—without sharing more than you want to
 - **Lightweight & On-the-Go Design**: Mobile-first, browser-based for use on any smartphone
