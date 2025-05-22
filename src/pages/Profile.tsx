@@ -3,18 +3,40 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
+import { 
+  Avatar, 
+  AvatarFallback, 
+  AvatarImage 
+} from "@/components/ui/avatar";
+import { 
+  Card, 
+  CardHeader, 
+  CardContent
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NoteContent } from "@/components/NoteContent";
 import { Link } from "react-router-dom";
-import { ExternalLink, Copy, Users } from "lucide-react";
+import { 
+  ExternalLink, 
+  Copy, 
+  Users, 
+  Pencil,
+  Calendar, 
+  MessageCircle,
+  Heart,
+  Share2,
+  LinkIcon
+} from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { VerifiedNip05 } from "@/components/VerifiedNip05";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -61,13 +83,67 @@ function PostGroupLink({ post }: { post: NostrEvent }) {
   return (
     <Link
       to={`/group/${encodeURIComponent(groupInfo.groupId)}`}
-      className="flex items-center text-xs text-muted-foreground hover:text-primary"
+      className="flex items-center text-xs md:text-sm text-muted-foreground hover:text-primary transition-colors"
     >
-      <div className="flex items-center px-2 py-1 rounded-md bg-muted hover:bg-muted/80 transition-colors">
-        <Users className="h-3 w-3 mr-1" />
-        Posted in <span className="font-medium ml-1">{groupInfo.groupName}</span>
+      <div className="flex items-center px-2 py-1 rounded-full bg-muted/70 hover:bg-muted transition-colors">
+        <Users className="h-3 w-3 md:h-4 md:w-4 mr-1.5" />
+        <span className="font-medium">{groupInfo.groupName}</span>
       </div>
     </Link>
+  );
+}
+
+// Formatted date component
+function FormattedDate({ timestamp }: { timestamp: number }) {
+  const date = new Date(timestamp * 1000);
+  
+  // Format relative time (e.g., "2 hours ago")
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  let relativeTime = '';
+  
+  if (diffInSeconds < 60) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds), 'second');
+  } else if (diffInSeconds < 3600) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
+  } else if (diffInSeconds < 86400) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');
+  } else if (diffInSeconds < 604800) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
+  } else if (diffInSeconds < 2592000) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 604800), 'week');
+  } else if (diffInSeconds < 31536000) {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 2592000), 'month');
+  } else {
+    relativeTime = rtf.format(-Math.floor(diffInSeconds / 31536000), 'year');
+  }
+  
+  // Format absolute date (shown on hover)
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  };
+  const formattedDate = date.toLocaleString('en-US', formatOptions);
+  
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex items-center text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 mr-1.5 inline-block" />
+            {relativeTime}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p className="text-xs">{formattedDate}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -93,8 +169,8 @@ function UserGroupsList({
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-center gap-3">
-            <Skeleton className="h-12 w-12 rounded-md" />
-            <div>
+            <Skeleton className="h-12 w-12 rounded-lg" />
+            <div className="flex-1">
               <Skeleton className="h-4 w-32 mb-1" />
               <Skeleton className="h-3 w-48" />
             </div>
@@ -125,16 +201,16 @@ function UserGroupsList({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {Array.from(uniqueGroups.values()).map((group) => (
         <Link
           key={group.id}
           to={`/group/${encodeURIComponent(group.id)}`}
           className="block"
         >
-          <Card className="overflow-hidden h-full hover:bg-muted/50 transition-colors">
-            <div className="flex p-4 h-full">
-              <div className="h-16 w-16 rounded-md overflow-hidden mr-4 flex-shrink-0">
+          <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
+            <div className="flex p-4">
+              <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted">
                 <img
                   src={group.image}
                   alt={group.name}
@@ -145,8 +221,8 @@ function UserGroupsList({
                 />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-sm mb-1">{group.name}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">
+                <h3 className="font-medium text-sm mb-0.5">{group.name}</h3>
+                <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
                   {group.description || "No description available"}
                 </p>
               </div>
@@ -155,6 +231,59 @@ function UserGroupsList({
         </Link>
       ))}
     </div>
+  );
+}
+
+function PostCard({ post, profileImage, displayName, displayNameFull }: { 
+  post: NostrEvent; 
+  profileImage?: string;
+  displayName: string;
+  displayNameFull: string;
+}) {
+  return (
+    <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-300 mb-5">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <Avatar className="h-10 w-10 rounded-full">
+            <AvatarImage src={profileImage} />
+            <AvatarFallback className="bg-primary/10">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-0.5">
+              <span className="font-medium text-base">{displayNameFull}</span>
+              <FormattedDate timestamp={post.created_at} />
+            </div>
+            
+            <div className="mt-2 whitespace-pre-wrap break-words">
+              <NoteContent event={post} className="text-base leading-relaxed" />
+            </div>
+            
+            {extractGroupInfo(post) && (
+              <div className="mt-4">
+                <PostGroupLink post={post} />
+              </div>
+            )}
+            
+            <div className="mt-4 pt-3 border-t flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center gap-5">
+                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground">
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="text-xs">Reply</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1.5 text-muted-foreground hover:text-foreground">
+                  <Heart className="h-4 w-4" />
+                  <span className="text-xs">Like</span>
+                </Button>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -342,6 +471,7 @@ export default function Profile() {
   const about = metadata?.about;
   const website = metadata?.website;
   const nip05 = metadata?.nip05;
+  const banner = metadata?.banner;
 
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
@@ -358,117 +488,79 @@ export default function Profile() {
       <div className="container mx-auto py-3 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
-          <div className="mb-6">
-            <div className="flex items-start gap-4">
-              <Skeleton className="h-16 w-16 rounded-full" />
-              <div className="flex-1">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <Skeleton className="h-6 w-48 mb-1" />
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
+          {/* Banner skeleton */}
+          <div className="w-full h-48 rounded-xl bg-muted/50 overflow-hidden mb-8"></div>
+          
+          {/* Profile info skeleton */}
+          <div className="relative max-w-5xl mx-auto -mt-24 mb-8">
+            <div className="bg-background rounded-xl border shadow-sm p-8">
+              <div className="flex flex-col md:flex-row md:items-end gap-6">
+                <Skeleton className="h-32 w-32 rounded-full border-4 border-background -mt-20" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-5 w-64" />
+                  <div className="flex gap-2 pt-1">
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
                   </div>
                 </div>
-
-                <div className="mt-2">
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
-                </div>
+              </div>
+              
+              <div className="mt-6 space-y-2">
+                <Skeleton className="h-4 w-full max-w-2xl" />
+                <Skeleton className="h-4 w-5/6 max-w-2xl" />
+                <Skeleton className="h-4 w-4/6 max-w-xl" />
               </div>
             </div>
           </div>
 
-          {/* Mobile loading state - Groups first, then Posts */}
-          <div className="md:hidden space-y-8 mb-8">
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Groups</h2>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="h-16 w-16 rounded-md" />
-                    <div>
-                      <Skeleton className="h-4 w-32 mb-1" />
-                      <Skeleton className="h-3 w-48" />
-                    </div>
-                  </div>
-                ))}
+          {/* Tabs skeleton */}
+          <div className="max-w-5xl mx-auto">
+            <div className="border-b mb-8">
+              <div className="flex gap-8">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
               </div>
             </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-              <div className="space-y-4">
+            
+            {/* Content skeleton */}
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-6">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-background border-b pb-4 mb-4">
-                    <div className="flex flex-row items-start gap-4 pb-2">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div>
-                        <Skeleton className="h-4 w-32 mb-1" />
-                        <Skeleton className="h-3 w-24" />
-                      </div>
-                    </div>
-                    <div className="pb-2 pl-14">
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </div>
-                    <div className="pt-2 pl-14">
-                      <Skeleton className="h-6 w-32" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop loading state - Posts and Groups side by side */}
-          <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
-            <div className="col-span-2">
-              <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-              <div className="space-y-6">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-background border-b pb-4 mb-4">
-                    <div className="flex flex-row items-start gap-4 pb-2">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Skeleton className="h-4 w-32 mb-1" />
-                            <Skeleton className="h-3 w-24" />
+                  <Card key={i} className="overflow-hidden shadow-sm">
+                    <CardContent className="p-5">
+                      <div className="flex gap-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex justify-between">
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-4 w-20" />
                           </div>
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-5/6" />
+                          <Skeleton className="h-4 w-2/3" />
                         </div>
                       </div>
-                    </div>
-                    <div className="pb-2 pl-14">
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </div>
-                    <div className="pt-2 pl-14">
-                      <Skeleton className="h-6 w-32" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Groups</h2>
-              <div className="grid grid-cols-1 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <div className="flex p-4">
-                      <Skeleton className="h-16 w-16 rounded-md mr-4 flex-shrink-0" />
-                      <div className="flex-1">
-                        <Skeleton className="h-4 w-32 mb-1" />
-                        <Skeleton className="h-3 w-48" />
-                      </div>
-                    </div>
+                    </CardContent>
                   </Card>
                 ))}
+              </div>
+              
+              <div>
+                <Skeleton className="h-8 w-40 mb-4" />
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="overflow-hidden">
+                      <div className="flex p-4">
+                        <Skeleton className="h-14 w-14 rounded-lg mr-4" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-full" />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -480,214 +572,203 @@ export default function Profile() {
   return (
     <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
-      <div className="space-y-6 my-6">
-        {/* Profile Header - No Card, Clean Design */}
-        <div className="mb-6">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 rounded-full">
+      
+      {/* Profile Banner */}
+      <div className="w-full h-48 md:h-64 rounded-xl bg-muted/50 overflow-hidden mt-6 mb-8">
+        {banner ? (
+          <img 
+            src={banner} 
+            alt={`${displayNameFull}'s banner`} 
+            className="w-full h-full object-cover" 
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary/5 to-primary/10" />
+        )}
+      </div>
+      
+      {/* Profile Info Card - Elevated above content */}
+      <div className="relative max-w-5xl mx-auto -mt-24 mb-8">
+        <div className="bg-background rounded-xl border shadow-md p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-end gap-6">
+            {/* Large Avatar that overlaps the top of the card */}
+            <Avatar className="h-32 w-32 rounded-full border-4 border-background -mt-20 md:-mt-28 shadow-md">
               <AvatarImage src={profileImage} />
-              <AvatarFallback className="text-lg">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="text-2xl bg-primary/10">
+                {displayName.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
-
-            <div className="flex-1 mt-2 sm:mt-0">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">{displayNameFull}</h1>
-                    {isCurrentUser && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        asChild
-                      >
-                        <Link to="/settings/profile">Edit</Link>
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                    {displayName !== displayNameFull && (
-                      <span className="text-sm text-muted-foreground">@{displayName}</span>
-                    )}
-                    
-                    {nip05 && (
-                      <span className="text-sm">
-                        <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
-                      </span>
-                    )}
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      onClick={copyPubkeyToClipboard}
-                    >
-                      <span className="truncate max-w-[120px]">{pubkey?.slice(0, 8)}...</span>
-                      <Copy className="h-3 w-3 ml-1" />
-                    </Button>
-                    
-                    {website && (
-                      <a
-                        href={website.startsWith('http') ? website : `https://${website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary flex items-center hover:underline"
-                      >
-                        {website}
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
-                    )}
-                  </div>
-                </div>
+            
+            <div className="flex-1 space-y-1.5 md:space-y-2">
+              {/* Name and verification */}
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl md:text-3xl font-bold">{displayNameFull}</h1>
+                {nip05 && (
+                  <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
+                )}
               </div>
-
-              {about && (
-                <div className="mt-2 text-sm whitespace-pre-wrap">
-                  {about}
-                </div>
+              
+              {/* Username */}
+              {displayName !== displayNameFull && (
+                <p className="text-base text-muted-foreground">@{displayName}</p>
               )}
+              
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {isCurrentUser ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full gap-1.5"
+                    asChild
+                  >
+                    <Link to="/settings/profile">
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="rounded-full"
+                  >
+                    Follow
+                  </Button>
+                )}
+                
+                {/* Copy Public Key button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full gap-1.5"
+                  onClick={copyPubkeyToClipboard}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Copy</span>
+                  <span className="hidden sm:inline truncate max-w-[60px] md:max-w-[120px]">
+                    {pubkey?.slice(0, 8)}...
+                  </span>
+                </Button>
+                
+                {/* Website link */}
+                {website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full gap-1.5"
+                    asChild
+                  >
+                    <a
+                      href={website.startsWith('http') ? website : `https://${website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center"
+                    >
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      <span className="truncate max-w-[140px]">{website}</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+          
+          {/* About section */}
+          {about && (
+            <div className="mt-6 text-base whitespace-pre-wrap max-w-3xl">
+              {about}
+            </div>
+          )}
         </div>
-
-        {/* Mobile layout - Groups first, then Posts */}
-        <div className="md:hidden space-y-8 mb-8">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Groups</h2>
-            <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-
-            {isLoadingPosts ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="border-b pb-4 mb-4">
-                    <div className="flex flex-row items-center gap-4 pb-2">
-                      <Skeleton className="h-12 w-12 rounded-full" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-24" />
-                      </div>
-                    </div>
-                    <div className="pb-2 pl-16">
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : posts && posts.length > 0 ? (
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <div key={post.id} className="border-b pb-4 mb-4 last:border-0">
-                    <div className="flex flex-row items-start gap-4 pb-2">
-                      <Avatar className="rounded-full">
-                        <AvatarImage src={profileImage} />
-                        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1">
-                        <div>
-                          <p className="font-semibold">{displayNameFull}</p>
-                          <div className="text-xs text-muted-foreground">
-                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
+      </div>
+      
+      {/* Content Tabs - Posts and Groups */}
+      <div className="max-w-5xl mx-auto">
+        <Tabs defaultValue="posts" className="mb-8">
+          <TabsList className="mb-8 border-b rounded-none w-full justify-start h-auto p-0 bg-transparent">
+            <TabsTrigger 
+              value="posts"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 text-base"
+            >
+              Posts
+            </TabsTrigger>
+            <TabsTrigger 
+              value="groups"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4 text-base"
+            >
+              Groups
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="posts" className="mt-0">
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Posts Column - Wider */}
+              <div className="md:col-span-2">
+                {isLoadingPosts ? (
+                  <div className="space-y-6">
+                    {[1, 2, 3].map((i) => (
+                      <Card key={i} className="overflow-hidden border border-border/40">
+                        <CardContent className="p-5">
+                          <div className="flex items-start gap-4">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <div className="flex justify-between">
+                                <Skeleton className="h-5 w-32" />
+                                <Skeleton className="h-4 w-20" />
+                              </div>
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-5/6" />
+                              <Skeleton className="h-4 w-2/3" />
+                              <div className="pt-3 flex justify-between">
+                                <Skeleton className="h-8 w-20" />
+                                <Skeleton className="h-8 w-20" />
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pl-14 whitespace-pre-wrap break-words">
-                      <NoteContent event={post} className="text-sm" />
-                    </div>
-
-                    {extractGroupInfo(post) && (
-                      <div className="pt-3 pl-14">
-                        <PostGroupLink post={post} />
-                      </div>
-                    )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center bg-muted/30 rounded-lg">
-                <p className="text-muted-foreground">No posts from this user yet</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop layout - Posts and Groups side by side */}
-        <div className="hidden md:grid md:grid-cols-3 gap-6 mb-8">
-          <div className="col-span-2">
-            <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-
-            {isLoadingPosts ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="border-b pb-4 mb-4">
-                    <div className="flex flex-row items-center gap-4 pb-2">
-                      <Skeleton className="h-12 w-12 rounded-full" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-24" />
-                      </div>
-                    </div>
-                    <div className="pb-2 pl-16">
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </div>
+                ) : posts && posts.length > 0 ? (
+                  <div className="space-y-5">
+                    {posts.map((post) => (
+                      <PostCard 
+                        key={post.id} 
+                        post={post} 
+                        profileImage={profileImage}
+                        displayName={displayName}
+                        displayNameFull={displayNameFull}
+                      />
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <Card className="overflow-hidden border border-border/40">
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground">No posts from this user yet</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            ) : posts && posts.length > 0 ? (
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <div key={post.id} className="border-b pb-4 mb-4 last:border-0">
-                    <div className="flex flex-row items-start gap-4 pb-2">
-                      <Avatar className="rounded-full">
-                        <AvatarImage src={profileImage} />
-                        <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1">
-                        <div>
-                          <p className="font-semibold">{displayNameFull}</p>
-                          <div className="text-xs text-muted-foreground">
-                            <span>{new Date(post.created_at * 1000).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pl-14 whitespace-pre-wrap break-words">
-                      <NoteContent event={post} className="text-sm" />
-                    </div>
-
-                    {extractGroupInfo(post) && (
-                      <div className="pt-3 pl-14">
-                        <PostGroupLink post={post} />
-                      </div>
-                    )}
-                  </div>
-                ))}
+              
+              {/* Sidebar */}
+              <div>
+                <div className="sticky top-4">
+                  <h2 className="text-xl font-semibold mb-4">Groups</h2>
+                  <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
+                </div>
               </div>
-            ) : (
-              <div className="p-8 text-center bg-muted/30 rounded-lg">
-                <p className="text-muted-foreground">No posts from this user yet</p>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="groups" className="mt-0">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">All Groups</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
               </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Groups</h2>
-            <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
