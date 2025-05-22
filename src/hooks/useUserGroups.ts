@@ -29,7 +29,13 @@ export function useUserGroups() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
       // Fetch all communities
-      const allCommunities = await nostr.query([{ kinds: [34550], limit: 100 }], { signal });
+      const allCommunities = await nostr.query(
+        [
+          { kinds: [34550], '#p': [user.pubkey] },
+          { kinds: [34550], authors: [user.pubkey] },
+        ],
+        { signal },
+      );
       
       // Create a map of community IDs to community events for faster lookups
       const communityMap = new Map<string, NostrEvent>();
@@ -58,6 +64,7 @@ export function useUserGroups() {
       const approvedMembersLists = await nostr.query([
         { 
           kinds: [14550], 
+          '#a': [...communityMap.keys()], // Use the keys from the community map
           limit: 200 
         }
       ], { signal });

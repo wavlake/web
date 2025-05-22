@@ -26,7 +26,6 @@ export default function Groups() {
       const events = await nostr.query([{ kinds: [34550], limit: 50 }], { signal });
       return events;
     },
-    enabled: !!nostr,
   });
 
   // Get user's groups
