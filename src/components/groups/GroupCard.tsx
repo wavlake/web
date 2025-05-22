@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pin, PinOff, MessageSquare, Activity, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/groups/RoleBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/hooks/useUserRole";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
+import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import {
@@ -70,6 +73,17 @@ export function GroupCard({
     membership?.isMember ? "member" :
     null);
 
+  // Check if user is owner or moderator
+  const isOwnerOrModerator = displayRole === "owner" || displayRole === "moderator";
+
+  // Get pending reports and join requests counts for owners/moderators
+  const { data: openReportsCount = 0 } = useOpenReportsCount(
+    isOwnerOrModerator ? communityId : ""
+  );
+  const { pendingRequestsCount = 0 } = usePendingJoinRequests(
+    isOwnerOrModerator ? communityId : ""
+  );
+
   const handleTogglePin = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -108,6 +122,50 @@ export function GroupCard({
           <div className="absolute top-2 right-10 z-10">
             <RoleBadge role={displayRole} />
           </div>
+        )}
+
+        {/* Notification badges for owners/moderators */}
+        {isOwnerOrModerator && (openReportsCount > 0 || pendingRequestsCount > 0) && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute bottom-2 right-2 z-10 flex gap-1">
+                  {openReportsCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    >
+                      {openReportsCount > 99 ? '99+' : openReportsCount}
+                    </Badge>
+                  )}
+                  {pendingRequestsCount > 0 && (
+                    <Badge 
+                      className="h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
+                    >
+                      {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                    </Badge>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-sm">
+                  {openReportsCount > 0 && (
+                    <div className="text-red-400">
+                      {openReportsCount} open report{openReportsCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  {pendingRequestsCount > 0 && (
+                    <div className="text-blue-400">
+                      {pendingRequestsCount} pending join request{pendingRequestsCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Click to manage group
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
 
         <CardHeader className="flex flex-row items-center space-y-0 gap-3 pt-4 pb-2 px-3">
