@@ -12,8 +12,6 @@ import { useGroupStats } from "@/hooks/useGroupStats";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { GroupCard } from "@/components/groups/GroupCard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Users, Star } from "lucide-react";
 import type { NostrEvent } from "@nostrify/nostrify";
 import type { UserRole } from "@/hooks/useUserRole";
 
@@ -28,18 +26,6 @@ export default function Groups() {
   const { user } = useCurrentUser();
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("posts");
-
-  // Make sure we always have an active tab
-  useEffect(() => {
-    // Define valid tab values
-    const validTabs = ["posts", "my-groups", "all-groups"];
-    
-    // If activeTab is empty or invalid, set it to "posts"
-    if (!activeTab || !validTabs.includes(activeTab)) {
-      setActiveTab("posts");
-    }
-  }, [activeTab]);
 
   // Fetch all communities with improved error handling and timeout
   const { data: allGroups, isLoading: isGroupsLoading } = useQuery({
@@ -194,17 +180,6 @@ export default function Groups() {
     </div>
   );
 
-  // Tab management helper function
-  const handleTabChange = (value: string) => {
-    // Ensure we don't set an empty value
-    if (value) {
-      setActiveTab(value);
-    } else {
-      // If for some reason we get an empty value, default to 'posts'
-      setActiveTab("posts");
-    }
-  };
-
   return (
     <div className="container mx-auto py-3 px-3 sm:px-4">
       <Header />
@@ -219,168 +194,61 @@ export default function Groups() {
           </div>
         </div>
 
-        <Tabs value={activeTab || "posts"} defaultValue="posts" onValueChange={handleTabChange} className="w-full mb-6">
-          <div className="md:flex md:justify-start">
-            <TabsList className="mb-4 w-full md:w-auto flex">
-              <TabsTrigger value="posts" className="flex-1 md:flex-none">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger value="my-groups" className="flex-1 md:flex-none">
-                <Star className="h-4 w-4 mr-2" />
-                My Groups
-              </TabsTrigger>
-              <TabsTrigger value="all-groups" className="flex-1 md:flex-none">
-                <Users className="h-4 w-4 mr-2" />
-                All Groups
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <div className="space-y-4 mb-6">
+          {isGroupsLoading || isUserGroupsLoading ? (
+            renderSkeletons()
+          ) : allGroups && sortedAndFilteredGroups && sortedAndFilteredGroups.length > 0 ? (
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+              {sortedAndFilteredGroups.map((community) => {
+                if (!community) return null;
+                try {
+                  const communityId = getCommunityId(community);
+                  const isPinned = isGroupPinned(communityId);
+                  const userRole = userMembershipMap.get(communityId);
+                  const isMember = userMembershipMap.has(communityId);
+                  const stats = communityStats ? communityStats[communityId] : undefined;
 
-          <TabsContent value="posts" className="space-y-4">
-            {isGroupsLoading || isUserGroupsLoading ? (
-              renderSkeletons()
-            ) : allGroups && sortedAndFilteredGroups && sortedAndFilteredGroups.length > 0 ? (
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                {sortedAndFilteredGroups.map((community) => {
-                  if (!community) return null;
-                  try {
-                    const communityId = getCommunityId(community);
-                    const isPinned = isGroupPinned(communityId);
-                    const userRole = userMembershipMap.get(communityId);
-                    const isMember = userMembershipMap.has(communityId);
-                    const stats = communityStats ? communityStats[communityId] : undefined;
-
-                    return (
-                      <GroupCard
-                        key={`${community.id}-${communityId}`}
-                        community={community}
-                        isPinned={isPinned}
-                        pinGroup={pinGroup}
-                        unpinGroup={unpinGroup}
-                        isUpdating={isUpdating}
-                        stats={stats}
-                        isLoadingStats={isLoadingStats}
-                        isMember={isMember}
-                        userRole={userRole}
-                      />
-                    );
-                  } catch (error) {
-                    console.error("Error rendering group card:", error);
-                    return null;
-                  }
-                })}
-              </div>
-            ) : searchQuery ? (
-              <div className="col-span-full text-center py-10">
-                <h2 className="text-xl font-semibold mb-2">No matching groups found</h2>
-                <p className="text-muted-foreground">
-                  Try a different search term or browse all groups
+                  return (
+                    <GroupCard
+                      key={`${community.id}-${communityId}`}
+                      community={community}
+                      isPinned={isPinned}
+                      pinGroup={pinGroup}
+                      unpinGroup={unpinGroup}
+                      isUpdating={isUpdating}
+                      stats={stats}
+                      isLoadingStats={isLoadingStats}
+                      isMember={isMember}
+                      userRole={userRole}
+                    />
+                  );
+                } catch (error) {
+                  console.error("Error rendering group card:", error);
+                  return null;
+                }
+              })}
+            </div>
+          ) : searchQuery ? (
+            <div className="col-span-full text-center py-10">
+              <h2 className="text-xl font-semibold mb-2">No matching groups found</h2>
+              <p className="text-muted-foreground">
+                Try a different search term or browse all groups
+              </p>
+            </div>
+          ) : (
+            <div className="col-span-full text-center py-10">
+              <h2 className="text-xl font-semibold mb-2">No groups found</h2>
+              <p className="text-muted-foreground mb-4">
+                Be the first to create a group on this platform!
+              </p>
+              {!user && (
+                <p className="text-sm text-muted-foreground">
+                  Please log in to create a group
                 </p>
-              </div>
-            ) : (
-              <div className="col-span-full text-center py-10">
-                <h2 className="text-xl font-semibold mb-2">No groups found</h2>
-                <p className="text-muted-foreground mb-4">
-                  Be the first to create a group on this platform!
-                </p>
-                {!user && (
-                  <p className="text-sm text-muted-foreground">
-                    Please log in to create a group
-                  </p>
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="my-groups" className="space-y-4">
-            {isGroupsLoading || isUserGroupsLoading ? (
-              renderSkeletons()
-            ) : userGroups && userGroups.allGroups && userGroups.allGroups.length > 0 ? (
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                {userGroups.allGroups.map((community) => {
-                  if (!community) return null;
-                  try {
-                    const communityId = getCommunityId(community);
-                    const isPinned = isGroupPinned(communityId);
-                    const userRole = userMembershipMap.get(communityId);
-                    const isMember = userMembershipMap.has(communityId);
-                    const stats = communityStats ? communityStats[communityId] : undefined;
-
-                    return (
-                      <GroupCard
-                        key={`${community.id}-${communityId}`}
-                        community={community}
-                        isPinned={isPinned}
-                        pinGroup={pinGroup}
-                        unpinGroup={unpinGroup}
-                        isUpdating={isUpdating}
-                        stats={stats}
-                        isLoadingStats={isLoadingStats}
-                        isMember={isMember}
-                        userRole={userRole}
-                      />
-                    );
-                  } catch (error) {
-                    console.error("Error rendering group card in my-groups:", error);
-                    return null;
-                  }
-                })}
-              </div>
-            ) : (
-              <div className="col-span-full text-center py-10">
-                <h2 className="text-xl font-semibold mb-2">You haven't joined any groups yet</h2>
-                <p className="text-muted-foreground mb-4">
-                  Join some groups to see them listed here
-                </p>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="all-groups" className="space-y-4">
-            {isGroupsLoading || isUserGroupsLoading ? (
-              renderSkeletons()
-            ) : allGroups && allGroups.length > 0 ? (
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                {allGroups.map((community) => {
-                  if (!community) return null;
-                  try {
-                    const communityId = getCommunityId(community);
-                    const isPinned = isGroupPinned(communityId);
-                    const userRole = userMembershipMap.get(communityId);
-                    const isMember = userMembershipMap.has(communityId);
-                    const stats = communityStats ? communityStats[communityId] : undefined;
-
-                    return (
-                      <GroupCard
-                        key={`${community.id}-${communityId}`}
-                        community={community}
-                        isPinned={isPinned}
-                        pinGroup={pinGroup}
-                        unpinGroup={unpinGroup}
-                        isUpdating={isUpdating}
-                        stats={stats}
-                        isLoadingStats={isLoadingStats}
-                        isMember={isMember}
-                        userRole={userRole}
-                      />
-                    );
-                  } catch (error) {
-                    console.error("Error rendering group card in all-groups:", error);
-                    return null;
-                  }
-                })}
-              </div>
-            ) : (
-              <div className="col-span-full text-center py-10">
-                <h2 className="text-xl font-semibold mb-2">No groups found</h2>
-                <p className="text-muted-foreground mb-4">
-                  Be the first to create a group on this platform!
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
