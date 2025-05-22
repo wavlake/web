@@ -40,33 +40,70 @@ export default function Notifications() {
     const authorPicture = authorData?.metadata?.picture;
 
     let linkTo = "";
+    let linkText = "View details";
 
     switch (notification.type) {
       case "group_update":
+        if (notification.groupId) {
+          linkTo = `/group/${notification.groupId}`;
+          linkText = "View group";
+        }
+        break;
       case "post_approved":
       case "post_removed":
         if (notification.groupId) {
-          linkTo = `/group/${notification.groupId}`;
+          if (notification.eventId) {
+            // If we have an event ID, link directly to the post
+            linkTo = `/group/${notification.groupId}?post=${notification.eventId}`;
+            linkText = "View post";
+          } else {
+            linkTo = `/group/${notification.groupId}`;
+            linkText = "View group";
+          }
         }
         break;
       case "tag_post":
       case "tag_reply":
       case "reaction":
-        if (notification.eventId) {
-          // In a real app, this would link to the specific post
-          linkTo = `/group/${notification.groupId || ""}`;
+        if (notification.eventId && notification.groupId) {
+          // Link to the specific post
+          linkTo = `/group/${notification.groupId}?post=${notification.eventId}`;
+          linkText = "View post";
+        } else if (notification.groupId) {
+          linkTo = `/group/${notification.groupId}`;
+          linkText = "View group";
         }
         break;
       case "join_request":
+        if (notification.groupId) {
+          // Link to the members tab with requests selected
+          linkTo = `/group/${notification.groupId}#members`;
+          // The MemberManagement component has its own tabs, so we need to set the active tab
+          // We'll add a URL parameter to indicate which tab should be active
+          linkTo += "?membersTab=requests";
+          linkText = "View join requests";
+        }
+        break;
       case "leave_request":
         if (notification.groupId) {
-          linkTo = `/group/${notification.groupId}/members`;
+          // Link to the members tab
+          linkTo = `/group/${notification.groupId}#members`;
+          linkText = "View members";
         }
         break;
       case "report":
       case "report_action":
         if (notification.groupId) {
-          linkTo = `/group/${notification.groupId}/reports`;
+          // Link to the reports tab
+          linkTo = `/group/${notification.groupId}#reports`;
+          if (notification.eventId) {
+            // If we have a report ID, add it as a parameter
+            // The ReportsList component can then highlight this specific report
+            linkTo += `?reportId=${notification.eventId}`;
+            linkText = "View report";
+          } else {
+            linkText = "View reports";
+          }
         }
         break;
     }
@@ -158,7 +195,7 @@ export default function Notifications() {
               </div>
               {linkTo && notification.groupId && (
                 <Button variant="link" className="p-0 h-auto mt-1" asChild>
-                  <Link to={linkTo}>View details</Link>
+                  <Link to={linkTo}>{linkText}</Link>
                 </Button>
               )}
             </div>
