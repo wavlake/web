@@ -85,6 +85,9 @@ export function useCashuWallet() {
 
         cashuStore.setPrivkey(walletData.privkey);
 
+        // log wallet data
+        console.log('walletData', walletData);
+
         // call getNip60TokensQuery
         await getNip60TokensQuery.refetch();
         return {
