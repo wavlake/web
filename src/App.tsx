@@ -8,7 +8,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import AppRouter from './AppRouter';
-import { useSystemTheme } from '@/hooks/useSystemTheme'; // Added import
+import { useSystemTheme } from '@/hooks/useSystemTheme';
+import { JoinDialogProvider } from '@/components/groups/JoinDialogContext';
 
 // DO NOT MODIFY THIS LIST UNLESS YOU ARE ABSOLUTELY CERTAIN EACH RELAY URL YOU ARE ADDING IS VALID AND THE RELAY IS CURRENTLY ONLINE AND CONFIRMED TO BE FULLY FUNCTIONAL AND WORKING.
 const defaultRelays = [
@@ -34,9 +35,11 @@ export function App() {
       <NostrProvider relays={defaultRelays}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppRouter />
+            <JoinDialogProvider>
+              <Toaster />
+              <Sonner />
+              <AppRouter />
+            </JoinDialogProvider>
           </TooltipProvider>
         </QueryClientProvider>
       </NostrProvider>
