@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { toast } from "sonner";
-import { MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Share2, CheckCircle, XCircle, Shield, MoreHorizontal, Ban, ChevronDown, ChevronUp, Flag } from "lucide-react";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NostrEvent } from "@nostrify/nostrify";
 import { nip19 } from 'nostr-tools';
@@ -18,6 +18,7 @@ import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { ReplyList } from "./ReplyList";
+import { ReportDialog } from "./ReportDialog";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -378,6 +379,7 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 12);
@@ -562,6 +564,17 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
             <Share2 className="h-3.5 w-3.5 mr-1" />
             <span className="text-xs">Share</span>
           </Button>
+          {user && user.pubkey !== post.pubkey && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5 ml-auto"
+              onClick={() => setIsReportDialogOpen(true)}
+            >
+              <Flag className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Report</span>
+            </Button>
+          )}
         </div>
         
         {showReplies && (
@@ -574,6 +587,16 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
           </div>
         )}
       </div>
+      
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        pubkey={post.pubkey}
+        eventId={post.id}
+        communityId={communityId}
+        contentPreview={post.content}
+      />
     </div>
   );
 }

@@ -16,10 +16,11 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
 import { PendingPostsList } from "@/components/groups/PendingPostsList";
+import { ReportsList } from "@/components/groups/ReportsList";
 import { JoinRequestButton } from "@/components/groups/JoinRequestButton";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ApprovedMembersList } from "@/components/groups/ApprovedMembersList";
-import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff } from "lucide-react";
+import { Users, Settings, Info, MessageSquare, CheckCircle, UserPlus, Clock, Pin, PinOff, Flag } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
@@ -259,6 +260,12 @@ export default function GroupDetail() {
             <Users className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
+          {isModerator && (
+            <TabsTrigger value="reports">
+              <Flag className="h-4 w-4 mr-2" />
+              Reports
+            </TabsTrigger>
+          )}
           <TabsTrigger value="about">
             <Info className="h-4 w-4 mr-2" />
             About
@@ -327,6 +334,12 @@ export default function GroupDetail() {
           </div>
         </TabsContent>
 
+        {isModerator && (
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsList communityId={groupId || ''} />
+          </TabsContent>
+        )}
+        
         <TabsContent value="about">
           <Card>
             <CardHeader>
