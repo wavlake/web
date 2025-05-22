@@ -1,8 +1,8 @@
 import { useNostr } from "./useNostr";
 import { useCurrentUser } from "./useCurrentUser";
 import { useQuery } from "@tanstack/react-query";
-import type { NostrEvent } from "@nostrify/nostrify";
-import { usePinnedGroups, PinnedGroup } from "./usePinnedGroups";
+import type { NostrEvent, NostrFilter } from "@nostrify/nostrify";
+import { usePinnedGroups } from "./usePinnedGroups";
 
 // Helper function to get a unique community ID
 function getCommunityId(community: NostrEvent): string {
@@ -65,7 +65,7 @@ export function useUserGroups() {
       
       // Break the query into batches if there are many communities
       const batchSize = 20;
-      const communityBatches = [];
+      const communityBatches: string[][] = [];
       
       for (let i = 0; i < allCommunityIds.length; i += batchSize) {
         const batch = allCommunityIds.slice(i, i + batchSize);
@@ -80,7 +80,7 @@ export function useUserGroups() {
         // Make batch queries for community information
         const communityPromises = communityBatches.map(batch => {
           // For each community ID, we need to extract kind, pubkey, and identifier
-          const filters = batch.map(id => {
+          const filters: NostrFilter[] = batch.map(id => {
             const parts = id.split(":");
             if (parts.length === 3) {
               return {
@@ -89,8 +89,8 @@ export function useUserGroups() {
                 "#d": [parts[2]]
               };
             }
-            return null;
-          }).filter(Boolean);
+            return { kinds: [0] }; // Fallback filter that won't match anything
+          }).filter(f => f.kinds[0] !== 0); // Filter out any fallback filters
           
           return nostr.query(filters, { signal });
         });
@@ -103,9 +103,10 @@ export function useUserGroups() {
       // Also fetch communities the user has pinned
       if (pinnedGroups.length > 0) {
         const pinnedFilters = pinnedGroups.map(pinned => {
-          const [kind, pubkey, identifier] = pinned.communityId.split(":");
+          const [kindStr, pubkey, identifier] = pinned.communityId.split(":");
+          const kind = parseInt(kindStr, 10);
           return {
-            kinds: [parseInt(kind)],
+            kinds: [isNaN(kind) ? 34550 : kind],
             authors: [pubkey],
             "#d": [identifier],
             limit: 1
