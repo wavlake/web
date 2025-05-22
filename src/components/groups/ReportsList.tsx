@@ -149,6 +149,11 @@ export function ReportsList({ communityId }: ReportsListProps) {
             <div className="border border-muted rounded-md p-3 bg-muted/20 my-2">
               <p className="text-sm font-medium mb-1">Content to be removed:</p>
               <PostContentPreview eventId={selectedReport.reportedEventId} />
+              <div className="mt-2 text-xs text-muted-foreground">
+                <p>This will create a kind 4551 removal event that will hide this content from the community.</p>
+                <p className="mt-1">Post ID: <code className="bg-muted px-1 py-0.5 rounded">{selectedReport.reportedEventId.slice(0, 8)}...{selectedReport.reportedEventId.slice(-4)}</code></p>
+                <p>Author: <code className="bg-muted px-1 py-0.5 rounded">{selectedReport.reportedPubkey.slice(0, 8)}...{selectedReport.reportedPubkey.slice(-4)}</code></p>
+              </div>
             </div>
           )}
           

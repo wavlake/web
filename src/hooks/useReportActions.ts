@@ -2,6 +2,8 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { toast } from "sonner";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
+import { useNostr } from "@/hooks/useNostr";
+import { NostrEvent } from "@nostrify/nostrify";
 
 export type ModeratorAction = "remove_content" | "remove_user" | "ban_user" | "no_action";
 
@@ -25,6 +27,7 @@ export function useReportActions() {
   const { user } = useCurrentUser();
   // We'll initialize the banUser function inside handleReportAction
   const { banUser } = useBannedUsers();
+  const { nostr } = useNostr();
 
   const handleReportAction = async (options: ReportActionOptions) => {
     if (!user) {
@@ -51,19 +54,58 @@ export function useReportActions() {
       switch (action) {
         case "remove_content":
           if (eventId) {
-            await publishEvent({
-              kind: 4551, // Remove post
-              tags: [
-                ["a", communityId], 
-                ["e", eventId], 
-                ["p", pubkey], 
-                ["k", "1"] // Assuming it's a kind 1 post
-              ],
-              content: JSON.stringify({ 
-                reason: reason || "Removed based on report", 
-                timestamp: Date.now() 
-              }),
-            });
+            // Fetch the post to get its kind and include it in the removal event
+            try {
+              // Fetch the original post
+              const events = await nostr.query([{
+                ids: [eventId],
+                limit: 1,
+              }], { signal: AbortSignal.timeout(5000) });
+              
+              if (events.length === 0) {
+                throw new Error("Post not found");
+              }
+              
+              const post = events[0] as NostrEvent;
+              const postKind = post.kind.toString();
+              
+              // Get the community identifier from the post's a-tag if available
+              let communityIdentifier = communityId;
+              const postCommunityTag = post.tags.find(tag => tag[0] === "a");
+              if (postCommunityTag) {
+                communityIdentifier = postCommunityTag[1];
+              }
+              
+              // Create the removal event
+              await publishEvent({
+                kind: 4551, // Remove post
+                tags: [
+                  ["a", communityIdentifier], 
+                  ["e", eventId], 
+                  ["p", pubkey], 
+                  ["k", postKind]
+                ],
+                content: JSON.stringify(post), // Include the full post event as JSON
+              });
+              
+              // Also publish a separate event with the reason if provided
+              if (reason) {
+                await publishEvent({
+                  kind: 1985, // Label
+                  tags: [
+                    ["e", eventId],
+                    ["a", communityIdentifier],
+                    ["l", "removal-reason"],
+                    ["L", "chorus.removal.reason"]
+                  ],
+                  content: reason,
+                });
+              }
+            } catch (error) {
+              console.error("Error fetching post for removal:", error);
+              toast.error("Failed to remove post: Could not fetch post details");
+              throw error;
+            }
           }
           break;
           
