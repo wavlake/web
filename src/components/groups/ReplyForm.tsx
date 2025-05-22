@@ -116,7 +116,7 @@ export function ReplyForm({
           placeholder="Write a reply..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-20 resize-none text-sm"
+          className="min-h-20 resize-none"
         />
         
         {!isUserApproved && (
