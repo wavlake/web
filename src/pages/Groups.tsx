@@ -81,14 +81,11 @@ export default function Groups() {
 
       <div className="flex flex-col mt-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold">All Groups</h2>
-            <div className="md:w-64 lg:w-72">
-              <GroupSearch
-                onSearch={setSearchQuery}
-                className="sticky top-0 z-10"
-              />
-            </div>
+          <div className="md:w-64 lg:w-72">
+            <GroupSearch
+              onSearch={setSearchQuery}
+              className="sticky top-0 z-10"
+            />
           </div>
         </div>
 
