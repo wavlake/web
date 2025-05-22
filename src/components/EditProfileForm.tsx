@@ -189,6 +189,19 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
             )}
             Save
           </Button>
+
+          {showSkipLink && (
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                className="text-muted-foreground"
+                onClick={() => navigate('/groups')}
+              >
+                Skip for now
+              </Button>
+            </div>
+          )}
         </div>
       </form>
     </Form>
