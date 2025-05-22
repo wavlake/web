@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Pin, PinOff, MessageSquare, Activity, MoreVertical } from "lucide-react";
+import { Pin, PinOff, MessageSquare, Activity, MoreVertical, UserPlus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/groups/RoleBadge";
@@ -133,15 +133,17 @@ export function GroupCard({
                   {openReportsCount > 0 && (
                     <Badge 
                       variant="destructive" 
-                      className="h-5 w-5 p-0 flex items-center justify-center text-xs"
+                      className="h-6 w-auto px-1.5 py-0 flex items-center justify-center text-xs gap-1"
                     >
+                      <AlertTriangle className="h-2.5 w-2.5" />
                       {openReportsCount > 99 ? '99+' : openReportsCount}
                     </Badge>
                   )}
                   {pendingRequestsCount > 0 && (
                     <Badge 
-                      className="h-5 w-5 p-0 flex items-center justify-center text-xs bg-blue-500 hover:bg-blue-600"
+                      className="h-6 w-auto px-1.5 py-0 flex items-center justify-center text-xs gap-1 bg-blue-500 hover:bg-blue-600"
                     >
+                      <UserPlus className="h-2.5 w-2.5" />
                       {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
                     </Badge>
                   )}
