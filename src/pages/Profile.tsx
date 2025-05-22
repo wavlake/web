@@ -3,14 +3,14 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFollowList } from "@/hooks/useFollowList";
+// useFollowList import removed
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { NoteContent } from "@/components/NoteContent";
 import { Link } from "react-router-dom";
-import { ExternalLink, Copy, UserPlus, UserMinus, Loader2, Users } from "lucide-react";
+import { ExternalLink, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -164,12 +164,7 @@ export default function Profile() {
   const author = useAuthor(pubkey);
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
-  const {
-    isFollowing,
-    followUser,
-    unfollowUser,
-    isPending: isFollowActionPending
-  } = useFollowList(user?.pubkey);
+  // Follow list hooks removed
 
   // Query for user's posts
   const { data: posts, isLoading: isLoadingPosts } = useQuery({
@@ -191,49 +186,7 @@ export default function Profile() {
     enabled: !!nostr && !!pubkey,
   });
 
-  // Query for follower count
-  const { data: followerCount, isLoading: isLoadingFollowers } = useQuery({
-    queryKey: ["follower-count", pubkey],
-    queryFn: async (c) => {
-      if (!pubkey || !nostr) return 0;
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-
-      // Get kind 3 events that include this pubkey in their p tags
-      const followerEvents = await nostr.query([{
-        kinds: [3],
-        "#p": [pubkey],
-        limit: 100,
-      }], { signal });
-
-      // Count unique pubkeys that follow this user
-      const uniqueFollowers = new Set(followerEvents.map(event => event.pubkey));
-      return uniqueFollowers.size;
-    },
-    enabled: !!nostr && !!pubkey,
-  });
-
-  // Query for following count
-  const { data: followingCount, isLoading: isLoadingFollowing } = useQuery({
-    queryKey: ["following-count", pubkey],
-    queryFn: async (c) => {
-      if (!pubkey || !nostr) return 0;
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-
-      // Get the most recent kind 3 event for the user
-      const [event] = await nostr.query(
-        [{ kinds: [3], authors: [pubkey], limit: 1 }],
-        { signal }
-      );
-
-      if (!event) return 0;
-
-      // Count the number of p tags
-      return event.tags.filter(tag => tag[0] === 'p').length;
-    },
-    enabled: !!nostr && !!pubkey,
-  });
+  // Follower and following count queries removed
 
   // Query for groups the user is a part of
   const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
@@ -397,18 +350,7 @@ export default function Profile() {
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
 
-  // Check if the current user is following this profile
-  const following = pubkey ? isFollowing(pubkey) : false;
-
-  const handleFollowAction = () => {
-    if (!pubkey || !user) return;
-
-    if (following) {
-      unfollowUser(pubkey);
-    } else {
-      followUser(pubkey);
-    }
-  };
+  // Follow-related code removed
 
   const copyPubkeyToClipboard = () => {
     if (pubkey) {
@@ -439,10 +381,7 @@ export default function Profile() {
                       <Skeleton className="h-4 w-48 mb-2" />
                     </div>
 
-                    <div className="flex items-center gap-4 mt-3">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
+                    {/* Followers and following stats loading state removed */}
                   </div>
 
                   <Skeleton className="h-9 w-24" />
@@ -604,35 +543,10 @@ export default function Profile() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="text-sm">
-                    <span className="font-semibold">{isLoadingFollowing ? '...' : followingCount || 0}</span>{' '}
-                    <span className="text-muted-foreground">Following</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-semibold">{isLoadingFollowers ? '...' : followerCount || 0}</span>{' '}
-                    <span className="text-muted-foreground">Followers</span>
-                  </div>
-                </div>
+                {/* Followers and following stats removed */}
               </div>
 
-              {user && !isCurrentUser && (
-                <Button
-                  variant={following ? "outline" : "default"}
-                  size="sm"
-                  onClick={handleFollowAction}
-                  disabled={isFollowActionPending || !user}
-                >
-                  {isFollowActionPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : following ? (
-                    <UserMinus className="h-4 w-4 mr-2" />
-                  ) : (
-                    <UserPlus className="h-4 w-4 mr-2" />
-                  )}
-                  {following ? "Unfollow" : "Follow"}
-                </Button>
-              )}
+              {/* Follow button removed */}
             </div>
 
             {about && (
