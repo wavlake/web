@@ -28,67 +28,67 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className='flex items-center gap-3 p-3 rounded-full hover:bg-accent transition-all w-full text-foreground max-w-60'>
-          <Avatar className='w-10 h-10 rounded-md'>
+        <button type="button" className='flex items-center gap-2 p-1.5 rounded-full w-full text-foreground max-w-56'>
+          <Avatar className='w-8 h-8 rounded-md'>
             <AvatarImage src={currentUser.metadata.picture} alt={currentUser.metadata.name} />
             {currentUser.metadata.name?.charAt(0)
               ? <AvatarFallback>{currentUser.metadata.name?.charAt(0)}</AvatarFallback>
-              : <AvatarFallback><UserIcon /></AvatarFallback>}
+              : <AvatarFallback><UserIcon className="w-4 h-4" /></AvatarFallback>}
           </Avatar>
           <div className='flex-1 text-left hidden md:block truncate'>
-            <p className='font-medium text-sm truncate'>{currentUser.metadata.name || currentUser.pubkey}</p>
+            <p className='font-medium text-xs truncate'>{currentUser.metadata.name || currentUser.pubkey}</p>
           </div>
-          <ChevronDown className='w-4 h-4 text-muted-foreground' />
+          <ChevronDown className='w-3.5 h-3.5 text-muted-foreground' />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className='w-56 p-2 animate-scale-in'>
+      <DropdownMenuContent className='w-52 p-1.5 animate-scale-in'>
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md font-bold'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md font-bold text-sm'
         >
           <a href="/create-group">
-            <Plus className='w-4 h-4 font-bold' />
+            <Plus className='w-3.5 h-3.5 font-bold' />
             <span>Create Group</span>
           </a>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm'
         >
           <a href={`/profile/${currentUser.pubkey}`}>
-            <User className='w-4 h-4' />
+            <User className='w-3.5 h-3.5' />
             <span>View Profile</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm'
         >
           <a href="/settings/profile">
-            <Edit className='w-4 h-4' />
+            <Edit className='w-3.5 h-3.5' />
             <span>Edit Profile</span>
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm'
         >
           <a href="/wallet">
-            <Wallet className='w-4 h-4' />
+            <Wallet className='w-3.5 h-3.5' />
             <span>Wallet</span>
           </a>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm'
         >
           <a href="/settings/notifications">
-            <Bell className='w-4 h-4' />
+            <Bell className='w-3.5 h-3.5' />
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <span className="ml-auto bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+              <span className="ml-auto bg-primary text-primary-foreground text-xs font-medium px-1.5 py-0.5 rounded-full">
                 {unreadCount}
               </span>
             )}
@@ -96,32 +96,32 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm'
         >
           <a href="/settings">
-            <Settings className='w-4 h-4' />
+            <Settings className='w-3.5 h-3.5' />
             <span>Settings</span>
           </a>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           asChild
-          className="flex items-center gap-2 cursor-pointer p-2 rounded-md"
+          className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm"
         >
           <a href="/about">
-            <Info className="w-4 h-4" />
+            <Info className="w-3.5 h-3.5" />
             <span>About +chorus</span>
           </a>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => {
             removeLogin(currentUser.id);
             navigate('/');
           }}
-          className='flex items-center gap-2 cursor-pointer p-2 rounded-md text-red-500'
+          className='flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-red-500 text-sm'
         >
-          <LogOut className='w-4 h-4' />
+          <LogOut className='w-3.5 h-3.5' />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
