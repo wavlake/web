@@ -9,6 +9,7 @@ import { useNostrLogin, NLogin } from "@nostrify/react/login";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
 import { toast } from "@/hooks/useToast";
+import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
@@ -18,6 +19,7 @@ const Index = () => {
   const { addLogin } = useNostrLogin();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const [newUser, setNewUser] = useState(false);
+  const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
 
   // Redirect to /groups after user is logged in
   useEffect(() => {
@@ -42,6 +44,7 @@ const Index = () => {
       // Wait for login to be available (since addLogin is sync but state update is async)
       setTimeout(async () => {
         try {
+          await createCashuWallet();
           await publishEvent({
             kind: 0,
             content: JSON.stringify({ name: fakeName, display_name: fakeName }),
