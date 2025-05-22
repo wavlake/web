@@ -109,7 +109,7 @@ ${imageUrl}`;
               placeholder={`What's on your mind, ${displayName.split(' ')[0]}?`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-20 resize-none text-sm p-2"
+              className="min-h-20 resize-none p-2"
             />
 
             {previewUrl && (
