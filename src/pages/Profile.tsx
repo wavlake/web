@@ -186,49 +186,7 @@ export default function Profile() {
     enabled: !!nostr && !!pubkey,
   });
 
-  // Query for follower count
-  const { data: followerCount, isLoading: isLoadingFollowers } = useQuery({
-    queryKey: ["follower-count", pubkey],
-    queryFn: async (c) => {
-      if (!pubkey || !nostr) return 0;
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-
-      // Get kind 3 events that include this pubkey in their p tags
-      const followerEvents = await nostr.query([{
-        kinds: [3],
-        "#p": [pubkey],
-        limit: 100,
-      }], { signal });
-
-      // Count unique pubkeys that follow this user
-      const uniqueFollowers = new Set(followerEvents.map(event => event.pubkey));
-      return uniqueFollowers.size;
-    },
-    enabled: !!nostr && !!pubkey,
-  });
-
-  // Query for following count
-  const { data: followingCount, isLoading: isLoadingFollowing } = useQuery({
-    queryKey: ["following-count", pubkey],
-    queryFn: async (c) => {
-      if (!pubkey || !nostr) return 0;
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-
-      // Get the most recent kind 3 event for the user
-      const [event] = await nostr.query(
-        [{ kinds: [3], authors: [pubkey], limit: 1 }],
-        { signal }
-      );
-
-      if (!event) return 0;
-
-      // Count the number of p tags
-      return event.tags.filter(tag => tag[0] === 'p').length;
-    },
-    enabled: !!nostr && !!pubkey,
-  });
+  // Follower and following count queries removed
 
   // Query for groups the user is a part of
   const { data: userGroups, isLoading: isLoadingGroups } = useQuery({
@@ -423,10 +381,7 @@ export default function Profile() {
                       <Skeleton className="h-4 w-48 mb-2" />
                     </div>
 
-                    <div className="flex items-center gap-4 mt-3">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
+                    {/* Followers and following stats loading state removed */}
                   </div>
 
                   <Skeleton className="h-9 w-24" />
@@ -588,16 +543,7 @@ export default function Profile() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="text-sm">
-                    <span className="font-semibold">{isLoadingFollowing ? '...' : followingCount || 0}</span>{' '}
-                    <span className="text-muted-foreground">Following</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="font-semibold">{isLoadingFollowers ? '...' : followerCount || 0}</span>{' '}
-                    <span className="text-muted-foreground">Followers</span>
-                  </div>
-                </div>
+                {/* Followers and following stats removed */}
               </div>
 
               {/* Follow button removed */}
