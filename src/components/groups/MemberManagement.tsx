@@ -602,12 +602,12 @@ function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps
           className="text-red-600 flex-1 sm:flex-none"
           onClick={onDecline}
         >
-          <XCircle className="h-4 w-4 sm:mr-1" />
-          <span className="hidden sm:inline">Decline</span>
+          <XCircle className="h-4 w-4 mr-1" />
+          <span>Decline</span>
         </Button>
         <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-none">
-          <CheckCircle className="h-4 w-4 sm:mr-1" />
-          <span className="hidden sm:inline">Approve</span>
+          <CheckCircle className="h-4 w-4 mr-1" />
+          <span>Approve</span>
         </Button>
       </div>
     </div>
@@ -666,8 +666,8 @@ function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemPro
             onClick={onBan}
             disabled={isCurrentUser}
           >
-            <Ban className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Ban</span>
+            <Ban className="h-4 w-4 mr-1" />
+            <span>Ban</span>
           </Button>
         )}
         <Button 
@@ -677,8 +677,8 @@ function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemPro
           onClick={onRemove}
           disabled={isCurrentUser}
         >
-          <XCircle className="h-4 w-4 sm:mr-1" />
-          <span className="hidden sm:inline">{isBanned ? "Unban" : "Remove"}</span>
+          <XCircle className="h-4 w-4 mr-1" />
+          <span>{isBanned ? "Unban" : "Remove"}</span>
         </Button>
       </div>
     </div>
@@ -720,8 +720,8 @@ function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
         onClick={onApprove}
         className="w-full sm:w-auto flex-shrink-0"
       >
-        <CheckCircle className="h-4 w-4 sm:mr-1" />
-        <span className="hidden sm:inline">Approve</span>
+        <CheckCircle className="h-4 w-4 mr-1" />
+        <span>Approve</span>
       </Button>
     </div>
   );
