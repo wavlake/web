@@ -1,5 +1,5 @@
 import { useNostr } from "@/hooks/useNostr";
-import { useState, useEffect } from "react"; // Added useEffect
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -382,6 +382,48 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+
+  // Extract expiration timestamp from post tags
+  const expirationTag = post.tags.find(tag => tag[0] === "expiration");
+  const expirationTimestamp = expirationTag ? parseInt(expirationTag[1]) : null;
+
+  // Update time remaining every minute
+  useEffect(() => {
+    if (!expirationTimestamp) return;
+    
+    const calculateTimeRemaining = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const secondsRemaining = expirationTimestamp - now;
+      
+      if (secondsRemaining <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+      
+      // Format the time remaining
+      if (secondsRemaining < 60) {
+        setTimeRemaining(`${secondsRemaining}s`);
+      } else if (secondsRemaining < 3600) {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 60)}m`);
+      } else if (secondsRemaining < 86400) {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 3600)}h`);
+      } else if (secondsRemaining < 2592000) { // 30 days
+        setTimeRemaining(`${Math.floor(secondsRemaining / 86400)}d`);
+      } else if (secondsRemaining < 31536000) { // 365 days
+        setTimeRemaining(`${Math.floor(secondsRemaining / 2592000)}mo`);
+      } else {
+        setTimeRemaining(`${Math.floor(secondsRemaining / 31536000)}y`);
+      }
+    };
+    
+    // Calculate immediately
+    calculateTimeRemaining();
+    
+    // Then update every minute
+    const interval = setInterval(calculateTimeRemaining, 60000);
+    return () => clearInterval(interval);
+  }, [expirationTimestamp]);
 
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 12);
@@ -491,6 +533,15 @@ function PostItem({ post, communityId, isApproved, isModerator }: PostItemProps)
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mr-1 flex-shrink-0"></span>
                     Pending
                   </span>
+                )}
+                {timeRemaining && (
+                  <>
+                    <span className="mr-1.5 ml-1.5">·</span>
+                    <span className="text-red-500 dark:text-red-400 flex items-center whitespace-nowrap" title="This post will disappear after this time">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-1 flex-shrink-0 animate-pulse"></span>
+                      Expires in {timeRemaining}
+                    </span>
+                  </>
                 )}
               </div>
             </div>

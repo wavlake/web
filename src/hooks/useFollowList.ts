@@ -96,6 +96,15 @@ export function useFollowList(pubkey?: string) {
       // Invalidate the follow list query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['follow-list', user?.pubkey] });
       
+      // Also invalidate follower/following counts for both users
+      if (user?.pubkey) {
+        queryClient.invalidateQueries({ queryKey: ['following-count', user.pubkey] });
+      }
+      
+      if (variables.targetToFollow) {
+        queryClient.invalidateQueries({ queryKey: ['follower-count', variables.targetToFollow] });
+      }
+      
       if (variables.follow) {
         if (result.alreadyFollowing) {
           toast.info('You are already following this user');
