@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GroupSearch } from "@/components/groups/GroupSearch";
 import { useState, useMemo, useEffect } from "react";
+import { TrendingUp } from "lucide-react";
 import { useGroupStats } from "@/hooks/useGroupStats";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { useUserGroups } from "@/hooks/useUserGroups";
@@ -205,6 +206,15 @@ export default function Groups() {
               onSearch={setSearchQuery}
               className="sticky top-0 z-10"
             />
+            <div className="mt-2 flex justify-end">
+              <a 
+                href="/trending" 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Trending Hashtags
+              </a>
+            </div>
           </div>
         </div>
 

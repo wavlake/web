@@ -14,7 +14,6 @@ import {
   Wallet,
   Info,
   Download,
-  TrendingUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -157,15 +156,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-1" />
-        <DropdownMenuItem
-          asChild
-          className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
-        >
-          <a href="/trending">
-            <TrendingUp className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
-            <span>Trending</span>
-          </a>
-        </DropdownMenuItem>
+
         <DropdownMenuItem
           asChild
           className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
