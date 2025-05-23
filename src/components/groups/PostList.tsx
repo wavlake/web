@@ -88,7 +88,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { bannedUsers } = useBannedUsers(communityId);
-  const { pinnedPostIds } = usePinnedPosts(communityId);
+  const { pinnedPostIds, isLoading: isLoadingPinnedPostIds } = usePinnedPosts(communityId);
 
   // Query for approved posts
   const { data: approvedPosts, isLoading: isLoadingApproved } = useQuery({
@@ -243,7 +243,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   });
 
   // Query for pinned posts content
-  const { data: pinnedPosts } = useQuery({
+  const { data: pinnedPosts, isLoading: isLoadingPinnedPosts } = useQuery({
     queryKey: ["pinned-posts-content", communityId, pinnedPostIds],
     queryFn: async (c) => {
       if (!pinnedPostIds || pinnedPostIds.length === 0) return [];
@@ -258,7 +258,10 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
 
       return posts;
     },
-    enabled: !!nostr && !!pinnedPostIds && pinnedPostIds.length > 0,
+    enabled: !!nostr && !!communityId,
+    // Ensure the query refetches when pinnedPostIds changes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const approvedMembers = useMemo(() => 
@@ -409,7 +412,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     }
   }, [sortedPosts, onPostCountChange]);
 
-  if (isLoadingApproved || isLoadingPending) {
+  if (isLoadingApproved || isLoadingPending || isLoadingPinnedPostIds || isLoadingPinnedPosts) {
     return (
       <div className="space-y-0">
         {[1, 2, 3].map((i) => (

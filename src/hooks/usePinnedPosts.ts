@@ -50,6 +50,9 @@ export function usePinnedPosts(communityId: string) {
       return Array.from(pinnedPostIds);
     },
     enabled: !!nostr && !!communityId,
+    // Ensure the query refetches when the component mounts
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Mutation to pin a post
@@ -99,6 +102,8 @@ export function usePinnedPosts(communityId: string) {
     onSuccess: () => {
       // Invalidate the pinned posts query to refetch
       queryClient.invalidateQueries({ queryKey: ["pinned-posts", communityId] });
+      // Also invalidate the pinned posts content query
+      queryClient.invalidateQueries({ queryKey: ["pinned-posts-content", communityId] });
     }
   });
 
@@ -153,6 +158,8 @@ export function usePinnedPosts(communityId: string) {
     onSuccess: () => {
       // Invalidate the pinned posts query to refetch
       queryClient.invalidateQueries({ queryKey: ["pinned-posts", communityId] });
+      // Also invalidate the pinned posts content query
+      queryClient.invalidateQueries({ queryKey: ["pinned-posts-content", communityId] });
     }
   });
 
