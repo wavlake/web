@@ -740,94 +740,86 @@ export default function Profile() {
       <Header />
 
       <div className="relative mb-6 mt-4">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div className="flex flex-row items-start justify-between gap-4 mb-2">
-              <div className="flex flex-col gap-2 min-w-[140px]">
-                {isCurrentUser ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    asChild
-                  >
-                    <Link to="/settings/profile">
-                      <Pencil className="h-4 w-4" />
-                      Edit Profile
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    size="sm"
-                  >
-                    Follow
-                  </Button>
-                )}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={copyPubkeyToClipboard}
-                >
-                  <Copy className="h-4 w-4" />
-                  <span className="hidden sm:inline">Copy Key</span>
-                </Button>
-                
-                {website && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    asChild
-                  >
-                    <a
-                      href={website.startsWith('http') ? website : `https://${website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center"
-                    >
-                      <LinkIcon className="h-4 w-4" />
-                      <span className="truncate">Website</span>
-                    </a>
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4 flex-1 justify-center">
-                <Avatar className="h-20 w-20 rounded-full border-4 border-background shadow-md">
-                  <AvatarImage src={profileImage} />
-                  <AvatarFallback className="text-xl bg-primary/10">
-                    {displayName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-bold">{displayNameFull}</h1>
-                    {nip05 && (
-                      <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
-                    )}
-                  </div>
-                  {displayName !== displayNameFull && (
-                    <p className="text-sm text-muted-foreground">@{displayName}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="min-w-[140px]">
-                {/* Empty space to balance the layout */}
-              </div>
+        {/* Top row: Avatar and name/username side by side */}
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar className="h-20 w-20 rounded-full border-4 border-background shadow-md">
+            <AvatarImage src={profileImage} />
+            <AvatarFallback className="text-xl bg-primary/10">
+              {displayName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold">{displayNameFull}</h1>
+              {nip05 && (
+                <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
+              )}
             </div>
+            {displayName !== displayNameFull && (
+              <p className="text-sm text-muted-foreground">@{displayName}</p>
+            )}
           </div>
         </div>
         
-        {/* Profile description moved outside the grid to span full width */}
+        {/* Middle row: Bio */}
         {about && (
-          <div className="w-full mt-2">
-            <p className="text-base text-muted-foreground whitespace-pre-wrap text-center">{about}</p>
+          <div className="w-full mb-4">
+            <p className="text-base text-muted-foreground whitespace-pre-wrap">{about}</p>
           </div>
         )}
+
+        {/* Bottom row: Action buttons */}
+        <div className="flex flex-wrap gap-2">
+          {isCurrentUser ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              asChild
+            >
+              <Link to="/settings/profile">
+                <Pencil className="h-4 w-4" />
+                Edit Profile
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+            >
+              Follow
+            </Button>
+          )}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={copyPubkeyToClipboard}
+          >
+            <Copy className="h-4 w-4" />
+            <span className="hidden sm:inline">Copy Key</span>
+          </Button>
+          
+          {website && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              asChild
+            >
+              <a
+                href={website.startsWith('http') ? website : `https://${website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center"
+              >
+                <LinkIcon className="h-4 w-4" />
+                <span className="truncate">Website</span>
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} defaultValue="posts" onValueChange={(value) => {
