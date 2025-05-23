@@ -32,7 +32,7 @@ export function useBannedUsers(communityId?: string) {
       
       // Only add the community filter if communityId is defined
       if (communityId) {
-        filter["#d"] = [communityId];
+        filter["#a"] = [communityId];
       }
       
       const events = await nostr.query([filter], { signal });
@@ -65,7 +65,7 @@ export function useBannedUsers(communityId?: string) {
     try {
       // Create a new list with the user added to banned list
       const tags = [
-        ["d", effectiveCommunityId],
+        ["a", effectiveCommunityId],
         ...uniqueBannedUsers.map(pk => ["p", pk]),
         ["p", pubkey] // Add the new banned user
       ];
@@ -107,7 +107,7 @@ export function useBannedUsers(communityId?: string) {
       
       // Create a new list with the user removed
       const tags = [
-        ["d", effectiveCommunityId],
+        ["a", effectiveCommunityId],
         ...updatedBannedUsers.map(pk => ["p", pk])
       ];
 

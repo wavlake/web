@@ -3,7 +3,7 @@ import { useNostr } from "@/hooks/useNostr";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
   const { user } = useCurrentUser();
   const location = useLocation();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const queryClient = useQueryClient();
   const { 
     bannedUsers: uniqueBannedUsers, 
     isLoading: isLoadingBanned, 
@@ -181,6 +182,11 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       refetchMembers();
       refetchDeclined();
       
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      
       // Switch to members tab
       setActiveTab("members");
     } catch (error) {
@@ -235,6 +241,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       // Refetch data
       refetchMembers();
       refetchDeclined();
+      
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
@@ -257,6 +267,11 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       await banUser(pubkey);
       
       toast.success("User banned successfully!");
+      
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["banned-users-count", communityId] });
       
       // Switch to banned tab
       setActiveTab("banned");
@@ -290,6 +305,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       // Refetch data
       refetchRequests();
       refetchDeclined();
+      
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
     } catch (error) {
       console.error("Error declining user:", error);
       toast.error("Failed to decline user. Please try again.");
@@ -349,6 +368,10 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       // Refetch data
       refetchDeclined();
       refetchMembers();
+      
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
       
       // Switch to members tab
       setActiveTab("members");
@@ -428,6 +451,11 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       refetchRequests();
       refetchMembers();
       refetchDeclined();
+      
+      // Invalidate pending requests count cache
+      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
     } catch (error) {
       console.error("Error approving all users:", error);
       toast.error("Failed to approve all users. Please try again.");
