@@ -44,14 +44,14 @@ interface UseNostrPublishOptions {
 // - 10019: ZAP info events
 // - 9321: ZAP events
 
-const protectedEventKinds = [
+const protectedEventKinds: number[] = [
   KINDS.REACTION, // Reactions
   KINDS.GROUP_POST, // Posts
   KINDS.GROUP_POST_REPLY, // Comments (replies)
   KINDS.GROUP, // Group meta
 ] as const;
 
-const expirationEventKinds = [
+const expirationEventKinds: number[] = [
   KINDS.REACTION, // Reactions
   KINDS.GROUP_POST, // Posts
   KINDS.GROUP_POST_REPLY, // Comments (replies)
