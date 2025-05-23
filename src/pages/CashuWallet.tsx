@@ -13,10 +13,10 @@ import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useToast } from "@/hooks/useToast";
 import { Loader2 } from "lucide-react";
-import { formatBalance } from "@/lib/cashu";
+// import { formatUSD, satoshisToUSD } from "@/lib/bitcoinUtils";
+import { formatBalance, calculateBalance } from "@/lib/cashu";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
-import { useBitcoinPrice } from "@/hooks/useBitcoinPrice";
-import { formatUSD, satoshisToUSD } from "@/lib/bitcoinUtils";
 
 export function CashuWallet() {
   const { user } = useCurrentUser();
@@ -25,15 +25,21 @@ export function CashuWallet() {
   const { toast } = useToast();
   const cashuStore = useCashuStore();
   const [isProcessingToken, setIsProcessingToken] = useState(false);
-  const { showSats } = useCurrencyDisplayStore();
+  const { showSats, toggleCurrency } = useCurrencyDisplayStore();
   const { data: btcPrice, isLoading: btcPriceLoading } = useBitcoinPrice();
+  // Calculate total balance across all mints
+  const balances = calculateBalance(cashuStore.proofs);
+  const totalBalance = Object.values(balances).reduce(
+    (sum, balance) => sum + balance,
+    0
+  );
 
   // Helper function to format amount based on user preference
   const formatAmount = (sats: number): string => {
     if (showSats) {
       return `${sats.toLocaleString()} sats`;
     } else {
-      const usd = satoshisToUSD(sats, btcPrice?.USD || null);
+      const usd = satsToUSD(sats, btcPrice?.USD || null);
       return usd !== null ? formatUSD(usd) : `${sats.toLocaleString()} sats`;
     }
   };
@@ -86,9 +92,17 @@ export function CashuWallet() {
 
       processPendingToken();
     }
-  }, [user, wallet, cashuStore, receiveToken, toast, showSats, btcPriceLoading, formatAmount]);
+  }, [
+    user,
+    wallet,
+    cashuStore,
+    receiveToken,
+    toast,
+    showSats,
+    btcPriceLoading,
+    formatAmount,
+  ]);
 
-  // Handle tokens in URL (existing functionality)
   useEffect(() => {
     // Only process if user is logged in, wallet is loaded, and not already processing
     if (!user || !wallet || isProcessingToken) return;
@@ -145,6 +159,26 @@ export function CashuWallet() {
       <Header />
       <Separator className="my-2" />
 
+      {/* Total Balance Display */}
+      {user && wallet && (
+        <div className="text-center py-6">
+          <div className="text-5xl font-bold tabular-nums">
+            {showSats
+              ? formatBalance(totalBalance)
+              : btcPrice
+              ? formatUSD(satsToUSD(totalBalance, btcPrice.USD) || 0)
+              : formatBalance(totalBalance)}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">Total Balance</p>
+          <button
+            onClick={() => toggleCurrency()}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-2"
+          >
+            Show in {showSats ? "USD" : "sats"}
+          </button>
+        </div>
+      )}
+
       {isProcessingToken && (
         <div className="mb-6 p-4 bg-muted rounded-lg flex items-center space-x-3">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -153,8 +187,8 @@ export function CashuWallet() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <CashuWalletCard />
         <CashuWalletLightningCard />
+        <CashuWalletCard />
         {/* <NutzapCard /> */}
         {/* <CashuTokenCard /> */}
         <CashuHistoryCard />
