@@ -22,18 +22,5 @@ jobs:
           node-version: "22"
           cache: npm
           
-      - name: Configure npm
-        run: |
-          echo "fetch-timeout=300000" >> .npmrc
-          echo "fetch-retries=5" >> .npmrc
-          echo "fetch-retry-mintimeout=20000" >> .npmrc
-          echo "fetch-retry-maxtimeout=120000" >> .npmrc
-          echo "network-timeout=300000" >> .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          cat .npmrc
-          
       - name: Run CI tests
         run: npm run ci
-        env:
-          NPM_CONFIG_FETCH_TIMEOUT: 300000
-          NPM_CONFIG_FETCH_RETRIES: 5
