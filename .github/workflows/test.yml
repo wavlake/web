@@ -24,10 +24,16 @@ jobs:
           
       - name: Configure npm
         run: |
-          npm config set fetch-timeout 300000
-          npm config set fetch-retries 5
-          npm config set fetch-retry-mintimeout 20000
-          npm config set fetch-retry-maxtimeout 120000
+          echo "fetch-timeout=300000" >> .npmrc
+          echo "fetch-retries=5" >> .npmrc
+          echo "fetch-retry-mintimeout=20000" >> .npmrc
+          echo "fetch-retry-maxtimeout=120000" >> .npmrc
+          echo "network-timeout=300000" >> .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          cat .npmrc
           
       - name: Run CI tests
         run: npm run ci
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: 300000
+          NPM_CONFIG_FETCH_RETRIES: 5
