@@ -5,6 +5,7 @@ import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { useNostr } from "@/hooks/useNostr";
 import { NostrEvent } from "@nostrify/nostrify";
 import { useUpdateApprovedMembers } from "@/hooks/useUpdateApprovedMembers";
+import { KINDS } from "@/lib/nostr-kinds";
 
 export type ModeratorAction = "remove_content" | "remove_user" | "ban_user" | "no_action";
 
@@ -71,7 +72,7 @@ export function useReportActions() {
               
               // Create the removal event
               await publishEvent({
-                kind: 4551, // Remove post
+                kind: KINDS.GROUP_POST_REMOVAL, // Remove post
                 tags: [
                   ["a", communityIdentifier], 
                   ["e", eventId], 

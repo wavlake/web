@@ -1,6 +1,7 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { NostrEvent } from "@nostrify/nostrify";
+import { KINDS } from "@/lib/nostr-kinds";
 
 export interface GroupStats {
   posts: number;
@@ -29,7 +30,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
       // Create a filter for all communities to get posts in a single query
       const communityRefs = communities.map(community => {
         const dTag = community.tags.find(tag => tag[0] === "d");
-        return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+        return `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
       });
 
       // Initialize stats objects for all communities
@@ -96,9 +97,9 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
         stats[communityId].participants.add(zap.pubkey);
       }
 
-      // 4. Get join requests (Kind 4553) for communities
+      // 4. Get join requests for communities
       const joinRequests = await nostr.query([{
-        kinds: [4553],
+        kinds: [KINDS.GROUP_JOIN_REQUEST],
         "#a": communityRefs,
         limit: 500
       }], { signal });
@@ -136,7 +137,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
 
       // 6. Get pinned groups (Kind 14553)
       const pinnedGroups = await nostr.query([{
-        kinds: [14553],
+        kinds: [KINDS.PINNED_GROUPS_LIST],
         "#a": communityRefs,
         limit: 500
       }], { signal });
@@ -156,7 +157,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
       // 7. Add moderators from community definitions (Kind 34550)
       for (const community of communities) {
         const dTag = community.tags.find(tag => tag[0] === "d");
-        const communityId = `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+        const communityId = `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
         
         if (!stats[communityId]) continue;
         
