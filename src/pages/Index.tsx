@@ -76,8 +76,8 @@ const Index = () => {
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
           <div className="w-full max-w-md mx-auto px-8 text-center mb-8">
             <h1 className="text-4xl font-extralight mb-4">
-              <div className="flex flex-row items-baseline justify-center">
-                <span className="font-extralight mr-2">welcome to</span>
+              <div className="flex flex-row items-baseline justify-center flex-wrap">
+                <span className="font-extralight mr-2 whitespace-nowrap">welcome to</span>
                 <div className="flex flex-row items-baseline">
                   <span className="text-red-500 font-extrabold">+</span>
                   <span className="text-black dark:text-white font-extrabold">chorus</span>
