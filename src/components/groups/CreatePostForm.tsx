@@ -72,10 +72,17 @@ ${imageUrl}`;
         imageTags = tags;
       }
 
+      // Extract hashtags from content and create 't' tags
+      const hashtagMatches = content.match(/#(\w+)/g);
+      const hashtagTags: string[][] = hashtagMatches 
+        ? hashtagMatches.map(hashtag => ["t", hashtag.slice(1).toLowerCase()])
+        : [];
+
       const tags = [
         ["a", communityId],
         ["subject", `Post in ${parsedId?.identifier || 'group'}`],
         ...imageTags,
+        ...hashtagTags,
       ];
 
       await publishEvent({
