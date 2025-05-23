@@ -289,13 +289,38 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
 
   // Handle sharing the post
   const handleSharePost = async (postId: string) => {
-    const shareUrl = `${window.location.origin}/e/${postId}`;
-    await shareContent({
-      title: "Check out this post",
-      text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
-      url: shareUrl
-    });
-    toast.success("Post link copied to clipboard");
+    try {
+      // Create nevent identifier for the post with relay hint
+      const nevent = nip19.neventEncode({
+        id: post.id,
+        author: post.pubkey,
+        kind: post.kind,
+        relays: ["wss://relay.chorus.community"],
+      });
+      
+      // Create njump.me URL
+      const shareUrl = `https://njump.me/${nevent}`;
+      
+      await shareContent({
+        title: "Check out this post",
+        text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
+        url: shareUrl
+      });
+      
+      toast.success("Post link copied to clipboard");
+    } catch (error) {
+      console.error("Error creating share URL:", error);
+      // Fallback to the original URL format
+      const shareUrl = `${window.location.origin}/e/${post.id}`;
+      
+      await shareContent({
+        title: "Check out this post",
+        text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
+        url: shareUrl
+      });
+      
+      toast.success("Post link copied to clipboard");
+    }
   };
 
   return (
