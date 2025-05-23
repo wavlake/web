@@ -5,7 +5,7 @@ import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,7 @@ export default function GroupDetail() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
+  const queryClient = useQueryClient();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
   const [currentPostCount, setCurrentPostCount] = useState(0);
@@ -256,6 +257,11 @@ export default function GroupDetail() {
         content: "",
       });
 
+      // Invalidate relevant queries to update the UI
+      queryClient.invalidateQueries({ queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier] });
+      queryClient.invalidateQueries({ queryKey: ["community", parsedId?.pubkey, parsedId?.identifier] });
+      queryClient.invalidateQueries({ queryKey: ["user-groups", user?.pubkey] });
+      
       toast.success("Group settings updated successfully!");
     } catch (error) {
       console.error("Error updating community settings:", error);
@@ -313,6 +319,12 @@ export default function GroupDetail() {
         });
 
         setFormModerators(uniqueModPubkeys);
+        
+        // Invalidate relevant queries to update the UI
+        queryClient.invalidateQueries({ queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier] });
+        queryClient.invalidateQueries({ queryKey: ["community", parsedId?.pubkey, parsedId?.identifier] });
+        queryClient.invalidateQueries({ queryKey: ["user-groups", user?.pubkey] });
+        
         toast.success("Moderator added successfully!");
       } catch (error) {
         console.error("Error adding moderator:", error);
@@ -368,6 +380,12 @@ export default function GroupDetail() {
         content: "",
       });
       setFormModerators(formModerators.filter(mod => mod !== pubkey));
+      
+      // Invalidate relevant queries to update the UI
+      queryClient.invalidateQueries({ queryKey: ["community-settings", parsedId?.pubkey, parsedId?.identifier] });
+      queryClient.invalidateQueries({ queryKey: ["community", parsedId?.pubkey, parsedId?.identifier] });
+      queryClient.invalidateQueries({ queryKey: ["user-groups", user?.pubkey] });
+      
       toast.success("Moderator removed successfully!");
     } catch (error) {
       console.error("Error removing moderator:", error);
@@ -505,36 +523,27 @@ export default function GroupDetail() {
           </div>
 
           <div className="flex flex-col min-w-[140px] h-40 space-y-2">
-            {!isModerator ? (
-              <>
-                <div className="h-8">
-                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator || false} />
-                </div>
-                {/* If there are more buttons than these, they will flow from top to bottom */}
-                {/* Ensure consistent height for GroupNutzapTotal */}
-                <div className="h-8 flex items-center">
-                  <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Ensure consistent height for GroupNutzapButton */}
-                <div className="h-8">
-                  {user && community && (
-                    <GroupNutzapButton
-                      groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
-                      ownerPubkey={community.pubkey}
-                      variant="outline"
-                      className="w-full h-full"
-                    />
-                  )}
-                </div>
-                {/* Ensure consistent height for GroupNutzapTotal */}
-                <div className="h-8 flex items-center">
-                  <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
-                </div>
-              </>
-            )}
+            <div className="h-8">
+              <JoinRequestButton communityId={groupId || ''} isModerator={isModerator || false} />
+            </div>
+            {/* Ensure consistent height for GroupNutzapButton */}
+            <div className="h-8">
+              {user && community && (
+                <GroupNutzapButton
+                  groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
+                  ownerPubkey={community.pubkey}
+                  variant="outline"
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+            {/* Ensure consistent height for GroupNutzapTotal - always show for all users */}
+            <div className="h-8 flex items-center">
+              <GroupNutzapTotal 
+                groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
