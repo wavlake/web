@@ -21,7 +21,7 @@ import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { GroupNutzapButton } from "@/components/groups/GroupNutzapButton";
 import { GroupNutzapTotal } from "@/components/groups/GroupNutzapTotal";
 import { GroupNutzapList } from "@/components/groups/GroupNutzapList";
-import { Users, Settings, MessageSquare, CheckCircle, DollarSign, QrCode } from "lucide-react";
+import { Users, Settings, MessageSquare, CheckCircle, DollarSign, QrCode, FileText } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -124,11 +124,12 @@ export default function GroupDetail() {
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
   const imageTag = community?.tags.find(tag => tag[0] === "image");
-
+  const guidelinesTag = community?.tags.find(tag => tag[0] === "guidelines");
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
   const image = imageTag ? imageTag[1] : undefined;
+  const hasGuidelines = guidelinesTag && guidelinesTag[1].trim().length > 0;
 
   useEffect(() => {
     if (name && name !== "Unnamed Group") {
@@ -192,6 +193,19 @@ export default function GroupDetail() {
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
               <div className="flex flex-col gap-1">
                 <h1 className="text-2xl font-bold">{name}</h1>
+                {hasGuidelines && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="self-start p-1 h-auto text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md"
+                  >
+                    <Link to={`/group/${encodeURIComponent(groupId || '')}/guidelines`} className="flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      View Guidelines
+                    </Link>
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {/* Manage Group button moved to the right column */}
