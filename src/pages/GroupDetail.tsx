@@ -185,38 +185,28 @@ export default function GroupDetail() {
                 <h1 className="text-2xl font-bold">{name}</h1>
               </div>
               <div className="flex items-center gap-2">
-                {/* Manage Group button moved to the right column */}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between min-w-[140px] h-36">
-            {!isModerator ? (
-              <>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 mb-2"
+                  className="gap-1.5"
                   onClick={() => setShowQRCode(true)}
                 >
                   <QrCode className="h-4 w-4" />
                   QR Code
                 </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between min-w-[140px] h-36 pr-2">
+            {!isModerator ? (
+              <>
                 <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
                 <div className="flex-1" />
                 <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 mb-2"
-                  onClick={() => setShowQRCode(true)}
-                >
-                  <QrCode className="h-4 w-4" />
-                  QR Code
-                </Button>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
