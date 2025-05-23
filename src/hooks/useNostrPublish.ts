@@ -1,3 +1,4 @@
+import { NKinds } from "@nostrify/nostrify";
 import { useNostr } from "@nostrify/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
@@ -116,7 +117,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
       // Auto-invalidate queries based on event kind
       if (event) {
         // Get community ID from tags if present
-        const communityTag = event.tags?.find(tag => tag[0] === "a");
+        const communityTag = event.tags?.find(tag => tag[0] === (NKinds.addressable(event.kind) ? "d" : "a"));
         const communityId = communityTag ? communityTag[1] : undefined;
         
         // Invalidate relevant queries based on event kind

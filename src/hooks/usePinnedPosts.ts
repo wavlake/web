@@ -143,7 +143,7 @@ export function usePinnedPosts(communityId: string) {
       }
 
       // If there are no remaining pinned posts, we could either:
-      // 1. Publish an empty event with just the "a" tag, or
+      // 1. Publish an empty event with just the "d" tag, or
       // 2. Delete the entire event
       // Let's go with option 1 for consistency
       
