@@ -19,7 +19,16 @@ import { formatBalance, calculateBalance } from "@/lib/cashu";
 import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, HelpCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export function CashuWallet() {
   const { user } = useCurrentUser();
@@ -210,22 +219,44 @@ export function CashuWallet() {
         </div>
       )}
 
-      {/* Wallet Info Box */}
-      <Alert className="mb-6">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm">
-          <span className="text-lg mr-2">💸</span>
-          <strong>Your Cashu Wallet</strong> uses ecash tokens for private,
-          instant payments.
-          <strong> Cashu</strong> is a privacy-preserving digital cash system
-          built on cryptographic proofs.
-          <strong> Lightning Network</strong> enables fast Bitcoin transactions,
-          and this wallet seamlessly bridges both systems - you can send/receive
-          Lightning payments while maintaining privacy through Cashu's blind
-          signatures. Think of it as digital cash that moves at the speed of
-          Lightning!
-        </AlertDescription>
-      </Alert>
+      {/* Wallet Info Modal */}
+      <div className="text-center mb-6">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <HelpCircle className="h-4 w-4" />
+              What is this?
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[525px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="text-xl">💸</span>
+                Understanding Your Cashu Wallet
+              </DialogTitle>
+              <DialogDescription className="text-left space-y-3 pt-3">
+                <p>
+                  <strong>Your Cashu Wallet</strong> uses ecash tokens for private, 
+                  instant payments. It's like having digital cash in your pocket!
+                </p>
+                <p>
+                  <strong>Cashu</strong> is a privacy-preserving digital cash system 
+                  built on cryptographic proofs. Your transactions are private by default, 
+                  and no one can track your spending.
+                </p>
+                <p>
+                  <strong>Lightning Network</strong> enables fast Bitcoin transactions, 
+                  and this wallet seamlessly bridges both systems. You can send and receive 
+                  Lightning payments while maintaining privacy through Cashu's blind signatures.
+                </p>
+                <p className="text-sm font-medium">
+                  Think of it as digital cash that moves at the speed of Lightning! ⚡
+                </p>
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {isProcessingToken && (
         <div className="mb-6 p-4 bg-muted rounded-lg flex items-center space-x-3">
