@@ -28,6 +28,8 @@ import { QRCodeModal } from "@/components/QRCodeModal";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -40,6 +42,7 @@ export default function GroupDetail() {
   const [activeTab, setActiveTab] = useState("posts");
   const [imageLoading, setImageLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(false);
 
 
   const searchParams = new URLSearchParams(location.search);
@@ -326,26 +329,43 @@ export default function GroupDetail() {
         <div className="w-full mt-4">
           <div className="flex items-center mb-2">
             <h1 className="text-2xl font-bold">{name}</h1>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 ml-2"
-              onClick={() => setShowQRCode(true)}
-            >
-              <QrCode className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 ml-2"
+                    onClick={() => setShowQRCode(true)}
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Share group QR code
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {hasGuidelines && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 ml-1"
+                      onClick={() => setShowGuidelines(true)}
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Community guidelines
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
-          {hasGuidelines && (
-            <div className="mb-2">
-              <Link
-                to={`/group/${encodeURIComponent(groupId || '')}/guidelines`}
-                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 text-xs font-medium inline-flex items-center gap-0.5"
-              >
-                <FileText className="h-4 w-4" />
-                Community Guidelines
-              </Link>
-            </div>
-          )}
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -434,6 +454,23 @@ export default function GroupDetail() {
         profileUrl={`${window.location.origin}/group/${encodeURIComponent(groupId || '')}`}
         displayName={name}
       />
+
+      {/* Community Guidelines Modal */}
+      <Dialog open={showGuidelines} onOpenChange={setShowGuidelines}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Community Guidelines</DialogTitle>
+            <DialogDescription>
+              Guidelines for {name}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="mt-4 max-h-[60vh] pr-4">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="whitespace-pre-wrap">{guidelinesTag?.[1] || "No guidelines available."}</p>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
