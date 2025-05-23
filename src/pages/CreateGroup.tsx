@@ -70,8 +70,8 @@ export default function CreateGroup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.description) {
-      toast.error("Please fill in all required fields");
+    if (!formData.name) {
+      toast.error("Please enter a group name");
       return;
     }
 
@@ -92,8 +92,12 @@ export default function CreateGroup() {
       const tags = [
         ["d", identifier],
         ["name", formData.name],
-        ["description", formData.description],
       ];
+
+      // Add description tag if provided
+      if (formData.description) {
+        tags.push(["description", formData.description]);
+      }
 
       // Add guidelines tag if provided
       if (formData.guidelines) {
@@ -148,7 +152,7 @@ export default function CreateGroup() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 name="description"
@@ -156,7 +160,6 @@ export default function CreateGroup() {
                 onChange={handleInputChange}
                 placeholder="Tell people what your group is about..."
                 rows={4}
-                required
               />
             </div>
 
@@ -213,7 +216,7 @@ export default function CreateGroup() {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || isUploading || !formData.name || !formData.description}
+              disabled={isSubmitting || isUploading || !formData.name}
             >
               {isSubmitting || isUploading ? "Creating..." : "Create Group"}
             </Button>
