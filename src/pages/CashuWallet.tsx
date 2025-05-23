@@ -236,7 +236,7 @@ export function CashuWallet() {
 
       {/* Total Balance Display */}
       {user && wallet && (
-        <div className="text-center py-4">
+        <div className="text-center py-2">
           <div className="text-5xl font-bold tabular-nums">
             {showSats
               ? formatBalance(totalBalance)
