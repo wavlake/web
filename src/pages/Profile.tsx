@@ -30,7 +30,11 @@ import {
   LinkIcon,
   MoreVertical,
   Flag,
-  QrCode
+  QrCode,
+  ArrowRight,
+  Crown,
+  Shield,
+  User
 } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -43,6 +47,7 @@ import { shareContent } from "@/lib/share";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NutzapButton } from "@/components/groups/NutzapButton";
 import { NutzapInterface } from "@/components/groups/NutzapInterface";
@@ -55,7 +60,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QRCodeModal } from "@/components/QRCodeModal";
-import { CommonGroupsList } from "@/components/profile/CommonGroupsList";
+import { CommonGroupsListImproved } from "@/components/profile/CommonGroupsListImproved";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -224,6 +229,67 @@ interface UserGroup {
   groupEvent: NostrEvent;
 }
 
+// Modern role badge component with optional avatar
+function RoleBadge({ 
+  role, 
+  size = "default",
+  userPubkey,
+  showAvatar = false
+}: { 
+  role: "owner" | "moderator" | "member";
+  size?: "default" | "sm";
+  userPubkey?: string;
+  showAvatar?: boolean;
+}) {
+  const author = useAuthor(userPubkey);
+  const metadata = showAvatar && userPubkey ? author.data?.metadata : null;
+  
+  const getIcon = () => {
+    const iconSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
+    switch (role) {
+      case "owner":
+        return <Crown className={`${iconSize} ${showAvatar ? '' : 'mr-1'}`} />;
+      case "moderator":
+        return <Shield className={`${iconSize} ${showAvatar ? '' : 'mr-1'}`} />;
+      case "member":
+        return null; // No icon for regular members
+    }
+  };
+
+  const getRoleStyles = () => {
+    switch (role) {
+      case "owner":
+        return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800";
+      case "moderator":
+        return "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800";
+      case "member":
+        return "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700";
+    }
+  };
+
+  if (role === "member") {
+    return null; // Don't show badge for regular members
+  }
+
+  const roleText = role.charAt(0).toUpperCase() + role.slice(1);
+  const paddingSize = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-0.5";
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 ${paddingSize} text-xs font-medium rounded-md border ${getRoleStyles()}`}>
+      {showAvatar && userPubkey && (
+        <Avatar className="h-4 w-4">
+          <AvatarImage src={metadata?.picture} />
+          <AvatarFallback className="text-[8px]">
+            {metadata?.name?.slice(0, 1).toUpperCase() || userPubkey.slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      {getIcon()}
+      <span>{roleText}</span>
+    </div>
+  );
+}
+
 function UserGroupsList({
   groups,
   isLoading,
@@ -254,10 +320,16 @@ function UserGroupsList({
 
   if (!groups || groups.length === 0) {
     return (
-      <div className="p-6 text-center bg-muted/30 rounded-lg">
+      <div className="p-8 text-center bg-muted/20 rounded-xl border border-border/50">
+        <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
         <p className="text-muted-foreground">
           {isCurrentUser ? "You are not a member of any groups yet" : "This user is not a member of any groups yet"}
         </p>
+        {isCurrentUser && (
+          <Link to="/groups" className="mt-3 inline-block">
+            <Button variant="outline" size="sm">Explore Groups</Button>
+          </Link>
+        )}
       </div>
     );
   }
@@ -294,35 +366,54 @@ function UserGroupsList({
     return 'member';
   };
 
+  // Sort groups by role (owner first, then moderator, then member)
+  const sortedGroups = Array.from(uniqueGroups.values()).sort((a, b) => {
+    const roleOrder = { owner: 0, moderator: 1, member: 2 };
+    const aRole = getUserRole(a, profileUserPubkey);
+    const bRole = getUserRole(b, profileUserPubkey);
+    
+    if (roleOrder[aRole] !== roleOrder[bRole]) {
+      return roleOrder[aRole] - roleOrder[bRole];
+    }
+    
+    // If same role, sort by name
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <div className="space-y-6">
       {/* Common Groups Section - only show when viewing another user's profile */}
-      {!isCurrentUser && (
-        <CommonGroupsList profileUserPubkey={profileUserPubkey} />
+      {!isCurrentUser && user && (
+        <CommonGroupsListImproved profileUserPubkey={profileUserPubkey} />
       )}
 
       {/* All Groups Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">
-            {isCurrentUser ? "Your Groups" : "All Groups"}
-          </h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">
+              {isCurrentUser ? "Your Groups" : `${user ? "All " : ""}Groups`}
+            </h3>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {uniqueGroups.size} {uniqueGroups.size === 1 ? 'group' : 'groups'}
+          </Badge>
         </div>
         
-        <div className="grid grid-cols-1 gap-4">
-          {Array.from(uniqueGroups.values()).map((group) => {
+        <div className="grid grid-cols-1 gap-3">
+          {sortedGroups.map((group) => {
             const userRole = getUserRole(group, profileUserPubkey);
             
             return (
               <Link
                 key={group.id}
                 to={`/group/${encodeURIComponent(group.id)}`}
-                className="block"
+                className="block group"
               >
-                <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
+                <Card className="overflow-hidden hover:shadow-md transition-all duration-200 hover:border-primary/20">
                   <div className="flex p-4">
-                    <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted relative">
+                    <div className="h-16 w-16 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted relative">
                       {group.image ? (
                         <img
                           src={group.image}
@@ -336,32 +427,28 @@ function UserGroupsList({
                         />
                       ) : null}
                       <div 
-                        className={`absolute inset-0 bg-primary/10 text-primary font-bold text-lg flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
+                        className={`absolute inset-0 bg-primary/10 text-primary font-bold text-xl flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
                       >
                         {group.name.charAt(0).toUpperCase()}
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <h3 className="font-medium text-sm">{group.name}</h3>
-                        {userRole !== 'member' && (
-                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                            isCurrentUser
-                              ? userRole === 'owner' 
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                              : userRole === 'owner'
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30'
-                                : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400 border border-green-100 dark:border-green-900/30'
-                          }`}>
-                            {userRole === 'owner' ? 'Owner' : 'Moderator'}
-                          </span>
-                        )}
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-base group-hover:text-primary transition-colors">{group.name}</h3>
+                        <RoleBadge 
+                          role={userRole} 
+                          size="sm" 
+                          userPubkey={profileUserPubkey}
+                          showAvatar={!isCurrentUser} 
+                        />
                       </div>
-                      <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
-                        {group.description || "No description available"}
-                      </p>
+                      {group.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {group.description}
+                        </p>
+                      )}
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center ml-2" />
                   </div>
                 </Card>
               </Link>

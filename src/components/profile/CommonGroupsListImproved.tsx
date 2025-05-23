@@ -5,9 +5,12 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, Crown, Shield, User } from "lucide-react";
+import { Users, Crown, Shield, User, ArrowRight } from "lucide-react";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
+import { useAuthor } from "@/hooks/useAuthor";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 interface CommonGroup {
   id: string;
@@ -49,71 +52,45 @@ const getUserRole = (group: NostrEvent, userPubkey: string): "owner" | "moderato
   return "member";
 };
 
-// Role badge component with different styles for current user vs profile user
-function RoleBadge({ 
-  role, 
-  isCurrentUser, 
-  size = "sm" 
+// Modern role indicator component
+function RoleIndicator({ 
+  role,
+  label,
+  variant = "default"
 }: { 
-  role: "owner" | "moderator" | "member"; 
-  isCurrentUser: boolean;
-  size?: "sm" | "xs";
+  role: "owner" | "moderator" | "member";
+  label?: string;
+  variant?: "default" | "muted";
 }) {
-  const getIcon = () => {
+  const getRoleIcon = () => {
     switch (role) {
       case "owner":
-        return <Crown className={`${size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} mr-1`} />;
+        return <Crown className="h-3.5 w-3.5" />;
       case "moderator":
-        return <Shield className={`${size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} mr-1`} />;
+        return <Shield className="h-3.5 w-3.5" />;
       case "member":
-        return <User className={`${size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} mr-1`} />;
+        return <User className="h-3.5 w-3.5" />;
     }
   };
 
-  const getVariant = () => {
-    if (isCurrentUser) {
-      // Current user roles - solid colors
+  const getRoleColor = () => {
+    if (variant === "muted") {
       switch (role) {
         case "owner":
-          return "default"; // Blue
+          return "text-blue-500 dark:text-blue-400";
         case "moderator":
-          return "secondary"; // Gray
+          return "text-green-500 dark:text-green-400";
         case "member":
-          return "outline"; // Outline
+          return "text-gray-500 dark:text-gray-400";
       }
     } else {
-      // Profile user roles - muted colors
       switch (role) {
         case "owner":
-          return "default"; // Blue but will be styled differently
+          return "text-blue-600 dark:text-blue-400";
         case "moderator":
-          return "secondary"; // Gray but will be styled differently  
+          return "text-green-600 dark:text-green-400";
         case "member":
-          return "outline"; // Outline but will be styled differently
-      }
-    }
-  };
-
-  const getCustomClasses = () => {
-    if (isCurrentUser) {
-      // Current user - bright, solid colors
-      switch (role) {
-        case "owner":
-          return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-        case "moderator":
-          return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800";
-        case "member":
-          return "bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300 border-gray-300 dark:border-gray-600";
-      }
-    } else {
-      // Profile user - muted, subtle colors
-      switch (role) {
-        case "owner":
-          return "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border-blue-100 dark:border-blue-900/30";
-        case "moderator":
-          return "bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400 border-green-100 dark:border-green-900/30";
-        case "member":
-          return "bg-gray-50 text-gray-500 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200 dark:border-gray-800/50";
+          return "text-gray-600 dark:text-gray-400";
       }
     }
   };
@@ -121,19 +98,53 @@ function RoleBadge({
   const roleText = role.charAt(0).toUpperCase() + role.slice(1);
 
   return (
-    <Badge 
-      variant={getVariant()}
-      className={`${getCustomClasses()} ${size === "xs" ? "text-xs px-1.5 py-0.5 h-5" : "text-xs px-2 py-0.5 h-6"} font-medium flex items-center`}
-    >
-      {getIcon()}
-      {roleText}
-    </Badge>
+    <div className="flex items-center gap-1.5">
+      {label && <span className="text-xs text-muted-foreground">{label}</span>}
+      <div className={`flex items-center gap-1 ${getRoleColor()}`}>
+        {getRoleIcon()}
+        <span className="text-xs font-medium">{roleText}</span>
+      </div>
+    </div>
   );
 }
 
-export function CommonGroupsList({ profileUserPubkey }: CommonGroupsListProps) {
+// User avatar with role indicator
+function UserWithRole({
+  pubkey,
+  role,
+  size = "sm"
+}: {
+  pubkey: string;
+  role: "owner" | "moderator" | "member";
+  size?: "sm" | "xs";
+}) {
+  const author = useAuthor(pubkey);
+  const metadata = author.data?.metadata;
+  const displayName = metadata?.name || pubkey.slice(0, 8);
+  const avatarSize = size === "xs" ? "h-6 w-6" : "h-8 w-8";
+
+  return (
+    <div className="flex items-center gap-2">
+      <Avatar className={`${avatarSize}`}>
+        <AvatarImage src={metadata?.picture} />
+        <AvatarFallback className="text-xs">
+          {displayName.slice(0, 1).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <span className="text-xs font-medium">{displayName}</span>
+        <RoleIndicator role={role} variant="muted" />
+      </div>
+    </div>
+  );
+}
+
+export function CommonGroupsListImproved({ profileUserPubkey }: CommonGroupsListProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const profileAuthor = useAuthor(profileUserPubkey);
+  const profileMetadata = profileAuthor.data?.metadata;
+  const profileDisplayName = profileMetadata?.name || profileUserPubkey.slice(0, 8);
 
   const { data: commonGroups, isLoading } = useQuery({
     queryKey: ["common-groups", user?.pubkey, profileUserPubkey],
@@ -257,20 +268,22 @@ export function CommonGroupsList({ profileUserPubkey }: CommonGroupsListProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Groups in Common</h3>
+          <Users className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Shared Groups</h3>
         </div>
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="h-12 w-12 rounded-lg" />
-              <div className="flex-1">
-                <Skeleton className="h-4 w-32 mb-1" />
-                <Skeleton className="h-3 w-48" />
+          {[1, 2].map((i) => (
+            <Card key={i} className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-14 w-14 rounded-lg" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
@@ -278,26 +291,18 @@ export function CommonGroupsList({ profileUserPubkey }: CommonGroupsListProps) {
   }
 
   if (!commonGroups || commonGroups.length === 0) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Groups in Common</h3>
-        </div>
-        <div className="p-6 text-center bg-muted/30 rounded-lg">
-          <p className="text-muted-foreground text-sm">No groups in common</p>
-        </div>
-      </div>
-    );
+    return null; // Don't show section if no common groups
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-4">
-        <Users className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-lg font-semibold">Groups in Common</h3>
-        <Badge variant="secondary" className="text-xs">
-          {commonGroups.length}
+    <div className="space-y-4 mb-6">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Shared Groups</h3>
+        </div>
+        <Badge variant="secondary" className="text-xs font-medium">
+          {commonGroups.length} {commonGroups.length === 1 ? 'group' : 'groups'}
         </Badge>
       </div>
       
@@ -306,49 +311,61 @@ export function CommonGroupsList({ profileUserPubkey }: CommonGroupsListProps) {
           <Link
             key={group.id}
             to={`/group/${encodeURIComponent(group.id)}`}
-            className="block"
+            className="block group"
           >
-            <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
-              <div className="flex p-4">
-                <div className="h-12 w-12 rounded-lg overflow-hidden mr-3 flex-shrink-0 bg-muted relative">
-                  {group.image ? (
-                    <img
-                      src={group.image}
-                      alt={group.name}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = "flex";
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className={`absolute inset-0 bg-primary/10 text-primary font-bold text-sm flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
-                  >
-                    {group.name.charAt(0).toUpperCase()}
+            <Card className="overflow-hidden hover:shadow-md transition-all duration-200 hover:border-primary/20">
+              <div className="p-4">
+                {/* Group info section */}
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="h-14 w-14 rounded-lg overflow-hidden flex-shrink-0 bg-muted relative">
+                    {group.image ? (
+                      <img
+                        src={group.image}
+                        alt={group.name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className={`absolute inset-0 bg-primary/10 text-primary font-bold text-lg flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
+                    >
+                      {group.name.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-base group-hover:text-primary transition-colors">{group.name}</h4>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    {group.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {group.description}
+                      </p>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-sm truncate pr-2">{group.name}</h4>
-                  </div>
-                  
-                  {group.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                      {group.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">You:</span>
-                      <RoleBadge role={group.currentUserRole} isCurrentUser={true} size="xs" />
+
+                {/* Role comparison section */}
+                <div className="bg-muted/30 dark:bg-muted/20 rounded-lg p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <UserWithRole 
+                        pubkey={user.pubkey} 
+                        role={group.currentUserRole}
+                        size="xs"
+                      />
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">Them:</span>
-                      <RoleBadge role={group.profileUserRole} isCurrentUser={false} size="xs" />
+                    <div>
+                      <UserWithRole 
+                        pubkey={profileUserPubkey} 
+                        role={group.profileUserRole}
+                        size="xs"
+                      />
                     </div>
                   </div>
                 </div>
