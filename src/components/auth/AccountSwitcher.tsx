@@ -13,6 +13,7 @@ import {
   Bell,
   Wallet,
   Info,
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,6 +31,9 @@ import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
 import { useNavigate } from "react-router-dom";
 import { useUnreadNotificationsCount } from "@/hooks/useNotifications";
 import { useCashuStore } from "@/stores/cashuStore";
+import { useState } from "react";
+import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
+import { usePWA } from "@/hooks/usePWA";
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
 }
@@ -40,11 +44,27 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const navigate = useNavigate();
   const unreadCount = useUnreadNotificationsCount();
   const cashuStore = useCashuStore();
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const { isInstallable, isRunningAsPwa, promptInstall } = usePWA();
+
+  const handleInstallClick = async () => {
+    if (isInstallable) {
+      const success = await promptInstall();
+      if (!success) {
+        // If auto-install failed, show instructions
+        setShowInstallInstructions(true);
+      }
+    } else {
+      // Show instructions for manual installation
+      setShowInstallInstructions(true);
+    }
+  };
 
   if (!currentUser) return null;
 
   return (
-    <DropdownMenu>
+    <>
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -145,6 +165,18 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             <span>About +chorus</span>
           </a>
         </DropdownMenuItem>
+        {!isRunningAsPwa && (
+          <>
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuItem
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
+            >
+              <Download className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
+              <span>Install App</span>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator className="my-1" />
         <DropdownMenuItem
           onClick={() => {
@@ -165,5 +197,11 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    <PWAInstallInstructions
+      isOpen={showInstallInstructions}
+      onClose={() => setShowInstallInstructions(false)}
+    />
+    </>
   );
 }
