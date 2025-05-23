@@ -12,6 +12,13 @@ import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useCashuStore } from "@/stores/cashuStore";
 
+// Type augmentation for window object
+declare global {
+  interface Window {
+    [key: `zapRefetch_${string}`]: () => void;
+  }
+}
+
 interface NutzapButtonProps {
   postId: string;
   authorPubkey: string;
@@ -116,7 +123,7 @@ export function NutzapButton({ postId, authorPubkey, relayHint, showText = true,
   // Pass refetch to parent if needed
   if (refetchZaps && refetch) {
     // Store reference for parent to use
-    (window as any)[`zapRefetch_${postId}`] = refetch;
+    window[`zapRefetch_${postId}`] = refetch;
   }
 
   return (

@@ -247,7 +247,7 @@ export function NutzapCard() {
     return () => {
       controller.abort();
     };
-  }, [user, nutzapInfoQuery.data, fetchedNutzaps, nostr, redeemNutzap]);
+  }, [user, nutzapInfoQuery.data, fetchedNutzaps, nostr, redeemNutzap, formatAmount]);
 
   const copyToClipboard = async (text: string) => {
     try {

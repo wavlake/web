@@ -758,30 +758,8 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
               className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
               onClick={handleShowReplies}
             >
-              {/* Get replies count */}
-              {(() => {
-                const { nostr: postNostr } = useNostr();
-                const { data: replyCount = 0 } = useQuery({
-                  queryKey: ["reply-count", post.id],
-                  queryFn: async (c) => {
-                    const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-                    const events = await postNostr.query([{
-                      kinds: [1111],
-                      "#e": [post.id],
-                      limit: 100,
-                    }], { signal });
-                    return events?.length || 0;
-                  },
-                  enabled: !!postNostr && !!post.id,
-                });
-                
-                return (
-                  <>
-                    <MessageSquare className={`h-3.5 w-3.5`} />
-                    {replyCount > 0 && <span className="text-xs ml-0.5">{replyCount}</span>}
-                  </>
-                );
-              })()}
+              <MessageSquare className={`h-3.5 w-3.5`} />
+              <ReplyCount postId={post.id} />
             </Button>
             <EmojiReactionButton postId={post.id} showText={false} />
             <NutzapButton 
@@ -827,7 +805,7 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
               relayHint={undefined}
               onSuccess={() => {
                 // Call the refetch function if available
-                const refetchFn = (window as any)[`zapRefetch_${post.id}`];
+                const refetchFn = window[`zapRefetch_${post.id}`];
                 if (refetchFn) refetchFn();
               }}
             />

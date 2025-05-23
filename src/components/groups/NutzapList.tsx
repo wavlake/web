@@ -18,7 +18,7 @@ interface Nutzap {
   pubkey: string;
   createdAt: number;
   content: string;
-  proofs: any[];
+  proofs: Proof[];
   mintUrl: string;
   amount: number;
 }
