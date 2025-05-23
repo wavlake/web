@@ -13,7 +13,7 @@ export function usePinnedGroups() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
-  const { mutate: publishEvent } = useNostrPublish();
+  const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Fetch pinned groups
   const query = useQuery({
@@ -59,11 +59,7 @@ export function usePinnedGroups() {
       if (!user) throw new Error("User not logged in");
 
       // Create tags for the event
-      const tags = pinnedGroups.map(group => 
-        group.relayUrl 
-          ? ["a", group.communityId, group.relayUrl] 
-          : ["a", group.communityId]
-      );
+      const tags = pinnedGroups.map(group => ["d", group.communityId]);
 
       // Publish the kind 14553 event
       await publishEvent({

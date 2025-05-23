@@ -23,7 +23,7 @@ export function useUpdateApprovedMembers() {
     try {
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal: AbortSignal.timeout(5000) });
       
@@ -70,7 +70,7 @@ export function useUpdateApprovedMembers() {
       
       // Create tags for the updated list
       const tags = [
-        ["a", communityId],
+        ["d", communityId],
         ...updatedApprovedMembers.map(p => ["p", p])
       ];
       

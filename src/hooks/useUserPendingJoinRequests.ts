@@ -41,7 +41,7 @@ export function useUserPendingJoinRequests() {
         // Check if user is in approved members list
         const approvedEvents = await nostr.query([{
           kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-          "#a": [communityId]
+          "#d": [communityId]
         }], { signal });
 
         const isApproved = approvedEvents.some(event =>
@@ -51,7 +51,7 @@ export function useUserPendingJoinRequests() {
         // Check if user is in declined members list
         const declinedEvents = await nostr.query([{
           kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
-          "#a": [communityId],
+          "#d": [communityId],
           "#p": [user.pubkey]
         }], { signal });
 

@@ -146,7 +146,7 @@ export function useUserGroups() {
       const approvedMembersLists = await nostr.query([
         {
           kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-          '#a': [...communityMap.keys()], // Use the community IDs
+          '#d': [...communityMap.keys()], // Use the community IDs
           '#p': [user.pubkey], // Only get lists that include the user
           limit: 200
         }
