@@ -742,23 +742,60 @@ export default function Profile() {
       <div className="relative mb-6 mt-4">
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              {banner ? (
-                <img
-                  src={banner}
-                  alt={`${displayNameFull}'s banner`}
-                  className="w-full h-full object-cover object-center"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-community.svg";
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-r from-primary/5 to-primary/10" />
-              )}
-            </div>
-
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-2 min-w-[140px]">
+                {isCurrentUser ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    asChild
+                  >
+                    <Link to="/settings/profile">
+                      <Pencil className="h-4 w-4" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                  >
+                    Follow
+                  </Button>
+                )}
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={copyPubkeyToClipboard}
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="hidden sm:inline">Copy Key</span>
+                </Button>
+                
+                {website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    asChild
+                  >
+                    <a
+                      href={website.startsWith('http') ? website : `https://${website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                      <span className="truncate">Website</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 flex-1 justify-center">
                 <Avatar className="h-20 w-20 rounded-full border-4 border-background shadow-md">
                   <AvatarImage src={profileImage} />
                   <AvatarFallback className="text-xl bg-primary/10">
@@ -777,66 +814,18 @@ export default function Profile() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-col gap-2 min-w-[140px] py-2">
-            {isCurrentUser ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                asChild
-              >
-                <Link to="/settings/profile">
-                  <Pencil className="h-4 w-4" />
-                  Edit Profile
-                </Link>
-              </Button>
-            ) : (
-              <Button
-                variant="default"
-                size="sm"
-              >
-                Follow
-              </Button>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={copyPubkeyToClipboard}
-            >
-              <Copy className="h-4 w-4" />
-              <span className="hidden sm:inline">Copy Key</span>
-            </Button>
-            
-            {website && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                asChild
-              >
-                <a
-                  href={website.startsWith('http') ? website : `https://${website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                  <span className="truncate">Website</span>
-                </a>
-              </Button>
-            )}
+              <div className="min-w-[140px]">
+                {/* Empty space to balance the layout */}
+              </div>
+            </div>
           </div>
         </div>
         
         {/* Profile description moved outside the grid to span full width */}
         {about && (
           <div className="w-full mt-2">
-            <p className="text-base text-muted-foreground whitespace-pre-wrap">{about}</p>
+            <p className="text-base text-muted-foreground whitespace-pre-wrap text-center">{about}</p>
           </div>
         )}
       </div>
