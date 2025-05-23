@@ -1,7 +1,7 @@
 import Header from "@/components/ui/Header";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { TrendingUp, Hash } from "lucide-react";
 import { useTrendingHashtags } from "@/hooks/useTrendingHashtags";
 import { Link } from "react-router-dom";
@@ -78,20 +78,20 @@ export default function Trending() {
           </div>
         )}
 
-        {/* Mobile-optimized hashtag list */}
-        <div className="space-y-2">
+        {/* Clean hashtag list with dividers */}
+        <div className="space-y-0">
           {filteredHashtags.slice(0, 25).map((item, index) => {
             return (
-              <Link key={item.hashtag} to={`/t/${item.hashtag}`}>
-                <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
+              <div key={item.hashtag}>
+                <Link to={`/t/${item.hashtag}`}>
+                  <div className="hover:bg-muted/30 transition-colors cursor-pointer py-4 px-2 rounded-md">
+                    <div className="flex items-center justify-between gap-3">
                       {/* Left side - hashtag info */}
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <Hash className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           {/* Hashtag name with badge */}
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2">
                             <span className="font-medium text-base truncate">
                               {item.hashtag}
                             </span>
@@ -110,9 +110,12 @@ export default function Trending() {
                         <span className="hidden xs:inline">posts</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </Link>
+                {index < filteredHashtags.slice(0, 25).length - 1 && (
+                  <Separator className="mx-2" />
+                )}
+              </div>
             );
           })}
         </div>
