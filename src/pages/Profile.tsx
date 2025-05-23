@@ -34,7 +34,8 @@ import {
   ArrowRight,
   Crown,
   Shield,
-  User
+  User,
+  Timer
 } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -580,6 +581,7 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
   const { user } = useCurrentUser();
   const [showReplies, setShowReplies] = useState(false);
   const [showZaps, setShowZaps] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
   const handleSharePost = async () => {
     // Extract group info to create proper share URL
@@ -616,6 +618,35 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
       setShowReplies(false); // Close replies if opening zaps
     }
   };
+
+  // Extract expiration timestamp from post tags
+  const expirationTag = post.tags.find(tag => tag[0] === "expiration");
+  const expirationTimestamp = expirationTag ? Number.parseInt(expirationTag[1]) : null;
+
+  // Update time remaining every minute
+  useEffect(() => {
+    if (!expirationTimestamp) return;
+
+    const calculateTimeRemaining = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const secondsRemaining = expirationTimestamp - now;
+
+      if (secondsRemaining <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+
+      // Format the expiration time
+      setTimeRemaining(formatRelativeTime(expirationTimestamp));
+    };
+
+    // Calculate immediately
+    calculateTimeRemaining();
+
+    // Then update every minute
+    const interval = setInterval(calculateTimeRemaining, 60000);
+    return () => clearInterval(interval);
+  }, [expirationTimestamp]);
 
   // Format the timestamp as relative time
   const relativeTime = formatRelativeTime(post.created_at);
@@ -737,6 +768,21 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
               isOpen={showZaps}
             />
           </div>
+          {timeRemaining && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-red-500/60 dark:text-red-400/60 flex items-center whitespace-nowrap cursor-help text-xs">
+                    <Timer className="h-3 w-3 mr-1.5 opacity-70" />
+                    {timeRemaining}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Post expires in {timeRemaining}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {showReplies && (
