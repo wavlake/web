@@ -228,6 +228,8 @@ function UserGroupsList({
   groups: UserGroup[] | undefined;
   isLoading: boolean;
 }) {
+  const { user } = useCurrentUser();
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -264,36 +266,71 @@ function UserGroupsList({
     }
   }
 
+  // Helper function to determine user's role in a group
+  const getUserRole = (group: UserGroup, userPubkey: string) => {
+    // Check if user is the owner (creator) of the group
+    if (group.groupEvent.pubkey === userPubkey) {
+      return 'owner';
+    }
+
+    // Check if user is a moderator
+    const moderatorTags = group.groupEvent.tags.filter(
+      tag => tag[0] === "p" && tag[3] === "moderator"
+    );
+    const isModerator = moderatorTags.some(tag => tag[1] === userPubkey);
+    
+    if (isModerator) {
+      return 'moderator';
+    }
+
+    return 'member';
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4">
-      {Array.from(uniqueGroups.values()).map((group) => (
-        <Link
-          key={group.id}
-          to={`/group/${encodeURIComponent(group.id)}`}
-          className="block"
-        >
-          <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
-            <div className="flex p-4">
-              <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted">
-                <img
-                  src={group.image}
-                  alt={group.name}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-community.svg";
-                  }}
-                />
+      {Array.from(uniqueGroups.values()).map((group) => {
+        const userRole = user ? getUserRole(group, user.pubkey) : 'member';
+        
+        return (
+          <Link
+            key={group.id}
+            to={`/group/${encodeURIComponent(group.id)}`}
+            className="block"
+          >
+            <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
+              <div className="flex p-4">
+                <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted">
+                  <img
+                    src={group.image}
+                    alt={group.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-community.svg";
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <h3 className="font-medium text-sm">{group.name}</h3>
+                    {userRole !== 'member' && (
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                        userRole === 'owner' 
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      }`}>
+                        {userRole === 'owner' ? 'Owner' : 'Moderator'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
+                    {group.description || "No description available"}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-medium text-sm mb-0.5">{group.name}</h3>
-                <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
-                  {group.description || "No description available"}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-      ))}
+            </Card>
+          </Link>
+        );
+      })}
     </div>
   );
 }
