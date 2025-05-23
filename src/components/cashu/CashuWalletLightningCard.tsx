@@ -269,6 +269,7 @@ export function CashuWalletLightningCard() {
           (error instanceof Error ? error.message : String(error))
       );
       setcurrentMeltQuoteId(""); // Reset quote ID on error
+      handleCancel();
     } finally {
       setIsLoadingInvoice(false);
       processingInvoiceRef.current = null;
@@ -292,14 +293,12 @@ export function CashuWalletLightningCard() {
       cleanedData.toLowerCase().startsWith("lnbcrt")
     ) {
       cleanedData = cleanedData.toLowerCase();
-      
+
       // Check if we're already processing this invoice
       if (sendInvoice === cleanedData || isLoadingInvoice) {
         return; // Prevent duplicate processing
       }
-      
-      handleCancel();
-      setSendInvoice(cleanedData);
+
       await handleInvoiceInput(cleanedData);
       setIsScannerOpen(false);
     } else {
