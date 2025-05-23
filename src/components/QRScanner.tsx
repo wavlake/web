@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Camera, X, Loader2 } from "lucide-react";
+import { AlertCircle, Camera, X, Loader2, SwitchCamera } from "lucide-react";
 
 interface QRScannerProps {
   isOpen: boolean;
@@ -37,8 +37,21 @@ export function QRScanner({
   const lastScannedRef = useRef<string | null>(null);
   const scanTimeoutRef = useRef<number | null>(null);
   const isProcessingRef = useRef(false);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   const stopScanner = useCallback(() => {
+    if (controlsRef.current) {
+      try {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      } catch (e) {
+        console.error("Error stopping controls:", e);
+      }
+    }
+    
     if (readerRef.current) {
       try {
         // The BrowserQRCodeReader doesn't have a specific stop method
@@ -58,6 +71,8 @@ export function QRScanner({
     setIsScanning(false);
     setIsLoading(false);
     isProcessingRef.current = false;
+    
+    // Don't reset switching state here as it's managed by switchCamera
   }, []);
 
   const handleClose = useCallback(() => {
@@ -69,7 +84,10 @@ export function QRScanner({
   }, [stopScanner, onClose]);
 
   const startScanner = useCallback(async () => {
-    if (!videoRef.current || readerRef.current) return;
+    if (!videoRef.current) return;
+    
+    // Don't start if we're already starting/scanning and not switching cameras
+    if ((readerRef.current || isScanning) && !selectedCameraId) return;
 
     try {
       setError(null);
@@ -89,6 +107,7 @@ export function QRScanner({
         throw permError;
       }
 
+      // Create new reader instance
       const codeReader = new BrowserQRCodeReader();
       readerRef.current = codeReader;
 
@@ -102,19 +121,78 @@ export function QRScanner({
         throw new Error("No camera devices found");
       }
 
-      // Prefer back camera on mobile devices
-      const selectedDevice =
-        devices.find(
-          (device) =>
-            device.label.toLowerCase().includes("back") ||
-            device.label.toLowerCase().includes("rear")
-        ) || devices[0];
+      // Store available cameras
+      setAvailableCameras(devices);
 
-      console.log("Using device:", selectedDevice);
+      // Select camera
+      let deviceToUse: MediaDeviceInfo;
+      
+      if (selectedCameraId) {
+        // Use the selected camera if specified
+        deviceToUse = devices.find(d => d.deviceId === selectedCameraId) || devices[0];
+      } else {
+        // Try to find the back camera first
+        const backCamera = devices.find(
+          (device) => {
+            const label = device.label.toLowerCase();
+            return (
+              label.includes("back") ||
+              label.includes("rear") ||
+              label.includes("environment") ||
+              // iOS specific labels
+              label.includes("0, facing back") ||
+              label.includes("camera 0") || // Often the back camera on iOS
+              // Additional patterns
+              label.includes("camera2 0") ||
+              label.includes("video 0")
+            );
+          }
+        );
+        
+        // If no back camera found, try to avoid front camera
+        const nonFrontCamera = devices.find(
+          (device) => {
+            const label = device.label.toLowerCase();
+            return !(
+              label.includes("front") ||
+              label.includes("user") ||
+              label.includes("facetime") ||
+              label.includes("1, facing front") ||
+              label.includes("camera2 1") ||
+              label.includes("video 1")
+            );
+          }
+        );
+        
+        deviceToUse = backCamera || nonFrontCamera || devices[0];
+        setSelectedCameraId(deviceToUse.deviceId);
+      }
+
+      console.log("Using device:", deviceToUse);
+
+      // Stop any existing controls before starting new ones
+      if (controlsRef.current) {
+        try {
+          controlsRef.current.stop();
+          controlsRef.current = null;
+        } catch (e) {
+          console.error("Error stopping existing controls:", e);
+        }
+      }
+
+      // Clear video element before starting new stream
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+
+      // Small delay to ensure cleanup on iOS
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Start continuous decoding
       const controls = await codeReader.decodeFromVideoDevice(
-        selectedDevice.deviceId,
+        deviceToUse.deviceId,
         videoRef.current,
         (result, err) => {
           // Only process if we haven't already processed a scan
@@ -163,6 +241,7 @@ export function QRScanner({
         }
       );
 
+      controlsRef.current = controls;
       console.log("Scanner started successfully");
       setHasPermission(true);
       setIsScanning(true);
@@ -201,7 +280,66 @@ export function QRScanner({
 
       stopScanner();
     }
-  }, [onScan, handleClose, stopScanner]);
+  }, [selectedCameraId, onScan, handleClose, stopScanner, isScanning]);
+
+  const switchCamera = useCallback(async () => {
+    if (availableCameras.length <= 1 || isSwitching) return;
+    
+    // Set switching state
+    setIsSwitching(true);
+    
+    // Find the next camera in the list
+    const currentIndex = availableCameras.findIndex(
+      cam => cam.deviceId === selectedCameraId
+    );
+    const nextIndex = (currentIndex + 1) % availableCameras.length;
+    const nextCamera = availableCameras[nextIndex];
+    
+    console.log("Switching from camera:", selectedCameraId, "to:", nextCamera.deviceId);
+    
+    // Set loading state while switching
+    setIsLoading(true);
+    setIsScanning(false);
+    
+    // Stop current stream completely
+    if (controlsRef.current) {
+      try {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      } catch (e) {
+        console.error("Error stopping controls during switch:", e);
+      }
+    }
+    
+    // Clear the video element and stop all tracks
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log("Stopped track:", track.label);
+      });
+      videoRef.current.srcObject = null;
+    }
+    
+    // Reset reader
+    if (readerRef.current) {
+      readerRef.current = null;
+    }
+    
+    // Update selected camera
+    setSelectedCameraId(nextCamera.deviceId);
+    
+    // For iOS Safari, we need a longer delay and full re-initialization
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
+    const delay = isIOS ? 800 : 300;
+    
+    // Wait before restarting with new camera
+    setTimeout(() => {
+      hasStartedRef.current = false;
+      setIsSwitching(false);
+      startScanner();
+    }, delay);
+  }, [availableCameras, selectedCameraId, isSwitching, startScanner]);
 
   useEffect(() => {
     // Reset the hasStartedRef when dialog closes
@@ -209,6 +347,9 @@ export function QRScanner({
       hasStartedRef.current = false;
       isProcessingRef.current = false;
       lastScannedRef.current = null;
+      setSelectedCameraId(null);
+      setAvailableCameras([]);
+      setIsSwitching(false);
       stopScanner();
       return;
     }
@@ -296,6 +437,26 @@ export function QRScanner({
                 </div>
               )}
             </div>
+
+            {/* Camera switch button - only show if multiple cameras and scanning */}
+            {isScanning && availableCameras.length > 1 && !error && (
+              <div className="absolute top-4 right-4 pointer-events-auto">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={switchCamera}
+                  disabled={isSwitching || isLoading}
+                  className="bg-black/50 hover:bg-black/70 text-white border-0"
+                  title="Switch camera"
+                >
+                  {isSwitching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SwitchCamera className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
 
             {/* Permission denied or error overlay */}
             {(hasPermission === false || (error && !isLoading)) && (
