@@ -168,7 +168,10 @@ export function CashuWalletCard() {
     if (!wallet || !wallet.mints) return;
     if (!cashuStore.activeMintUrl) return;
     const spentProofs = await cleanSpentProofs(cashuStore.activeMintUrl);
-    console.log(spentProofs);
+    const proofSum = spentProofs.reduce((sum, proof) => sum + proof.amount, 0);
+    console.log(
+      `Removed ${spentProofs.length} spent proofs for ${proofSum} sats`
+    );
   };
 
   // Set active mint when clicking on a mint
