@@ -133,6 +133,11 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             queryClient.invalidateQueries({ queryKey: ['following-count'] });
             break;
             
+          case 34550: // Community definition (group creation/update)
+            queryClient.invalidateQueries({ queryKey: ['communities'] });
+            queryClient.invalidateQueries({ queryKey: ['user-groups', event.pubkey] });
+            break;
+            
           case 4550: // Approve post
             if (communityId) {
               queryClient.invalidateQueries({ queryKey: ["approved-posts", communityId] });
