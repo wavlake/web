@@ -34,7 +34,8 @@ import {
   ArrowRight,
   Crown,
   Shield,
-  User
+  User,
+  Timer
 } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -580,6 +581,7 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
   const { user } = useCurrentUser();
   const [showReplies, setShowReplies] = useState(false);
   const [showZaps, setShowZaps] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
   const handleSharePost = async () => {
     // Extract group info to create proper share URL
@@ -616,6 +618,35 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
       setShowReplies(false); // Close replies if opening zaps
     }
   };
+
+  // Extract expiration timestamp from post tags
+  const expirationTag = post.tags.find(tag => tag[0] === "expiration");
+  const expirationTimestamp = expirationTag ? Number.parseInt(expirationTag[1]) : null;
+
+  // Update time remaining every minute
+  useEffect(() => {
+    if (!expirationTimestamp) return;
+
+    const calculateTimeRemaining = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const secondsRemaining = expirationTimestamp - now;
+
+      if (secondsRemaining <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+
+      // Format the expiration time
+      setTimeRemaining(formatRelativeTime(expirationTimestamp));
+    };
+
+    // Calculate immediately
+    calculateTimeRemaining();
+
+    // Then update every minute
+    const interval = setInterval(calculateTimeRemaining, 60000);
+    return () => clearInterval(interval);
+  }, [expirationTimestamp]);
 
   // Format the timestamp as relative time
   const relativeTime = formatRelativeTime(post.created_at);
@@ -737,6 +768,21 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
               isOpen={showZaps}
             />
           </div>
+          {timeRemaining && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-red-500/60 dark:text-red-400/60 flex items-center whitespace-nowrap cursor-help text-xs">
+                    <Timer className="h-3 w-3 mr-1.5 opacity-70" />
+                    {timeRemaining}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Post expires in {timeRemaining}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {showReplies && (
@@ -996,79 +1042,74 @@ export default function Profile() {
       <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
         <div className="space-y-6 my-6">
-          {/* Banner skeleton */}
-          <div className="w-full h-48 rounded-xl bg-muted/50 overflow-hidden mb-8"></div>
-          
-          {/* Profile info skeleton */}
-          <div className="relative max-w-5xl mx-auto -mt-24 mb-8">
-            <div className="bg-background rounded-xl border shadow-sm p-8">
-              <div className="flex flex-col md:flex-row md:items-end gap-6">
-                <Skeleton className="h-32 w-32 rounded-full border-4 border-background -mt-20" />
-                <div className="flex-1 space-y-2">
+          {/* Profile info skeleton - matches new layout */}
+          <div className="relative mb-6 mt-4">
+            {/* Top row: Avatar and name/username side by side */}
+            <div className="flex items-center gap-4 mb-4">
+              <Skeleton className="h-20 w-20 rounded-full border-4 border-background shadow-md" />
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-5 w-64" />
-                  <div className="flex gap-2 pt-1">
-                    <Skeleton className="h-8 w-20 rounded-md" />
-                    <Skeleton className="h-8 w-20 rounded-md" />
-                  </div>
+                  <Skeleton className="h-5 w-16 rounded-full" />
                 </div>
+                <Skeleton className="h-4 w-32" />
               </div>
-              
-              <div className="mt-3 space-y-2">
+            </div>
+            
+            {/* Middle row: Bio */}
+            <div className="w-full mb-4">
+              <div className="space-y-2">
                 <Skeleton className="h-4 w-full max-w-2xl" />
                 <Skeleton className="h-4 w-5/6 max-w-2xl" />
                 <Skeleton className="h-4 w-4/6 max-w-xl" />
               </div>
             </div>
+
+            {/* Bottom row: Action buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-24 rounded-md" />
+            </div>
           </div>
 
           {/* Tabs skeleton */}
-          <div className="max-w-5xl mx-auto">
-            <div className="border-b mb-8">
-              <div className="flex gap-8">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-24" />
+          <div className="w-full">
+            <div className="md:flex md:justify-start">
+              <div className="mb-4 w-full md:w-auto flex gap-1 p-1 bg-muted rounded-lg">
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-24 rounded-md" />
               </div>
             </div>
             
-            {/* Content skeleton */}
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="md:col-span-2 space-y-6">
+            {/* Content skeleton - matches post layout */}
+            <div className="max-w-3xl mx-auto">
+              <div className="space-y-0">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="overflow-hidden shadow-sm">
-                    <CardContent className="p-5">
-                      <div className="flex gap-4">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex justify-between">
-                            <Skeleton className="h-5 w-32" />
-                            <Skeleton className="h-4 w-20" />
-                          </div>
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-5/6" />
-                          <Skeleton className="h-4 w-2/3" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              
-              <div>
-                <Skeleton className="h-8 w-40 mb-4" />
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="overflow-hidden">
-                      <div className="flex p-4">
-                        <Skeleton className="h-14 w-14 rounded-lg mr-4" />
-                        <div className="flex-1 space-y-2">
+                  <div key={i} className={`py-4 ${i < 3 ? 'border-b-2 border-border/70' : ''}`}>
+                    <div className="px-3">
+                      <div className="flex flex-row items-center pb-2">
+                        <Skeleton className="h-9 w-9 rounded-md mr-2.5" />
+                        <div className="space-y-2">
                           <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-3 w-24" />
                         </div>
                       </div>
-                    </Card>
-                  ))}
-                </div>
+                      <div className="pt-1 pb-2 pl-[2.875rem]">
+                        <Skeleton className="h-4 w-full mb-2" />
+                        <Skeleton className="h-4 w-full mb-2" />
+                        <Skeleton className="h-4 w-2/3" />
+                      </div>
+                      <div className="pt-1.5 pl-[2.875rem]">
+                        <div className="flex gap-4">
+                          <Skeleton className="h-7 w-7" />
+                          <Skeleton className="h-7 w-7" />
+                          <Skeleton className="h-7 w-7" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
