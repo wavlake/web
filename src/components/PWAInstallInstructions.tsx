@@ -259,7 +259,7 @@ export function usePWAInstall() {
       // Standard web app manifest display mode
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
       // iOS specific detection
-      const isIOSStandalone = window.navigator.standalone === true;
+      const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone;
       // Android TWA detection
       const isAndroidTwa = document.referrer.includes('android-app://');
       // Check other indicators

@@ -23,7 +23,7 @@ export function PWAInstallBanner() {
     // Enhanced PWA detection - check multiple methods
     const isStandalone = 
       window.matchMedia('(display-mode: standalone)').matches || // Standard PWA detection
-      window.navigator.standalone || // iOS detection
+      (window.navigator as Navigator & { standalone?: boolean }).standalone || // iOS detection
       document.referrer.includes('android-app://'); // Android TWA detection
     
     // Check if launched from homescreen (additional Android signal)
