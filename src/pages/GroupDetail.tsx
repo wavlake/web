@@ -455,6 +455,9 @@ export default function GroupDetail() {
         onClose={() => setShowQRCode(false)}
         profileUrl={`${window.location.origin}/group/${encodeURIComponent(groupId || '')}`}
         displayName={name}
+        title="Share Group"
+        description={`Scan this QR code to view ${name}'s group`}
+        downloadPrefix="group"
       />
 
       {/* Community Guidelines Modal */}
