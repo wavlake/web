@@ -23,6 +23,7 @@ import type { NostrEvent } from "@nostrify/nostrify";
 import Header from "@/components/ui/Header";
 import { ReportsList } from "@/components/groups/ReportsList";
 import { MemberManagement } from "@/components/groups/MemberManagement";
+import { KINDS } from "@/lib/nostr-kinds";
 
 
 export default function GroupSettings() {
@@ -80,7 +81,7 @@ export default function GroupSettings() {
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{
-        kinds: [34550],
+        kinds: [KINDS.GROUP],
         authors: [parsedId.pubkey],
         "#d": [parsedId.identifier]
       }], { signal });
@@ -98,7 +99,7 @@ export default function GroupSettings() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
       const events = await nostr.query([{
-        kinds: [14550],
+        kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
         "#a": [groupId || ""],
         limit: 50,
       }], { signal });
@@ -240,7 +241,7 @@ export default function GroupSettings() {
       }
 
       await publishEvent({
-        kind: 34550,
+        kind: KINDS.GROUP,
         tags,
         content: "",
       });
@@ -302,7 +303,7 @@ export default function GroupSettings() {
         }
 
         await publishEvent({
-          kind: 34550,
+          kind: KINDS.GROUP,
           tags,
           content: "",
         });
@@ -366,7 +367,7 @@ export default function GroupSettings() {
       console.log(`Removing moderator: ${pubkey}`);
       console.log("Updated tags:", tags);
       await publishEvent({
-        kind: 34550,
+        kind: KINDS.GROUP,
         tags,
         content: "",
       });

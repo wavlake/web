@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
+import { KINDS } from "@/lib/nostr-kinds";
 
 export interface TrendingHashtag {
   hashtag: string;
@@ -25,7 +26,7 @@ export function useTrendingHashtags(limit = 10) {
         // Query for recent posts that might contain hashtags
         const events = await nostr.query([
           {
-            kinds: [1, 11], // text notes and community posts
+            kinds: [KINDS.TEXT_NOTE, KINDS.GROUP_POST], // text notes and community posts
             since,
             limit: 1000, // Get a good sample size
           }

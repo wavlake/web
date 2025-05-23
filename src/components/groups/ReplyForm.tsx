@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Send, AlertTriangle } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { Link } from "react-router-dom";
+import { KINDS } from "@/lib/nostr-kinds";
 
 interface ReplyFormProps {
   postId: string;
@@ -92,7 +93,7 @@ export function ReplyForm({
       
       // Publish the reply event (kind 1111)
       await publishEvent({
-        kind: 1111,
+        kind: KINDS.GROUP_POST_REPLY,
         tags,
         content,
       });

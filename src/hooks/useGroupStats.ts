@@ -40,7 +40,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
 
       // 1. Get all posts (Kind 1, 11, 1111) that reference any community
       const posts = await nostr.query([{
-        kinds: [1, 11, 1111],
+        kinds: [KINDS.TEXT_NOTE, KINDS.GROUP_POST, KINDS.GROUP_POST_REPLY],
         "#a": communityRefs,
         limit: 500
       }], { signal });
@@ -61,7 +61,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
 
       // 2. Get reactions (Kind 7) that reference posts in communities
       const reactions = await nostr.query([{
-        kinds: [7],
+        kinds: [KINDS.REACTION],
         "#a": communityRefs,
         limit: 500
       }], { signal });
@@ -80,7 +80,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
 
       // 3. Get zaps (Kind 9735) that reference posts in communities
       const zaps = await nostr.query([{
-        kinds: [9735],
+        kinds: [KINDS.ZAP],
         "#a": communityRefs,
         limit: 500
       }], { signal });
@@ -118,7 +118,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
 
       // 5. Get reports (Kind 1984) for communities
       const reports = await nostr.query([{
-        kinds: [1984],
+        kinds: [KINDS.REPORT],
         "#a": communityRefs,
         limit: 500
       }], { signal });

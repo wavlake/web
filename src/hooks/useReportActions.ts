@@ -167,7 +167,7 @@ export function useReportActions() {
       }
 
       await publishEvent({
-        kind: 4554, // New event type for report resolution
+        kind: KINDS.GROUP_CLOSE_REPORT, // New event type for report resolution
         tags: [
           ["e", reportId], // Reference to the original report event
           ["a", communityId],

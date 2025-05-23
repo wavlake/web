@@ -49,13 +49,13 @@ const protectedEventKinds = [
   KINDS.GROUP_POST, // Posts
   KINDS.GROUP_POST_REPLY, // Comments (replies)
   KINDS.GROUP, // Group meta
-];
+] as const;
 
 const expirationEventKinds = [
   KINDS.REACTION, // Reactions
   KINDS.GROUP_POST, // Posts
   KINDS.GROUP_POST_REPLY, // Comments (replies)
-];
+] as const;
 
 export function useNostrPublish(options?: UseNostrPublishOptions) {
   const { nostr } = useNostr();
@@ -78,7 +78,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
         // }
 
         const expiration = getPostExpirationTimestamp();
-        if (expirationEventKinds.includes(t.kind) && !tags.some((tag) => tag[0] === "expiration") && expiration) {
+        if ((expirationEventKinds as readonly number[]).includes(t.kind) && !tags.some((tag) => tag[0] === "expiration") && expiration) {
           tags.push(["expiration", expiration.toString()]);
         }
 

@@ -32,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { KINDS } from "@/lib/nostr-kinds";
 
 export default function Hashtag() {
   const { hashtag } = useParams<{ hashtag: string }>();
@@ -54,7 +55,7 @@ export default function Hashtag() {
         const [taggedPosts, contentPosts] = await Promise.all([
           // Query for posts with hashtag as a 't' tag
           nostr.query([{
-            kinds: [1, 11], // text notes and community posts
+            kinds: [KINDS.TEXT_NOTE, KINDS.GROUP_POST], // text notes and community posts
             "#t": [hashtag.toLowerCase()], 
             limit: 50
           }], { signal }),
@@ -62,7 +63,7 @@ export default function Hashtag() {
           // Query for posts containing hashtag in content
           // Note: This is less efficient but catches posts without proper tagging
           nostr.query([{
-            kinds: [1, 11],
+            kinds: [KINDS.TEXT_NOTE, KINDS.GROUP_POST],
             search: `#${hashtag}`,
             limit: 30
           }], { signal }).catch(() => []) // Some relays may not support search
@@ -281,7 +282,7 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
       
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
       const events = await nostr.query([{
-        kinds: [34550],
+        kinds: [KINDS.GROUP],
         authors: [pubkey],
         "#d": [identifier]
       }], { signal });
