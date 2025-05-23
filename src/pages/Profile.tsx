@@ -216,7 +216,7 @@ interface UserGroup {
   id: string;
   name: string;
   description: string;
-  image: string;
+  image: string | undefined;
   membershipEvent: NostrEvent;
   groupEvent: NostrEvent;
 }
@@ -299,15 +299,24 @@ function UserGroupsList({
           >
             <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
               <div className="flex p-4">
-                <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted">
-                  <img
-                    src={group.image}
-                    alt={group.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder-community.svg";
-                    }}
-                  />
+                <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted relative">
+                  {group.image ? (
+                    <img
+                      src={group.image}
+                      alt={group.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className={`absolute inset-0 bg-primary/10 text-primary font-bold text-lg flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
+                  >
+                    {group.name.charAt(0).toUpperCase()}
+                  </div>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-0.5">
@@ -696,7 +705,7 @@ export default function Profile() {
           id,
           name: nameTag ? nameTag[1] : (dTag ? dTag[1] : "Unnamed Group"),
           description: descriptionTag ? descriptionTag[1] : "",
-          image: imageTag ? imageTag[1] : "/placeholder-group.jpg",
+          image: imageTag ? imageTag[1] : undefined,
           membershipEvent: event, // Using the group event as membership event
           groupEvent: event,
         };
