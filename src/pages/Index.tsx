@@ -15,8 +15,7 @@ import { Smartphone } from "lucide-react";
 import { useCashuStore } from "@/stores/cashuStore";
 import { getTokenAmount } from "@/lib/cashu";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
-import { useBitcoinPrice } from "@/hooks/useBitcoinPrice";
-import { formatUSD, satoshisToUSD } from "@/lib/bitcoinUtils";
+import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
@@ -36,7 +35,7 @@ const Index = () => {
   useEffect(() => {
     // Don't process if already processed
     if (tokenProcessed) return;
-    
+
     const hash = window.location.hash;
     if (hash && hash.includes("token=")) {
       const tokenMatch = hash.match(/token=([^&]+)/);
@@ -63,7 +62,7 @@ const Index = () => {
           if (showSats) {
             displayAmount = `${amount.toLocaleString()} sats`;
           } else {
-            const usd = satoshisToUSD(amount, btcPrice?.USD || null);
+            const usd = satsToUSD(amount, btcPrice?.USD || null);
             displayAmount =
               usd !== null ? formatUSD(usd) : `${amount.toLocaleString()} sats`;
           }
@@ -73,7 +72,7 @@ const Index = () => {
             title: "✅ Ecash waiting for you!",
             description: `Complete signup to receive ${displayAmount} in your wallet`,
           });
-          
+
           // Mark as processed
           setTokenProcessed(true);
         } catch (error) {

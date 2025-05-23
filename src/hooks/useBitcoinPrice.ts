@@ -24,8 +24,8 @@ export function useBitcoinPrice() {
   });
 }
 
-export function satsToUSD(sats: number, bitcoinPrice: number | null): number | null {
-  if (!bitcoinPrice) return null;
+export function satsToUSD(sats: number, bitcoinPrice: number | null): number {
+  if (!bitcoinPrice) return 0;
   // Convert sats to BTC (1 BTC = 100,000,000 sats)
   const btc = sats / 100_000_000;
   // Convert BTC to USD
