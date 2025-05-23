@@ -30,7 +30,8 @@ import {
   Share2,
   LinkIcon,
   MoreVertical,
-  Flag
+  Flag,
+  QrCode
 } from "lucide-react";
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -53,6 +54,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QRCodeModal } from "@/components/QRCodeModal";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -529,6 +531,7 @@ export default function Profile() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const [activeTab, setActiveTab] = useState("posts");
+  const [showQRCode, setShowQRCode] = useState(false);
 
   const hash = location.hash.replace('#', '');
 
@@ -899,6 +902,17 @@ export default function Profile() {
             </Button>
           )}
 
+          {/* QR Code button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setShowQRCode(true)}
+          >
+            <QrCode className="h-4 w-4" />
+            QR Code
+          </Button>
+
           {/* Edit Profile button - only for current user */}
           {isCurrentUser && (
             <Button
@@ -915,6 +929,14 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={showQRCode}
+        onClose={() => setShowQRCode(false)}
+        profileUrl={`${window.location.origin}/profile/${pubkey}`}
+        displayName={displayNameFull}
+      />
 
       <Tabs value={activeTab} defaultValue="posts" onValueChange={(value) => {
         setActiveTab(value);
