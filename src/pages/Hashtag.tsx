@@ -12,7 +12,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NoteContent } from "@/components/NoteContent";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { formatRelativeTime } from "@/lib/utils";
-import { ArrowLeft, Hash, MessageSquare, MoreVertical, Flag, Share2, Users } from "lucide-react";
+import { ArrowLeft, Hash, MessageSquare, MoreVertical, Flag, Share2, Users, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -141,22 +141,34 @@ export default function Hashtag() {
       <Header />
       
       {/* Header Section - Removed duplicate hashtag icon */}
-      <div className="flex items-center gap-4 mb-6 mt-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-8 w-8"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="sr-only">Go back</span>
-        </Button>
-        
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold flex items-center">
-            <Hash className="h-6 w-6 text-blue-500 mr-1" />
-            {hashtag}
-          </h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 mt-2">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Go back</span>
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex items-center">
+              <Hash className="h-6 w-6 text-blue-500 mr-1" />
+              {hashtag}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <a 
+            href="/trending" 
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Trending Hashtags
+          </a>
         </div>
       </div>
 
