@@ -1,0 +1,10 @@
+{
+  "name": "nostr-nip72-poller",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.2"
+  }
+}

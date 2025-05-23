@@ -1,0 +1,16 @@
+name = "nostr-nip72-poller"
+main = "worker.js"
+compatibility_date = "2025-05-23"
+compatibility_flags = ["nodejs_compat"]
+account_id = "c84e7a9bf7ed99cb41b8e73566568c75"
+
+[vars]
+RELAY_URL = "wss://relay.damus.io"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "b95ec0b013ae4c7896f4379fcdd582d8"
+preview_id = "ef0e4752dd3d43b18eba4721b0adbba7"
+
+[triggers]
+crons = ["*/30 * * * *"]
