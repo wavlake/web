@@ -493,4 +493,3 @@ async function getEventById(eventId: string, env: Env): Promise<RelayEvent | nul
   // Would need to query relay if not cached
   return null;
 }
-EOF 2>&1

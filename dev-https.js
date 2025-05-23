@@ -44,3 +44,16 @@ async function startDevServer() {
 
 startDevServer();
 EOF 2>&1
+
+// Handle graceful shutdown
+const shutdown = () => {
+  console.log('\nShutting down HTTPS dev server...');
+  httpsServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+EOF 2>&1

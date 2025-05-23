@@ -29,4 +29,3 @@ preview_id = "your-staging-preview-kv-namespace-id"
 
 [triggers]
 crons = ["0,30 * * * *"] # Every 30 seconds
-EOF 2>&1

@@ -38,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **App Store Compatibility**: Comprehensive PWA to native app conversion support
   - All required icon sizes for iOS App Store and Google Play Store
   - Optimized manifest.json for PWA Builder compatibility
-  - Enhanced service worker for better offline experience
 - **PWA Installation Experience**: Improved installation flow and detection
 - **Member Management**: Enhanced group member display and interaction
 - **Profile System**: Better profile editing and user experience
