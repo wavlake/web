@@ -79,12 +79,12 @@ export default function Trending() {
         )}
 
         {/* Clean hashtag list with dividers */}
-        <div className="space-y-0">
+        <div>
           {filteredHashtags.slice(0, 25).map((item, index) => {
             return (
               <div key={item.hashtag}>
                 <Link to={`/t/${item.hashtag}`}>
-                  <div className="hover:bg-muted/30 transition-colors cursor-pointer py-4 px-2 rounded-md">
+                  <div className="hover:bg-muted/30 transition-colors cursor-pointer py-3 px-3 rounded-md">
                     <div className="flex items-center justify-between gap-3">
                       {/* Left side - hashtag info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -113,7 +113,7 @@ export default function Trending() {
                   </div>
                 </Link>
                 {index < filteredHashtags.slice(0, 25).length - 1 && (
-                  <Separator className="mx-2" />
+                  <Separator />
                 )}
               </div>
             );
@@ -131,10 +131,7 @@ export default function Trending() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center py-6 text-xs text-muted-foreground border-t mt-8">
-          Updates every 10 minutes • Trending across the nostr network
-        </div>
+
       </div>
     </div>
   );
