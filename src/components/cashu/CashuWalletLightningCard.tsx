@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -87,6 +87,7 @@ export function CashuWalletLightningCard() {
     string | null
   >(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const processingInvoiceRef = useRef<string | null>(null);
 
   // Handle receive tab
   const handleCreateInvoice = async () => {
@@ -242,7 +243,13 @@ export function CashuWalletLightningCard() {
       return;
     }
 
+    // Prevent duplicate processing of the same invoice
+    if (processingInvoiceRef.current === value || currentMeltQuoteId) {
+      return;
+    }
+
     setSendInvoice(value);
+    processingInvoiceRef.current = value;
 
     // Create melt quote
     const mintUrl = cashuStore.activeMintUrl;
@@ -264,6 +271,7 @@ export function CashuWalletLightningCard() {
       setcurrentMeltQuoteId(""); // Reset quote ID on error
     } finally {
       setIsLoadingInvoice(false);
+      processingInvoiceRef.current = null;
     }
   };
 
@@ -284,6 +292,12 @@ export function CashuWalletLightningCard() {
       cleanedData.toLowerCase().startsWith("lnbcrt")
     ) {
       cleanedData = cleanedData.toLowerCase();
+      
+      // Check if we're already processing this invoice
+      if (sendInvoice === cleanedData || isLoadingInvoice) {
+        return; // Prevent duplicate processing
+      }
+      
       handleCancel();
       setSendInvoice(cleanedData);
       await handleInvoiceInput(cleanedData);
@@ -372,6 +386,9 @@ export function CashuWalletLightningCard() {
         setSuccess(`Paid ${formatBalance(invoiceAmount)}!`);
         setSendInvoice("");
         setInvoiceAmount(null);
+        setInvoiceFeeReserve(null);
+        setcurrentMeltQuoteId("");
+        processingInvoiceRef.current = null;
         setTimeout(() => setSuccess(null), 5000);
       }
     } catch (error) {
@@ -390,6 +407,10 @@ export function CashuWalletLightningCard() {
   const handleCancel = () => {
     setInvoice("");
     setcurrentMeltQuoteId("");
+    setSendInvoice("");
+    setInvoiceAmount(null);
+    setInvoiceFeeReserve(null);
+    processingInvoiceRef.current = null;
     // Don't remove the pending transaction, leave it in the history
   };
 
@@ -576,6 +597,8 @@ export function CashuWalletLightningCard() {
                     setSendInvoice("");
                     setInvoiceAmount(null);
                     setInvoiceFeeReserve(null);
+                    setcurrentMeltQuoteId("");
+                    processingInvoiceRef.current = null;
                   }}
                 >
                   Cancel

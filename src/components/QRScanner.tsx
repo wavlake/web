@@ -34,6 +34,9 @@ export function QRScanner({
   const [isScanning, setIsScanning] = useState(false);
   const readerRef = useRef<BrowserQRCodeReader | null>(null);
   const hasStartedRef = useRef(false);
+  const lastScannedRef = useRef<string | null>(null);
+  const scanTimeoutRef = useRef<number | null>(null);
+  const isProcessingRef = useRef(false);
 
   const stopScanner = useCallback(() => {
     if (readerRef.current) {
@@ -45,14 +48,23 @@ export function QRScanner({
         console.error("Error stopping scanner:", e);
       }
     }
+    
+    // Clear any pending timeout
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
+    
     setIsScanning(false);
     setIsLoading(false);
+    isProcessingRef.current = false;
   }, []);
 
   const handleClose = useCallback(() => {
     stopScanner();
     setError(null);
     setHasPermission(null);
+    lastScannedRef.current = null;
     onClose();
   }, [stopScanner, onClose]);
 
@@ -105,9 +117,37 @@ export function QRScanner({
         selectedDevice.deviceId,
         videoRef.current,
         (result, err) => {
-          if (result) {
-            console.log("QR Code detected:", result.getText());
-            onScan(result.getText());
+          // Only process if we haven't already processed a scan
+          if (result && !isProcessingRef.current) {
+            const scannedText = result.getText();
+            
+            // Check if this is a duplicate scan within 2 seconds
+            if (lastScannedRef.current === scannedText && scanTimeoutRef.current) {
+              return; // Ignore duplicate
+            }
+            
+            // Mark as processing to prevent further scans
+            isProcessingRef.current = true;
+            
+            console.log("QR Code detected:", scannedText);
+            lastScannedRef.current = scannedText;
+            
+            // Set a timeout to reset the last scanned reference
+            if (scanTimeoutRef.current) {
+              clearTimeout(scanTimeoutRef.current);
+            }
+            scanTimeoutRef.current = window.setTimeout(() => {
+              lastScannedRef.current = null;
+              scanTimeoutRef.current = null;
+            }, 2000);
+            
+            // Stop scanning immediately
+            stopScanner();
+            
+            // Call the onScan callback
+            onScan(scannedText);
+            
+            // Close the dialog
             handleClose();
           }
           // Handle errors but filter out common "not found" errors
@@ -167,6 +207,8 @@ export function QRScanner({
     // Reset the hasStartedRef when dialog closes
     if (!isOpen) {
       hasStartedRef.current = false;
+      isProcessingRef.current = false;
+      lastScannedRef.current = null;
       stopScanner();
       return;
     }
@@ -202,6 +244,8 @@ export function QRScanner({
     setError(null);
     setHasPermission(null);
     hasStartedRef.current = false;
+    isProcessingRef.current = false;
+    lastScannedRef.current = null;
     startScanner();
   };
 
