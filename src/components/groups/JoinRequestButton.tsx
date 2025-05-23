@@ -168,7 +168,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
       <DialogTrigger asChild>
         <Button variant="outline" className={cn("justify-start", className)}>
           <UserPlus className="h-4 w-4 mr-2" />
-          Request to join
+          Join
         </Button>
       </DialogTrigger>
       <DialogContent>
