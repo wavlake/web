@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrFilter } from "@nostrify/nostrify";
+import { useGroup } from "./useGroup";
 
 /**
  * Hook to manage banned users for a community
@@ -12,6 +13,7 @@ import { NostrFilter } from "@nostrify/nostrify";
 export function useBannedUsers(communityId?: string) {
   const { nostr } = useNostr();
   const queryClient = useQueryClient();
+  const { data: group } = useGroup(communityId);
   const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Query for banned users
@@ -23,10 +25,18 @@ export function useBannedUsers(communityId?: string) {
     queryKey: ["banned-users", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+      const moderators = new Set<string>([group!.pubkey]);
+
+      for (const tag of group!.tags) {
+        if (tag[0] === "p" && tag[3] === "moderator") {
+          moderators.add(tag[1]);
+        }
+      }
+
       // Create the filter object
       const filter: NostrFilter = {
         kinds: [KINDS.GROUP_BANNED_MEMBERS_LIST],
+        authors: [...moderators],
         limit: 50,
       };
       

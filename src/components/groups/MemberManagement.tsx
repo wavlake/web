@@ -87,7 +87,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 50,
       }], { signal });
       
@@ -163,7 +163,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
             await publishEvent({
               kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
               tags: [
-                ["a", communityId],
+                ["d", communityId],
                 ["e", eventIdTag[1]],
                 // Deliberately omitting the pubkey tag to remove the user
                 ["k", kindTag[1]]
@@ -219,7 +219,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       await publishEvent({
         kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
         tags: [
-          ["a", communityId],
+          ["d", communityId],
           ["e", removalEventId], // Using a generated event ID
           ["p", pubkey], // The pubkey of the removed user
           ["k", String(KINDS.GROUP_APPROVED_MEMBERS_LIST)] // Indicating this was a removal from the approved list
@@ -277,7 +277,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       await publishEvent({
         kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
         tags: [
-          ["a", communityId],
+          ["d", communityId],
           ["e", request.id],
           ["p", request.pubkey],
           ["k", String(KINDS.GROUP_JOIN_REQUEST)] // The kind of the request event
@@ -320,7 +320,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
           await publishEvent({
             kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
             tags: [
-              ["a", communityId],
+              ["d", communityId],
               ["e", eventIdTag[1]],
               // Deliberately omitting the pubkey tag to remove the user
               ["k", kindTag[1]]

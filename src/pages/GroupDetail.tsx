@@ -40,6 +40,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGroup } from "@/hooks/useGroup";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -63,7 +64,6 @@ export default function GroupDetail() {
   const [formGuidelines, setFormGuidelines] = useState("");
   const [formModerators, setFormModerators] = useState<string[]>([]);
 
-
   const searchParams = new URLSearchParams(location.search);
   const reportId = searchParams.get('reportId');
   const hash = location.hash.replace('#', '');
@@ -77,23 +77,7 @@ export default function GroupDetail() {
     }
   }, [groupId]);
 
-  const { data: community, isLoading: isLoadingCommunity } = useQuery({
-    queryKey: ["community", parsedId?.pubkey, parsedId?.identifier],
-    queryFn: async (c) => {
-      if (!parsedId) throw new Error("Invalid community ID");
-
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{
-        kinds: [KINDS.GROUP],
-        authors: [parsedId.pubkey],
-        "#d": [parsedId.identifier]
-      }], { signal });
-
-      if (events.length === 0) throw new Error("Community not found");
-      return events[0];
-    },
-    enabled: !!nostr && !!parsedId,
-  });
+  const { data: community, isLoading: isLoadingCommunity } = useGroup(groupId);
 
   // Query for approved members list
   const { data: approvedMembersEvents, refetch: refetchApprovedMembers } = useQuery({

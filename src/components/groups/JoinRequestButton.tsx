@@ -80,7 +80,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST], 
-        "#a": [communityId],
+        "#d": [communityId],
         "#p": [user.pubkey]
       }], { signal });
       
