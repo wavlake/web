@@ -15,11 +15,12 @@ import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import type { NostrEvent } from "@nostrify/nostrify";
 import type { UserRole } from "@/hooks/useUserRole";
+import { KINDS } from "@/lib/nostr-kinds";
 
 // Helper function to get community ID
 const getCommunityId = (community: NostrEvent) => {
   const dTag = community.tags.find(tag => tag[0] === "d");
-  return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+  return `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
 };
 
 export default function Groups() {
@@ -48,7 +49,7 @@ export default function Groups() {
       try {
         // Increase timeout to 8 seconds to allow more time for relays to respond
         const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
-        const events = await nostr.query([{ kinds: [34550], limit: 100 }], { signal });
+        const events = await nostr.query([{ kinds: [KINDS.GROUP], limit: 100 }], { signal });
         
         // Ensure we always return an array, even if the query fails
         return Array.isArray(events) ? events : [];
