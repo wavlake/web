@@ -19,15 +19,23 @@ export default function CreateGroup() {
 
   const [formData, setFormData] = useState({
     name: "",
-    identifier: "",
     description: "",
     guidelines: "",
-    imageUrl: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Generate a unique identifier based on the group name and timestamp
+  const generateUniqueIdentifier = (name: string): string => {
+    const baseId = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const timestamp = Date.now().toString(36);
+    return `${baseId}-${timestamp}`;
+  };
 
   if (!user) {
     return (
@@ -62,7 +70,7 @@ export default function CreateGroup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.identifier || !formData.description) {
+    if (!formData.name || !formData.description) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -70,8 +78,11 @@ export default function CreateGroup() {
     try {
       setIsSubmitting(true);
 
+      // Generate unique identifier
+      const identifier = generateUniqueIdentifier(formData.name);
+
       // Upload image if selected
-      let imageUrl = formData.imageUrl;
+      let imageUrl = "";
       if (imageFile) {
         const [[_, uploadedUrl]] = await uploadFile(imageFile);
         imageUrl = uploadedUrl;
@@ -79,7 +90,7 @@ export default function CreateGroup() {
 
       // Create community event (kind 34550)
       const tags = [
-        ["d", formData.identifier],
+        ["d", identifier],
         ["name", formData.name],
         ["description", formData.description],
       ];
@@ -137,23 +148,6 @@ export default function CreateGroup() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="identifier">
-                Group Identifier *
-                <span className="text-xs text-muted-foreground ml-2">
-                  (unique identifier for your group)
-                </span>
-              </Label>
-              <Input
-                id="identifier"
-                name="identifier"
-                value={formData.identifier}
-                onChange={handleInputChange}
-                placeholder="my-awesome-group"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
@@ -185,27 +179,14 @@ export default function CreateGroup() {
               <Label>Group Image</Label>
               <div className="flex items-start gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground">or</span>
-                    <Input
-                      id="imageUrl"
-                      name="imageUrl"
-                      value={formData.imageUrl}
-                      onChange={handleInputChange}
-                      placeholder="Image URL"
-                      className="flex-1"
-                      disabled={!!imageFile}
-                    />
-                  </div>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Upload an image or provide a URL for your group banner
+                    Upload an image for your group banner
                   </p>
                 </div>
 
@@ -232,7 +213,7 @@ export default function CreateGroup() {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || isUploading || !formData.name || !formData.identifier || !formData.description}
+              disabled={isSubmitting || isUploading || !formData.name || !formData.description}
             >
               {isSubmitting || isUploading ? "Creating..." : "Create Group"}
             </Button>
