@@ -47,12 +47,12 @@ export default {
     
     try {
       switch (url.pathname) {
-        case '/heartbeat':
-          return handleHeartbeat(request, env);
-        case '/health':
-          return handleHealthCheck(env);
-        case '/stats':
-          return handleStats(env);
+        case '/heartbeat': {
+}          return handleHeartbeat(request, env);
+        case '/health': {
+}          return handleHealthCheck(env);
+        case '/stats': {
+}          return handleStats(env);
         default:
           return new Response('Not Found', { status: 404 });
       }
@@ -212,8 +212,9 @@ async function determineNotificationTargets(event: RelayEvent, env: Env): Promis
   const onlineUsers = await getCurrentlyOnlineUsers(env);
   
   switch (event.kind) {
-    case 1: // Text note
-      // Check for mentions in tags
+    case 1: // Text note {
+    { // Text note
+}      // Check for mentions in tags
       const mentions = event.tags.filter(tag => tag[0] === 'p').map(tag => tag[1]);
       for (const pubkey of mentions) {
         targets.push({
@@ -240,8 +241,9 @@ async function determineNotificationTargets(event: RelayEvent, env: Env): Promis
       }
       break;
       
-    case 7: // Reaction
-      // Notify the author of the reacted-to event
+    case 7: // Reaction {
+    { // Reaction
+}      // Notify the author of the reacted-to event
       const reactedEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
       if (reactedEventId) {
         const originalEvent = await getEventById(reactedEventId, env);
@@ -255,9 +257,9 @@ async function determineNotificationTargets(event: RelayEvent, env: Env): Promis
       }
       break;
       
-    case 4550: // Group admission
-    case 4551: // Group removal
-      // Notify group moderators
+    case 4550: // Group admission {
+}    case 4551: // Group removal {
+}      // Notify group moderators
       const groupRef = event.tags.find(tag => tag[0] === 'a')?.[1];
       if (groupRef) {
         const moderators = await getGroupModerators(groupRef, env);
@@ -271,8 +273,8 @@ async function determineNotificationTargets(event: RelayEvent, env: Env): Promis
       }
       break;
       
-    case 1984: // Report
-      // Notify group moderators
+    case 1984: // Report {
+}      // Notify group moderators
       const reportGroupRef = event.tags.find(tag => tag[0] === 'a')?.[1];
       if (reportGroupRef) {
         const moderators = await getGroupModerators(reportGroupRef, env);
@@ -337,8 +339,9 @@ function createNotificationPayload(target: NotificationTarget, event: RelayEvent
   const groupId = groupTag?.[1];
   
   switch (event.kind) {
-    case 1:
-      if (target.reason === 'mention') {
+    case 1: {
+    { // Text note
+}      if (target.reason === 'mention') {
         title = 'You were mentioned';
         body = `Someone mentioned you in a post`;
       } else {
@@ -347,23 +350,24 @@ function createNotificationPayload(target: NotificationTarget, event: RelayEvent
       }
       break;
       
-    case 7:
-      title = 'New reaction';
+    case 7: {
+    { // Reaction
+}      title = 'New reaction';
       body = 'Someone reacted to your post';
       break;
       
-    case 4550:
-      title = 'Post approved';
+    case 4550: {
+}      title = 'Post approved';
       body = 'A post was approved in your group';
       break;
       
-    case 4551:
-      title = 'Post removed';
+    case 4551: {
+}      title = 'Post removed';
       body = 'A post was removed from your group';
       break;
       
-    case 1984:
-      title = 'New report';
+    case 1984: {
+}      title = 'New report';
       body = 'A new report needs your attention';
       break;
   }
@@ -387,16 +391,18 @@ function createNotificationPayload(target: NotificationTarget, event: RelayEvent
  */
 function getNotificationType(kind: number, reason: string): string {
   switch (kind) {
-    case 1:
-      return reason === 'mention' ? 'mention' : 'post';
-    case 7:
-      return 'reaction';
-    case 4550:
-      return 'post_approved';
-    case 4551:
-      return 'post_removed';
-    case 1984:
-      return 'report';
+    case 1: {
+    { // Text note
+}      return reason === 'mention' ? 'mention' : 'post';
+    case 7: {
+    { // Reaction
+}      return 'reaction';
+    case 4550: {
+}      return 'post_approved';
+    case 4551: {
+}      return 'post_removed';
+    case 1984: {
+}      return 'report';
     default:
       return 'activity';
   }

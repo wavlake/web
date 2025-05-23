@@ -154,7 +154,7 @@ export function usePushSubscription() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token || ''}`, // Would need actual auth
+          'Authorization': 'Bearer placeholder', // TODO: Implement proper auth // Would need actual auth
         },
         body: JSON.stringify(subscriptionData),
       });
@@ -200,7 +200,7 @@ export function usePushSubscription() {
         const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${user?.token || ''}`,
+            'Authorization': 'Bearer placeholder', // TODO: Implement proper auth
           },
         });
 
