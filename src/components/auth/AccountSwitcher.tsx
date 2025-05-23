@@ -152,7 +152,6 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             navigate("/");
             removeLogin(currentUser.id);
             navigate("/");
-            localStorage.clear();
             cashuStore.clearStore();
           }}
           className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-red-500 text-sm md:gap-2 gap-3"
