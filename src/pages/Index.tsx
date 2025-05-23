@@ -13,6 +13,7 @@ import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { Smartphone } from "lucide-react";
 import { useCashuStore } from "@/stores/cashuStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
 import { getTokenAmount } from "@/lib/cashu";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
@@ -30,6 +31,7 @@ const Index = () => {
   const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
   const [generatedName, setGeneratedName] = useState<string | null>(null);
   const cashuStore = useCashuStore();
+  const onboardingStore = useOnboardingStore();
   const { showSats } = useCurrencyDisplayStore();
   const { data: btcPrice, isLoading: btcPriceLoading } = useBitcoinPrice();
   const [tokenProcessed, setTokenProcessed] = useState(false);
@@ -39,6 +41,14 @@ const Index = () => {
   useEffect(() => {
     // Don't process if already processed
     if (tokenProcessed) return;
+
+    // Check if user has already claimed an onboarding token
+    if (onboardingStore.isTokenClaimed()) {
+      setTokenProcessed(true);
+      // Clean up the URL
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
 
     const hash = window.location.hash;
     if (hash && hash.includes("token=")) {
@@ -85,7 +95,14 @@ const Index = () => {
         }
       }
     }
-  }, [cashuStore, showSats, btcPrice, btcPriceLoading, tokenProcessed]);
+  }, [
+    cashuStore,
+    onboardingStore,
+    showSats,
+    btcPrice,
+    btcPriceLoading,
+    tokenProcessed,
+  ]);
 
   // Redirect to /groups after user is logged in
   useEffect(() => {
@@ -109,7 +126,7 @@ const Index = () => {
       const fakeName = generateFakeName();
       // Store the generated name in state immediately
       setGeneratedName(fakeName);
-      
+
       // Wait for login to be available (since addLogin is sync but state update is async)
       setTimeout(async () => {
         try {
@@ -221,9 +238,12 @@ const Index = () => {
       <OnboardingContext.Provider value={{ generatedName }}>
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
           <div className="w-full max-w-lg mx-auto p-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-center">Set up your profile</h2>
+            <h2 className="text-2xl font-bold mb-4 text-center">
+              Set up your profile
+            </h2>
             <p className="text-gray-600 mb-6 text-center">
-              Add your display name and picture. You can always update them later.
+              Add your display name and picture. You can always update them
+              later.
             </p>
             <EditProfileForm showSkipLink={true} initialName={generatedName} />
           </div>
