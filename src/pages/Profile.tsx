@@ -37,6 +37,7 @@ import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { VerifiedNip05 } from "@/components/VerifiedNip05";
+import { useNip05Verification } from "@/hooks/useNip05Verification";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -676,6 +677,9 @@ export default function Profile() {
   const nip05 = metadata?.nip05;
   const banner = metadata?.banner;
 
+  // Check NIP05 verification status
+  const { data: nip05Verification } = useNip05Verification(nip05, pubkey || "");
+
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
 
@@ -799,7 +803,7 @@ export default function Profile() {
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold">{displayNameFull}</h1>
-              {nip05 && (
+              {nip05 && nip05Verification?.isVerified && (
                 <VerifiedNip05 nip05={nip05} pubkey={pubkey || ""} />
               )}
             </div>
@@ -849,8 +853,8 @@ export default function Profile() {
             </Button>
           )}
 
-          {/* Edit Profile or Follow button - last */}
-          {isCurrentUser ? (
+          {/* Edit Profile button - only for current user */}
+          {isCurrentUser && (
             <Button
               variant="outline"
               size="sm"
@@ -861,13 +865,6 @@ export default function Profile() {
                 <Pencil className="h-4 w-4" />
                 Edit Profile
               </Link>
-            </Button>
-          ) : (
-            <Button
-              variant="default"
-              size="sm"
-            >
-              Follow
             </Button>
           )}
         </div>
