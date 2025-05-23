@@ -318,7 +318,7 @@ export function CashuWalletCard() {
                               className="border-muted-foreground/20 hover:bg-muted"
                             >
                               <Eraser className="h-4 w-4 mr-1 text-amber-500" />
-                              Clean Spent
+                              Cleanup Wallet
                             </Button>
                             <Button
                               variant="outline"
