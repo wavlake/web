@@ -34,7 +34,7 @@ export function ClaimOnboardingTokenButton() {
           claimButtonText = `${formatUSD(usd)}`;
         }
       }
-      claimButtonText = `Free ${claimButtonText}`;
+      claimButtonText = `Get ${claimButtonText}`;
     } catch (error) {
       console.error("Error calculating token amount:", error);
     }
