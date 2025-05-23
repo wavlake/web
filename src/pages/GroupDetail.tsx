@@ -228,7 +228,7 @@ export default function GroupDetail() {
                 </Button>
                 {/* Make JoinRequestButton height consistent */}
                 <div className="h-8">
-                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator || false} />
                 </div>
                 {/* Add spacer to ensure buttons are distributed evenly */}
                 <div className="flex-1" />
