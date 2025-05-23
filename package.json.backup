@@ -10,8 +10,7 @@
     "ci": "npm i && tsc -p tsconfig.app.json --noEmit && vite build",
     "lint": "npm i && eslint .",
     "preview": "npm i && vite preview",
-    "deploy": "npm run build && npx -y surge@latest dist",
-    "dev:https": "vite --config vite.config.https.js"
+    "deploy": "npm run build && npx -y surge@latest dist"
   },
   "dependencies": {
     "@cashu/cashu-ts": "^2.5.2",

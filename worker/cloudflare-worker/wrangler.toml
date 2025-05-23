@@ -1,0 +1,32 @@
+name = "nostr-nip72-poller"
+main = "src/worker.ts"
+compatibility_date = "2025-05-23"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+vars = { 
+  RELAY_URL = "wss://public.nip72relay.example",
+  PUSH_DISPATCH_API = "https://api.yourdomain.com",
+  BOT_TOKEN = "your-bot-token-here"
+}
+
+[env.staging]
+vars = { 
+  RELAY_URL = "wss://staging.nip72relay.example",
+  PUSH_DISPATCH_API = "https://staging-api.yourdomain.com",
+  BOT_TOKEN = "your-staging-bot-token"
+}
+
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "your-production-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "your-staging-kv-namespace-id"
+preview_id = "your-staging-preview-kv-namespace-id"
+
+[triggers]
+crons = ["0,30 * * * *"] # Every 30 seconds
+EOF 2>&1
