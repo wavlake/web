@@ -153,22 +153,30 @@ export default function Groups() {
           if (aIsPinned && !bIsPinned) return -1;
           if (!aIsPinned && bIsPinned) return 1;
 
+          // Get user roles and pending status
+          const aUserRole = userMembershipMap.get(aId);
+          const bUserRole = userMembershipMap.get(bId);
           const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
           const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
 
-          // Second priority: groups with pending join requests
-          if (aHasPendingRequest && !bHasPendingRequest) return -1;
-          if (!aHasPendingRequest && bHasPendingRequest) return 1;
+          // Define role priority (lower number = higher priority)
+          const getRolePriority = (role: UserRole | undefined, hasPending: boolean) => {
+            if (role === "owner") return 1;
+            if (role === "moderator") return 2;
+            if (role === "member") return 3;
+            if (hasPending) return 4;
+            return 5; // Not a member and no pending request
+          };
 
-          const aIsMember = userMembershipMap.has(aId);
-          const bIsMember = userMembershipMap.has(bId);
+          const aPriority = getRolePriority(aUserRole, aHasPendingRequest);
+          const bPriority = getRolePriority(bUserRole, bHasPendingRequest);
 
-          // Third priority: groups that the user is a member of
-          if (aIsMember && !bIsMember) return -1;
-          if (!aIsMember && bIsMember) return 1;
+          // Second priority: user's relationship to the group (owner > mod > member > pending > other)
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
 
-          // If both are pinned or both are not pinned and both are member or both are not member,
-          // sort alphabetically by name
+          // If same priority, sort alphabetically by name
           const aNameTag = a.tags.find(tag => tag[0] === "name");
           const bNameTag = b.tags.find(tag => tag[0] === "name");
 
