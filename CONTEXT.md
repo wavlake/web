@@ -93,6 +93,20 @@ function useCustomHook() {
 }
 ```
 
+### Nostr Event Kinds Constants
+
+**Always use the centralized constants from `@/lib/nostr-kinds` instead of hardcoded literals when referencing Nostr event kinds.** This ensures consistency, maintainability, and prevents typos.
+
+```typescript
+import { KINDS } from '@/lib/nostr-kinds';
+
+// ✅ Correct: Use constants
+const events = await nostr.query([{ kinds: [KINDS.TEXT_NOTE], limit: 20 }], { signal });
+
+// ❌ Wrong: Don't use hardcoded literals
+const events = await nostr.query([{ kinds: [1], limit: 20 }], { signal });
+```
+
 ### Query Nostr Data with `useNostr` and Tanstack Query
 
 When querying Nostr, the best practice is to create custom hooks that combine `useNostr` and `useQuery` to get the required data.
@@ -100,6 +114,7 @@ When querying Nostr, the best practice is to create custom hooks that combine `u
 ```typescript
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/query';
+import { KINDS } from '@/lib/nostr-kinds';
 
 function usePosts() {
   const { nostr } = useNostr();
@@ -108,7 +123,7 @@ function usePosts() {
     queryKey: ['posts'],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]);
-      const events = await nostr.query([{ kinds: [1], limit: 20 }], { signal });
+      const events = await nostr.query([{ kinds: [KINDS.TEXT_NOTE], limit: 20 }], { signal });
       return events; // these events could be transformed into another format
     },
   });
@@ -170,9 +185,9 @@ To publish events, use the `useNostrPublish` hook in this project.
 
 ```tsx
 import { useState } from 'react';
-
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { KINDS } from '@/lib/nostr-kinds';
 
 export function MyComponent() {
   const [ data, setData] = useState<Record<string, string>>({});
@@ -181,7 +196,7 @@ export function MyComponent() {
   const { mutate: createEvent } = useNostrPublish();
 
   const handleSubmit = () => {
-    createEvent({ kind: 1, content: data.content });
+    createEvent({ kind: KINDS.TEXT_NOTE, content: data.content });
   };
 
   if (!user) {
@@ -495,3 +510,4 @@ When extending the NostrGroups platform:
 5. Keep the UI consistent with the existing design language
 6. Test all changes with `npm run ci` before considering them complete
 7. Always use `for...of` instead of `forEach` in loops
+8. **Always use constants from `@/lib/nostr-kinds` instead of hardcoded event kind literals**
