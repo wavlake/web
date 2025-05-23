@@ -225,7 +225,7 @@ export default function GroupDetail() {
     <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
 
-      <div className="relative mb-6 mt-4">
+      <div className="relative mb-6 mt-4 max-w-3xl mx-auto">
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-40 rounded-lg overflow-hidden mb-2 relative">
@@ -355,7 +355,7 @@ export default function GroupDetail() {
         // Update URL hash without full page reload
         window.history.pushState(null, '', `#${value}`);
       }} className="w-full">
-        <div className="md:flex md:justify-start">
+        <div className="flex justify-center">
           <TabsList className="mb-4 w-full md:w-auto grid grid-cols-3 gap-0">
             <TabsTrigger value="posts" className="flex items-center justify-center">
               <MessageSquare className="h-4 w-4 mr-1" />
