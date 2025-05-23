@@ -200,7 +200,7 @@ export function CashuWallet() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <span className="text-xl">💸</span>
-                Understanding Your Cashu Wallet
+                Understanding Your eCash Wallet
               </DialogTitle>
               <DialogDescription className="text-left space-y-3 pt-3">
                 <p>
