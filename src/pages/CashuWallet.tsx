@@ -187,40 +187,8 @@ export function CashuWallet() {
       <Header />
       <Separator className="my-2" />
 
-      {/* Total Balance Display */}
-      {user && wallet && (
-        <div className="text-center py-6">
-          <div className="text-5xl font-bold tabular-nums">
-            {showSats
-              ? formatBalance(totalBalance)
-              : btcPrice
-              ? formatUSD(satsToUSD(totalBalance, btcPrice.USD) || 0)
-              : formatBalance(totalBalance)}
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">Total Balance</p>
-          <button
-            onClick={() => toggleCurrency()}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 mx-auto"
-          >
-            {showSats ? (
-              <>
-                <DollarSign className="h-3.5 w-3.5" />
-                <span>Show in USD</span>
-                <ArrowLeftRight className="h-3 w-3" />
-              </>
-            ) : (
-              <>
-                <Bitcoin className="h-3.5 w-3.5" />
-                <span>Show in sats</span>
-                <ArrowLeftRight className="h-3 w-3" />
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Wallet Info Modal */}
-      <div className="text-center mb-6">
+      {/* Wallet Info Modal - Upper Left */}
+      <div className="mb-4">
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
@@ -257,6 +225,38 @@ export function CashuWallet() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Total Balance Display */}
+      {user && wallet && (
+        <div className="text-center py-6">
+          <div className="text-5xl font-bold tabular-nums">
+            {showSats
+              ? formatBalance(totalBalance)
+              : btcPrice
+              ? formatUSD(satsToUSD(totalBalance, btcPrice.USD) || 0)
+              : formatBalance(totalBalance)}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">Total Balance</p>
+          <button
+            onClick={() => toggleCurrency()}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3 mx-auto"
+          >
+            {showSats ? (
+              <>
+                <DollarSign className="h-3.5 w-3.5" />
+                <span>Show in USD</span>
+                <ArrowLeftRight className="h-3 w-3" />
+              </>
+            ) : (
+              <>
+                <Bitcoin className="h-3.5 w-3.5" />
+                <span>Show in sats</span>
+                <ArrowLeftRight className="h-3 w-3" />
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {isProcessingToken && (
         <div className="mb-6 p-4 bg-muted rounded-lg flex items-center space-x-3">
