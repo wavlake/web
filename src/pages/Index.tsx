@@ -252,11 +252,10 @@ const Index = () => {
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
           <div className="w-full max-w-lg mx-auto p-8">
             <h2 className="text-2xl font-bold mb-4 text-center">
-              Set up your profile
+              Set your name and pic
             </h2>
             <p className="text-gray-600 mb-6 text-center">
-              Add your display name and picture. You can always update them
-              later.
+              You can always update them later.
             </p>
             <EditProfileForm showSkipLink={true} initialName={generatedName} />
           </div>
