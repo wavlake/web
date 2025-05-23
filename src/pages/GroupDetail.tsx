@@ -425,19 +425,21 @@ export default function GroupDetail() {
         </TabsContent>
 
         <TabsContent value="ecash" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Group eCash</h2>
-            {user && community && (
-              <div className="flex-shrink-0">
-                <GroupNutzapButton
-                  groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
-                  ownerPubkey={community.pubkey}
-                  className="w-auto"
-                />
-              </div>
-            )}
+          <div className="max-w-3xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Group eCash</h2>
+              {user && community && (
+                <div className="flex-shrink-0">
+                  <GroupNutzapButton
+                    groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
+                    ownerPubkey={community.pubkey}
+                    className="w-auto"
+                  />
+                </div>
+              )}
+            </div>
+            <GroupNutzapList groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
           </div>
-          <GroupNutzapList groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">
@@ -453,6 +455,9 @@ export default function GroupDetail() {
         onClose={() => setShowQRCode(false)}
         profileUrl={`${window.location.origin}/group/${encodeURIComponent(groupId || '')}`}
         displayName={name}
+        title="Share Group"
+        description={`Scan this QR code to view ${name}'s group`}
+        downloadPrefix="group"
       />
 
       {/* Community Guidelines Modal */}
