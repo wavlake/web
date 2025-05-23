@@ -140,15 +140,15 @@ export default function GroupGuidelines() {
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-4 w-4" />
               Community Guidelines
             </CardTitle>
             {isOwner && (
               <Button asChild variant="outline" size="sm">
                 <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
                   <Edit className="h-4 w-4" />
-                  Edit Guidelines
+                  Edit
                 </Link>
               </Button>
             )}
@@ -170,7 +170,7 @@ export default function GroupGuidelines() {
                 <Button asChild variant="outline">
                   <Link to={`/group/${encodeURIComponent(groupId || '')}/settings`} className="flex items-center gap-2">
                     <Edit className="h-4 w-4" />
-                    Add Guidelines
+                    Edit
                   </Link>
                 </Button>
               )}
