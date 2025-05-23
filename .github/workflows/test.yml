@@ -22,5 +22,12 @@ jobs:
           node-version: "22"
           cache: npm
           
+      - name: Configure npm
+        run: |
+          npm config set fetch-timeout 300000
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          
       - name: Run CI tests
         run: npm run ci
