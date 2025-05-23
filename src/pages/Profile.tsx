@@ -55,6 +55,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QRCodeModal } from "@/components/QRCodeModal";
+import { CommonGroupsList } from "@/components/profile/CommonGroupsList";
 
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
@@ -225,12 +226,15 @@ interface UserGroup {
 
 function UserGroupsList({
   groups,
-  isLoading
+  isLoading,
+  profileUserPubkey
 }: {
   groups: UserGroup[] | undefined;
   isLoading: boolean;
+  profileUserPubkey: string;
 }) {
   const { user } = useCurrentUser();
+  const isCurrentUser = user && profileUserPubkey === user.pubkey;
 
   if (isLoading) {
     return (
@@ -251,7 +255,9 @@ function UserGroupsList({
   if (!groups || groups.length === 0) {
     return (
       <div className="p-6 text-center bg-muted/30 rounded-lg">
-        <p className="text-muted-foreground">This user is not a member of any groups yet</p>
+        <p className="text-muted-foreground">
+          {isCurrentUser ? "You are not a member of any groups yet" : "This user is not a member of any groups yet"}
+        </p>
       </div>
     );
   }
@@ -289,59 +295,80 @@ function UserGroupsList({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4">
-      {Array.from(uniqueGroups.values()).map((group) => {
-        const userRole = user ? getUserRole(group, user.pubkey) : 'member';
+    <div className="space-y-6">
+      {/* Common Groups Section - only show when viewing another user's profile */}
+      {!isCurrentUser && (
+        <CommonGroupsList profileUserPubkey={profileUserPubkey} />
+      )}
+
+      {/* All Groups Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">
+            {isCurrentUser ? "Your Groups" : "All Groups"}
+          </h3>
+        </div>
         
-        return (
-          <Link
-            key={group.id}
-            to={`/group/${encodeURIComponent(group.id)}`}
-            className="block"
-          >
-            <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
-              <div className="flex p-4">
-                <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted relative">
-                  {group.image ? (
-                    <img
-                      src={group.image}
-                      alt={group.name}
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = "flex";
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className={`absolute inset-0 bg-primary/10 text-primary font-bold text-lg flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
-                  >
-                    {group.name.charAt(0).toUpperCase()}
+        <div className="grid grid-cols-1 gap-4">
+          {Array.from(uniqueGroups.values()).map((group) => {
+            const userRole = getUserRole(group, profileUserPubkey);
+            
+            return (
+              <Link
+                key={group.id}
+                to={`/group/${encodeURIComponent(group.id)}`}
+                className="block"
+              >
+                <Card className="overflow-hidden border border-border/40 hover:border-border hover:shadow-sm transition-all duration-200">
+                  <div className="flex p-4">
+                    <div className="h-14 w-14 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-muted relative">
+                      {group.image ? (
+                        <img
+                          src={group.image}
+                          alt={group.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={`absolute inset-0 bg-primary/10 text-primary font-bold text-lg flex items-center justify-center ${group.image ? 'hidden' : 'flex'}`}
+                      >
+                        {group.name.charAt(0).toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className="font-medium text-sm">{group.name}</h3>
+                        {userRole !== 'member' && (
+                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                            isCurrentUser
+                              ? userRole === 'owner' 
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : userRole === 'owner'
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30'
+                                : 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400 border border-green-100 dark:border-green-900/30'
+                          }`}>
+                            {userRole === 'owner' ? 'Owner' : 'Moderator'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
+                        {group.description || "No description available"}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <h3 className="font-medium text-sm">{group.name}</h3>
-                    {userRole !== 'member' && (
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                        userRole === 'owner' 
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      }`}>
-                        {userRole === 'owner' ? 'Owner' : 'Moderator'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs leading-snug text-muted-foreground line-clamp-2">
-                    {group.description || "No description available"}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-        );
-      })}
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1012,7 +1039,11 @@ export default function Profile() {
 
         <TabsContent value="groups" className="space-y-4">
           <div className="max-w-3xl mx-auto">
-            <UserGroupsList groups={userGroups} isLoading={isLoadingGroups} />
+            <UserGroupsList 
+              groups={userGroups} 
+              isLoading={isLoadingGroups} 
+              profileUserPubkey={pubkey || ""} 
+            />
           </div>
         </TabsContent>
       </Tabs>
