@@ -326,26 +326,45 @@ export default function GroupDetail() {
         <div className="w-full mt-4">
           <div className="flex items-center mb-2">
             <h1 className="text-2xl font-bold">{name}</h1>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 ml-2"
-              onClick={() => setShowQRCode(true)}
-            >
-              <QrCode className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 ml-2"
+                    onClick={() => setShowQRCode(true)}
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Share group QR code
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {hasGuidelines && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 ml-1"
+                    >
+                      <Link to={`/group/${encodeURIComponent(groupId || '')}/guidelines`}>
+                        <FileText className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Community guidelines
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
-          {hasGuidelines && (
-            <div className="mb-2">
-              <Link
-                to={`/group/${encodeURIComponent(groupId || '')}/guidelines`}
-                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 text-xs font-medium inline-flex items-center gap-0.5"
-              >
-                <FileText className="h-4 w-4" />
-                Community Guidelines
-              </Link>
-            </div>
-          )}
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
