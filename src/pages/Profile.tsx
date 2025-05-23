@@ -315,12 +315,14 @@ function RoleBadge({
   role, 
   size = "default",
   userPubkey,
-  showAvatar = false
+  showAvatar = false,
+  simplified = false
 }: { 
   role: "owner" | "moderator" | "member";
   size?: "default" | "sm";
   userPubkey?: string;
   showAvatar?: boolean;
+  simplified?: boolean;
 }) {
   const author = useAuthor(userPubkey);
   const metadata = showAvatar && userPubkey ? author.data?.metadata : null;
@@ -329,9 +331,9 @@ function RoleBadge({
     const iconSize = size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5";
     switch (role) {
       case "owner":
-        return <Crown className={`${iconSize} ${showAvatar ? '' : 'mr-1'}`} />;
+        return <Crown className={`${iconSize} ${showAvatar && !simplified ? '' : 'mr-1'}`} />;
       case "moderator":
-        return <Shield className={`${iconSize} ${showAvatar ? '' : 'mr-1'}`} />;
+        return <Shield className={`${iconSize} ${showAvatar && !simplified ? '' : 'mr-1'}`} />;
       case "member":
         return null; // No icon for regular members
     }
@@ -355,6 +357,22 @@ function RoleBadge({
   const roleText = role.charAt(0).toUpperCase() + role.slice(1);
   const paddingSize = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-0.5";
 
+  // Simplified version: just show avatar and icon
+  if (simplified && showAvatar && userPubkey) {
+    return (
+      <div className={`inline-flex items-center gap-1 ${paddingSize} text-xs font-medium rounded-md border ${getRoleStyles()}`}>
+        <Avatar className="h-4 w-4">
+          <AvatarImage src={metadata?.picture} />
+          <AvatarFallback className="text-[8px]">
+            {metadata?.name?.slice(0, 1).toUpperCase() || userPubkey.slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        {getIcon()}
+      </div>
+    );
+  }
+
+  // Original version with text
   return (
     <div className={`inline-flex items-center gap-1.5 ${paddingSize} text-xs font-medium rounded-md border ${getRoleStyles()}`}>
       {showAvatar && userPubkey && (
@@ -530,7 +548,8 @@ function UserGroupsList({
                           role={userRole} 
                           size="sm" 
                           userPubkey={profileUserPubkey}
-                          showAvatar={!isCurrentUser} 
+                          showAvatar={!isCurrentUser}
+                          simplified={!isCurrentUser}
                         />
                       </div>
                       {group.description && (
