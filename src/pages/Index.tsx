@@ -12,6 +12,7 @@ import { toast } from "@/hooks/useToast";
 import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { Smartphone } from "lucide-react";
+import { useCashuStore } from "@/stores/cashuStore";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
@@ -22,6 +23,30 @@ const Index = () => {
   const { mutateAsync: publishEvent } = useNostrPublish();
   const [newUser, setNewUser] = useState(false);
   const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
+  const cashuStore = useCashuStore();
+
+  // Check for token in URL on mount
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("token=")) {
+      const tokenMatch = hash.match(/token=([^&]+)/);
+      if (tokenMatch && tokenMatch[1]) {
+        const token = tokenMatch[1];
+        
+        // Store the token for later redemption
+        cashuStore.setPendingOnboardingToken(token);
+        
+        // Clean up the URL
+        window.history.replaceState(null, "", window.location.pathname);
+        
+        // Show notification
+        toast({
+          title: "Ecash waiting for you!",
+          description: "Complete signup to receive your Ecash in your wallet",
+        });
+      }
+    }
+  }, [cashuStore]);
 
   // Redirect to /groups after user is logged in
   useEffect(() => {

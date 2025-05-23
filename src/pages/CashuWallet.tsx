@@ -10,6 +10,7 @@ import Header from "@/components/ui/Header";
 import { Separator } from "@/components/ui/separator";
 import { useCashuToken } from "@/hooks/useCashuToken";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
+import { useCashuStore } from "@/stores/cashuStore";
 import { useToast } from "@/hooks/useToast";
 import { Loader2 } from "lucide-react";
 import { formatBalance } from "@/lib/cashu";
@@ -19,7 +20,52 @@ export function CashuWallet() {
   const { wallet } = useCashuWallet();
   const { receiveToken } = useCashuToken();
   const { toast } = useToast();
+  const cashuStore = useCashuStore();
   const [isProcessingToken, setIsProcessingToken] = useState(false);
+
+  // Handle pending onboarding token
+  useEffect(() => {
+    // Only process if user is logged in, wallet is loaded, and not already processing
+    if (!user || !wallet || isProcessingToken) return;
+
+    // Check for pending onboarding token
+    const pendingToken = cashuStore.getPendingOnboardingToken();
+    if (pendingToken) {
+      const processPendingToken = async () => {
+        setIsProcessingToken(true);
+        
+        try {
+          // Clear the pending token immediately to prevent re-processing
+          cashuStore.setPendingOnboardingToken(undefined);
+          
+          // Receive the token
+          const proofs = await receiveToken(pendingToken);
+          
+          // Calculate total amount
+          const totalAmount = proofs.reduce((sum, p) => sum + p.amount, 0);
+          
+          // Show success toast
+          toast({
+            title: "Ecash received!",
+            description: `You've received ${totalAmount} sats in your wallet`,
+          });
+        } catch (error) {
+          console.error("Error receiving pending token:", error);
+          toast({
+            title: "Failed to redeem token",
+            description: error instanceof Error ? error.message : "Unknown error occurred",
+            variant: "destructive",
+          });
+        } finally {
+          setIsProcessingToken(false);
+        }
+      };
+
+      processPendingToken();
+    }
+  }, [user, wallet, cashuStore, receiveToken, toast]);
+
+  // Handle tokens in URL (existing functionality)
   useEffect(() => {
     // Only process if user is logged in, wallet is loaded, and not already processing
     if (!user || !wallet || isProcessingToken) return;
@@ -50,8 +96,8 @@ export function CashuWallet() {
         
         // Show success toast
         toast({
-          title: "Token Redeemed Successfully!",
-          description: `You've received ${formatBalance(totalAmount)}`,
+          title: "Ecash received!",
+          description: `You've received ${totalAmount} sats in your wallet`,
         });
       } catch (error) {
         console.error("Error receiving token from URL:", error);
