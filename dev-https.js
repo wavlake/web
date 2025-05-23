@@ -43,7 +43,6 @@ async function startDevServer() {
 }
 
 startDevServer();
-EOF 2>&1
 
 // Handle graceful shutdown
 const shutdown = () => {
@@ -56,4 +55,3 @@ const shutdown = () => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-EOF 2>&1

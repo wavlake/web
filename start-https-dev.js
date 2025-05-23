@@ -37,4 +37,3 @@ viteProcess.on('close', (code) => {
 console.log('🚀 Starting HTTPS development server...');
 console.log('📱 Your PWA will be available at https://localhost:5173');
 console.log('⚠️  You may need to accept the security warning in your browser');
-EOF 2>&1

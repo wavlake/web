@@ -90,4 +90,3 @@ if (vapidKeys.privateKey === 'YOUR_VAPID_PRIVATE_KEY_HERE') {
 }
 
 sendTestNotification();
-EOF 2>&1

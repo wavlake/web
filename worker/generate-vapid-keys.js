@@ -16,4 +16,3 @@ console.log('VAPID_PUBLIC_KEY=' + vapidKeys.publicKey);
 console.log('VAPID_PRIVATE_KEY=' + vapidKeys.privateKey);
 console.log();
 console.log('Also update the public key in src/hooks/usePushSubscription.ts');
-EOF 2>&1

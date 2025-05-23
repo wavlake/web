@@ -157,4 +157,3 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 
   event.waitUntil(resubscribePromise);
 });
-EOF 2>&1
