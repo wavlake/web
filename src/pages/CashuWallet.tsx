@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { CashuHistoryCard } from "@/components/cashu/CashuHistoryCard";
 import { CashuTokenCard } from "@/components/cashu/CashuTokenCard";
@@ -35,14 +35,14 @@ export function CashuWallet() {
   );
 
   // Helper function to format amount based on user preference
-  const formatAmount = (sats: number): string => {
+  const formatAmount = useCallback((sats: number): string => {
     if (showSats) {
       return `${sats.toLocaleString()} sats`;
     } else {
       const usd = satsToUSD(sats, btcPrice?.USD || null);
       return usd !== null ? formatUSD(usd) : `${sats.toLocaleString()} sats`;
     }
-  };
+  }, [showSats, btcPrice]);
 
   // Handle pending onboarding token
   useEffect(() => {
@@ -152,7 +152,7 @@ export function CashuWallet() {
     };
 
     processToken();
-  }, [user, wallet]); // Depend on both user and wallet being loaded
+  }, [user, wallet, isProcessingToken, receiveToken, toast, formatAmount]); // Depend on all necessary values
 
   return (
     <div className="container mx-auto py-1 px-3 sm:px-4">
