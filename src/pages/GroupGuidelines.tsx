@@ -143,7 +143,7 @@ export default function GroupGuidelines() {
         <CardContent>
           {guidelines ? (
             <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-sm leading-relaxed bg-muted/30 p-4 rounded-lg border">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">
                 {guidelines}
               </div>
             </div>
