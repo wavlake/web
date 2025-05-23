@@ -8,16 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Push Notification System**: Complete native Nostr push notification infrastructure
+  - Cloudflare Worker for NIP-72 relay polling and monitoring group activity
+  - Service worker for native browser push notification support
+  - Push notification settings UI component in Settings page
+  - Secure secret management for Cloudflare Worker deployment
+  - KV storage integration for user state and notification tracking
+  - Scheduled polling system (every 30 minutes) for new Nostr events
+  - Health check and stats endpoints for monitoring worker status
+  - Custom `usePushSubscription` hook for managing push subscriptions
+  - Background sync for offline functionality
+  - Notification click handling with deep linking to relevant content
 - **PWA Builder Optimization**: Complete App Store readiness with comprehensive icon set
   - Generated missing iOS-specific icons (152×152, 167×167, 180×180, 1024×1024)
   - Enhanced manifest.json with complete icon definitions including maskable variants
   - Added PWA screenshots for app store listings (desktop and mobile)
-  - Improved service worker with enhanced caching strategies and push notification support
+  - Improved service worker with enhanced caching strategies
   - Expected PWA Builder score of 95%+ for seamless app store conversion
-- **Push Notification System**: Native Nostr push notification support
-  - Custom `usePushSubscription` hook for managing push subscriptions
-  - Background sync for offline functionality
-  - Notification click handling with deep linking to relevant content
 - **Enhanced PWA Utilities**: Advanced PWA detection and management
   - `usePWA` hook for centralized PWA state management
   - Improved PWA install banners and user experience
@@ -34,26 +41,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced visual presentation of community metrics with badge-style elements
 - Added activity indicators to My Groups section showing post count and active participants
 
-### Enhanced
-- **App Store Compatibility**: Comprehensive PWA to native app conversion support
-  - All required icon sizes for iOS App Store and Google Play Store
-  - Optimized manifest.json for PWA Builder compatibility
-- **PWA Installation Experience**: Improved installation flow and detection
-- **Member Management**: Enhanced group member display and interaction
-- **Profile System**: Better profile editing and user experience
-
 ### Fixed
-- Improved member list loading and error handling
-- Better handling of group join requests and permissions
-- Enhanced responsive design for mobile devices
-- Fixed various UI/UX issues in group management
-- Improved error handling in wallet operations
-
-### Technical
-- **PWA Converter Documentation**: Complete planning and implementation guide
-- Enhanced TypeScript support with better type safety
-- Improved build process and development workflow
-- Better code organization with centralized PWA utilities
-- Enhanced testing and validation processes
-
-EOF 2>&1
