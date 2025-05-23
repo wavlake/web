@@ -71,7 +71,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal });
       
@@ -132,12 +132,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Create a new list or update the existing one for approved members
       const tags = [
-        ["a", communityId],
+        ["d", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),
         ["p", pubkey] // Add the new member
       ];
 
-      // Create approved members event (kind 14550)
+      // Create approved members event
       await publishEvent({
         kind: KINDS.GROUP_APPROVED_MEMBERS_LIST,
         tags,
@@ -207,18 +207,18 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Create a new list with the member removed
       const tags = [
-        ["a", communityId],
+        ["d", communityId],
         ...updatedMembers.map(pk => ["p", pk])
       ];
 
-      // Create updated approved members event (kind 14550)
+      // Create updated approved members event
       await publishEvent({
         kind: KINDS.GROUP_APPROVED_MEMBERS_LIST,
         tags,
         content: "",
       });
       
-      // Add the removed user to the declined list (kind 14551)
+      // Add the removed user to the declined list 
       // We'll create a generic event ID since we don't have a specific request event
       const removalEventId = `removal:${pubkey}:${Date.now()}`;
       
@@ -351,12 +351,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
 
       // 3. Add to approved members list
       const tags = [
-        ["a", communityId],
+        ["d", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),
         ["p", pubkey] // Add the new member
       ];
 
-      // Create approved members event (kind 14550)
+      // Create approved members event
       await publishEvent({
         kind: KINDS.GROUP_APPROVED_MEMBERS_LIST,
         tags,
@@ -398,12 +398,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Create a new list of all existing approved members plus all pending requests
       const tags = [
-        ["a", communityId],
+        ["d", communityId],
         ...uniqueApprovedMembers.map(pk => ["p", pk]),
         ...pendingPubkeys.map(pk => ["p", pk]) // Add all pending members
       ];
 
-      // Create approved members event (kind 14550)
+      // Create approved members event
       await publishEvent({
         kind: KINDS.GROUP_APPROVED_MEMBERS_LIST,
         tags,
@@ -432,7 +432,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               await publishEvent({
                 kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
                 tags: [
-                  ["a", communityId],
+                  ["d", communityId],
                   ["e", eventIdTag[1]],
                   // Deliberately omitting the pubkey tag to remove the user
                   ["k", kindTag[1]]

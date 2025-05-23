@@ -18,40 +18,6 @@ interface UseNostrPublishOptions {
   onSuccessCallback?: () => void;
 }
 
-// Group Meta
-// - 34550: Group meta
-
-// Post Creation
-// - 11: Create Post
-// - 1111: Reply to post
-// - 7: React to post
-
-// Post Moderation
-// - 4550: Approve post
-// - 4551: Remove post
-
-// Joining Groups
-// - 14550: Mod Approved members list
-// - 14551: Mod Declined members list
-// - 14552: Mod Banned users lists
-// - 4552: Request to join group
-// - 4553: Request to leave group
-
-// Cashu
-// - 17375: Replaceable event for wallet info
-// - 7375: Token events for unspent proofs
-// - 7376: Spending history events
-// - 7374: Quote events (optional)
-// - 10019: ZAP info events
-// - 9321: ZAP events
-
-const protectedEventKinds: number[] = [
-  KINDS.REACTION, // Reactions
-  KINDS.GROUP_POST, // Posts
-  KINDS.GROUP_POST_REPLY, // Comments (replies)
-  KINDS.GROUP, // Group meta
-] as const;
-
 const expirationEventKinds: number[] = [
   KINDS.REACTION, // Reactions
   KINDS.GROUP_POST, // Posts
