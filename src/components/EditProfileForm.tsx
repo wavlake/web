@@ -58,6 +58,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
     defaultValues: {
       name: initialName || "",
       picture: "",
+      about: "",
     },
   });
 
@@ -71,6 +72,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
       form.reset({
         name: metadata.name || "",
         picture: metadata.picture || "",
+        about: metadata.about || "",
       });
     }
   }, [metadata, form, initialName]);
@@ -259,6 +261,27 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
                   </FormControl>
                   <FormDescription>
                     This is the name that will be displayed to others.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="about"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bio</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Tell us about yourself... Use #hashtags to help people discover your interests!"
+                      {...field}
+                      className="bg-background min-h-[100px] resize-none"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    A short description about yourself. Use #hashtags to help others find you!
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

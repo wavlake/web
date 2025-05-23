@@ -65,6 +65,12 @@ export function ReplyForm({
       const replyToId = parentId || postId;
       const replyToPubkey = parentAuthorPubkey || postAuthorPubkey;
       
+      // Extract hashtags from content and create 't' tags
+      const hashtagMatches = content.match(/#(\w+)/g);
+      const hashtagTags: string[][] = hashtagMatches 
+        ? hashtagMatches.map(hashtag => ["t", hashtag.slice(1).toLowerCase()])
+        : [];
+      
       // Create tags for the reply
       const tags = [
         // Community reference
@@ -79,6 +85,9 @@ export function ReplyForm({
         ["e", replyToId],
         ["k", parentId ? "1111" : "11"], // Parent is either a reply (1111) or the original post (11)
         ["p", replyToPubkey],
+        
+        // Hashtag tags
+        ...hashtagTags,
       ];
       
       // Publish the reply event (kind 1111)
