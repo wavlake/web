@@ -261,21 +261,21 @@ export default function GroupDetail() {
         // Update URL hash without full page reload
         window.history.pushState(null, '', `#${value}`);
       }} className="w-full">
-        <div className="flex justify-center">
-          <TabsList className="mb-4 w-full md:w-auto flex">
-            <TabsTrigger value="posts" className="flex-1 md:flex-none">
+        <div className="md:flex md:justify-start">
+          <TabsList className="mb-4 w-full md:w-auto grid grid-cols-3 gap-0">
+            <TabsTrigger value="posts" className="flex items-center justify-center">
               <MessageSquare className="h-4 w-4 mr-2" />
               Posts
             </TabsTrigger>
 
-            <TabsTrigger value="members" className="flex-1 md:flex-none">
+            <TabsTrigger value="members" className="flex items-center justify-center">
               <Users className="h-4 w-4 mr-2" />
               Members
             </TabsTrigger>
 
-            <TabsTrigger value="ecash" className="flex-1 md:flex-none">
+            <TabsTrigger value="ecash" className="flex items-center justify-center">
               <DollarSign className="h-4 w-4 mr-2" />
-              eCash
+              Send eCash
             </TabsTrigger>
           </TabsList>
         </div>
