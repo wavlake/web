@@ -126,7 +126,7 @@ export default function GroupDetail() {
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : "/placeholder-community.svg";
+  const image = imageTag ? imageTag[1] : undefined;
 
   useEffect(() => {
     if (name && name !== "Unnamed Group") {
@@ -168,14 +168,23 @@ export default function GroupDetail() {
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              <img
-                src={image}
-                alt={name}
-                className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder-community.svg";
-                }}
-              />
+              {image ? (
+                <img
+                  src={image}
+                  alt={name}
+                  className="w-full h-full object-cover object-center"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = "flex";
+                  }}
+                />
+              ) : null}
+              <div 
+                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image ? 'hidden' : 'flex'}`}
+              >
+                {name.charAt(0).toUpperCase()}
+              </div>
             </div>
 
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
