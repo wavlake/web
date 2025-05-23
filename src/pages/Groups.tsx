@@ -11,6 +11,7 @@ import { TrendingUp } from "lucide-react";
 import { useGroupStats } from "@/hooks/useGroupStats";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
 import { useUserGroups } from "@/hooks/useUserGroups";
+import { useUserPendingJoinRequests } from "@/hooks/useUserPendingJoinRequests";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
@@ -71,6 +72,9 @@ export default function Groups() {
   // Get user's groups
   const { data: userGroups, isLoading: isUserGroupsLoading } = useUserGroups();
 
+  // Get user's pending join requests
+  const { data: pendingJoinRequests = [], isLoading: isPendingRequestsLoading } = useUserPendingJoinRequests();
+
   // Query for community stats
   const { data: communityStats, isLoading: isLoadingStats } = useGroupStats(allGroups);
 
@@ -101,6 +105,11 @@ export default function Groups() {
 
     return membershipMap;
   }, [userGroups, user]);
+
+  // Create a set of pending join request community IDs for quick lookup
+  const pendingJoinRequestsSet = useMemo(() => {
+    return new Set(pendingJoinRequests);
+  }, [pendingJoinRequests]);
 
   // Filter and sort all groups
   const sortedAndFilteredGroups = useMemo(() => {
@@ -144,10 +153,17 @@ export default function Groups() {
           if (aIsPinned && !bIsPinned) return -1;
           if (!aIsPinned && bIsPinned) return 1;
 
+          const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
+          const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
+
+          // Second priority: groups with pending join requests
+          if (aHasPendingRequest && !bHasPendingRequest) return -1;
+          if (!aHasPendingRequest && bHasPendingRequest) return 1;
+
           const aIsMember = userMembershipMap.has(aId);
           const bIsMember = userMembershipMap.has(bId);
 
-          // Second priority: groups that the user is a member of
+          // Third priority: groups that the user is a member of
           if (aIsMember && !bIsMember) return -1;
           if (!aIsMember && bIsMember) return 1;
 
@@ -165,7 +181,7 @@ export default function Groups() {
           return 0;
         }
       });
-  }, [allGroups, searchQuery, isGroupPinned, userMembershipMap]);
+  }, [allGroups, searchQuery, isGroupPinned, userMembershipMap, pendingJoinRequestsSet]);
 
   // Loading state skeleton with stable keys
   const skeletonKeys = useMemo(() => 
@@ -229,7 +245,7 @@ export default function Groups() {
         </div>
 
         <div className="space-y-4 mb-6">
-          {isGroupsLoading || isUserGroupsLoading ? (
+          {isGroupsLoading || isUserGroupsLoading || isPendingRequestsLoading ? (
             renderSkeletons()
           ) : allGroups && sortedAndFilteredGroups && sortedAndFilteredGroups.length > 0 ? (
             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
@@ -240,6 +256,7 @@ export default function Groups() {
                   const isPinned = isGroupPinned(communityId);
                   const userRole = userMembershipMap.get(communityId);
                   const isMember = userMembershipMap.has(communityId);
+                  const hasPendingRequest = pendingJoinRequestsSet.has(communityId);
                   const stats = communityStats ? communityStats[communityId] : undefined;
 
                   return (
@@ -254,6 +271,7 @@ export default function Groups() {
                       isLoadingStats={isLoadingStats}
                       isMember={isMember}
                       userRole={userRole}
+                      hasPendingRequest={hasPendingRequest}
                     />
                   );
                 } catch (error) {

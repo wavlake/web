@@ -29,6 +29,7 @@ interface GroupCardProps {
   isUpdating: boolean;
   isMember?: boolean;
   userRole?: UserRole;
+  hasPendingRequest?: boolean;
   stats?: {
     posts: number;
     participants: Set<string>;
@@ -44,6 +45,7 @@ export function GroupCard({
   isUpdating,
   isMember,
   userRole,
+  hasPendingRequest,
   stats,
   isLoadingStats,
 }: GroupCardProps) {
@@ -108,6 +110,14 @@ export function GroupCard({
         {userRole && (
           <div className="absolute top-2 right-10 z-10">
             <RoleBadge role={userRole} />
+          </div>
+        )}
+
+        {hasPendingRequest && !userRole && (
+          <div className="absolute top-2 right-10 z-10">
+            <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 border-gray-200">
+              Pending
+            </Badge>
           </div>
         )}
 
@@ -246,7 +256,7 @@ export function GroupCard({
                   Pin group
                 </DropdownMenuItem>
               )}
-              {!isUserMember && <JoinRequestMenuItem communityId={communityId} />}
+              {!isUserMember && <JoinRequestMenuItem communityId={communityId} hasPendingRequest={hasPendingRequest} />}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
