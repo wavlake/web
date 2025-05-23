@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -408,37 +407,37 @@ export default function GroupSettings() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="w-full max-w-xs">
-          <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a section" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="general">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  General
-                </div>
-              </SelectItem>
-              {(isOwner || isModerator) && (
-                <SelectItem value="members">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Members
-                  </div>
-                </SelectItem>
-              )}
-              {(isOwner || isModerator) && (
-                <SelectItem value="reports">
-                  <div className="flex items-center gap-2">
-                    <FileWarning className="h-4 w-4" />
-                    Reports
-                  </div>
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Update URL query parameter without full page reload
+        const newSearchParams = new URLSearchParams(location.search);
+        if (value === 'general') {
+          newSearchParams.delete('tab');
+        } else {
+          newSearchParams.set('tab', value);
+        }
+        const newUrl = `${location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
+        window.history.pushState(null, '', newUrl);
+      }} className="w-full space-y-6">
+        <div className="md:flex md:justify-start">
+          <TabsList className="mb-4 w-full md:w-auto flex">
+            <TabsTrigger value="general" className="flex-1 md:flex-none">
+              <Shield className="h-4 w-4 mr-2" />
+              General
+            </TabsTrigger>
+            {(isOwner || isModerator) && (
+              <TabsTrigger value="members" className="flex-1 md:flex-none">
+                <Users className="h-4 w-4 mr-2" />
+                Members
+              </TabsTrigger>
+            )}
+            {(isOwner || isModerator) && (
+              <TabsTrigger value="reports" className="flex-1 md:flex-none">
+                <FileWarning className="h-4 w-4 mr-2" />
+                Reports
+              </TabsTrigger>
+            )}
+          </TabsList>
         </div>
 
         <TabsContent value="general" className="space-y-6 mt-3">
