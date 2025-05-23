@@ -18,10 +18,11 @@ import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import type { NostrEvent } from "@nostrify/nostrify";
 import type { UserRole } from "@/hooks/useUserRole";
 import { KINDS } from "@/lib/nostr-kinds";
+import { useCashuWallet } from "@/hooks/useCashuWallet";
 
 // Helper function to get community ID
 const getCommunityId = (community: NostrEvent) => {
-  const dTag = community.tags.find(tag => tag[0] === "d");
+  const dTag = community.tags.find((tag) => tag[0] === "d");
   return `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
 };
 
@@ -31,6 +32,14 @@ export default function Groups() {
   const { pinGroup, unpinGroup, isGroupPinned, isUpdating } = usePinnedGroups();
   const [searchQuery, setSearchQuery] = useState("");
   const [showPWAInstructions, setShowPWAInstructions] = useState(false);
+  const { wallet, isLoading: isWalletLoading } = useCashuWallet();
+
+  // Log wallet data when it loads
+  useEffect(() => {
+    if (wallet) {
+      console.log("Wallet loaded in Groups page:", wallet);
+    }
+  }, [wallet]);
 
   // Listen for PWA instructions event from banner
   useEffect(() => {
@@ -38,9 +47,12 @@ export default function Groups() {
       setShowPWAInstructions(true);
     };
 
-    window.addEventListener('open-pwa-instructions', handleOpenPWAInstructions);
+    window.addEventListener("open-pwa-instructions", handleOpenPWAInstructions);
     return () => {
-      window.removeEventListener('open-pwa-instructions', handleOpenPWAInstructions);
+      window.removeEventListener(
+        "open-pwa-instructions",
+        handleOpenPWAInstructions
+      );
     };
   }, []);
 
@@ -51,8 +63,11 @@ export default function Groups() {
       try {
         // Increase timeout to 8 seconds to allow more time for relays to respond
         const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
-        const events = await nostr.query([{ kinds: [KINDS.GROUP], limit: 100 }], { signal });
-        
+        const events = await nostr.query(
+          [{ kinds: [KINDS.GROUP], limit: 100 }],
+          { signal }
+        );
+
         // Ensure we always return an array, even if the query fails
         return Array.isArray(events) ? events : [];
       } catch (error) {
@@ -73,10 +88,14 @@ export default function Groups() {
   const { data: userGroups, isLoading: isUserGroupsLoading } = useUserGroups();
 
   // Get user's pending join requests
-  const { data: pendingJoinRequests = [], isLoading: isPendingRequestsLoading } = useUserPendingJoinRequests();
+  const {
+    data: pendingJoinRequests = [],
+    isLoading: isPendingRequestsLoading,
+  } = useUserPendingJoinRequests();
 
   // Query for community stats
-  const { data: communityStats, isLoading: isLoadingStats } = useGroupStats(allGroups);
+  const { data: communityStats, isLoading: isLoadingStats } =
+    useGroupStats(allGroups);
 
   // Create a map to track user's membership in groups
   const userMembershipMap = useMemo(() => {
@@ -92,11 +111,12 @@ export default function Groups() {
       let role: UserRole = "member";
       if (group.pubkey === user.pubkey) {
         role = "owner";
-      } else if (group.tags.some(tag =>
-        tag[0] === "p" &&
-        tag[1] === user.pubkey &&
-        tag[3] === "moderator"
-      )) {
+      } else if (
+        group.tags.some(
+          (tag) =>
+            tag[0] === "p" && tag[1] === user.pubkey && tag[3] === "moderator"
+        )
+      ) {
         role = "moderator";
       }
 
@@ -119,11 +139,13 @@ export default function Groups() {
     const matchesSearch = (community: NostrEvent) => {
       if (!searchQuery) return true;
 
-      const nameTag = community.tags.find(tag => tag[0] === "name");
-      const descriptionTag = community.tags.find(tag => tag[0] === "description");
-      const dTag = community.tags.find(tag => tag[0] === "d");
+      const nameTag = community.tags.find((tag) => tag[0] === "name");
+      const descriptionTag = community.tags.find(
+        (tag) => tag[0] === "description"
+      );
+      const dTag = community.tags.find((tag) => tag[0] === "d");
 
-      const name = nameTag ? nameTag[1] : (dTag ? dTag[1] : "");
+      const name = nameTag ? nameTag[1] : dTag ? dTag[1] : "";
       const description = descriptionTag ? descriptionTag[1] : "";
 
       const searchLower = searchQuery.toLowerCase();
@@ -136,67 +158,75 @@ export default function Groups() {
     // Create a stable copy of the array to avoid mutation issues
     const stableGroups = [...allGroups];
 
-    return stableGroups
-      .filter(matchesSearch)
-      .sort((a, b) => {
-        // Ensure both a and b are valid objects
-        if (!a || !b) return 0;
-        
-        try {
-          const aId = getCommunityId(a);
-          const bId = getCommunityId(b);
+    return stableGroups.filter(matchesSearch).sort((a, b) => {
+      // Ensure both a and b are valid objects
+      if (!a || !b) return 0;
 
-          const aIsPinned = isGroupPinned(aId);
-          const bIsPinned = isGroupPinned(bId);
+      try {
+        const aId = getCommunityId(a);
+        const bId = getCommunityId(b);
 
-          // First priority: pinned groups
-          if (aIsPinned && !bIsPinned) return -1;
-          if (!aIsPinned && bIsPinned) return 1;
+        const aIsPinned = isGroupPinned(aId);
+        const bIsPinned = isGroupPinned(bId);
 
-          // Get user roles and pending status
-          const aUserRole = userMembershipMap.get(aId);
-          const bUserRole = userMembershipMap.get(bId);
-          const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
-          const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
+        // First priority: pinned groups
+        if (aIsPinned && !bIsPinned) return -1;
+        if (!aIsPinned && bIsPinned) return 1;
 
-          // Define role priority (lower number = higher priority)
-          const getRolePriority = (role: UserRole | undefined, hasPending: boolean) => {
-            if (role === "owner") return 1;
-            if (role === "moderator") return 2;
-            if (role === "member") return 3;
-            if (hasPending) return 4;
-            return 5; // Not a member and no pending request
-          };
+        // Get user roles and pending status
+        const aUserRole = userMembershipMap.get(aId);
+        const bUserRole = userMembershipMap.get(bId);
+        const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
+        const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
 
-          const aPriority = getRolePriority(aUserRole, aHasPendingRequest);
-          const bPriority = getRolePriority(bUserRole, bHasPendingRequest);
+        // Define role priority (lower number = higher priority)
+        const getRolePriority = (
+          role: UserRole | undefined,
+          hasPending: boolean
+        ) => {
+          if (role === "owner") return 1;
+          if (role === "moderator") return 2;
+          if (role === "member") return 3;
+          if (hasPending) return 4;
+          return 5; // Not a member and no pending request
+        };
 
-          // Second priority: user's relationship to the group (owner > mod > member > pending > other)
-          if (aPriority !== bPriority) {
-            return aPriority - bPriority;
-          }
+        const aPriority = getRolePriority(aUserRole, aHasPendingRequest);
+        const bPriority = getRolePriority(bUserRole, bHasPendingRequest);
 
-          // If same priority, sort alphabetically by name
-          const aNameTag = a.tags.find(tag => tag[0] === "name");
-          const bNameTag = b.tags.find(tag => tag[0] === "name");
-
-          const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
-          const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
-
-          return aName.localeCompare(bName);
-        } catch (error) {
-          console.error("Error sorting groups:", error);
-          return 0;
+        // Second priority: user's relationship to the group (owner > mod > member > pending > other)
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
         }
-      });
-  }, [allGroups, searchQuery, isGroupPinned, userMembershipMap, pendingJoinRequestsSet]);
+
+        // If same priority, sort alphabetically by name
+        const aNameTag = a.tags.find((tag) => tag[0] === "name");
+        const bNameTag = b.tags.find((tag) => tag[0] === "name");
+
+        const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
+        const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
+
+        return aName.localeCompare(bName);
+      } catch (error) {
+        console.error("Error sorting groups:", error);
+        return 0;
+      }
+    });
+  }, [
+    allGroups,
+    searchQuery,
+    isGroupPinned,
+    userMembershipMap,
+    pendingJoinRequestsSet,
+  ]);
 
   // Loading state skeleton with stable keys
-  const skeletonKeys = useMemo(() => 
-    Array.from({ length: 12 }).map((_, index) => `skeleton-group-${index}`),
+  const skeletonKeys = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, index) => `skeleton-group-${index}`),
     []
   );
-  
+
   const renderSkeletons = () => (
     <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
       {skeletonKeys.map((key) => (
@@ -232,8 +262,8 @@ export default function Groups() {
               className="sticky top-0 z-10"
             />
             <div className="mt-2 flex justify-end md:hidden">
-              <a 
-                href="/trending" 
+              <a
+                href="/trending"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
               >
                 <TrendingUp className="w-3.5 h-3.5" />
@@ -242,8 +272,8 @@ export default function Groups() {
             </div>
           </div>
           <div className="hidden md:flex">
-            <a 
-              href="/trending" 
+            <a
+              href="/trending"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
               <TrendingUp className="w-3.5 h-3.5" />
@@ -253,9 +283,13 @@ export default function Groups() {
         </div>
 
         <div className="space-y-4 mb-6">
-          {isGroupsLoading || isUserGroupsLoading || isPendingRequestsLoading ? (
+          {isGroupsLoading ||
+          isUserGroupsLoading ||
+          isPendingRequestsLoading ? (
             renderSkeletons()
-          ) : allGroups && sortedAndFilteredGroups && sortedAndFilteredGroups.length > 0 ? (
+          ) : allGroups &&
+            sortedAndFilteredGroups &&
+            sortedAndFilteredGroups.length > 0 ? (
             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {sortedAndFilteredGroups.map((community) => {
                 if (!community) return null;
@@ -264,8 +298,11 @@ export default function Groups() {
                   const isPinned = isGroupPinned(communityId);
                   const userRole = userMembershipMap.get(communityId);
                   const isMember = userMembershipMap.has(communityId);
-                  const hasPendingRequest = pendingJoinRequestsSet.has(communityId);
-                  const stats = communityStats ? communityStats[communityId] : undefined;
+                  const hasPendingRequest =
+                    pendingJoinRequestsSet.has(communityId);
+                  const stats = communityStats
+                    ? communityStats[communityId]
+                    : undefined;
 
                   return (
                     <GroupCard
@@ -290,7 +327,9 @@ export default function Groups() {
             </div>
           ) : searchQuery ? (
             <div className="col-span-full text-center py-10">
-              <h2 className="text-xl font-semibold mb-2">No matching groups found</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                No matching groups found
+              </h2>
               <p className="text-muted-foreground">
                 Try a different search term or browse all groups
               </p>
