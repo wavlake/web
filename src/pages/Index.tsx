@@ -228,6 +228,13 @@ const Index = () => {
               />
             </div>
           )}
+          
+          {/* Footer attribution */}
+          <div className="absolute bottom-4 left-0 right-0 text-center">
+            <p className="text-[10px] text-muted-foreground/50">
+              *vibed by <a href="https://andotherstuff.org" target="_blank" rel="noopener noreferrer" className="hover:underline">AOS</a>
+            </p>
+          </div>
         </div>
         <LoginDialog
           isOpen={loginOpen}
