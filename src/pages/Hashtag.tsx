@@ -12,7 +12,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NoteContent } from "@/components/NoteContent";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { formatRelativeTime } from "@/lib/utils";
-import { ArrowLeft, Hash, MessageSquare, MoreVertical, Flag, Share2 } from "lucide-react";
+import { ArrowLeft, Hash, MessageSquare, MoreVertical, Flag, Share2, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import type { NostrEvent } from "@nostrify/nostrify";
@@ -210,6 +210,7 @@ interface HashtagPostItemProps {
 function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
+  const { nostr } = useNostr();
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || post.pubkey.slice(0, 12);
   const profileImage = metadata?.picture;
@@ -243,20 +244,48 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
     minute: '2-digit'
   })}`;
 
-  // Extract group information if available
-  const groupInfo = useMemo(() => {
-    // Find group information from post tags (NIP-98 format)
-    const groupTag = post.tags.find(tag => tag[0] === 'g' && tag.length >= 2);
-    if (!groupTag) return null;
+  // Extract community information if available (NIP-72 format)
+  const communityInfo = useMemo(() => {
+    // Find community information from post tags (NIP-72 format)
+    const communityTag = post.tags.find(tag => tag[0] === 'a' && tag.length >= 2);
+    if (!communityTag) return null;
 
-    const groupId = groupTag[1];
+    const communityId = communityTag[1];
     
-    // Find the group name if available
-    const groupMetaTag = post.tags.find(tag => tag[0] === 'gm' && tag.length >= 2);
-    const groupName = groupMetaTag ? groupMetaTag[1] : 'Unknown Group';
-    
-    return { id: groupId, name: groupName };
+    return { id: communityId };
   }, [post.tags]);
+
+  // Query for community details to get the name
+  const { data: community } = useQuery({
+    queryKey: ["community-for-hashtag", communityInfo?.id],
+    queryFn: async (c) => {
+      if (!communityInfo?.id) return null;
+      
+      // Parse the community ID (format: "34550:pubkey:identifier")
+      const parts = communityInfo.id.split(':');
+      if (parts.length !== 3 || parts[0] !== '34550') return null;
+      
+      const [, pubkey, identifier] = parts;
+      
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      const events = await nostr.query([{
+        kinds: [34550],
+        authors: [pubkey],
+        "#d": [identifier]
+      }], { signal });
+
+      return events[0] || null;
+    },
+    enabled: !!nostr && !!communityInfo?.id,
+    staleTime: 300000, // 5 minutes
+  });
+
+  // Extract community name from the community event
+  const communityName = useMemo(() => {
+    if (!community) return null;
+    const nameTag = community.tags.find(tag => tag[0] === "name");
+    return nameTag ? nameTag[1] : null;
+  }, [community]);
 
   // Handle sharing the post
   const handleSharePost = async (postId: string) => {
@@ -305,25 +334,7 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                
-                {/* Show group information if available */}
-                {groupInfo && (
-                  <>
-                    <span className="mr-1.5">·</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link to={`/group/${groupInfo.id}`} className="text-xs text-muted-foreground hover:underline">
-                            in {groupInfo.name}
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View in group: {groupInfo.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </>
-                )}
+
               </div>
             </div>
             
@@ -358,29 +369,55 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
 
       {/* Footer Section */}
       <div className="flex-col pt-1.5 pl-3 pr-3">
-        <div className="flex items-center gap-12">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
-            onClick={() => setShowReplies(!showReplies)}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span className="text-xs ml-0.5">
-              {/* Placeholder for reply count - could be dynamically loaded */}
-              {post.tags.find(tag => tag[0] === 'reply_count') ? 
-                post.tags.find(tag => tag[0] === 'reply_count')?.[1] : 
-                ''}
-            </span>
-          </Button>
-          <EmojiReactionButton postId={post.id} showText={false} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-12">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
+              onClick={() => setShowReplies(!showReplies)}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span className="text-xs ml-0.5">
+                {/* Placeholder for reply count - could be dynamically loaded */}
+                {post.tags.find(tag => tag[0] === 'reply_count') ? 
+                  post.tags.find(tag => tag[0] === 'reply_count')?.[1] : 
+                  ''}
+              </span>
+            </Button>
+            <EmojiReactionButton postId={post.id} showText={false} />
+          </div>
+          
+          {/* Group button on the right side */}
+          {communityInfo && communityName && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground flex items-center h-7 px-2"
+                    asChild
+                  >
+                    <Link to={`/group/${encodeURIComponent(communityInfo.id)}`}>
+                      <Users className="h-3.5 w-3.5 mr-1" />
+                      <span className="text-xs">{communityName}</span>
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View in community: {communityName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {showReplies && (
           <div className="w-full mt-2.5">
             <ReplyList
               postId={post.id}
-              communityId={groupInfo?.id || ''}
+              communityId={communityInfo?.id || ''}
               postAuthorPubkey={post.pubkey}
             />
           </div>
