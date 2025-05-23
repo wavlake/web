@@ -1239,7 +1239,7 @@ export default function Profile() {
         </TabsContent>
 
         <TabsContent value="groups" className="space-y-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto pb-6">
             <UserGroupsList 
               groups={userGroups} 
               isLoading={isLoadingGroups} 
