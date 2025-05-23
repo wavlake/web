@@ -101,7 +101,10 @@ export function useUserGroups() {
         allCommunities = communityBatchResults.flat();
       }
 
-      // Also fetch communities the user has pinned
+      // Also fetch communities the user has pinned (for display purposes)
+      // Note: These will be fetched but not automatically added to allCommunities
+      // They need to be checked for actual membership
+      let pinnedCommunityEvents: NostrEvent[] = [];
       if (pinnedGroups.length > 0) {
         const pinnedFilters = pinnedGroups.map(pinned => {
           const [kindStr, pubkey, identifier] = pinned.communityId.split(":");
@@ -114,14 +117,7 @@ export function useUserGroups() {
           };
         });
 
-        const pinnedCommunityEvents = await nostr.query(pinnedFilters, { signal });
-        
-        // Add to our all communities collection
-        for (const event of pinnedCommunityEvents) {
-          if (!allCommunities.some(c => c.id === event.id)) {
-            allCommunities.push(event);
-          }
-        }
+        pinnedCommunityEvents = await nostr.query(pinnedFilters, { signal });
       }
 
       // Create a map of community IDs to community events for faster lookups
@@ -181,20 +177,28 @@ export function useUserGroups() {
           !moderatedCommunities.includes(community);
       });
 
-      // Process pinned groups
+      // Process pinned groups - only include those where user is actually a member/owner/moderator
       const pinnedCommunities: NostrEvent[] = [];
       const processedInPinned = new Set<string>();
 
       for (const pinnedGroup of pinnedGroups) {
         const communityId = pinnedGroup.communityId;
         
-        // Find the community in our fetched communities using the map
-        for (const [id, community] of communityMap.entries()) {
-          if (id === communityId) {
-            pinnedCommunities.push(community);
-            processedInPinned.add(id);
-            break;
-          }
+        // First check if the community is in our map (user is a member)
+        const community = communityMap.get(communityId);
+        if (community) {
+          pinnedCommunities.push(community);
+          processedInPinned.add(communityId);
+        } else {
+          // If not in the map, check if it's in the pinnedCommunityEvents
+          // This would be a pinned group where user is NOT a member
+          const pinnedCommunity = pinnedCommunityEvents.find(event => {
+            const eventCommunityId = getCommunityId(event);
+            return eventCommunityId === communityId;
+          });
+          
+          // We don't add non-member pinned communities to pinnedCommunities
+          // They will be displayed on the Groups page but not counted as user's groups
         }
       }
 
