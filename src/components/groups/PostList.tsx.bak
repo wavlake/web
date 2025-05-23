@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { MessageSquare, Share2, CheckCircle, XCircle, MoreVertical, Ban, ChevronDown, ChevronUp, Flag, Timer } from "lucide-react";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NutzapButton } from "@/components/groups/NutzapButton";
-import { NutzapInterface } from "@/components/groups/NutzapInterface";
+import { NutzapList } from "@/components/groups/NutzapList";
 import { NostrEvent } from "@nostrify/nostrify";
 import { nip19 } from 'nostr-tools';
 import { NoteContent } from "../NoteContent";
@@ -22,7 +22,6 @@ import { parseNostrAddress } from "@/lib/nostr-utils";
 import { formatRelativeTime } from "@/lib/utils";
 import { ReplyList } from "./ReplyList";
 import { ReportDialog } from "./ReportDialog";
-import { shareContent } from "@/lib/share";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,30 +50,78 @@ import {
 // Reply Count Component
 function ReplyCount({ postId }: { postId: string }) {
   const { nostr } = useNostr();
-
+  
   const { data: replyCount } = useQuery({
     queryKey: ["reply-count", postId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
-
+      
       // Get all kind 1111 replies that reference this post
-      const events = await nostr.query([{
+      const events = await nostr.query([{ 
         kinds: [1111],
         "#e": [postId],
         limit: 100,
       }], { signal });
-
+      
       return events?.length || 0;
     },
     enabled: !!nostr && !!postId,
   });
-
+  
   if (!replyCount || replyCount === 0) {
     return null;
   }
-
-  return <span className="text-xs ml-0.5">{replyCount}</span>;
+  
+  return <span className="text-xs ml-1">{replyCount}</span>;
 }
+
+// Reply Count Component
+function ReplyCount({ postId }: { postId: string }) {
+  const { nostr } = useNostr();
+  
+  const { data: replyCount } = useQuery({
+    queryKey: ["reply-count", postId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      // Get all kind 1111 replies that reference this post
+      const events = await nostr.query([{ 
+        kinds: [1111],
+        "#e": [postId],
+        limit: 100,
+      }], { signal });
+      
+      return events?.length || 0;
+    },
+    enabled: !!nostr && !!postId,
+  });
+  
+  if (!replyCount || replyCount === 0) {
+    return null;
+  }
+  
+  return <span className="text-xs ml-1">{replyCount}</span>;
+}
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PostListProps {
   communityId: string;
@@ -422,25 +469,8 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  const [showZaps, setShowZaps] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
-
-  // Handle toggle between replies and zaps
-  const handleShowReplies = () => {
-    const newState = !showReplies;
-    setShowReplies(newState);
-    if (newState) {
-      setShowZaps(false); // Close zaps if opening replies
-    }
-  };
-
-  const handleZapToggle = (isOpen: boolean) => {
-    setShowZaps(isOpen);
-    if (isOpen) {
-      setShowReplies(false); // Close replies if opening zaps
-    }
-  };
 
   // Extract expiration timestamp from post tags
   const expirationTag = post.tags.find(tag => tag[0] === "expiration");
@@ -554,18 +584,6 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
     }
   };
 
-  const handleSharePost = async () => {
-    // For now, share the group URL with a hash to the post
-    // In the future, we could add a dedicated post view
-    const shareUrl = `${window.location.origin}/group/${encodeURIComponent(communityId)}#${post.id}`;
-    
-    await shareContent({
-      title: "Check out this post",
-      text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
-      url: shareUrl
-    });
-  };
-
   return (
     <div className={`py-4 hover:bg-muted/5 transition-colors ${!isLastItem ? 'border-b-2 border-border/70' : ''}`}>
       <div className="flex flex-row items-start px-3">
@@ -654,12 +672,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleSharePost} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
+                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`)} className="text-xs">
+                      <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
                       <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
+                        <Flag className="h-3.5 w-3.5 mr-1.5" /> Report Post
                       </DropdownMenuItem>
                     )}
                     {isModerator && (
@@ -667,14 +685,14 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                         <DropdownMenuSeparator />
                         {!isApproved && (
                           <DropdownMenuItem onClick={handleApprovePost} className="text-xs">
-                            <CheckCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Approve Post
+                            <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Approve Post
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => setIsRemoveDialogOpen(true)} className="text-red-600 text-xs">
-                          <XCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Remove Post
+                          <XCircle className="h-3.5 w-3.5 mr-1.5" /> Remove Post
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsBanDialogOpen(true)} className="text-red-600 text-xs">
-                          <Ban className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Ban User
+                          <Ban className="h-3.5 w-3.5 mr-1.5" /> Ban User
                         </DropdownMenuItem>
                       </>
                     )}
@@ -725,12 +743,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleSharePost} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
+                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`)} className="text-xs">
+                      <Share2 className="h-3.5 w-3.5 mr-1.5" /> Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
                       <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
+                        <Flag className="h-3.5 w-3.5 mr-1.5" /> Report Post
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -741,34 +759,29 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
         </div>
       </div>
 
-      {/* Content Section - takes full width */}
-      <div className="pt-1 pb-1.5 pl-3 pr-3">
-        <div className="whitespace-pre-wrap break-words text-sm mt-1">
+      {/* Content Section - aligned with author info */}
+      <div className="pt-1 pb-1.5 pl-[2.875rem] pr-3">
+        <div className="whitespace-pre-wrap break-words text-sm mt-1 ml-3">
           <NoteContent event={post} />
         </div>
       </div>
 
-      {/* Footer Section - aligned with icons */}
-      <div className="flex-col pt-1.5 pl-3 pr-3">
+      {/* Footer Section - aligned with author info and content */}
+      <div className="flex-col pt-1.5 pl-[2.875rem] pr-3">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-4 ml-1.5">
             <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
-              onClick={handleShowReplies}
+              onClick={() => setShowReplies(!showReplies)}
             >
-              <MessageSquare className={`h-3.5 w-3.5`} />
+              <MessageSquare className={`h-3.5 w-3.5 ${showReplies ? 'text-primary fill-primary' : ''}`} />
+              {/* Query for reply count */}
               <ReplyCount postId={post.id} />
             </Button>
             <EmojiReactionButton postId={post.id} showText={false} />
-            <NutzapButton 
-              postId={post.id} 
-              authorPubkey={post.pubkey} 
-              showText={true} 
-              onToggle={handleZapToggle}
-              isOpen={showZaps}
-            />
+            <NutzapButton postId={post.id} authorPubkey={post.pubkey} showText={false} />
           </div>
           {timeRemaining && (
             <TooltipProvider>
@@ -787,27 +800,15 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
           )}
         </div>
 
+        {/* Display nutzaps for this post */}
+        <NutzapList postId={post.id} />
+
         {showReplies && (
           <div className="w-full mt-2.5">
             <ReplyList
               postId={post.id}
               communityId={communityId}
               postAuthorPubkey={post.pubkey}
-            />
-          </div>
-        )}
-
-        {showZaps && (
-          <div className="w-full mt-2.5">
-            <NutzapInterface
-              postId={post.id}
-              authorPubkey={post.pubkey}
-              relayHint={undefined}
-              onSuccess={() => {
-                // Call the refetch function if available
-                const refetchFn = window[`zapRefetch_${post.id}`];
-                if (refetchFn) refetchFn();
-              }}
             />
           </div>
         )}

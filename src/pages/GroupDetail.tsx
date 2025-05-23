@@ -217,7 +217,7 @@ export default function GroupDetail() {
             {!isModerator ? (
               <>
                 <div className="h-8">
-                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator || false} />
                 </div>
                 {/* If there are more buttons than these, they will flow from top to bottom */}
                 {/* Ensure consistent height for GroupNutzapTotal */}
