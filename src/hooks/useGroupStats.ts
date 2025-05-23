@@ -138,7 +138,7 @@ export function useGroupStats(communities: NostrEvent[] | undefined, enabled = t
       // 6. Get pinned groups (Kind 14553)
       const pinnedGroups = await nostr.query([{
         kinds: [KINDS.PINNED_GROUPS_LIST],
-        "#a": communityRefs,
+        "#d": communityRefs,
         limit: 500
       }], { signal });
 

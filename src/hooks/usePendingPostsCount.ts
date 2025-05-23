@@ -48,7 +48,7 @@ export function usePendingPostsCount(communityId: string) {
       // Get approved members list
       const approvedMembersEvents = await nostr.query([{
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal });
 

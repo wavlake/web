@@ -21,7 +21,7 @@ export function useGroupMembership(communityId?: string) {
       // Check for approved members lists that include the user
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         "#p": [user.pubkey],
         limit: 1,
       }], { signal });

@@ -29,7 +29,7 @@ export function usePendingJoinRequests(communityId: string) {
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal });
       
@@ -46,7 +46,7 @@ export function usePendingJoinRequests(communityId: string) {
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 50,
       }], { signal });
       
@@ -63,7 +63,7 @@ export function usePendingJoinRequests(communityId: string) {
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_BANNED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 50,
       }], { signal });
       

@@ -39,7 +39,7 @@ export function useJoinRequestStatus(communityId?: string) {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId]
+        "#d": [communityId]
       }], { signal });
 
       // Check if any of the approval lists include the user's pubkey
@@ -59,7 +59,7 @@ export function useJoinRequestStatus(communityId?: string) {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST], 
-        "#a": [communityId],
+        "#d": [communityId],
         "#p": [user.pubkey]
       }], { signal });
       

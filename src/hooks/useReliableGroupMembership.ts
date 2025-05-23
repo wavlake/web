@@ -73,7 +73,7 @@ export function useReliableGroupMembership(communityId?: string) {
       // Check for approved members lists that include the user
       const memberEvents = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal });
       

@@ -18,7 +18,7 @@ export function useApprovedMembers(communityId: string) {
       
       const events = await nostr.query([{ 
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [communityId],
+        "#d": [communityId],
         limit: 10,
       }], { signal });
       
