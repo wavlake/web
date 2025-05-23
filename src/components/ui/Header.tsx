@@ -42,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
           claimButtonText = `${formatUSD(usd)}`;
         }
       }
-      claimButtonText = `Get ${claimButtonText}`;
+      claimButtonText = `Free ${claimButtonText}`;
     } catch (error) {
       console.error("Error calculating token amount:", error);
     }
@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             onClick={handleClaimClick}
             size="sm"
             variant="ghost"
-            className="animate-pulse border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+            className="animate-pulse font-medium hover:bg-green-50 dark:hover:bg-green-950"
           >
             {showSats ? (
               <Bitcoin className="w-3.5 h-3.5 text-orange-500" />
