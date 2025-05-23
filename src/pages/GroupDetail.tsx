@@ -315,6 +315,17 @@ export default function GroupDetail() {
         {/* Title and description moved below image and buttons, full width */}
         <div className="w-full mt-4">
           <h1 className="text-2xl font-bold mb-2">{name}</h1>
+          {hasGuidelines && (
+            <div className="mb-2">
+              <Link 
+                to={`/group/${encodeURIComponent(groupId || '')}/guidelines`}
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium inline-flex items-center gap-1"
+              >
+                <FileText className="h-4 w-4" />
+                Community Guidelines
+              </Link>
+            </div>
+          )}
           <p className="text-base text-muted-foreground">{description}</p>
         </div>
       </div>
