@@ -46,3 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added activity indicators to My Groups section showing post count and active participants
 
 ### Fixed
+- **Profile Sync on Login**: Added automatic profile (kind 0) synchronization
+  - Checks primary relay for user's profile after login
+  - Falls back to popular relays (purplepag.es, relay.nos.social, cache2.primal.net) if not found
+  - Automatically republishes profile to primary relay for better availability
+  - Ensures user profiles are always accessible on the chorus.community relay
