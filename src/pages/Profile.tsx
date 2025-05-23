@@ -89,6 +89,54 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
   };
 }
 
+// Component to fetch and display group name
+function GroupNameDisplay({ groupId }: { groupId: string }) {
+  const { nostr } = useNostr();
+
+  const { data: groupName, isLoading } = useQuery({
+    queryKey: ["group-name", groupId],
+    queryFn: async (c) => {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
+      
+      // Parse the group ID to get the components
+      const parsedAddress = parseNostrAddress(groupId);
+      if (!parsedAddress || parsedAddress.kind !== 34550) {
+        return "Group";
+      }
+
+      // Query for the group event
+      const events = await nostr.query([{
+        kinds: [34550],
+        authors: [parsedAddress.pubkey],
+        "#d": [parsedAddress.identifier],
+        limit: 1,
+      }], { signal });
+
+      if (events.length === 0) {
+        return parsedAddress.identifier; // Fallback to identifier
+      }
+
+      const groupEvent = events[0];
+      
+      // Look for the name tag
+      const nameTag = groupEvent.tags.find(tag => tag[0] === "name");
+      if (nameTag && nameTag[1]) {
+        return nameTag[1];
+      }
+
+      // Fallback to identifier
+      return parsedAddress.identifier;
+    },
+    enabled: !!nostr && !!groupId,
+  });
+
+  if (isLoading) {
+    return <span>Loading...</span>;
+  }
+
+  return <span className="font-medium">{groupName || "Group"}</span>;
+}
+
 // Component to display group information on a post
 function PostGroupLink({ post }: { post: NostrEvent }) {
   const groupInfo = extractGroupInfo(post);
@@ -102,7 +150,7 @@ function PostGroupLink({ post }: { post: NostrEvent }) {
     >
       <div className="flex items-center px-2 py-1 rounded-full bg-muted/70 hover:bg-muted transition-colors">
         <Users className="h-3 w-3 md:h-4 md:w-4 mr-1.5" />
-        <span className="font-medium">{groupInfo.groupName}</span>
+        <GroupNameDisplay groupId={groupInfo.groupId} />
       </div>
     </Link>
   );
