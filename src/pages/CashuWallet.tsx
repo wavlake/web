@@ -95,6 +95,7 @@ export function CashuWallet() {
   }, [
     user,
     wallet,
+    isProcessingToken,
     cashuStore,
     receiveToken,
     toast,
