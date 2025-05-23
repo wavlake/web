@@ -250,7 +250,7 @@ const Index = () => {
     return (
       <OnboardingContext.Provider value={{ generatedName }}>
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
-          <div className="w-full max-w-lg mx-auto p-8 bg-card dark:bg-dark-card rounded-2xl shadow-lg">
+          <div className="w-full max-w-lg mx-auto p-8">
             <h2 className="text-2xl font-bold mb-4 text-center">
               Set up your profile
             </h2>
