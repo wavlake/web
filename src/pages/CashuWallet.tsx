@@ -217,6 +217,14 @@ export function CashuWallet() {
                   and this wallet seamlessly bridges both systems. You can send and receive 
                   Lightning payments while maintaining privacy through Cashu's blind signatures.
                 </p>
+                <p>
+                  <strong>Use your eCash in the real world!</strong> Through Lightning, you can:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Get a private SIM card at <a href="http://silent.link" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Silent.link</a></li>
+                  <li>Order a private Visa card from <a href="https://paywithmoon.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">PayWithMoon</a></li>
+                  <li>Buy gift cards at <a href="https://www.bitrefill.com/us/en/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Bitrefill</a> for everyday shopping</li>
+                </ul>
                 <p className="text-sm font-medium">
                   Think of it as digital cash that moves at the speed of Lightning! ⚡
                 </p>
