@@ -206,7 +206,7 @@ export default function Groups() {
               onSearch={setSearchQuery}
               className="sticky top-0 z-10"
             />
-            <div className="mt-2 flex justify-end">
+            <div className="mt-2 flex justify-end md:hidden">
               <a 
                 href="/trending" 
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -215,6 +215,15 @@ export default function Groups() {
                 Trending Hashtags
               </a>
             </div>
+          </div>
+          <div className="hidden md:flex">
+            <a 
+              href="/trending" 
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              Trending Hashtags
+            </a>
           </div>
         </div>
 
