@@ -22,12 +22,12 @@ export function usePinnedPosts(communityId: string) {
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       
-      // Fetch pinned posts events (kind 14554) for this community
+      // Fetch pinned posts events (kind 14554) for this community from all moderators
       const events = await nostr.query([
         { 
           kinds: [14554], 
           "#a": [communityId],
-          limit: 10 
+          limit: 50 
         }
       ], { signal });
 
@@ -36,7 +36,7 @@ export function usePinnedPosts(communityId: string) {
         return [];
       }
 
-      // Get all pinned post IDs from all events (in case multiple moderators pin posts)
+      // Get all pinned post IDs from all events (multiple moderators can pin posts)
       const pinnedPostIds = new Set<string>();
       
       for (const event of events) {
@@ -57,11 +57,35 @@ export function usePinnedPosts(communityId: string) {
     mutationFn: async (eventId: string) => {
       if (!user) throw new Error("User not logged in");
 
-      // Create tags for the event
-      const tags = [
-        ["a", communityId],
-        ["e", eventId]
-      ];
+      // First, get the current pinned posts event to see if one already exists
+      const signal = AbortSignal.timeout(5000);
+      const existingEvents = await nostr.query([
+        { 
+          kinds: [14554], 
+          authors: [user.pubkey],
+          "#a": [communityId],
+          limit: 1 
+        }
+      ], { signal });
+
+      // Start with the community tag
+      const tags = [["a", communityId]];
+
+      // If there's an existing event, copy its e tags and add the new one
+      if (existingEvents.length > 0) {
+        const existingEvent = existingEvents[0];
+        const existingETags = existingEvent.tags.filter(tag => tag[0] === "e");
+        
+        // Add existing e tags (avoid duplicates)
+        for (const eTag of existingETags) {
+          if (eTag[1] !== eventId) {
+            tags.push(eTag);
+          }
+        }
+      }
+
+      // Add the new e tag
+      tags.push(["e", eventId]);
 
       // Publish the kind 14554 event
       await publishEvent({
@@ -83,30 +107,45 @@ export function usePinnedPosts(communityId: string) {
     mutationFn: async (eventId: string) => {
       if (!user) throw new Error("User not logged in");
 
-      // Create a deletion event (kind 5) that references the pin event
-      // First, we need to find the pin event for this post
+      // First, get the current pinned posts event
       const signal = AbortSignal.timeout(5000);
-      const pinEvents = await nostr.query([
+      const existingEvents = await nostr.query([
         { 
           kinds: [14554], 
           authors: [user.pubkey],
           "#a": [communityId],
-          "#e": [eventId],
-          limit: 10 
+          limit: 1 
         }
       ], { signal });
 
-      if (pinEvents.length === 0) {
-        throw new Error("Pin event not found");
+      if (existingEvents.length === 0) {
+        throw new Error("No pinned posts event found");
       }
 
-      // Delete the most recent pin event
-      const pinEventToDelete = pinEvents[0];
+      const existingEvent = existingEvents[0];
+      const existingETags = existingEvent.tags.filter(tag => tag[0] === "e");
       
+      // Filter out the post we want to unpin
+      const remainingETags = existingETags.filter(tag => tag[1] !== eventId);
+
+      // Start with the community tag
+      const tags = [["a", communityId]];
+      
+      // Add the remaining e tags
+      for (const eTag of remainingETags) {
+        tags.push(eTag);
+      }
+
+      // If there are no remaining pinned posts, we could either:
+      // 1. Publish an empty event with just the "a" tag, or
+      // 2. Delete the entire event
+      // Let's go with option 1 for consistency
+      
+      // Publish the updated kind 14554 event
       await publishEvent({
-        kind: 5,
-        tags: [["e", pinEventToDelete.id]],
-        content: "Unpinning post"
+        kind: 14554,
+        tags,
+        content: ""
       });
 
       return eventId;
