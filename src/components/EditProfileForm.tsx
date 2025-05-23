@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { NSchema as n, type NostrMetadata } from '@nostrify/nostrify';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -184,19 +184,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({ showSkipLink = false
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Close button in top right */}
-      <div className="flex justify-end mb-4">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="h-8 w-8"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex flex-col items-center mb-6">
