@@ -62,6 +62,87 @@ import {
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { CommonGroupsListImproved } from "@/components/profile/CommonGroupsListImproved";
 
+// Hook to get shared group IDs
+function useSharedGroupIds(profileUserPubkey: string): string[] {
+  const { nostr } = useNostr();
+  const { user } = useCurrentUser();
+
+  const { data: sharedGroupIds = [] } = useQuery({
+    queryKey: ["shared-group-ids", user?.pubkey, profileUserPubkey],
+    queryFn: async (c) => {
+      if (!user || !nostr || !profileUserPubkey || user.pubkey === profileUserPubkey) {
+        return [];
+      }
+
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(8000)]);
+
+      // Helper function to get community ID
+      const getCommunityId = (community: NostrEvent) => {
+        const dTag = community.tags.find(tag => tag[0] === "d");
+        return `34550:${community.pubkey}:${dTag ? dTag[1] : ""}`;
+      };
+
+      // Get membership events for both users
+      const [currentUserMemberships, profileUserMemberships] = await Promise.all([
+        nostr.query([{ kinds: [14550], "#p": [user.pubkey], limit: 100 }], { signal }),
+        nostr.query([{ kinds: [14550], "#p": [profileUserPubkey], limit: 100 }], { signal })
+      ]);
+
+      // Get communities owned/moderated by both users
+      const [currentUserCommunities, profileUserCommunities] = await Promise.all([
+        nostr.query([
+          { kinds: [34550], authors: [user.pubkey] },
+          { kinds: [34550], "#p": [user.pubkey] }
+        ], { signal }),
+        nostr.query([
+          { kinds: [34550], authors: [profileUserPubkey] },
+          { kinds: [34550], "#p": [profileUserPubkey] }
+        ], { signal })
+      ]);
+
+      // Extract community IDs for current user
+      const currentUserCommunityIds = new Set<string>();
+      
+      // From memberships
+      for (const membership of currentUserMemberships) {
+        const aTag = membership.tags.find(tag => tag[0] === "a");
+        if (aTag) currentUserCommunityIds.add(aTag[1]);
+      }
+      
+      // From owned/moderated communities
+      for (const community of currentUserCommunities) {
+        const communityId = getCommunityId(community);
+        currentUserCommunityIds.add(communityId);
+      }
+
+      // Extract community IDs for profile user
+      const profileUserCommunityIds = new Set<string>();
+      
+      // From memberships
+      for (const membership of profileUserMemberships) {
+        const aTag = membership.tags.find(tag => tag[0] === "a");
+        if (aTag) profileUserCommunityIds.add(aTag[1]);
+      }
+      
+      // From owned/moderated communities
+      for (const community of profileUserCommunities) {
+        const communityId = getCommunityId(community);
+        profileUserCommunityIds.add(communityId);
+      }
+
+      // Find common community IDs
+      const commonCommunityIds = [...currentUserCommunityIds].filter(id => 
+        profileUserCommunityIds.has(id)
+      );
+
+      return commonCommunityIds;
+    },
+    enabled: !!nostr && !!user && !!profileUserPubkey && user.pubkey !== profileUserPubkey,
+  });
+
+  return sharedGroupIds;
+}
+
 // Helper function to extract group information from a post
 function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: string } | null {
   // Find the "a" tag that matches the group format
@@ -293,14 +374,19 @@ function RoleBadge({
 function UserGroupsList({
   groups,
   isLoading,
-  profileUserPubkey
+  profileUserPubkey,
+  sharedGroupIds = []
 }: {
   groups: UserGroup[] | undefined;
   isLoading: boolean;
   profileUserPubkey: string;
+  sharedGroupIds?: string[];
 }) {
   const { user } = useCurrentUser();
   const isCurrentUser = user && profileUserPubkey === user.pubkey;
+  const profileAuthor = useAuthor(profileUserPubkey);
+  const profileMetadata = profileAuthor.data?.metadata;
+  const profileDisplayName = profileMetadata?.display_name || profileMetadata?.name || profileUserPubkey.slice(0, 8);
 
   if (isLoading) {
     return (
@@ -334,9 +420,14 @@ function UserGroupsList({
     );
   }
 
-  // Create a map to deduplicate groups by ID
+  // Create a map to deduplicate groups by ID and filter out shared groups
   const uniqueGroups = new Map<string, UserGroup>();
   for (const group of groups) {
+    // Skip if this group is in the shared groups list (only when viewing another user's profile)
+    if (!isCurrentUser && sharedGroupIds.includes(group.id)) {
+      continue;
+    }
+    
     // Only add if not already in the map, or replace with newer version
     if (
       !uniqueGroups.has(group.id) ||
@@ -387,13 +478,13 @@ function UserGroupsList({
         <CommonGroupsListImproved profileUserPubkey={profileUserPubkey} />
       )}
 
-      {/* All Groups Section */}
+      {/* User's Groups Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-semibold">
-              {isCurrentUser ? "Your Groups" : `${user ? "All " : ""}Groups`}
+              {isCurrentUser ? "Your Groups" : `${profileDisplayName}'s Groups`}
             </h3>
           </div>
           <Badge variant="secondary" className="text-xs">
@@ -867,6 +958,9 @@ export default function Profile() {
   // Check if this is the current user's profile
   const isCurrentUser = user && pubkey === user.pubkey;
 
+  // Get shared group IDs to filter them out from the main groups list
+  const sharedGroupIds = useSharedGroupIds(pubkey || "");
+
   useEffect(() => {
     if (displayNameFull && displayNameFull !== "Unnamed User") {
       document.title = `+chorus - ${displayNameFull}`;
@@ -1131,6 +1225,7 @@ export default function Profile() {
               groups={userGroups} 
               isLoading={isLoadingGroups} 
               profileUserPubkey={pubkey || ""} 
+              sharedGroupIds={sharedGroupIds}
             />
           </div>
         </TabsContent>
