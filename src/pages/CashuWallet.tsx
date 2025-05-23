@@ -14,6 +14,9 @@ import { useCashuStore } from "@/stores/cashuStore";
 import { useToast } from "@/hooks/useToast";
 import { Loader2 } from "lucide-react";
 import { formatBalance } from "@/lib/cashu";
+import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
+import { useBitcoinPrice } from "@/hooks/useBitcoinPrice";
+import { formatUSD, satoshisToUSD } from "@/lib/bitcoinUtils";
 
 export function CashuWallet() {
   const { user } = useCurrentUser();
@@ -22,6 +25,18 @@ export function CashuWallet() {
   const { toast } = useToast();
   const cashuStore = useCashuStore();
   const [isProcessingToken, setIsProcessingToken] = useState(false);
+  const { showSats } = useCurrencyDisplayStore();
+  const { data: btcPrice, isLoading: btcPriceLoading } = useBitcoinPrice();
+
+  // Helper function to format amount based on user preference
+  const formatAmount = (sats: number): string => {
+    if (showSats) {
+      return `${sats.toLocaleString()} sats`;
+    } else {
+      const usd = satoshisToUSD(sats, btcPrice?.USD || null);
+      return usd !== null ? formatUSD(usd) : `${sats.toLocaleString()} sats`;
+    }
+  };
 
   // Handle pending onboarding token
   useEffect(() => {
@@ -31,29 +46,37 @@ export function CashuWallet() {
     // Check for pending onboarding token
     const pendingToken = cashuStore.getPendingOnboardingToken();
     if (pendingToken) {
+      // If USD mode and price is still loading, wait
+      if (!showSats && btcPriceLoading) {
+        return;
+      }
+
       const processPendingToken = async () => {
         setIsProcessingToken(true);
-        
+
         try {
           // Clear the pending token immediately to prevent re-processing
           cashuStore.setPendingOnboardingToken(undefined);
-          
+
           // Receive the token
           const proofs = await receiveToken(pendingToken);
-          
+
           // Calculate total amount
           const totalAmount = proofs.reduce((sum, p) => sum + p.amount, 0);
-          
+
           // Show success toast
           toast({
-            title: "Ecash received!",
-            description: `You've received ${totalAmount} sats in your wallet`,
+            title: "✅ Ecash received!",
+            description: `You've received ${formatAmount(
+              totalAmount
+            )} in your wallet`,
           });
         } catch (error) {
           console.error("Error receiving pending token:", error);
           toast({
             title: "Failed to redeem token",
-            description: error instanceof Error ? error.message : "Unknown error occurred",
+            description:
+              error instanceof Error ? error.message : "Unknown error occurred",
             variant: "destructive",
           });
         } finally {
@@ -63,7 +86,7 @@ export function CashuWallet() {
 
       processPendingToken();
     }
-  }, [user, wallet, cashuStore, receiveToken, toast]);
+  }, [user, wallet, cashuStore, receiveToken, toast, showSats, btcPriceLoading, formatAmount]);
 
   // Handle tokens in URL (existing functionality)
   useEffect(() => {
@@ -79,31 +102,34 @@ export function CashuWallet() {
     if (!tokenMatch || !tokenMatch[1]) return;
 
     const token = tokenMatch[1];
-    
+
     // Process the token
     const processToken = async () => {
       setIsProcessingToken(true);
-      
+
       try {
         // Clean up the URL immediately to prevent re-processing
         window.history.replaceState(null, "", window.location.pathname);
-        
+
         // Receive the token
         const proofs = await receiveToken(token);
-        
+
         // Calculate total amount
         const totalAmount = proofs.reduce((sum, p) => sum + p.amount, 0);
-        
+
         // Show success toast
         toast({
-          title: "Ecash received!",
-          description: `You've received ${totalAmount} sats in your wallet`,
+          title: "✅ eCash received!",
+          description: `You've received ${formatAmount(
+            totalAmount
+          )} in your wallet`,
         });
       } catch (error) {
         console.error("Error receiving token from URL:", error);
         toast({
           title: "Failed to redeem token",
-          description: error instanceof Error ? error.message : "Unknown error occurred",
+          description:
+            error instanceof Error ? error.message : "Unknown error occurred",
           variant: "destructive",
         });
       } finally {
