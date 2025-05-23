@@ -770,6 +770,38 @@ export default function Profile() {
 
         {/* Bottom row: Action buttons */}
         <div className="flex flex-wrap gap-2">
+          {/* Npub button - always first */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={copyPubkeyToClipboard}
+          >
+            <Copy className="h-4 w-4" />
+            Npub
+          </Button>
+          
+          {/* Website button - second if exists */}
+          {website && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              asChild
+            >
+              <a
+                href={website.startsWith('http') ? website : `https://${website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center"
+              >
+                <LinkIcon className="h-4 w-4" />
+                Website
+              </a>
+            </Button>
+          )}
+
+          {/* Edit Profile or Follow button - last */}
           {isCurrentUser ? (
             <Button
               variant="outline"
@@ -788,35 +820,6 @@ export default function Profile() {
               size="sm"
             >
               Follow
-            </Button>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={copyPubkeyToClipboard}
-          >
-            <Copy className="h-4 w-4" />
-            <span className="hidden sm:inline">Copy Key</span>
-          </Button>
-          
-          {website && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              asChild
-            >
-              <a
-                href={website.startsWith('http') ? website : `https://${website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center"
-              >
-                <LinkIcon className="h-4 w-4" />
-                <span className="truncate">Website</span>
-              </a>
             </Button>
           )}
         </div>
