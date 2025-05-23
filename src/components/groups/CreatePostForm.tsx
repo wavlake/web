@@ -20,6 +20,12 @@ export function CreatePostForm({ communityId }: CreatePostFormProps) {
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending: isPublishing } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  
+  // Move useAuthor hook before any conditional returns
+  const author = useAuthor(user?.pubkey || '');
+  const metadata = author.data?.metadata;
+  const displayName = metadata?.name || user?.pubkey.slice(0, 8) || '';
+  const profileImage = metadata?.picture;
 
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -87,11 +93,6 @@ ${imageUrl}`;
       toast.error("Failed to publish post. Please try again.");
     }
   };
-
-  const author = useAuthor(user.pubkey);
-  const metadata = author.data?.metadata;
-  const displayName = metadata?.name || user.pubkey.slice(0, 8);
-  const profileImage = metadata?.picture;
 
   return (
     <Card className="mb-4">

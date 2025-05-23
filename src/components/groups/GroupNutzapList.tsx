@@ -9,6 +9,7 @@ import { Zap, DollarSign, Bitcoin, ArrowLeftRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
+import { NostrEvent } from "@nostrify/nostrify";
 
 interface GroupNutzapListProps {
   groupId: string;
@@ -85,7 +86,7 @@ export function GroupNutzapList({ groupId }: GroupNutzapListProps) {
   );
 }
 
-function NutzapItem({ event, btcPrice, showSats }: { event: any; btcPrice?: number; showSats: boolean }) {
+function NutzapItem({ event, btcPrice, showSats }: { event: NostrEvent; btcPrice?: number; showSats: boolean }) {
   const author = useAuthor(event.pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || event.pubkey.slice(0, 8);
@@ -136,8 +137,12 @@ function NutzapItem({ event, btcPrice, showSats }: { event: any; btcPrice?: numb
               <div className="text-xs text-muted-foreground">{formattedDate}</div>
             </div>
           </Link>
-          <div className="flex items-center text-amber-500">
-            <DollarSign className="h-4 w-4 mr-1" />
+          <div className="flex items-center">
+            {showSats ? (
+              <Bitcoin className="h-4 w-4 mr-1 text-amber-500" />
+            ) : (
+              <DollarSign className="h-4 w-4 mr-1 text-green-500" />
+            )}
             <span className={`font-medium tabular-nums ${isFlashing ? 'flash-update' : ''}`}>
               {currentValue}
             </span>

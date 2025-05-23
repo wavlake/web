@@ -18,13 +18,7 @@ import { getTokenAmount } from "@/lib/cashu";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 import { usePWA } from "@/hooks/usePWA";
-
-// Create context for storing generated name during onboarding
-export const OnboardingContext = React.createContext<{
-  generatedName: string | null;
-}>({
-  generatedName: null,
-});
+import { OnboardingContext } from "@/contexts/OnboardingContext";
 
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();

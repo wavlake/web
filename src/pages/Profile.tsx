@@ -647,7 +647,8 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
               relayHint={undefined}
               onSuccess={() => {
                 // Call the refetch function if available
-                const refetchFn = (window as any)[`zapRefetch_${post.id}`];
+                const windowWithZapRefetch = window as unknown as { [key: string]: (() => void) | undefined };
+                const refetchFn = windowWithZapRefetch[`zapRefetch_${post.id}`];
                 if (refetchFn) refetchFn();
               }}
             />
