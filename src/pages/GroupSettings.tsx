@@ -12,7 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useAuthor } from "@/hooks/useAuthor";
+import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
+import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { toast } from "sonner";
 import { ArrowLeft, Save, UserPlus, Users, Shield, Trash2, FileWarning } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -146,6 +149,10 @@ export default function GroupSettings() {
 
   const isModerator = user && moderators.includes(user.pubkey);
   const isOwner = Boolean(user && community && user.pubkey === (community as NostrEvent).pubkey);
+
+  // Get notification counts for tabs
+  const { data: openReportsCount = 0 } = useOpenReportsCount(groupId || '');
+  const { pendingRequestsCount = 0 } = usePendingJoinRequests(groupId || '');
 
   console.log("Current user pubkey:", user?.pubkey);
   console.log("Community creator pubkey:", community?.pubkey);
@@ -426,15 +433,31 @@ export default function GroupSettings() {
               General
             </TabsTrigger>
             {(isOwner || isModerator) && (
-              <TabsTrigger value="members" className="flex-1 md:flex-none">
+              <TabsTrigger value="members" className="flex-1 md:flex-none relative">
                 <Users className="h-4 w-4 mr-2" />
                 Members
+                {pendingRequestsCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs z-10"
+                  >
+                    {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
             )}
             {(isOwner || isModerator) && (
-              <TabsTrigger value="reports" className="flex-1 md:flex-none">
+              <TabsTrigger value="reports" className="flex-1 md:flex-none relative">
                 <FileWarning className="h-4 w-4 mr-2" />
                 Reports
+                {openReportsCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs z-10"
+                  >
+                    {openReportsCount > 99 ? '99+' : openReportsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
             )}
           </TabsList>
