@@ -21,12 +21,13 @@ import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { GroupNutzapButton } from "@/components/groups/GroupNutzapButton";
 import { GroupNutzapTotal } from "@/components/groups/GroupNutzapTotal";
 import { GroupNutzapList } from "@/components/groups/GroupNutzapList";
-import { Users, Settings, MessageSquare, CheckCircle, DollarSign, QrCode } from "lucide-react";
+import { Users, Settings, MessageSquare, CheckCircle, DollarSign, QrCode, FileText } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import Header from "@/components/ui/Header";
 import { QRCodeModal } from "@/components/QRCodeModal";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -37,6 +38,7 @@ export default function GroupDetail() {
   const [showOnlyApproved, setShowOnlyApproved] = useState(true);
   const [currentPostCount, setCurrentPostCount] = useState(0);
   const [activeTab, setActiveTab] = useState("posts");
+  const [imageLoading, setImageLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(false);
 
   
@@ -124,11 +126,12 @@ export default function GroupDetail() {
   const nameTag = community?.tags.find(tag => tag[0] === "name");
   const descriptionTag = community?.tags.find(tag => tag[0] === "description");
   const imageTag = community?.tags.find(tag => tag[0] === "image");
-
+  const guidelinesTag = community?.tags.find(tag => tag[0] === "guidelines");
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
   const image = imageTag ? imageTag[1] : undefined;
+  const hasGuidelines = guidelinesTag && guidelinesTag[1].trim().length > 0;
 
   useEffect(() => {
     if (name && name !== "Unnamed Group") {
@@ -141,11 +144,35 @@ export default function GroupDetail() {
     };
   }, [name]);
 
+  // Reset image loading state when image URL changes
+  useEffect(() => {
+    setImageLoading(true);
+  }, [image]);
+
   if (isLoadingCommunity || !parsedId) {
     return (
       <div className="container mx-auto py-1 px-3 sm:px-4">
         <Header />
         <h1 className="text-2xl font-bold mb-4">Loading group...</h1>
+        
+        <div className="relative mb-6 mt-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Skeleton className="h-40 w-full rounded-lg mb-2" />
+            </div>
+            <div className="min-w-[140px]">
+              <Skeleton className="h-10 w-full rounded-md mb-4" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+          
+          <div className="w-full mt-4">
+            <Skeleton className="h-8 w-3/4 rounded-md mb-2" />
+            <Skeleton className="h-4 w-full rounded-md mb-1" />
+            <Skeleton className="h-4 w-5/6 rounded-md mb-1" />
+            <Skeleton className="h-4 w-2/3 rounded-md" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -169,67 +196,62 @@ export default function GroupDetail() {
       <div className="relative mb-6 mt-4">
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              {image ? (
-                <img
-                  src={image}
-                  alt={name}
-                  className="w-full h-full object-cover object-center"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = "flex";
-                  }}
-                />
-              ) : null}
-              <div 
-                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image ? 'hidden' : 'flex'}`}
-              >
-                {name.charAt(0).toUpperCase()}
-              </div>
-            </div>
-
-            <div className="flex flex-row items-start justify-between gap-4 mb-2">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold">{name}</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Manage Group button moved to the right column */}
-              </div>
+            <div className="h-40 rounded-lg overflow-hidden mb-2 relative">
+              {imageLoading && (
+                <Skeleton className="absolute inset-0 w-full h-full z-10" />
+              )}
+              <img
+                src={image}
+                alt={name}
+                className="w-full h-full object-cover object-center"
+                onLoad={() => setImageLoading(false)}
+                onError={(e) => {
+                  setImageLoading(false);
+                  e.currentTarget.src = "/placeholder-community.svg";
+                }}
+              />
             </div>
           </div>
 
-          <div className="flex flex-col justify-between min-w-[140px] h-36">
+          <div className="flex flex-col min-w-[140px] h-40 space-y-2 justify-between">
             {!isModerator ? (
               <>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="gap-1.5 mb-2"
+                  size="default"
+                  className="w-full h-8 justify-start pl-3"
+
                   onClick={() => setShowQRCode(true)}
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-4 w-4 mr-2" />
                   QR Code
                 </Button>
-                <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+                {/* Make JoinRequestButton height consistent */}
+                <div className="h-8">
+                  <JoinRequestButton communityId={groupId || ''} isModerator={isModerator} />
+                </div>
+                {/* Add spacer to ensure buttons are distributed evenly */}
                 <div className="flex-1" />
-                <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+                {/* Ensure consistent height for GroupNutzapTotal */}
+                <div className="h-8 flex items-center">
+                  <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+                </div>
               </>
             ) : (
               <>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="gap-1.5 mb-2"
+                  size="default"
+                  className="w-full h-8 justify-start pl-3"
                   onClick={() => setShowQRCode(true)}
                 >
-                  <QrCode className="h-4 w-4" />
+                  <QrCode className="h-4 w-4 mr-2" />
                   QR Code
                 </Button>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button asChild variant="outline" size="sm" className="relative justify-start">
+                      <Button asChild variant="outline" size="default" className="relative h-8 w-full justify-start pl-3">
                         <Link 
                           to={`/group/${encodeURIComponent(groupId || '')}/settings${
                             openReportsCount > 0 ? '?tab=reports' : 
@@ -237,7 +259,7 @@ export default function GroupDetail() {
                           }`} 
                           className="flex items-center gap-2"
                         >
-                          <Settings className="h-4 w-4" />
+                          <Settings className="h-4 w-4 mr-2" />
                           <span>Manage Group</span>
                           {(openReportsCount > 0 || pendingRequestsCount > 0) && (
                             <Badge 
@@ -270,21 +292,40 @@ export default function GroupDetail() {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {user && community && (
-                  <GroupNutzapButton
-                    groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
-                    ownerPubkey={community.pubkey}
-                    variant="outline"
-                  />
-                )}
-                <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+                {/* Ensure consistent height for GroupNutzapButton */}
+                <div className="h-8">
+                  {user && community && (
+                    <GroupNutzapButton
+                      groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`}
+                      ownerPubkey={community.pubkey}
+                      variant="outline"
+                      className="w-full h-8"
+                    />
+                  )}
+                </div>
+                {/* Ensure consistent height for GroupNutzapTotal */}
+                <div className="h-8 flex items-center">
+                  <GroupNutzapTotal groupId={`34550:${parsedId?.pubkey}:${parsedId?.identifier}`} />
+                </div>
               </>
             )}
           </div>
         </div>
         
-        {/* Group description moved outside the grid to span full width */}
-        <div className="w-full mt-2">
+        {/* Title and description moved below image and buttons, full width */}
+        <div className="w-full mt-4">
+          <h1 className="text-2xl font-bold mb-2">{name}</h1>
+          {hasGuidelines && (
+            <div className="mb-2">
+              <Link 
+                to={`/group/${encodeURIComponent(groupId || '')}/guidelines`}
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 text-sm font-medium inline-flex items-center gap-1"
+              >
+                <FileText className="h-4 w-4" />
+                Community Guidelines
+              </Link>
+            </div>
+          )}
           <p className="text-base text-muted-foreground">{description}</p>
         </div>
       </div>
