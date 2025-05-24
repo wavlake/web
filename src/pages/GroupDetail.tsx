@@ -86,7 +86,7 @@ export default function GroupDetail() {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
       const events = await nostr.query([{
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [groupId || ''],
+        "#d": [groupId || ''],
         limit: 10,
       }], { signal });
       return events;
