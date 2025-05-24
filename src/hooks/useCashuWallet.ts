@@ -262,10 +262,6 @@ export function useCashuWallet() {
           created_at: Math.floor(Date.now() / 1000)
         });
 
-        // remove proofs from store
-        const proofsToRemoveFiltered = proofsToRemove.filter(proof => !newProofs.includes(proof));
-        cashuStore.removeProofs(proofsToRemoveFiltered);
-
         // add proofs to store
         cashuStore.addProofs(newProofs, newTokenEvent?.id || '');
 
@@ -293,6 +289,10 @@ export function useCashuWallet() {
           tags: eventIdsToRemove.map(id => ['e', id]),
           created_at: Math.floor(Date.now() / 1000)
         });
+
+        // remove proofs from store
+        const proofsToRemoveFiltered = proofsToRemove.filter(proof => !newProofs.includes(proof));
+        cashuStore.removeProofs(proofsToRemoveFiltered);
 
         // publish deletion event
         try {

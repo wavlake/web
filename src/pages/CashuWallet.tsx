@@ -40,6 +40,7 @@ export function CashuWallet() {
   const [isProcessingToken, setIsProcessingToken] = useState(false);
   const { showSats, toggleCurrency } = useCurrencyDisplayStore();
   const { data: btcPrice, isLoading: btcPriceLoading } = useBitcoinPrice();
+  
   // Calculate total balance across all mints
   const balances = calculateBalance(cashuStore.proofs);
   const totalBalance = Object.values(balances).reduce(

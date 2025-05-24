@@ -164,10 +164,10 @@ export function CashuWalletCard() {
     }
   };
 
-  const handleCleanSpentProofs = async () => {
+  const handleCleanSpentProofs = async (mintUrl: string) => {
     if (!wallet || !wallet.mints) return;
     if (!cashuStore.activeMintUrl) return;
-    const spentProofs = await cleanSpentProofs(cashuStore.activeMintUrl);
+    const spentProofs = await cleanSpentProofs(mintUrl);
     const proofSum = spentProofs.reduce((sum, proof) => sum + proof.amount, 0);
     console.log(
       `Removed ${spentProofs.length} spent proofs for ${proofSum} sats`
@@ -314,7 +314,7 @@ export function CashuWalletCard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleCleanSpentProofs()}
+                              onClick={() => handleCleanSpentProofs(mint)}
                               className="border-muted-foreground/20 hover:bg-muted"
                             >
                               <Eraser className="h-4 w-4 mr-1 text-amber-500" />
