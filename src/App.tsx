@@ -37,6 +37,7 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <JoinDialogProvider>
+              <WalletLoader />
               <Toaster />
               <Sonner />
               <AppRouter />
