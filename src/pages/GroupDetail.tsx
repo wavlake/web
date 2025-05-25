@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RichText } from "@/components/ui/RichText";
 import { KINDS } from "@/lib/nostr-kinds";
 
 import { CreatePostForm } from "@/components/groups/CreatePostForm";
@@ -593,7 +594,7 @@ export default function GroupDetail() {
               </TooltipProvider>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <RichText className="text-xs text-muted-foreground">{description}</RichText>
         </div>
       </div>
 
@@ -930,7 +931,7 @@ export default function GroupDetail() {
           </DialogHeader>
           <ScrollArea className="mt-4 max-h-[60vh] pr-4">
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="whitespace-pre-wrap">{guidelinesTag?.[1] || "No guidelines available."}</p>
+              <RichText>{guidelinesTag?.[1] || "No guidelines available."}</RichText>
             </div>
           </ScrollArea>
         </DialogContent>
