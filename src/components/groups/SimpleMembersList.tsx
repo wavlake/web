@@ -201,7 +201,7 @@ function MemberItem({ pubkey }: MemberItemProps) {
   return (
     <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors">
       <Link to={`/profile/${pubkey}`} className="flex items-center gap-3">
-        <Avatar>
+        <Avatar className="rounded-md h-9 w-9">
           <AvatarImage src={profileImage} />
           <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
