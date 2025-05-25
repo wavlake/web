@@ -296,7 +296,7 @@ export function useCashuWallet() {
         });
 
         // remove proofs from store
-        const proofsToRemoveFiltered = proofsToRemove.filter(proof => !newProofs.includes(proof));
+        const proofsToRemoveFiltered = proofsToRemove.filter(proof => !newProofs.map(p => p.secret).includes(proof.secret));
         cashuStore.removeProofs(proofsToRemoveFiltered);
 
         // publish deletion event
