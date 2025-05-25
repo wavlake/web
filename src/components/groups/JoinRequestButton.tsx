@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostr } from "@/hooks/useNostr";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,7 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
   const { user } = useCurrentUser();
   const { nostr } = useNostr();
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
+  const queryClient = useQueryClient();
   
   const handleOpenChange = (newState: boolean) => {
     setOpen(newState);
@@ -92,6 +93,24 @@ export function JoinRequestButton({ communityId, isModerator = false, initialOpe
 
       toast.success("Join request sent successfully!");
       handleOpenChange(false);
+
+      // Invalidate relevant queries after 2 seconds to check for auto-approval
+      setTimeout(() => {
+        // Invalidate the approved members query to check if user was auto-approved
+        queryClient.invalidateQueries({
+          queryKey: ["approved-members-list", communityId]
+        });
+        
+        // Invalidate the join request query to refresh the status
+        queryClient.invalidateQueries({
+          queryKey: ["join-request", communityId, user.pubkey]
+        });
+        
+        // Invalidate the declined user query in case status changed
+        queryClient.invalidateQueries({
+          queryKey: ["declined-user", communityId, user.pubkey]
+        });
+      }, 2000);
     } catch (error) {
       console.error("Error sending join request:", error);
       toast.error("Failed to send join request. Please try again.");
