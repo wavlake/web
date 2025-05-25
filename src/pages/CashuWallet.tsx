@@ -313,7 +313,7 @@ export function CashuWallet() {
         <CashuWalletLightningCard />
         <CashuWalletCard />
         {/* <NutzapCard /> */}
-        {/* <CashuTokenCard /> */}
+        <CashuTokenCard />
         <CashuHistoryCard />
       </div>
 
