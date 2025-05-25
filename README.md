@@ -102,5 +102,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - [Website](https://chorus.community)
 - [GitHub](https://github.com/andotherstuff/chorus)
-- [+chorus Group](https://chorus.community/group/34550:932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d:and-other-stuff)
+- [+chorus Group](https://chorus.community/group/34550%3A932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d%3Aand-other-stuff-mb3c9stb)
 - [Bug Reports](https://github.com/andotherstuff/chorus/issues/new)
