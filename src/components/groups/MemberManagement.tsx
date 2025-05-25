@@ -465,8 +465,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                     <UserPlus className="h-4 w-4" />
                     <span>Requests</span>
                     {pendingRequests.length > 0 && (
-                      <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs ml-auto">
-                        {pendingRequests.length > 9 ? '9+' : pendingRequests.length}
+                      <span className="bg-primary text-primary-foreground rounded-full min-w-5 h-5 px-1 flex items-center justify-center text-xs ml-auto">
+                        {pendingRequests.length > 99 ? '99' : pendingRequests.length}
                       </span>
                     )}
                   </div>
