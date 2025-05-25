@@ -12,9 +12,13 @@ export function useApprovedMembers(communityId: string) {
   const { nostr } = useNostr();
   const { data: group } = useGroup(communityId);
 
+  const groupModsKey = group?.tags
+    .filter(tag => tag[0] === "p" && tag[3] === "moderator")
+    .map(([, value]) => value).join(",") || "";
+
   // Query for approved members list
   const { data: approvedMembersEvents, isLoading } = useQuery({
-    queryKey: ["approved-members-list", communityId],
+    queryKey: ["approved-members-list", communityId, groupModsKey],
     queryFn: async (c) => {
       if (!group) {
         throw new Error("Group not found");
