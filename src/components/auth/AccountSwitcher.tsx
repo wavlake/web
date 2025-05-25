@@ -88,8 +88,8 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
                 )}
               </Avatar>
               {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-background">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <div className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-background">
+                  {unreadCount > 99 ? '99' : unreadCount}
                 </div>
               )}
             </div>
@@ -147,7 +147,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
               <span>Notifications</span>
               {unreadCount > 0 && (
                 <span className="ml-auto bg-primary text-primary-foreground text-xs font-medium px-1.5 py-0.5 rounded-full">
-                  {unreadCount}
+                  {unreadCount > 99 ? '99' : unreadCount}
                 </span>
               )}
             </a>
