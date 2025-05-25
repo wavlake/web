@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
+import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { DollarSign, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -41,27 +42,8 @@ export function SimpleMembersList({ communityId }: SimpleMembersListProps) {
     enabled: !!nostr && !!parsedId,
   });
   
-  // Query for approved members
-  const { data: approvedMembersEvents, isLoading } = useQuery({
-    queryKey: ["approved-members-simple", communityId],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#d": [communityId],
-        limit: 50,
-      }], { signal });
-      
-      return events;
-    },
-    enabled: !!nostr && !!communityId,
-  });
-
-  // Extract all approved member pubkeys from the events
-  const approvedMembers = approvedMembersEvents?.flatMap(event => 
-    event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-  ) || [];
+  // Get approved members using the centralized hook
+  const { approvedMembers, isLoading } = useApprovedMembers(communityId);
 
   // Get moderators from community
   const moderatorTags = community?.tags.filter(tag => tag[0] === "p" && tag[3] === "moderator") || [];

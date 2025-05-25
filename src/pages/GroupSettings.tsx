@@ -102,7 +102,7 @@ export default function GroupSettings() {
 
       const events = await nostr.query([{
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#a": [groupId || ""],
+        "#d": [groupId || ""],
         limit: 50,
       }], { signal });
 

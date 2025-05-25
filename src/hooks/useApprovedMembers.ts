@@ -16,10 +16,14 @@ export function useApprovedMembers(communityId: string) {
   const { data: approvedMembersEvents, isLoading } = useQuery({
     queryKey: ["approved-members-list", communityId],
     queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const moderators = new Set<string>([group!.pubkey]);
+      if (!group) {
+        throw new Error("Group not found");
+      }
 
-      for (const tag of group!.tags) {
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const moderators = new Set<string>([group.pubkey]);
+
+      for (const tag of group.tags) {
         if (tag[0] === "p" && tag[3] === "moderator") {
           moderators.add(tag[1]);
         }
@@ -29,7 +33,6 @@ export function useApprovedMembers(communityId: string) {
         kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
         authors: [...moderators],
         "#d": [communityId],
-        limit: 10,
       }], { signal });
       
       return events;
