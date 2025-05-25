@@ -85,6 +85,11 @@ export function useCashuWallet() {
 
         cashuStore.setPrivkey(walletData.privkey);
 
+        // if no active mint is set, set the first mint as active
+        if (!cashuStore.getActiveMintUrl()) {
+          cashuStore.setActiveMintUrl(walletData.mints[0]);
+        }
+
         // log wallet data
         console.log('walletData', walletData);
 
