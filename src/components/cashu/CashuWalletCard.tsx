@@ -158,6 +158,9 @@ export function CashuWalletCard() {
       }
     }
 
+    // remove the mint from the cashuStore.mints array
+    cashuStore.mints = cashuStore.mints.filter((m) => m.url !== mintUrl);
+
     // Close expanded view if open
     if (expandedMint === mintUrl) {
       setExpandedMint(null);
