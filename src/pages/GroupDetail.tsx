@@ -959,7 +959,7 @@ function ModeratorItem({ pubkey, isCreator = false, onRemove }: ModeratorItemPro
     <div className="flex items-center justify-between p-3 border rounded-md">
       <div className="flex items-center gap-3">
         <Link to={`/profile/${pubkey}`}>
-          <Avatar>
+          <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -1023,7 +1023,7 @@ function MemberItem({ pubkey, onPromote, isOwner }: MemberItemProps) {
     <div className="flex items-center justify-between p-3 border rounded-md">
       <div className="flex items-center gap-3">
         <Link to={`/profile/${pubkey}`}>
-          <Avatar>
+          <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
