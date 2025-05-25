@@ -75,30 +75,26 @@ export default function Notifications() {
         break;
       case "join_request":
         if (notification.groupId) {
-          // Link to the members tab with requests selected
-          linkTo = `/group/${notification.groupId}#members`;
-          // The MemberManagement component has its own tabs, so we need to set the active tab
-          // We'll add a URL parameter to indicate which tab should be active
-          linkTo += "?membersTab=requests";
-          linkText = "View join requests";
+          // Link to the group settings members tab
+          linkTo = `/group/${notification.groupId}/settings?tab=members`;
+          linkText = "Manage join requests";
         }
         break;
       case "leave_request":
         if (notification.groupId) {
-          // Link to the members tab
-          linkTo = `/group/${notification.groupId}#members`;
+          // Link to the group settings members tab
+          linkTo = `/group/${notification.groupId}/settings?tab=members`;
           linkText = "View members";
         }
         break;
       case "report":
       case "report_action":
         if (notification.groupId) {
-          // Link to the reports tab
-          linkTo = `/group/${notification.groupId}#reports`;
+          // Link to the group settings reports tab
+          linkTo = `/group/${notification.groupId}/settings?tab=reports`;
           if (notification.eventId) {
             // If we have a report ID, add it as a parameter
-            // The ReportsList component can then highlight this specific report
-            linkTo += `?reportId=${notification.eventId}`;
+            linkTo += `&reportId=${notification.eventId}`;
             linkText = "View report";
           } else {
             linkText = "View reports";
