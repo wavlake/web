@@ -80,7 +80,7 @@ export function useBannedUsers(communityId?: string) {
         ["p", pubkey] // Add the new banned user
       ];
 
-      // Create banned users event (kind 14552)
+      // Create banned users event
       await publishEvent({
         kind: KINDS.GROUP_BANNED_MEMBERS_LIST,
         tags,
@@ -121,7 +121,7 @@ export function useBannedUsers(communityId?: string) {
         ...updatedBannedUsers.map(pk => ["p", pk])
       ];
 
-      // Create updated banned users event (kind 14552)
+      // Create updated banned users event
       await publishEvent({
         kind: KINDS.GROUP_BANNED_MEMBERS_LIST,
         tags,
