@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { RichText } from "@/components/ui/RichText";
 import { Users, Crown, Shield, User, ArrowRight } from "lucide-react";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -344,9 +345,9 @@ export function CommonGroupsListImproved({ profileUserPubkey }: CommonGroupsList
                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     {group.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                      <RichText className="text-sm text-muted-foreground line-clamp-2 mt-1">
                         {group.description}
-                      </p>
+                      </RichText>
                     )}
                   </div>
                 </div>
