@@ -16,6 +16,7 @@ import { UserPlus, Users, CheckCircle, XCircle, UserX, Ban } from "lucide-react"
 import { NostrEvent } from "@nostrify/nostrify";
 import { Link, useLocation } from "react-router-dom";
 import { KINDS } from "@/lib/nostr-kinds";
+import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 
 interface MemberManagementProps {
   communityId: string;
@@ -63,22 +64,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     enabled: !!nostr && !!communityId,
   });
 
-  // Query for approved members
-  const { data: approvedMembersEvents, isLoading: isLoadingMembers, refetch: refetchMembers } = useQuery({
-    queryKey: ["approved-members", communityId],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#d": [communityId],
-        limit: 10,
-      }], { signal });
-      
-      return events;
-    },
-    enabled: !!nostr && !!communityId,
-  });
+  // Get approved members using the centralized hook
+  const { approvedMembers, isLoading: isLoadingMembers } = useApprovedMembers(communityId);
 
   // Query for declined users
   const { data: declinedUsersEvents, isLoading: isLoadingDeclined, refetch: refetchDeclined } = useQuery({
@@ -96,11 +83,6 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     },
     enabled: !!nostr && !!communityId,
   });
-
-  // Extract all approved member pubkeys from the events
-  const approvedMembers = approvedMembersEvents?.flatMap(event => 
-    event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-  ) || [];
 
   // Remove duplicates
   const uniqueApprovedMembers = [...new Set(approvedMembers)];
@@ -179,13 +161,13 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Refetch data
       refetchRequests();
-      refetchMembers();
       refetchDeclined();
       
       // Invalidate pending requests count cache
       queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
       
       // Switch to members tab
       setActiveTab("members");
@@ -239,12 +221,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       toast.success("Member removed successfully!");
       
       // Refetch data
-      refetchMembers();
       refetchDeclined();
       
       // Invalidate pending requests count cache
       queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
@@ -367,11 +349,11 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Refetch data
       refetchDeclined();
-      refetchMembers();
       
       // Invalidate pending requests count cache
       queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
       
       // Switch to members tab
       setActiveTab("members");
@@ -449,13 +431,13 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       
       // Refetch data
       refetchRequests();
-      refetchMembers();
       refetchDeclined();
       
       // Invalidate pending requests count cache
       queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
       queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
     } catch (error) {
       console.error("Error approving all users:", error);
       toast.error("Failed to approve all users. Please try again.");

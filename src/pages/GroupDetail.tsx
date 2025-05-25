@@ -5,6 +5,7 @@ import { usePendingReplies } from "@/hooks/usePendingReplies";
 import { usePendingPostsCount } from "@/hooks/usePendingPostsCount";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
+import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -80,25 +81,8 @@ export default function GroupDetail() {
 
   const { data: community, isLoading: isLoadingCommunity } = useGroup(groupId);
 
-  // Query for approved members list
-  const { data: approvedMembersEvents, refetch: refetchApprovedMembers } = useQuery({
-    queryKey: ["approved-members-list", groupId],
-    queryFn: async (c) => {
-      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const events = await nostr.query([{
-        kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
-        "#d": [groupId || ''],
-        limit: 10,
-      }], { signal });
-      return events;
-    },
-    enabled: !!nostr && !!groupId,
-  });
-
-  // Get approved members' pubkeys
-  const approvedMembers = approvedMembersEvents?.flatMap(event =>
-    event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-  ) || [];
+  // Get approved members using the centralized hook
+  const { approvedMembers } = useApprovedMembers(groupId || '');
 
   const isOwner = user && community && user.pubkey === community.pubkey;
   
