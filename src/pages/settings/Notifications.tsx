@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthor } from "@/hooks/useAuthor";
 import { formatDistanceToNow } from "date-fns";
 import { GroupReference } from "@/components/groups/GroupReference";
-import { Badge } from "@/components/ui/badge";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
@@ -159,21 +158,7 @@ export default function Notifications() {
       return <Navigate to="/" />;
     }
 
-    // Get badge for notification type
-    const getNotificationBadge = () => {
-      switch (notification.type) {
-        case 'report':
-          return <Badge variant="destructive">{notification.reportType || 'Report'}</Badge>;
-        case 'report_action':
-          return <Badge variant="outline">{notification.actionType || 'Action'}</Badge>;
-        case 'join_request':
-          return <Badge variant="secondary">Join Request</Badge>;
-        case 'leave_request':
-          return <Badge variant="default">Leave Request</Badge>;
-        default:
-          return null;
-      }
-    };
+
 
     return (
       <Card className={`mb-4 ${notification.read ? 'opacity-70' : ''}`}>
@@ -186,9 +171,6 @@ export default function Notifications() {
                 {notification.message}
                 {notification.pubkey && (notification.type !== 'reaction' && notification.type !== 'tag_post' && notification.type !== 'tag_reply' && notification.type !== 'post_approved' && notification.type !== 'post_removed' && notification.type !== 'report' && notification.type !== 'report_action') && ` from ${authorName}`}
                 {notification.groupId && <GroupReference groupId={notification.groupId} />}
-                {getNotificationBadge() && (
-                  <span className="ml-2 inline-block">{getNotificationBadge()}</span>
-                )}
               </div>
               <div className="text-sm text-muted-foreground">
                 {formatDistanceToNow(notification.createdAt * 1000, { addSuffix: true })}
