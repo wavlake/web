@@ -46,3 +46,4 @@ temp.*
 *.swp
 *.swo
 \#*\#
+.certs/
