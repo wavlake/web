@@ -685,7 +685,7 @@ function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${request.pubkey}`} className="flex-shrink-0">
-          <Avatar>
+          <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -747,7 +747,7 @@ function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemPro
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
-          <Avatar>
+          <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -814,7 +814,7 @@ function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
-          <Avatar>
+          <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
             <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
