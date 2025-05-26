@@ -199,7 +199,19 @@ export default function Groups() {
           return aPriority - bPriority;
         }
 
-        // If same priority, sort alphabetically by name
+        // If same priority, sort by member count (descending), then alphabetically by name
+        const aStats = communityStats ? communityStats[aId] : undefined;
+        const bStats = communityStats ? communityStats[bId] : undefined;
+        
+        const aMemberCount = aStats ? aStats.participants.size : 0;
+        const bMemberCount = bStats ? bStats.participants.size : 0;
+        
+        // Sort by member count (descending)
+        if (aMemberCount !== bMemberCount) {
+          return bMemberCount - aMemberCount;
+        }
+        
+        // If same member count, sort alphabetically by name
         const aNameTag = a.tags.find((tag) => tag[0] === "name");
         const bNameTag = b.tags.find((tag) => tag[0] === "name");
 
@@ -218,6 +230,7 @@ export default function Groups() {
     isGroupPinned,
     userMembershipMap,
     pendingJoinRequestsSet,
+    communityStats,
   ]);
 
   // Loading state skeleton with stable keys
