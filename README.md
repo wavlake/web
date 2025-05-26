@@ -47,12 +47,12 @@
 ### Groups
 - Kind 11: Post in a group
 - Kind 1111: Reply to group posts
-- Kind 34550: Community definition
 - Kind 4550: Post approval
 - Kind 4551: Post removal
 - Kind 4552: Join request
 - Kind 4553: Leave request
 - Kind 4554: Close report
+- Kind 34550: Community definition
 - Kind 34551: Approved members list
 - Kind 34552: Declined members list
 - Kind 34553: Banned members list
