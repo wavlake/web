@@ -19,6 +19,7 @@ interface SimpleMembersListProps {
 
 export function SimpleMembersList({ communityId }: SimpleMembersListProps) {
   const { nostr } = useNostr();
+  const [showAllMembers, setShowAllMembers] = useState(false);
   
   // Parse the community ID to get the community details
   const parsedId = parseNostrAddress(decodeURIComponent(communityId));
@@ -56,6 +57,10 @@ export function SimpleMembersList({ communityId }: SimpleMembersListProps) {
 
   // Remove duplicates from regular members
   const uniqueRegularMembers = [...new Set(regularMembers)];
+  
+  // Determine how many members to show
+  const membersToShow = showAllMembers ? uniqueRegularMembers : uniqueRegularMembers.slice(0, 10);
+  const remainingCount = uniqueRegularMembers.length - 10;
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -101,13 +106,28 @@ export function SimpleMembersList({ communityId }: SimpleMembersListProps) {
             </div>
           ) : (
             <div className="space-y-1">
-              {uniqueRegularMembers.slice(0, 10).map((pubkey) => (
+              {membersToShow.map((pubkey) => (
                 <MemberItem key={pubkey} pubkey={pubkey} />
               ))}
-              {uniqueRegularMembers.length > 10 && (
-                <div className="text-center text-sm text-muted-foreground pt-2">
-                  + {uniqueRegularMembers.length - 10} more members
-                </div>
+              {!showAllMembers && remainingCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-sm text-muted-foreground hover:text-foreground mt-2"
+                  onClick={() => setShowAllMembers(true)}
+                >
+                  + {remainingCount} more members
+                </Button>
+              )}
+              {showAllMembers && uniqueRegularMembers.length > 10 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-sm text-muted-foreground hover:text-foreground mt-2"
+                  onClick={() => setShowAllMembers(false)}
+                >
+                  Show less
+                </Button>
               )}
             </div>
           )}

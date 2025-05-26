@@ -5,6 +5,8 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ApprovedMembersListProps {
   communityId: string;
@@ -12,9 +14,14 @@ interface ApprovedMembersListProps {
 
 export function ApprovedMembersList({ communityId }: ApprovedMembersListProps) {
   const { approvedMembers, isLoading } = useApprovedMembers(communityId);
+  const [showAllMembers, setShowAllMembers] = useState(false);
   
   // Remove duplicates (though useApprovedMembers should already handle this)
   const uniqueApprovedMembers = [...new Set(approvedMembers)];
+  
+  // Determine how many members to show
+  const membersToShow = showAllMembers ? uniqueApprovedMembers : uniqueApprovedMembers.slice(0, 10);
+  const remainingCount = uniqueApprovedMembers.length - 10;
   
   return (
     <Card>
@@ -40,13 +47,28 @@ export function ApprovedMembersList({ communityId }: ApprovedMembersListProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {uniqueApprovedMembers.slice(0, 10).map((pubkey) => (
+            {membersToShow.map((pubkey) => (
               <MemberItem key={pubkey} pubkey={pubkey} />
             ))}
-            {uniqueApprovedMembers.length > 10 && (
-              <div className="text-center text-sm text-muted-foreground pt-2">
-                + {uniqueApprovedMembers.length - 10} more members
-              </div>
+            {!showAllMembers && remainingCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-sm text-muted-foreground hover:text-foreground mt-2"
+                onClick={() => setShowAllMembers(true)}
+              >
+                + {remainingCount} more members
+              </Button>
+            )}
+            {showAllMembers && uniqueApprovedMembers.length > 10 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-sm text-muted-foreground hover:text-foreground mt-2"
+                onClick={() => setShowAllMembers(false)}
+              >
+                Show less
+              </Button>
             )}
           </div>
         )}
