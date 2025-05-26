@@ -92,11 +92,11 @@ npm run build
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions!
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License
 
 ## Links
 
