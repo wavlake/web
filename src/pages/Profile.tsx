@@ -406,7 +406,7 @@ function UserGroupsList({
   const isCurrentUser = user && profileUserPubkey === user.pubkey;
   const profileAuthor = useAuthor(profileUserPubkey);
   const profileMetadata = profileAuthor.data?.metadata;
-  const profileDisplayName = profileMetadata?.display_name || profileMetadata?.name || profileUserPubkey.slice(0, 8);
+  const profileDisplayName = profileMetadata?.name || profileUserPubkey.slice(0, 8);
 
   if (isLoading) {
     return (
@@ -1031,7 +1031,7 @@ export default function Profile() {
 
   const metadata = author.data?.metadata;
   const displayName = metadata?.name || pubkey?.slice(0, 8) || "";
-  const displayNameFull = metadata?.display_name || displayName;
+  const displayNameFull = displayName;
   const profileImage = metadata?.picture;
   const about = metadata?.about;
   const website = metadata?.website;
