@@ -10,7 +10,7 @@ import { useState, useMemo, useEffect } from "react";
 import { TrendingUp } from "lucide-react";
 import { useGroupStats } from "@/hooks/useGroupStats";
 import { usePinnedGroups } from "@/hooks/usePinnedGroups";
-import { useUserGroups } from "@/hooks/useUserGroups";
+import { useUserGroupsFiltered } from "@/hooks/useUserGroupsFiltered";
 import { useUserPendingJoinRequests } from "@/hooks/useUserPendingJoinRequests";
 import { GroupCard } from "@/components/groups/GroupCard";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
@@ -19,6 +19,7 @@ import type { NostrEvent } from "@nostrify/nostrify";
 import type { UserRole } from "@/hooks/useUserRole";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
+import { useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
 
 // Helper function to get community ID
 const getCommunityId = (community: NostrEvent) => {
@@ -84,14 +85,23 @@ export default function Groups() {
     gcTime: 300000, // 5 minutes
   });
 
-  // Get user's groups
-  const { data: userGroups, isLoading: isUserGroupsLoading } = useUserGroups();
+  // Get user's groups (filtered to exclude deleted groups)
+  const { data: userGroups, isLoading: isUserGroupsLoading } = useUserGroupsFiltered();
 
   // Get user's pending join requests
   const {
     data: pendingJoinRequests = [],
     isLoading: isPendingRequestsLoading,
   } = useUserPendingJoinRequests();
+
+  // Get group IDs for deletion request checking
+  const groupIds = useMemo(() => {
+    if (!allGroups) return [];
+    return allGroups.map(getCommunityId);
+  }, [allGroups]);
+
+  // Check for deletion requests
+  const { data: deletionRequests } = useGroupDeletionRequests(groupIds);
 
   // Query for community stats
   const { data: communityStats, isLoading: isLoadingStats } =
@@ -155,10 +165,20 @@ export default function Groups() {
       );
     };
 
+    // Function to check if a group has been deleted
+    const isGroupDeleted = (community: NostrEvent) => {
+      if (!deletionRequests) return false;
+      const groupId = getCommunityId(community);
+      const deletionRequest = deletionRequests.get(groupId);
+      return deletionRequest?.isValid || false;
+    };
+
     // Create a stable copy of the array to avoid mutation issues
     const stableGroups = [...allGroups];
 
-    return stableGroups.filter(matchesSearch).sort((a, b) => {
+    return stableGroups
+      .filter(community => matchesSearch(community) && !isGroupDeleted(community))
+      .sort((a, b) => {
       // Ensure both a and b are valid objects
       if (!a || !b) return 0;
 
@@ -231,6 +251,7 @@ export default function Groups() {
     userMembershipMap,
     pendingJoinRequestsSet,
     communityStats,
+    deletionRequests,
   ]);
 
   // Loading state skeleton with stable keys

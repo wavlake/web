@@ -45,6 +45,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGroup } from "@/hooks/useGroup";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -83,6 +86,11 @@ export default function GroupDetail() {
   }, [groupId]);
 
   const { data: community, isLoading: isLoadingCommunity } = useGroup(groupId);
+
+  // Check if group has been deleted
+  const { isDeleted: isGroupDeleted, deletionRequest } = useIsGroupDeleted(
+    parsedId ? `${KINDS.GROUP}:${parsedId.pubkey}:${parsedId.identifier}` : undefined
+  );
 
   // Get approved members using the centralized hook
   const { approvedMembers } = useApprovedMembers(groupId || '');
@@ -494,11 +502,44 @@ export default function GroupDetail() {
   if (!community) {
     return (
       <div className="container mx-auto py-1 px-3 sm:px-4">
+        <Header />
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-2">
           <Link to="/groups">Back to Groups</Link>
         </Button>
+      </div>
+    );
+  }
+
+  // Show deletion notice if group has been deleted
+  if (isGroupDeleted && deletionRequest) {
+    return (
+      <div className="container mx-auto py-1 px-3 sm:px-4">
+        <Header />
+        
+        <div className="max-w-3xl mx-auto mt-8">
+          <Alert className="border-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="space-y-2">
+              <div className="font-semibold">This group has been deleted</div>
+              <p>
+                The group owner has requested deletion of this group on{" "}
+                {new Date(deletionRequest.deletionEvent.created_at * 1000).toLocaleDateString()}.
+              </p>
+              {deletionRequest.reason && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Reason:</strong> {deletionRequest.reason}
+                </p>
+              )}
+              <div className="pt-2">
+                <Button asChild>
+                  <Link to="/groups">Browse Other Groups</Link>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }

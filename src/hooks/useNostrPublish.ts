@@ -201,6 +201,24 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             break;
           }
           
+          case KINDS.DELETION: {
+            // Find groups being deleted via 'a' tags
+            const groupATags = event.tags.filter(tag => 
+              tag[0] === "a" && tag[1] && tag[1].startsWith(`${KINDS.GROUP}:`)
+            );
+            
+            if (groupATags.length > 0) {
+              const groupIds = groupATags.map(tag => tag[1]);
+              // Invalidate deletion request queries
+              queryClient.invalidateQueries({ queryKey: ["group-deletion-requests"] });
+              // Invalidate communities list to remove deleted groups
+              queryClient.invalidateQueries({ queryKey: ["communities"] });
+              // Invalidate user groups
+              queryClient.invalidateQueries({ queryKey: ["user-groups"] });
+            }
+            break;
+          }
+          
           case CASHU_EVENT_KINDS.ZAP: {
             // Find the event being zapped
             const zappedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
