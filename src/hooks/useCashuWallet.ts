@@ -2,7 +2,7 @@ import { useNostr } from '@/hooks/useNostr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CASHU_EVENT_KINDS, CashuWalletStruct, CashuToken, activateMint, updateMintKeys, defaultMints } from '@/lib/cashu';
-import { nip44, NostrEvent, getPublicKey } from 'nostr-tools';
+import { NostrEvent, getPublicKey } from 'nostr-tools';
 import { useCashuStore, Nip60TokenEvent } from '@/stores/cashuStore';
 import { Proof } from '@cashu/cashu-ts';
 import { getLastEventTimestamp } from '@/lib/nostrTimestamps';
@@ -37,73 +37,67 @@ export function useCashuWallet() {
 
       const event = events[0];
 
-      try {
-        // Decrypt wallet content
-        if (!user.signer.nip44) {
-          throw new Error('NIP-44 encryption not supported by your signer');
-        }
-
-        const decrypted = await user.signer.nip44.decrypt(user.pubkey, event.content);
-        const data = n.json().pipe(z.string().array().array()).parse(decrypted);
-
-        const privkey = data.find(([key]) => key === 'privkey')?.[1];
-
-        if (!privkey) {
-          throw new Error('Private key not found in wallet data');
-        }
-
-        const walletData: CashuWalletStruct = {
-          privkey,
-          mints: data
-            .filter(([key]) => key === 'mint')
-            .map(([, mint]) => mint)
-        };
-
-        // if the default mint is not in the wallet, add it
-        for (const mint of defaultMints) {
-          if (!walletData.mints.includes(mint)) {
-            walletData.mints.push(mint);
-          }
-        }
-
-
-        // remove trailing slashes from mints
-        walletData.mints = walletData.mints.map(mint => mint.replace(/\/$/, ''));
-        // reduce mints to unique values
-        walletData.mints = [...new Set(walletData.mints)];
-
-
-        // fetch the mint info and keysets for each mint
-        Promise.all(walletData.mints.map(async (mint) => {
-          const { mintInfo, keysets } = await activateMint(mint);
-          cashuStore.addMint(mint);
-          cashuStore.setMintInfo(mint, mintInfo);
-          cashuStore.setKeysets(mint, keysets);
-          const { keys } = await updateMintKeys(mint, keysets);
-          cashuStore.setKeys(mint, keys);
-        }));
-
-        cashuStore.setPrivkey(walletData.privkey);
-
-        // if no active mint is set, set the first mint as active
-        if (!cashuStore.getActiveMintUrl()) {
-          cashuStore.setActiveMintUrl(walletData.mints[0]);
-        }
-
-        // log wallet data
-        console.log('walletData', walletData);
-
-        // call getNip60TokensQuery
-        await getNip60TokensQuery.refetch();
-        return {
-          id: event.id,
-          wallet: walletData,
-          createdAt: event.created_at
-        };
-      } catch (error) {
-        console.error('Failed to decrypt wallet data:', error);
-        return null;
+      // Decrypt wallet content
+      if (!user.signer.nip44) {
+        throw new Error('NIP-44 encryption not supported by your signer');
       }
+
+      const decrypted = await user.signer.nip44.decrypt(user.pubkey, event.content);
+      const data = n.json().pipe(z.string().array().array()).parse(decrypted);
+
+      const privkey = data.find(([key]) => key === 'privkey')?.[1];
+
+      if (!privkey) {
+        throw new Error('Private key not found in wallet data');
+      }
+
+      const walletData: CashuWalletStruct = {
+        privkey,
+        mints: data
+          .filter(([key]) => key === 'mint')
+          .map(([, mint]) => mint)
+      };
+
+      // if the default mint is not in the wallet, add it
+      for (const mint of defaultMints) {
+        if (!walletData.mints.includes(mint)) {
+          walletData.mints.push(mint);
+        }
+      }
+
+      // remove trailing slashes from mints
+      walletData.mints = walletData.mints.map(mint => mint.replace(/\/$/, ''));
+      // reduce mints to unique values
+      walletData.mints = [...new Set(walletData.mints)];
+
+
+      // fetch the mint info and keysets for each mint
+      await Promise.all(walletData.mints.map(async (mint) => {
+        const { mintInfo, keysets } = await activateMint(mint);
+        cashuStore.addMint(mint);
+        cashuStore.setMintInfo(mint, mintInfo);
+        cashuStore.setKeysets(mint, keysets);
+        const { keys } = await updateMintKeys(mint, keysets);
+        cashuStore.setKeys(mint, keys);
+      }));
+
+      cashuStore.setPrivkey(walletData.privkey);
+
+      // if no active mint is set, set the first mint as active
+      if (!cashuStore.getActiveMintUrl()) {
+        cashuStore.setActiveMintUrl(walletData.mints[0]);
+      }
+
+      // log wallet data
+      console.log('walletData', walletData);
+
+      // call getNip60TokensQuery
+      await getNip60TokensQuery.refetch();
+      return {
+        id: event.id,
+        wallet: walletData,
+        createdAt: event.created_at
+      };
     },
     enabled: !!user
   });
@@ -318,7 +312,7 @@ export function useCashuWallet() {
     wallet: walletQuery.data?.wallet,
     walletId: walletQuery.data?.id,
     tokens: getNip60TokensQuery.data || [],
-    isLoading: walletQuery.isLoading || getNip60TokensQuery.isLoading,
+    isLoading: walletQuery.isFetching || getNip60TokensQuery.isFetching,
     createWallet: createWalletMutation.mutate,
     updateProofs: updateProofsMutation.mutateAsync,
   };

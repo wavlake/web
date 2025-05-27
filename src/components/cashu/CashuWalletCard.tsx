@@ -1,4 +1,3 @@
-import { bytesToHex } from "@noble/hashes/utils";
 import { useState, useEffect, useRef } from "react";
 import {
   Card,
