@@ -28,7 +28,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar.tsx";
 import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUnreadNotificationsCount, useMarkAllNotificationsAsRead } from "@/hooks/useNotifications";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useState } from "react";
@@ -106,37 +106,37 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md font-bold text-sm md:gap-2 gap-3"
           >
-            <a href="/create-group">
+            <Link to="/create-group">
               <Plus className="w-3.5 h-3.5 font-bold md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>Create Group</span>
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="my-1" />
           <DropdownMenuItem
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <a href={`/profile/${currentUser.pubkey}`}>
+            <Link to={`/profile/${currentUser.pubkey}`}>
               <User className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>View Profile</span>
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <a href="/wallet">
+            <Link to="/wallet">
               <Wallet className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>Wallet</span>
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="my-1" />
           <DropdownMenuItem
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <a 
-              href="/settings/notifications"
+            <Link
+              to="/settings/notifications"
               onClick={() => {
                 if (unreadCount > 0) {
                   markAllAsRead();
@@ -150,16 +150,16 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
                   {unreadCount > 99 ? '99' : unreadCount}
                 </span>
               )}
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <a href="/settings">
+            <Link to="/settings">
               <Settings className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>Settings</span>
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="my-1" />
 
@@ -167,10 +167,10 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <a href="/about">
+            <Link to="/about">
               <Info className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>About +chorus</span>
-            </a>
+            </Link>
           </DropdownMenuItem>
           {!isRunningAsPwa && (
             <>
