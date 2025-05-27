@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { CommonGroupsListImproved } from "@/components/profile/CommonGroupsListImproved";
+import { useIsGroupDeleted, useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
 
 // Hook to get shared group IDs
 function useSharedGroupIds(profileUserPubkey: string): string[] {
@@ -184,6 +185,7 @@ function extractGroupInfo(post: NostrEvent): { groupId: string; groupName: strin
 // Component to fetch and display group name
 function GroupNameDisplay({ groupId }: { groupId: string }) {
   const { nostr } = useNostr();
+  const { isDeleted } = useIsGroupDeleted(groupId);
 
   const { data: groupName, isLoading } = useQuery({
     queryKey: ["group-name", groupId],
@@ -226,14 +228,32 @@ function GroupNameDisplay({ groupId }: { groupId: string }) {
     return <span>Loading...</span>;
   }
 
+  // Show "Deleted" if the group has been deleted
+  if (isDeleted) {
+    return <span className="font-medium text-muted-foreground">Deleted</span>;
+  }
+
   return <span className="font-medium">{groupName || "Group"}</span>;
 }
 
 // Component to display group information on a post
 function PostGroupLink({ post }: { post: NostrEvent }) {
   const groupInfo = extractGroupInfo(post);
+  const { isDeleted } = useIsGroupDeleted(groupInfo?.groupId);
 
   if (!groupInfo) return null;
+
+  // If the group is deleted, show a non-clickable version
+  if (isDeleted) {
+    return (
+      <div className="flex items-center text-xs md:text-sm text-muted-foreground">
+        <div className="flex items-center px-2 py-1 rounded-full bg-muted/70">
+          <Users className="h-3 w-3 md:h-4 md:w-4 mr-1.5" />
+          <GroupNameDisplay groupId={groupInfo.groupId} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Link
@@ -408,6 +428,10 @@ function UserGroupsList({
   const profileMetadata = profileAuthor.data?.metadata;
   const profileDisplayName = profileMetadata?.name || profileUserPubkey.slice(0, 8);
 
+  // Get group IDs for deletion checking
+  const groupIds = groups?.map(group => group.id) || [];
+  const { data: deletionRequests } = useGroupDeletionRequests(groupIds);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -440,12 +464,20 @@ function UserGroupsList({
     );
   }
 
-  // Create a map to deduplicate groups by ID and filter out shared groups
+  // Create a map to deduplicate groups by ID and filter out shared groups and deleted groups
   const uniqueGroups = new Map<string, UserGroup>();
   for (const group of groups) {
     // Skip if this group is in the shared groups list (only when viewing another user's profile)
     if (!isCurrentUser && sharedGroupIds.includes(group.id)) {
       continue;
+    }
+    
+    // Skip if this group has been deleted
+    if (deletionRequests) {
+      const deletionRequest = deletionRequests.get(group.id);
+      if (deletionRequest?.isValid) {
+        continue;
+      }
     }
     
     // Only add if not already in the map, or replace with newer version

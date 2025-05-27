@@ -43,10 +43,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGroup } from "@/hooks/useGroup";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
+import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
@@ -80,6 +86,11 @@ export default function GroupDetail() {
   }, [groupId]);
 
   const { data: community, isLoading: isLoadingCommunity } = useGroup(groupId);
+
+  // Check if group has been deleted
+  const { isDeleted: isGroupDeleted, deletionRequest } = useIsGroupDeleted(
+    parsedId ? `${KINDS.GROUP}:${parsedId.pubkey}:${parsedId.identifier}` : undefined
+  );
 
   // Get approved members using the centralized hook
   const { approvedMembers } = useApprovedMembers(groupId || '');
@@ -363,6 +374,40 @@ export default function GroupDetail() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!isOwner) {
+      toast.error("Only the group owner can delete the group");
+      return;
+    }
+
+    if (!community || !parsedId) {
+      toast.error("Group information not available");
+      return;
+    }
+
+    try {
+      // Create a kind 5 deletion event referencing the group
+      // Include both 'a' tag (addressable event) and 'e' tag (event ID) for maximum relay compatibility
+      await publishEvent({
+        kind: KINDS.DELETION,
+        tags: [
+          ["a", `${KINDS.GROUP}:${community.pubkey}:${parsedId.identifier}`],
+          ["e", community.id],
+          ["k", KINDS.GROUP.toString()]
+        ],
+        content: "Requesting deletion of this group",
+      });
+
+      toast.success("Group deletion requested successfully!");
+      
+      // Navigate back to groups page after successful deletion request
+      navigate("/groups");
+    } catch (error) {
+      console.error("Error requesting group deletion:", error);
+      toast.error("Failed to request group deletion. Please try again.");
+    }
+  };
+
   // Set active tab based on URL hash only
   useEffect(() => {
     // Define valid tab values
@@ -459,11 +504,44 @@ export default function GroupDetail() {
   if (!community) {
     return (
       <div className="container mx-auto py-1 px-3 sm:px-4">
+        <Header />
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-2">
           <Link to="/groups">Back to Groups</Link>
         </Button>
+      </div>
+    );
+  }
+
+  // Show deletion notice if group has been deleted
+  if (isGroupDeleted && deletionRequest) {
+    return (
+      <div className="container mx-auto py-1 px-3 sm:px-4">
+        <Header />
+        
+        <div className="max-w-3xl mx-auto mt-8">
+          <Alert className="border-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="space-y-2">
+              <div className="font-semibold">This group has been deleted</div>
+              <p>
+                The group owner has requested deletion of this group on{" "}
+                {new Date(deletionRequest.deletionEvent.created_at * 1000).toLocaleDateString()}.
+              </p>
+              {deletionRequest.reason && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Reason:</strong> {deletionRequest.reason}
+                </p>
+              )}
+              <div className="pt-2">
+                <Button asChild>
+                  <Link to="/groups">Browse Other Groups</Link>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
@@ -771,7 +849,44 @@ export default function GroupDetail() {
                           />
                         </div>
 
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-between">
+                          {isOwner && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" type="button">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Group
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                                  <AlertDialogDescription className="space-y-2">
+                                    <p>
+                                      Are you sure you want to request deletion of this group? This action will:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-1 text-sm">
+                                      <li>Submit a deletion request to the network</li>
+                                      <li>Signal to relays that this group should be removed</li>
+                                      <li>Make the group inaccessible to new users</li>
+                                    </ul>
+                                    <p className="text-sm font-medium text-destructive">
+                                      Note: This is a request for deletion. Individual relays may choose whether to honor this request. This does not delete individual posts within the group.
+                                    </p>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={handleDeleteGroup}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete Group
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                           <Button type="submit">
                             <Save className="h-4 w-4 mr-2" />
                             Save Changes

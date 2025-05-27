@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { NostrEvent, NostrFilter } from "@nostrify/nostrify";
 import { usePinnedGroups } from "./usePinnedGroups";
 import { KINDS } from "@/lib/nostr-kinds";
+import { useGroupDeletionRequests } from "./useGroupDeletionRequests";
 
 // Helper function to get a unique community ID
 function getCommunityId(community: NostrEvent): string {
