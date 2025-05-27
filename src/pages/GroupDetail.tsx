@@ -387,10 +387,12 @@ export default function GroupDetail() {
 
     try {
       // Create a kind 5 deletion event referencing the group
+      // Include both 'a' tag (addressable event) and 'e' tag (event ID) for maximum relay compatibility
       await publishEvent({
         kind: KINDS.DELETION,
         tags: [
           ["a", `${KINDS.GROUP}:${community.pubkey}:${parsedId.identifier}`],
+          ["e", community.id],
           ["k", KINDS.GROUP.toString()]
         ],
         content: "Requesting deletion of this group",

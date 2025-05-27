@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { CommonGroupsListImproved } from "@/components/profile/CommonGroupsListImproved";
-import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
+import { useIsGroupDeleted, useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
 
 // Hook to get shared group IDs
 function useSharedGroupIds(profileUserPubkey: string): string[] {
@@ -428,6 +428,10 @@ function UserGroupsList({
   const profileMetadata = profileAuthor.data?.metadata;
   const profileDisplayName = profileMetadata?.name || profileUserPubkey.slice(0, 8);
 
+  // Get group IDs for deletion checking
+  const groupIds = groups?.map(group => group.id) || [];
+  const { data: deletionRequests } = useGroupDeletionRequests(groupIds);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -460,12 +464,20 @@ function UserGroupsList({
     );
   }
 
-  // Create a map to deduplicate groups by ID and filter out shared groups
+  // Create a map to deduplicate groups by ID and filter out shared groups and deleted groups
   const uniqueGroups = new Map<string, UserGroup>();
   for (const group of groups) {
     // Skip if this group is in the shared groups list (only when viewing another user's profile)
     if (!isCurrentUser && sharedGroupIds.includes(group.id)) {
       continue;
+    }
+    
+    // Skip if this group has been deleted
+    if (deletionRequests) {
+      const deletionRequest = deletionRequests.get(group.id);
+      if (deletionRequest?.isValid) {
+        continue;
+      }
     }
     
     // Only add if not already in the map, or replace with newer version
