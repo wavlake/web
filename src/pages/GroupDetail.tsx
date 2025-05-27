@@ -43,10 +43,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useGroup } from "@/hooks/useGroup";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
@@ -360,6 +363,38 @@ export default function GroupDetail() {
     } catch (error) {
       console.error("Error removing moderator:", error);
       toast.error("Failed to remove moderator. Please try again.");
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!isOwner) {
+      toast.error("Only the group owner can delete the group");
+      return;
+    }
+
+    if (!community || !parsedId) {
+      toast.error("Group information not available");
+      return;
+    }
+
+    try {
+      // Create a kind 5 deletion event referencing the group
+      await publishEvent({
+        kind: KINDS.DELETION,
+        tags: [
+          ["a", `${KINDS.GROUP}:${community.pubkey}:${parsedId.identifier}`],
+          ["k", KINDS.GROUP.toString()]
+        ],
+        content: "Requesting deletion of this group",
+      });
+
+      toast.success("Group deletion requested successfully!");
+      
+      // Navigate back to groups page after successful deletion request
+      navigate("/groups");
+    } catch (error) {
+      console.error("Error requesting group deletion:", error);
+      toast.error("Failed to request group deletion. Please try again.");
     }
   };
 
@@ -771,7 +806,44 @@ export default function GroupDetail() {
                           />
                         </div>
 
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-between">
+                          {isOwner && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" type="button">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Group
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                                  <AlertDialogDescription className="space-y-2">
+                                    <p>
+                                      Are you sure you want to request deletion of this group? This action will:
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-1 text-sm">
+                                      <li>Submit a deletion request to the network</li>
+                                      <li>Signal to relays that this group should be removed</li>
+                                      <li>Make the group inaccessible to new users</li>
+                                    </ul>
+                                    <p className="text-sm font-medium text-destructive">
+                                      Note: This is a request for deletion. Individual relays may choose whether to honor this request.
+                                    </p>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={handleDeleteGroup}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete Group
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                           <Button type="submit">
                             <Save className="h-4 w-4 mr-2" />
                             Save Changes
