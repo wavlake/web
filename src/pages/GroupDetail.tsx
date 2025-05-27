@@ -869,7 +869,7 @@ export default function GroupDetail() {
                                       <li>Make the group inaccessible to new users</li>
                                     </ul>
                                     <p className="text-sm font-medium text-destructive">
-                                      Note: This is a request for deletion. Individual relays may choose whether to honor this request.
+                                      Note: This is a request for deletion. Individual relays may choose whether to honor this request. This does not delete individual posts within the group.
                                     </p>
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
