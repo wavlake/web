@@ -160,28 +160,17 @@ export default function GroupDetail() {
       return;
     }
 
+    if (!isOwner) {
+      toast.error("Only the group owner can update general settings");
+      return;
+    }
+
     if (!parsedId) {
       toast.error("Invalid group ID");
       return;
     }
 
     const communityEvent = community as NostrEvent;
-    const originalModPubkeys = communityEvent.tags
-      .filter(tag => tag[0] === "p")
-      .map(tag => tag[1]);
-
-    const moderatorsChanged = formModerators.some(mod => !originalModPubkeys.includes(mod)) ||
-                             originalModPubkeys.some(mod => !formModerators.includes(mod));
-
-    if (moderatorsChanged && !isOwner) {
-      toast.error("Only the group owner can add or remove moderators");
-      return;
-    }
-
-    if (!isModerator && !isOwner) {
-      toast.error("You must be a moderator or the group owner to update group settings");
-      return;
-    }
 
     try {
       // Create a new tags array with only unique tag types
@@ -752,11 +741,11 @@ export default function GroupDetail() {
         {isModerator && (
           <TabsContent value="manage" className="space-y-4">
             <div className="max-w-3xl mx-auto">
-              <Tabs defaultValue="general" className="w-full space-y-6">
+              <Tabs defaultValue={isOwner ? "general" : "member-management"} className="w-full space-y-6">
                 <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="general" className="flex items-center gap-2">
+                  <TabsTrigger value="general" className="flex items-center gap-2" disabled={!isOwner}>
                     <Shield className="h-4 w-4" />
-                    General
+                    General {!isOwner && <span className="text-xs">(Owner Only)</span>}
                   </TabsTrigger>
                   <TabsTrigger value="member-management" className="flex items-center gap-2 relative">
                     <Users className="h-4 w-4" />
@@ -784,14 +773,31 @@ export default function GroupDetail() {
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-6 mt-3">
-                  <form onSubmit={handleSubmit} className="w-full space-y-8">
+                  {!isOwner ? (
                     <Card>
                       <CardHeader>
                         <CardTitle>General Settings</CardTitle>
                         <CardDescription>
-                          Update your group's basic information
+                          Only the group owner can modify general settings
                         </CardDescription>
                       </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Shield className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                          <p>You don't have permission to modify general settings.</p>
+                          <p className="text-sm mt-2">Only the group owner can update the group's basic information, as these changes require updating the community definition event.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="w-full space-y-8">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>General Settings</CardTitle>
+                          <CardDescription>
+                            Update your group's basic information
+                          </CardDescription>
+                        </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Group Name</Label>
@@ -975,7 +981,8 @@ export default function GroupDetail() {
                         </Card>
                       </div>
                     )}
-                  </form>
+                    </form>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="member-management" className="mt-3">
