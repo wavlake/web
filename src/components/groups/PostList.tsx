@@ -615,7 +615,7 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
       await publishEvent({
         kind: KINDS.GROUP_POST_REMOVAL,
         tags: [["a", communityId], ["e", post.id], ["p", post.pubkey], ["k", String(post.kind)]],
-        content: JSON.stringify({ reason: "Removed by moderator", timestamp: Date.now(), post: post }),
+        content: "", // Empty content - do not redistribute removed content
       });
       toast.success("Post removed successfully!");
       setIsRemoveDialogOpen(false);

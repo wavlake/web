@@ -152,6 +152,9 @@ Moderator approval events for posts as specified in NIP-72.
 - `["p", authorPubkey]` - References the post author
 - `["k", originalKind]` - Kind of the original post
 
+**Content:**
+The content field can be left blank or optionally include a moderation reason.
+
 **Example:**
 ```json
 {
@@ -164,7 +167,7 @@ Moderator approval events for posts as specified in NIP-72.
     ["p", "post_author_pubkey"],
     ["k", "1"]
   ],
-  "content": "{\"kind\":1,\"pubkey\":\"post_author_pubkey\",\"created_at\":1234567880,\"tags\":[[\"a\",\"34550:community_creator_pubkey:bitcoin-discussion\"]],\"content\":\"This post was removed\",\"id\":\"removed_post_id\",\"sig\":\"signature\"}"
+  "content": "Removed for violating community guidelines"
 }
 ```
 
