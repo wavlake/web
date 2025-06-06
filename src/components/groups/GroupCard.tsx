@@ -178,19 +178,19 @@ export function GroupCard({
             </AvatarFallback>
           </Avatar>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-6"> {/* Added right padding to make room for menu button */}
           <div className="flex items-start justify-between">
-            <CardTitle className="text-sm font-medium leading-tight pr-2 truncate max-w-[70%]">
+            <CardTitle className="text-sm font-medium leading-tight truncate max-w-[50%]"> {/* Reduced max-width */}
               {name}
             </CardTitle>
             {userRole && (
               <div className="flex-shrink-0">
-                <RoleBadge role={userRole} className="ml-auto" />
+                <RoleBadge role={userRole} className="ml-auto mr-2" /> {/* Added right margin */}
               </div>
             )}
             {hasPendingRequest && !userRole && (
               <div className="flex-shrink-0">
-                <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 ml-auto">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 ml-auto mr-2"> {/* Added right margin */}
                   <Clock className="h-3 w-3" />
                   <span>Pending</span>
                 </div>
@@ -249,7 +249,7 @@ export function GroupCard({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2 h-6 w-6 rounded-full bg-background/80"
+                    className="absolute top-4 right-2 h-6 w-6 rounded-full bg-background/80 z-20" 
                     onClick={(e) => {
                       e.stopPropagation();
                       setPreventNavigation(true);
