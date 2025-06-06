@@ -285,7 +285,7 @@ export function GroupPostItem({ post }: GroupPost) {
       {/* Post Actions */}
       <div className="flex-col pt-1.5 pl-[2.875rem] pr-3">
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6 md:gap-8">
             <Link 
               to={`/group/${encodeURIComponent(post.communityId)}#${post.id}`}
               className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
@@ -301,19 +301,49 @@ export function GroupPostItem({ post }: GroupPost) {
               onToggle={handleZapToggle}
               isOpen={showZaps}
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
-              onClick={handleSharePost}
-            >
-              <Icon name="Share2" size={14} />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5"
+                    onClick={handleSharePost}
+                  >
+                    <Icon name="Share2" size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share post</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground flex items-center h-7 px-1.5 md:hidden"
+                    asChild
+                  >
+                    <Link to={`/group/${encodeURIComponent(post.communityId)}#${post.id}`} state={{ scrollToPostId: post.id }}>
+                      <Icon name="ExternalLink" size={14} />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View in group</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
+          
+          {/* Only show text version on desktop */}
           <Link 
             to={`/group/${encodeURIComponent(post.communityId)}#${post.id}`}
             state={{ scrollToPostId: post.id }}
-            className="text-xs text-primary hover:underline flex items-center"
+            className="text-xs text-primary hover:underline items-center hidden md:flex"
           >
             <span className="mr-1">View in group</span>
             <Icon name="ExternalLink" size={12} />
