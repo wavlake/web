@@ -24,7 +24,7 @@ const CustomIcons = {
   )
 };
 
-interface IconProps extends React.SVGProps<SVGSVGElement> {
+interface IconProps extends Omit<React.SVGProps<SVGSVGElement>, 'size'> {
   name: string;
   size?: number;
 }
@@ -36,13 +36,15 @@ export const Icon = ({ name, size = 24, ...rest }: IconProps) => {
     return <CustomIcon width={size} height={size} {...rest} />;
   }
   
-  // Otherwise use lucide icons
-  const LucideIcon = (LucideIcons as any)[name];
+  // Use type assertion to silence TypeScript errors - this is how lucide-react components are used
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const LucideIconComponent = (LucideIcons as any)[name];
   
-  if (LucideIcon) {
-    return <LucideIcon size={size} {...rest} />;
+  if (LucideIconComponent) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <LucideIconComponent size={size} {...rest as any} />;
   }
   
   // Fallback to a simple list icon if icon is not found
-  return <LucideIcons.List width={size} height={size} {...rest} />;
+  return <LucideIcons.List size={size} {...rest} />;
 };

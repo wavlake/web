@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { NostrEvent } from "@nostrify/nostrify";
+import { NostrEvent } from "@jsr/nostrify__nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { KINDS } from "@/lib/nostr-kinds";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -312,6 +312,7 @@ export function GroupPostItem({ post }: GroupPost) {
           </div>
           <Link 
             to={`/group/${encodeURIComponent(post.communityId)}#${post.id}`}
+            state={{ scrollToPostId: post.id }}
             className="text-xs text-primary hover:underline flex items-center"
           >
             <span className="mr-1">View in group</span>
@@ -327,8 +328,9 @@ export function GroupPostItem({ post }: GroupPost) {
               relayHint={undefined}
               onSuccess={() => {
                 // Call the refetch function if available
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const refetchFn = (window as any)[`zapRefetch_${post.id}`];
-                if (refetchFn) refetchFn();
+                if (typeof refetchFn === 'function') refetchFn();
               }}
             />
           </div>
