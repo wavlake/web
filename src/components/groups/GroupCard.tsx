@@ -123,21 +123,6 @@ export function GroupCard({
 
   return (
     <Card className={cardStyle} onClick={handleCardClick}>
-      {userRole && (
-        <div className="absolute top-2 right-10 z-10">
-          <RoleBadge role={userRole} />
-        </div>
-      )}
-
-      {hasPendingRequest && !userRole && (
-        <div className="absolute top-2 right-10 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-            <Clock className="h-3 w-3" />
-            <span>Pending</span>
-          </div>
-        </div>
-      )}
-
       {/* Notification badges for owners/moderators */}
       {isOwnerOrModerator && (openReportsCount > 0 || pendingRequestsCount > 0) && (
         <TooltipProvider>
@@ -184,52 +169,69 @@ export function GroupCard({
         </TooltipProvider>
       )}
 
-      <CardHeader className="flex flex-row items-center space-y-0 gap-3 pt-4 pb-2 px-3">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex flex-row items-start space-y-0 gap-3 pt-4 pb-2 px-3">
+        <div className="flex-shrink-0">
           <Avatar className="h-12 w-12 rounded-md">
             <AvatarImage src={image} alt={name} />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-1">
-            <CardTitle className="text-sm font-medium leading-tight">{name}</CardTitle>
-            <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
-              {isLoadingStats ? (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    ...
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    ...
-                  </div>
-                </>
-              ) : stats ? (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    {stats.posts}
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    {stats.participants.size}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
-                    0
-                  </div>
-                  <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
-                    <Activity className="h-2.5 w-2.5 mr-0.5" />
-                    0
-                  </div>
-                </>
-              )}
-            </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <CardTitle className="text-sm font-medium leading-tight pr-2 truncate max-w-[70%]">
+              {name}
+            </CardTitle>
+            {userRole && (
+              <div className="flex-shrink-0">
+                <RoleBadge role={userRole} className="ml-auto" />
+              </div>
+            )}
+            {hasPendingRequest && !userRole && (
+              <div className="flex-shrink-0">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 ml-auto">
+                  <Clock className="h-3 w-3" />
+                  <span>Pending</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1 text-xs text-muted-foreground mt-1">
+            {isLoadingStats ? (
+              <>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
+                  <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                  ...
+                </div>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px] opacity-70">
+                  <Activity className="h-2.5 w-2.5 mr-0.5" />
+                  ...
+                </div>
+              </>
+            ) : stats ? (
+              <>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                  <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                  {stats.posts}
+                </div>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                  <Activity className="h-2.5 w-2.5 mr-0.5" />
+                  {stats.participants.size}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                  <MessageSquare className="h-2.5 w-2.5 mr-0.5" />
+                  0
+                </div>
+                <div className="inline-flex items-center py-0.5 px-1.5 bg-muted rounded text-[10px]">
+                  <Activity className="h-2.5 w-2.5 mr-0.5" />
+                  0
+                </div>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
