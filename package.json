@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm i && vite",
-    "build": "npm i && vite build && cp dist/index.html dist/404.html",
-    "build:dev": "npm i && vite build --mode development",
-    "ci": "npm i && tsc -p tsconfig.app.json --noEmit && eslint && vite build",
-    "lint": "npm i && eslint .",
-    "preview": "npm i && vite preview",
+    "dev": "npm i --fetch-timeout=300000 && vite",
+    "build": "npm i --fetch-timeout=300000 && vite build && cp dist/index.html dist/404.html",
+    "build:dev": "npm i --fetch-timeout=300000 && vite build --mode development",
+    "ci": "npm i --fetch-timeout=300000 && tsc -p tsconfig.app.json --noEmit && eslint && vite build",
+    "lint": "npm i --fetch-timeout=300000 && eslint .",
+    "preview": "npm i --fetch-timeout=300000 && vite preview",
     "deploy": "npm run build && npx -y surge@latest dist",
     "dev:https": "vite --config vite.config.https.js"
   },
