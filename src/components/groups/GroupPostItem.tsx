@@ -14,6 +14,8 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { nip19 } from "nostr-tools";
 import { NoteContent } from "../NoteContent";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
+import { NutzapButton } from "@/components/groups/NutzapButton";
+import { NutzapInterface } from "@/components/groups/NutzapInterface";
 import { shareContent } from "@/lib/share";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -72,6 +74,7 @@ export function GroupPostItem({ post }: GroupPost) {
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const author = useAuthor(post.pubkey);
+  const [showZaps, setShowZaps] = useState(false);
   
   // Fetch group information
   useEffect(() => {
@@ -141,6 +144,11 @@ export function GroupPostItem({ post }: GroupPost) {
         url: shareUrl
       });
     }
+  };
+  
+  // Handle toggle between replies and zaps
+  const handleZapToggle = (isOpen: boolean) => {
+    setShowZaps(isOpen);
   };
   
   // Get author information for display
@@ -286,6 +294,13 @@ export function GroupPostItem({ post }: GroupPost) {
               <ReplyCount postId={post.id} />
             </Link>
             <EmojiReactionButton postId={post.id} showText={false} />
+            <NutzapButton 
+              postId={post.id} 
+              authorPubkey={post.pubkey} 
+              showText={false} 
+              onToggle={handleZapToggle}
+              isOpen={showZaps}
+            />
             <Button
               variant="ghost"
               size="sm"
@@ -303,6 +318,21 @@ export function GroupPostItem({ post }: GroupPost) {
             <Icon name="ExternalLink" size={12} />
           </Link>
         </div>
+        
+        {showZaps && (
+          <div className="w-full mt-2.5">
+            <NutzapInterface
+              postId={post.id}
+              authorPubkey={post.pubkey}
+              relayHint={undefined}
+              onSuccess={() => {
+                // Call the refetch function if available
+                const refetchFn = (window as any)[`zapRefetch_${post.id}`];
+                if (refetchFn) refetchFn();
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

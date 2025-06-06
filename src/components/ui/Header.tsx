@@ -46,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                 : 'text-gray-500/60 hover:text-gray-700 dark:text-gray-400/60 dark:hover:text-gray-200'} 
                 transition-all flex items-center`}
             >
-              <Icon name="Users" size={16} className="mr-1" />
+              <Icon name="Home" size={16} className="mr-1" />
               <span className="hidden sm:inline">Groups</span>
             </Link>
             <Link 

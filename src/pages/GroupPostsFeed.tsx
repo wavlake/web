@@ -96,9 +96,9 @@ export default function GroupPostsFeed() {
             .filter(tag => tag[0] === "p" && tag[3] === "moderator")
             .map(tag => tag[1]) || [];
 
-          // Get approved member pubkeys
+          // Get approved member pubkeys - using GROUP_APPROVED_MEMBERS_LIST instead of GROUP_MEMBER_APPROVAL
           const approvedMembersResponse = await nostr.query([{
-            kinds: [KINDS.GROUP_MEMBER_APPROVAL],
+            kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
             "#a": [communityId],
             limit: 100,
           }], { signal: AbortSignal.timeout(5000) });
@@ -241,7 +241,7 @@ export default function GroupPostsFeed() {
       for (const groupId of groupIds) {
         try {
           const banEvents = await nostr.query([{
-            kinds: [KINDS.GROUP_USER_BANNING],
+            kinds: [KINDS.GROUP_BANNED_MEMBERS_LIST],
             "#a": [groupId],
             limit: 50,
           }], { signal: AbortSignal.timeout(3000) });
