@@ -1,6 +1,6 @@
-import { useNostr } from "@jsr/nostrify__react";
+import { useNostr } from "@nostrify/react";
 import { useQuery } from "@tanstack/react-query";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 import { KINDS } from "@/lib/nostr-kinds";
 
 /**

@@ -34,7 +34,7 @@ import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
 import { useAuthor } from "@/hooks/useAuthor";
 import { toast } from "sonner";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { QRCodeModal } from "@/components/QRCodeModal";
 

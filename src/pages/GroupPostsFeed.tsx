@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { KINDS } from "@/lib/nostr-kinds";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 import { GroupPostItem } from "@/components/groups/GroupPostItem";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";

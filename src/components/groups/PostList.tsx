@@ -16,7 +16,7 @@ import { MessageSquare, Share2, CheckCircle, XCircle, MoreVertical, Ban, Chevron
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NutzapButton } from "@/components/groups/NutzapButton";
 import { NutzapInterface } from "@/components/groups/NutzapInterface";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 import { nip19 } from 'nostr-tools';
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";

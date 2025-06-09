@@ -14,7 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { toast } from "sonner";
-import type { NostrEvent } from "@jsr/nostrify__nostrify";
+import type { NostrEvent } from "@nostrify/nostrify";
 import {
   DropdownMenu,
   DropdownMenuContent,

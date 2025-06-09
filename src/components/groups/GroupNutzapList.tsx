@@ -9,7 +9,7 @@ import { Zap, DollarSign, Bitcoin, ArrowLeftRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 
 interface GroupNutzapListProps {
   groupId: string;

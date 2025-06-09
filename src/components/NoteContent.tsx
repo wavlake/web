@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { NostrEvent } from '@jsr/nostrify__nostrify';
+import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { useAuthor } from '@/hooks/useAuthor';

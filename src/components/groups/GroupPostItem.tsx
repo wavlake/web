@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { NostrEvent } from "@jsr/nostrify__nostrify";
+import { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { KINDS } from "@/lib/nostr-kinds";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
