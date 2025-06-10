@@ -700,7 +700,10 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   };
 
   return (
-    <div className={`py-4 hover:bg-muted/5 transition-colors ${!isLastItem ? 'border-b-2 border-border/70' : ''}`}>
+    <div 
+      id={post.id} // Add this id for anchor navigation
+      className={`py-4 hover:bg-muted/5 transition-colors ${!isLastItem ? 'border-b-2 border-border/70' : ''}`}
+    >
       <div className="flex flex-row items-start px-3">
         <Link to={`/profile/${post.pubkey}`} className="flex-shrink-0 mr-2.5">
           <Avatar className="h-9 w-9 cursor-pointer hover:opacity-80 transition-opacity rounded-md">
