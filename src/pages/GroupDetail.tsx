@@ -16,9 +16,6 @@ import {
   ShoppingBag,
   ExternalLink,
   Mail,
-  Settings,
-  Shield,
-  DollarSign,
 } from "lucide-react";
 import { useGroup } from "@/hooks/useGroup";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -31,16 +28,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { Layout } from "@/components/Layout";
-import { MemberManagement } from "@/components/groups/MemberManagement";
-import { ReportsList } from "@/components/groups/ReportsList";
 import { useAuthor } from "@/hooks/useAuthor";
-import { GroupNutzapList } from "@/components/groups/GroupNutzapList";
 import { RichText } from "@/components/ui/RichText";
 import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { KINDS } from "@/lib/nostr-kinds";
-import { GroupNutzapButton } from "@/components/groups/GroupNutzapButton";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -50,9 +43,9 @@ const groupTabs: TabItem[] = [
     icon: Home,
   },
   {
-    label: "Community",
-    value: "community",
-    icon: Users,
+    label: "Music",
+    value: "music",
+    icon: Music,
   },
   {
     label: "Updates",
@@ -60,14 +53,19 @@ const groupTabs: TabItem[] = [
     icon: Bell,
   },
   {
-    label: "eCash",
-    value: "ecash",
-    icon: DollarSign,
+    label: "Community",
+    value: "community",
+    icon: Users,
   },
   {
-    label: "Manage",
-    value: "manage",
-    icon: Settings,
+    label: "Links",
+    value: "links",
+    icon: ExternalLink,
+  },
+  {
+    label: "Contact",
+    value: "contact",
+    icon: Mail,
   },
 ];
 
@@ -316,6 +314,13 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
                 </div>
               </TabsContent>
 
+              <TabsContent value="music">
+                <div className="bg-background p-6 rounded-lg shadow-sm border">
+                  <h2 className="text-xl font-bold mb-4">Music</h2>
+                  <p className="text-muted-foreground">Music content coming soon...</p>
+                </div>
+              </TabsContent>
+
               <TabsContent value="updates">
                 <div className="bg-background p-6 rounded-lg shadow-sm border">
                   <h2 className="text-xl font-bold mb-4">Artist Updates</h2>
@@ -323,40 +328,20 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
                 </div>
               </TabsContent>
 
-              <TabsContent value="ecash">
-                <div className="space-y-4">
-                  <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-semibold">Group eCash</h2>
-                      {user && community && (
-                        <div className="flex-shrink-0">
-                          <GroupNutzapButton
-                            groupId={`${KINDS.GROUP}:${parsedId?.pubkey}:${parsedId?.identifier}`}
-                            ownerPubkey={community.pubkey}
-                            className="w-auto"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <GroupNutzapList groupId={`${KINDS.GROUP}:${parsedId?.pubkey}:${parsedId?.identifier}`} />
-                  </div>
+              <TabsContent value="links">
+                <div className="bg-background p-6 rounded-lg shadow-sm border">
+                  <h2 className="text-xl font-bold mb-4">Links</h2>
+                  <p className="text-muted-foreground">Links coming soon...</p>
                 </div>
               </TabsContent>
 
-              <TabsContent value="manage">
-                {isModerator ? (
-                  <div className="space-y-4">
-                    <div className="max-w-3xl mx-auto">
-                      <MemberManagement communityId={groupId || ""} isModerator={isModerator || false} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-background p-6 rounded-lg shadow-sm border text-center">
-                    <p className="text-muted-foreground">
-                      Only moderators can access management features.
-                    </p>
-                  </div>
-                )}
+              <TabsContent value="contact">
+                <div className="bg-background p-6 rounded-lg shadow-sm border">
+                  <h2 className="text-xl font-bold mb-4">Contact</h2>
+                  <p className="text-muted-foreground">
+                    Contact information coming soon...
+                  </p>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
