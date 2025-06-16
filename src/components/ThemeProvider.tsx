@@ -50,7 +50,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       attribute="class"
       defaultTheme="light"
       enableSystem={false}
-      storageKey="chorus-theme"
+      storageKey="wavlake-theme"
     >
       <ThemeMetaUpdater />
       {children}

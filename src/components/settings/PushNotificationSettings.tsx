@@ -67,7 +67,7 @@ export function PushNotificationSettings() {
   const handleTestNotification = () => {
     testNotification.mutate({
       title: 'Test Notification',
-      body: 'This is a test push notification from +chorus!',
+      body: 'This is a test push notification from Wavlake!',
     });
   };
 

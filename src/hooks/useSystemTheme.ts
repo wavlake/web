@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 const MEDIA_QUERY = '(prefers-color-scheme: dark)';
 const THEME_CLASS = 'dark';
-const THEME_STORAGE_KEY = 'chorus-theme-preference';
+const THEME_STORAGE_KEY = 'wavlake-theme-preference';
 
 // Theme colors matching the CSS variables
 const THEME_COLORS = {

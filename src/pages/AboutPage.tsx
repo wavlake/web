@@ -34,7 +34,7 @@ export default function AboutPage() {
         {/* About Content */}
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-3xl font-bold">About +chorus</CardTitle>
+            <CardTitle className="text-3xl font-bold">About Wavlake</CardTitle>
           </CardHeader>
           <CardContent>
             <div 
@@ -95,7 +95,7 @@ export default function AboutPage() {
             {!isRunningAsPwa && (
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground mb-3">
-                  Get the best experience by installing +chorus as an app on your device.
+                  Get the best experience by installing Wavlake as an app on your device.
                 </p>
                 <PWAInstallButton variant="default" size="sm" />
               </div>
@@ -104,7 +104,7 @@ export default function AboutPage() {
             {isRunningAsPwa && (
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">
-                  ✨ You're using +chorus as an installed app! Enjoy the enhanced experience with faster loading and offline capabilities.
+                  ✨ You're using Wavlake as an installed app! Enjoy the enhanced experience with faster loading and offline capabilities.
                 </p>
               </div>
             )}

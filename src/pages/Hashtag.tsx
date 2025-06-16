@@ -316,7 +316,7 @@ function HashtagPostItem({ post, hashtag }: HashtagPostItemProps) {
         id: post.id,
         author: post.pubkey,
         kind: post.kind,
-        relays: ["wss://relay.chorus.community"],
+        relays: ["wss://relay.wavlake.com"],
       });
       
       // Create njump.me URL

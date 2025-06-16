@@ -36,7 +36,7 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
 
         // Add the client tag if it doesn't exist
         if (!tags.some((tag) => tag[0] === "client")) {
-          tags.push(["client", "chorus"]);
+          tags.push(["client", "wavlake"]);
         }
 
         // // Add protected tag for all events except kind 0 (metadata) and kind 3 (contacts)

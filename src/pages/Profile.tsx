@@ -623,7 +623,7 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
         id: post.id,
         author: post.pubkey,
         kind: post.kind,
-        relays: ["wss://relay.chorus.community"],
+        relays: ["wss://relay.wavlake.com"],
       });
       
       // Create njump.me URL
@@ -1081,12 +1081,12 @@ export default function Profile() {
 
   useEffect(() => {
     if (displayNameFull && displayNameFull !== "Unnamed User") {
-      document.title = `+chorus - ${displayNameFull}`;
+      document.title = `Wavlake - ${displayNameFull}`;
     } else {
-      document.title = "+chorus";
+      document.title = "Wavlake";
     }
     return () => {
-      document.title = "+chorus";
+      document.title = "Wavlake";
     };
   }, [displayNameFull]);
 

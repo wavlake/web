@@ -1,10 +1,11 @@
-import { X, Download, Smartphone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { usePWA } from '@/hooks/usePWA';
+import { X, Download, Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { usePWA } from "@/hooks/usePWA";
 
 export function PWAInstallBanner() {
-  const { isInstallable, showInstallBanner, promptInstall, dismissBanner } = usePWA();
+  const { isInstallable, showInstallBanner, promptInstall, dismissBanner } =
+    usePWA();
 
   const handleInstall = async () => {
     if (isInstallable) {
@@ -32,14 +33,14 @@ export function PWAInstallBanner() {
               <Smartphone className="w-5 h-5 text-primary" />
             </div>
           </div>
-          
+
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm">Install +chorus</h3>
+            <h3 className="font-medium text-sm">Install Wavlake</h3>
             <p className="text-xs text-muted-foreground">
               Get the full app experience on your device
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {isInstallable ? (
               <Button size="sm" onClick={handleInstall} className="text-xs">
@@ -47,15 +48,20 @@ export function PWAInstallBanner() {
                 Install
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => {
-                // This will be handled by opening the instructions dialog
-                const event = new CustomEvent('open-pwa-instructions');
-                window.dispatchEvent(event);
-              }} className="text-xs">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // This will be handled by opening the instructions dialog
+                  const event = new CustomEvent("open-pwa-instructions");
+                  window.dispatchEvent(event);
+                }}
+                className="text-xs"
+              >
                 Learn How
               </Button>
             )}
-            
+
             <Button
               size="sm"
               variant="ghost"

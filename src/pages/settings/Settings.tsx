@@ -219,12 +219,12 @@ export default function Settings() {
               <Smartphone className="w-5 h-5" />
               Install App
             </CardTitle>
-            <CardDescription>Get the full app experience by installing +chorus on your device</CardDescription>
+            <CardDescription>Get the full app experience by installing Wavlake on your device</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Install +chorus as a Progressive Web App (PWA) for:
+                Install Wavlake as a Progressive Web App (PWA) for:
               </p>
               <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                 <li>• Faster loading and offline access</li>

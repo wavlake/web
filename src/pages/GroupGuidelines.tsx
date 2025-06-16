@@ -57,12 +57,12 @@ export default function GroupGuidelines() {
 
   useEffect(() => {
     if (name && name !== "Unnamed Group") {
-      document.title = `+chorus - ${name} - Guidelines`;
+      document.title = `Wavlake - ${name} - Guidelines`;
     } else {
-      document.title = "+chorus - Guidelines";
+      document.title = "Wavlake - Guidelines";
     }
     return () => {
-      document.title = "+chorus";
+      document.title = "Wavlake";
     };
   }, [name]);
 

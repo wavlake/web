@@ -71,7 +71,7 @@ export function PWAInstallInstructions({ isOpen, onClose }: PWAInstallInstructio
                 </p>
                 <Button onClick={handleInstallClick} className="w-full">
                   <Download className="w-4 h-4 mr-2" />
-                  Install +chorus
+                  Install Wavlake
                 </Button>
               </div>
             ) : (
@@ -116,7 +116,7 @@ export function PWAInstallInstructions({ isOpen, onClose }: PWAInstallInstructio
                 </p>
                 <Button onClick={handleInstallClick} className="w-full">
                   <Download className="w-4 h-4 mr-2" />
-                  Install +chorus
+                  Install Wavlake
                 </Button>
               </div>
             ) : (
@@ -132,7 +132,7 @@ export function PWAInstallInstructions({ isOpen, onClose }: PWAInstallInstructio
                   <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center font-medium">2</div>
                   <div>
                     <p className="font-medium">Alternative: Use the menu</p>
-                    <p className="text-sm text-muted-foreground">Click the three dots (⋮) → "Install +chorus"</p>
+                    <p className="text-sm text-muted-foreground">Click the three dots (⋮) → "Install Wavlake"</p>
                   </div>
                 </div>
               </div>
@@ -179,10 +179,10 @@ export function PWAInstallInstructions({ isOpen, onClose }: PWAInstallInstructio
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="w-5 h-5" />
-            Install +chorus
+            Install Wavlake
           </DialogTitle>
           <DialogDescription>
-            Get the full app experience by installing +chorus on your device
+            Get the full app experience by installing Wavlake on your device
           </DialogDescription>
         </DialogHeader>
         
