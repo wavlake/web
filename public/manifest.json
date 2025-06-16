@@ -1,27 +1,27 @@
 {
-  "id": "chorus-nostr-groups",
-  "name": "+chorus - Nostr Groups",
-  "short_name": "+chorus",
-  "description": "Join, create, and participate in decentralized groups powered by the Nostr protocol. Connect with communities through censorship-resistant social networking.",
+  "id": "wavlake-music-platform",
+  "name": "Wavlake - Bitcoin Music Platform",
+  "short_name": "Wavlake",
+  "description": "A Bitcoin-powered music platform where artists earn sats and fans discover amazing music. Stream, support, and connect through decentralized music.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
-  "categories": ["social", "productivity"],
+  "theme_color": "#f97316",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
-      "src": "/web-app-manifest-192x192.png",
+      "src": "/wavlake-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     },
     {
-      "src": "/web-app-manifest-512x512.png",
+      "src": "/wavlake-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "screenshots": [
@@ -30,37 +30,37 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "+chorus desktop view showing group discussions"
+      "label": "Wavlake desktop view showing artist communities"
     },
     {
       "src": "/screenshots/mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "+chorus mobile view for group chat"
+      "label": "Wavlake mobile view for music discovery"
     }
   ],
   "shortcuts": [
     {
-      "name": "New Group",
-      "short_name": "New Group",
-      "description": "Create a new decentralized group",
-      "url": "/groups/new",
+      "name": "Artist Page",
+      "short_name": "Artist Page",
+      "description": "Create a new artist page",
+      "url": "/create-group",
       "icons": [
         {
-          "src": "/web-app-manifest-192x192.png",
+          "src": "/wavlake-icon-192.png",
           "sizes": "192x192"
         }
       ]
     },
     {
-      "name": "Notifications",
-      "short_name": "Notifications",
-      "description": "View your notifications",
-      "url": "/notifications",
+      "name": "Wallet",
+      "short_name": "Wallet",
+      "description": "View your wallet",
+      "url": "/wallet",
       "icons": [
         {
-          "src": "/web-app-manifest-192x192.png",
+          "src": "/wavlake-icon-192.png",
           "sizes": "192x192"
         }
       ]

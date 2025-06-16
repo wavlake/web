@@ -30,7 +30,7 @@ import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseNostrAddress } from "@/lib/nostr-utils";
-import Header from "@/components/ui/Header";
+import { Layout } from "@/components/Layout";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -209,8 +209,7 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <Header />
+    <Layout className="flex flex-col w-full">
       <CommunityProfileHeader
         communityId={groupId || ""}
         name={artist.name}
@@ -370,6 +369,6 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

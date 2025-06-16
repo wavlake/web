@@ -1,7 +1,7 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import Header from "@/components/ui/Header";
+import { Layout } from "@/components/Layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -285,8 +285,7 @@ export default function Groups() {
   );
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <Layout className="container mx-auto py-1 px-3 sm:px-4">
 
       <div className="flex flex-col mt-2">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
@@ -392,6 +391,6 @@ export default function Groups() {
         isOpen={showPWAInstructions}
         onClose={() => setShowPWAInstructions(false)}
       />
-    </div>
+    </Layout>
   );
 }

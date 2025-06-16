@@ -2,15 +2,14 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
-import Header from "@/components/ui/Header";
+import { Layout } from "@/components/Layout";
 
 export default function Dashboard() {
   const { user } = useCurrentUser();
 
   if (!user) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <Layout className="container mx-auto py-1 px-3 sm:px-4">
         <div className="space-y-6 my-6">
           <Card className="max-w-md mx-auto">
             <CardHeader>
@@ -24,19 +23,18 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <Layout className="container mx-auto py-1 px-3 sm:px-4">
       <div className="my-6">
         <ArtistDashboard 
           artistName="Artist Name"
           artistImage=""
         />
       </div>
-    </div>
+    </Layout>
   );
 }

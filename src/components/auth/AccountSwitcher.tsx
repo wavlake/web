@@ -109,7 +109,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           >
             <Link to="/create-group">
               <Plus className="w-3.5 h-3.5 font-bold md:w-3.5 md:h-3.5 w-4 h-4" />
-              <span>Create Group</span>
+              <span>Create Artist Page</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="my-1" />
@@ -179,7 +179,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           >
             <Link to="/about">
               <Info className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
-              <span>About +chorus</span>
+              <span>About Wavlake</span>
             </Link>
           </DropdownMenuItem>
           {!isRunningAsPwa && (

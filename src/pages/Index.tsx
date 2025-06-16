@@ -184,21 +184,20 @@ const Index = () => {
       <>
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
           <div className="w-full max-w-md mx-auto px-8 text-center mb-8">
-            <h1 className="text-4xl font-extralight mb-4">
-              <div className="flex flex-row items-baseline justify-center flex-wrap">
-                <span className="font-extralight mr-2 whitespace-nowrap">
-                  welcome to
-                </span>
-                <div className="flex flex-row items-baseline">
-                  <span className="text-red-500 font-extrabold">+</span>
-                  <span className="text-black dark:text-white font-extrabold">
-                    chorus
-                  </span>
-                </div>
-              </div>
-            </h1>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img
+                src="/wavlake-icon-96.png"
+                alt="Wavlake"
+                width={64}
+                height={64}
+                className="object-contain"
+              />
+              <h1 className="text-4xl font-bold">
+                Wavlake
+              </h1>
+            </div>
             <div className="text-lg text-muted-foreground font-extralight">
-              public/private groups are money
+              Stream Anywhere, Earn Everywhere
             </div>
           </div>
           <Button
@@ -210,7 +209,7 @@ const Index = () => {
             {creating ? "Creating..." : "Get Started"}
           </Button>
           <div className="text-sm text-muted-foreground flex items-center justify-center mt-3">
-            <span>Have a Nostr/+chorus account?</span>&nbsp;
+            <span>Have a Nostr/Wavlake account?</span>&nbsp;
             <Button
               variant="link"
               size="sm"
@@ -231,7 +230,7 @@ const Index = () => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Install +chorus for the best experience
+                Install Wavlake for the best experience
               </p>
               <PWAInstallButton
                 variant="outline"
