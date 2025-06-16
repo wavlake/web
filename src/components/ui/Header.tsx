@@ -1,6 +1,7 @@
 import { LoginArea } from "@/components/auth/LoginArea";
 import { BalanceDisplay } from "@/components/BalanceDisplay";
 import { ClaimOnboardingTokenButton } from "@/components/ClaimOnboardingTokenButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -64,6 +65,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
       </div>
       <div className="flex items-center gap-2">
         {showClaimButton ? <ClaimOnboardingTokenButton /> : <BalanceDisplay />}
+        <ThemeToggle />
         <LoginArea />
       </div>
     </div>

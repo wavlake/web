@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import AppRouter from './AppRouter';
-import { useSystemTheme } from '@/hooks/useSystemTheme';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { JoinDialogProvider } from '@/components/groups/JoinDialogProvider';
 import { WalletLoader } from '@/components/WalletLoader';
 
@@ -28,24 +28,23 @@ const queryClient = new QueryClient({
 });
 
 export function App() {
-  // Use the enhanced theme hook
-  useSystemTheme();
-
   return (
-    <NostrLoginProvider storageKey='nostr:login'>
-      <NostrProvider relays={defaultRelays}>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <JoinDialogProvider>
-              <WalletLoader />
-              <Toaster />
-              <Sonner />
-              <AppRouter />
-            </JoinDialogProvider>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </NostrProvider>
-    </NostrLoginProvider>
+    <ThemeProvider>
+      <NostrLoginProvider storageKey='nostr:login'>
+        <NostrProvider relays={defaultRelays}>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <JoinDialogProvider>
+                <WalletLoader />
+                <Toaster />
+                <Sonner />
+                <AppRouter />
+              </JoinDialogProvider>
+            </TooltipProvider>
+          </QueryClientProvider>
+        </NostrProvider>
+      </NostrLoginProvider>
+    </ThemeProvider>
   );
 }
 
