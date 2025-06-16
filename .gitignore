@@ -47,3 +47,4 @@ temp.*
 *.swo
 \#*\#
 .certs/
+.vercel
