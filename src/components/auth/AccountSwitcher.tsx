@@ -14,6 +14,7 @@ import {
   Wallet,
   Info,
   Download,
+  BarChart3,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -119,6 +120,15 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             <Link to={`/profile/${currentUser.pubkey}`}>
               <User className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>View Profile</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            asChild
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
+          >
+            <Link to="/dashboard">
+              <BarChart3 className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
+              <span>Dashboard</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem

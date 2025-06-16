@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Hashtag from "./pages/Hashtag";
 import Trending from "./pages/Trending";
 import GroupPostsFeed from "./pages/GroupPostsFeed";
+import Dashboard from "./pages/Dashboard";
 
 // Lazy load less frequently used pages
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -43,6 +44,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/groups" element={<Groups />} />
         <Route path="/group/:groupId" element={<GroupDetail />} />
         <Route path="/profile/:pubkey" element={<Profile />} />
