@@ -7,7 +7,6 @@ const FALLBACK_RELAYS = [
   "wss://purplepag.es",
   "wss://relay.nos.social",
   "wss://cache2.primal.net/v1",
-  "wss://relay.chorus.community",
 ];
 
 export function useProfileSync() {

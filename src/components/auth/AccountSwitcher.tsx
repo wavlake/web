@@ -198,13 +198,13 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             onClick={() => {
               removeLogin(currentUser.id);
               cashuStore.clearStore();
-              const chorusOnboardingStored =
-                localStorage.getItem("chorus-onboarding");
+              const wavlakeOnboardingStored =
+                localStorage.getItem("wavlake-onboarding");
               localStorage.clear();
-              if (chorusOnboardingStored) {
+              if (wavlakeOnboardingStored) {
                 localStorage.setItem(
-                  "chorus-onboarding",
-                  chorusOnboardingStored
+                  "wavlake-onboarding",
+                  wavlakeOnboardingStored
                 );
               }
               navigate("/");

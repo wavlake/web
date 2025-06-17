@@ -1,10 +1,10 @@
-# Chorus NIP-72 Extensions
+# Wavlake NIP-72 Extensions
 
 `draft` `optional`
 
-**⚠️ DISCLAIMER: This NIP is still under active development and subject to change. The event kinds and specifications described here are experimental and may be modified, deprecated, or replaced in future versions. It is not recommended to implement this NIP in production systems without first discussing it with the Chorus development team.**
+**⚠️ DISCLAIMER: This NIP is still under active development and subject to change. The event kinds and specifications described here are experimental and may be modified, deprecated, or replaced in future versions. It is not recommended to implement this NIP in production systems without first discussing it with the Wavlake development team.**
 
-This document describes the Chorus platform's extensions to NIP-72 (Moderated Communities) that enhance community management, user moderation, and content organization capabilities.
+This document describes the Wavlake platform's extensions to NIP-72 (Moderated Communities) that enhance community management, user moderation, and content organization capabilities for music communities.
 
 ## Background
 
@@ -12,7 +12,7 @@ NIP-72 defines the basic framework for moderated communities on Nostr using:
 - **Kind 34550**: Community definition events
 - **Kind 4550**: Post approval events
 
-Chorus extends this foundation with additional event kinds to provide comprehensive community management features including member lists, content pinning, join requests, and enhanced moderation workflows.
+Wavlake extends this foundation with additional event kinds to provide comprehensive community management features including member lists, content pinning, join requests, and enhanced moderation workflows.
 
 ## Core NIP-72 Event Kinds
 
@@ -22,7 +22,7 @@ Defines a community with metadata and moderator lists as specified in NIP-72.
 ### Kind 4550: Post Approval  
 Moderator approval events for posts as specified in NIP-72.
 
-## Chorus Extensions
+## Wavlake Extensions
 
 ### Member Management Events
 

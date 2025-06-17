@@ -1,5 +1,5 @@
 # hashtags nostr react ui complete
-Hashtag functionality implementation completed in Chorus Nostr client:
+Hashtag functionality implementation completed in Nostr client:
 
 1. ✅ NoteContent.tsx - Hashtag rendering and clickable links
 2. ✅ CreatePostForm.tsx - Hashtag extraction and 't' tags on post creation
@@ -26,5 +26,5 @@ User workflow shorthand: When user says "you know what to do" or "ykwtd" it mean
 This is the standard workflow for completing feature implementation.
 
 # trending hashtags feature-request discovery
-User wants trending hashtag functionality added to the Chorus Nostr client. This would show popular/frequently used hashtags to help users discover what's trending in the network.
+User wants trending hashtag functionality added to the Nostr client. This would show popular/frequently used hashtags to help users discover what's trending in the network.
 

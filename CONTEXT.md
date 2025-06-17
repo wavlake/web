@@ -379,13 +379,13 @@ This command will typecheck the code and attempt to build it.
 
 Your task is not considered finished until this test passes without errors.
 
-# Chorus Project
+# Wavlake Project
 
-Chorus is a Facebook-inspired groups platform built on the Nostr protocol using NIP-72 for moderated communities. This section provides specific information about the Chorus implementation.
+Wavlake is a music-focused community platform built on the Nostr protocol using NIP-72 for moderated communities. This section provides specific information about the Wavlake implementation.
 
 ## NIP-72 Implementation
 
-Chorus implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/72.md), which defines a standard for moderated communities on Nostr, along with custom extensions documented in `NIP.md`. The implementation uses:
+Wavlake implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/72.md), which defines a standard for moderated communities on Nostr, along with custom extensions documented in `NIP.md`. The implementation uses:
 
 - **Kind 34550**: Community definition events that include community metadata and moderator lists
 - **Kind 4550**: Post approval events that moderators use to approve posts
@@ -544,7 +544,7 @@ await publishEvent({
 
 ## Development Guidelines
 
-When extending the Chorus platform:
+When extending the Wavlake platform:
 
 1. Follow the established patterns for Nostr event creation and querying
 2. Use the existing hooks for Nostr integration (`useNostr`, `useNostrPublish`, etc.)

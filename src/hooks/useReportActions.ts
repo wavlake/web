@@ -90,7 +90,7 @@ export function useReportActions() {
                     ["e", eventId],
                     ["a", communityIdentifier],
                     ["l", "removal-reason"],
-                    ["L", "chorus.removal.reason"]
+                    ["L", "wavlake.removal.reason"]
                   ],
                   content: reason,
                 });

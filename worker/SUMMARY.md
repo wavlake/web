@@ -2,7 +2,7 @@
 
 ## ✅ Implementation Complete
 
-I have successfully implemented the complete push notifications infrastructure for the +chorus Nostr web app as specified in the PRD.
+I have successfully implemented the complete push notifications infrastructure for the Wavlake Nostr web app as specified in the PRD.
 
 ## 🚀 Components Delivered
 

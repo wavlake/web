@@ -1,134 +1,80 @@
 # Frequently Asked Questions
 
-## What is +chorus?
+## What is Wavlake?
 
-+chorus is a simple, decentralized space for communities to gather, share, and grow — built by the team at [And Other Stuff (AOS)](https://andotherstuff.org/) on the open [Nostr](https://github.com/nostr-protocol/nostr) protocol.
+Wavlake is a decentralized music platform that connects musicians and fans through modern protocols like Nostr, Blossom, and Bitcoin. We enable direct relationships between artists and fans without corporate intermediaries.
 
-**You can use +chorus to create or join groups, post freely, and connect with others** — without handing over your personal data or relying on big tech.
+## How is Wavlake different from other music platforms?
 
-Whether you're organizing a movement or supporting one, +chorus gives you the tools to do it on your terms.
+Unlike traditional platforms, Wavlake is decentralized and artist-owned:
+- Artists maintain full control over their content and fanbase
+- Direct Bitcoin payments between fans and artists
+- Censorship-resistant through Nostr protocol
+- Privacy-focused with pseudonymous profiles
+- No corporate middlemen taking percentage cuts
 
-**And, you can fuel your community with more than words.** Support the people and projects you care about securely and instantly, without leaving the app or adding a credit card.
+## What is Nostr?
 
-With +chorus, we give you the keys. You drive the conversation — and the economy around it.
+Nostr (Notes and Other Stuff Transmitted by Relays) is a decentralized protocol for social media and content sharing. It ensures your content can't be censored or controlled by any single entity.
 
-## How can I send or receive funds through +chorus?
+## How do payments work?
 
-+chorus makes it easy to support the people and projects you care about — and just as easy to receive support for your own work.
+Wavlake uses Bitcoin and the Cashu protocol for payments:
+- Direct peer-to-peer transactions
+- Privacy-focused micropayments
+- No traditional payment processor fees
+- Artists receive payments directly to their wallets
 
-You can send small, instant eCash payments to show appreciation, fund ideas, or back a cause. These payments are powered by a privacy-first system called [Cashu](https://cashu.space).
+## Is Wavlake free to use?
 
-If you're sharing your voice, leading a community, or building something meaningful, others can support you directly — right in the conversation.
+Yes, creating an account and joining communities is completely free. Artists and fans can engage, share content, and build communities at no cost.
 
-## Do I need a wallet to send or receive payments?
+## How do I support an artist?
 
-No wallet? No problem. Click on your screen name in the top-right corner and select **Wallet** to set up eCash. With one click, we will have you ready to send and receive funds.
+You can support artists through:
+- Direct Bitcoin tips and payments
+- Purchasing music and merchandise
+- Engaging with their content
+- Sharing their music with your network
 
-## Do I need to create an account?
+## Is my data private?
 
-Nope. There are no accounts to create. +chorus uses cryptographic key pairs instead of usernames and passwords.
+Yes, privacy is a core principle:
+- Use pseudonymous identities
+- Your data isn't sold to advertisers
+- Decentralized storage means no central point of failure
+- You control what information you share
 
-This means **you control your identity** — no company owns your login.
+## How do I get started as an artist?
 
-## What is the role of group owners and moderators?
+1. Create your Wavlake account
+2. Set up your artist community
+3. Configure your Bitcoin wallet for payments
+4. Start sharing music and building your fanbase
+5. Engage authentically with your community
 
-**Group Owner**
+## How do I discover new music?
 
-The person who creates a group automatically becomes its Owner. Owners have full administrative control, including the ability to:
-- Add or remove moderators
-- Manage group settings and permissions
-- Rename the group
-- Manage contributions to the group
+- Browse artist communities
+- Follow artists you love
+- Engage in music discussions
+- Get recommendations from fellow fans
+- Support emerging artists directly
 
-**Moderators**
+## Can I use Wavlake on mobile?
 
-Moderators help maintain a productive and respectful environment. They can:
-- Approve or remove members
-- Pin important messages
-- Enforce the group’s community guidelines
+Yes! Wavlake is designed mobile-first and works great on smartphones and tablets. You can also install it as a Progressive Web App for an app-like experience.
 
-Groups can have multiple moderators, but only one owner. Owners can promote other members to moderators at any time.
+## What if I have technical issues?
 
-## What is a cryptographic key?
+For technical support or bug reports, please visit our [GitHub repository](https://github.com/wavlake/web/issues/new) to report issues or request features.
 
-A cryptographic key is a string of characters used to secure your identity and content. Think of it like a master password that proves who you are and allows you to post, sign messages, and access your communities.
+## How can I contribute to Wavlake?
 
-- Your **public key** is like your username — others can see it. It usually starts with `npub…`
-- Your **private key** must be kept secret — it's what proves you're really you. It usually starts with `nsec…`
+We welcome contributions from the music and developer communities! Check out our GitHub repository to see how you can help improve the platform.
 
-**If someone else gets your private key, they can act as you forever — so keep it safe.**
+---
 
-## Can I delete my +chorus account?
+**Still have questions?** 
 
-There's no traditional account to delete. Your identity on +chorus is tied to a cryptographic key.
-
-If you want to stop using +chorus:
-
-- You can remove your key from your browser, extension, or device.
-- If you used a temporary key, just stop using it.
-
-Your content may also disappear over time if the relays you used remove old data — but this depends on each relay's policy and isn't guaranteed.
-
-## Is +chorus private?
-
-+chorus doesn't track you or collect personal data. You don't need an email, phone number, or name to join or post. You can use a pseudonym or stay anonymous.
-
-However, Nostr is a public protocol — so unless you're using encrypted direct messages or private groups (which are not currently supported in +chorus), your posts are visible to anyone using a compatible app.
-
-**Always be thoughtful about what you share.**
-
-## Is +chorus secure?
-
-+chorus is designed with security by default. But because you control your keys, some of the responsibility lies with you.
-
-- Your identity is tied to your **private key** (the one that starts with `nsec…`). Keep it safe and never share it.
-- If someone else gets your private key, they can impersonate you — permanently.
-- To protect your key, you can use tools like [Alby](https://getalby.com/) to log in without exposing it directly.
-
-## Who can see what I post?
-
-+chorus groups are public communities meaning anyone using +chorus or another Nostr app can see your content.
-
-Posts are stored on public relays. +chorus helps you create and manage posts and communities — it doesn't control what's stored or shared.
-
-## Can I remove something I posted?
-
-You can request that relays delete your content. However, because the protocol is decentralized, content can persist if relays or users choose to keep it.
-
-## How can I access +chorus?
-
-+chorus is a browser-based app designed with mobile use in mind. No app store required — just visit the site on your phone and save to your homescreen for quick access.
-
-## What if I'm new to Nostr?
-
-That's totally cool. +chorus is designed for people who have never used Nostr before. If you have a Nostr key, you can use it. If not, you can generate one in seconds.
-
-## How can I check out the technical details?
-
-+chorus is an open-source project built on several key technologies:
-
-**Nostr Protocol Integration**
-- Implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/72.md) for moderated communities
-- Uses [NIP-60](https://github.com/nostr-protocol/nips/blob/master/60.md) for Cashu wallet integration
-- Supports [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) for Lightning zaps
-- Implements [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) for encrypted payloads
-
-**Cashu Integration**
-- Built-in Cashu wallet for instant eCash payments
-- Support for multiple Cashu mints
-- Private, non-custodial transactions
-- Encrypted transaction history
-- Automatic wallet configuration via Nostr events
-
-**Technical Stack**
-- React 18.x with TypeScript
-- TailwindCSS 3.x for styling
-- Vite for fast development
-- shadcn/ui for accessible components
-- TanStack Query for data management
-
-You can explore our code, design decisions, and documentation on [GitHub](https://github.com/andotherstuff/chorus).
-
-## Something isn't working — how can I get help?
-
-Feel free to ask in our [+chorus group](https://chorus.community/group/34550%3A932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d%3Aand-other-stuff-mb3c9stb), visit our [GitHub](https://github.com/andotherstuff), or check out our [website](https://andotherstuff.org). We welcome your questions, feedback, ideas, contributions, and [bug reports](https://github.com/andotherstuff/chorus/issues/new).
+Join our community discussions or reach out through our [GitHub repository](https://github.com/wavlake/web) for more support.

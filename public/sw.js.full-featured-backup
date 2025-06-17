@@ -1,8 +1,8 @@
 // Enhanced Service Worker for PWA with proper caching and offline support
 
-const CACHE_NAME = 'chorus-pwa-v1';
-const STATIC_CACHE_NAME = 'chorus-static-v1';
-const RUNTIME_CACHE_NAME = 'chorus-runtime-v1';
+const CACHE_NAME = 'wavlake-pwa-v1';
+const STATIC_CACHE_NAME = 'wavlake-static-v1';
+const RUNTIME_CACHE_NAME = 'wavlake-runtime-v1';
 
 // Files to cache for offline functionality
 const STATIC_ASSETS = [
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
           cacheNames
             .filter(cacheName => {
               // Delete old caches that don't match current version
-              return !cacheName.includes('chorus-') || 
+              return !cacheName.includes('wavlake-') || 
                      (cacheName !== STATIC_CACHE_NAME && 
                       cacheName !== RUNTIME_CACHE_NAME);
             })
@@ -159,7 +159,7 @@ self.addEventListener('push', (event) => {
   
   let notificationData = {
     title: 'New activity',
-    body: 'You have new activity on +chorus',
+    body: 'You have new activity on Wavlake',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-96x96.png',
     data: {}

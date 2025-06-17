@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
 
   let notificationData = {
     title: 'New activity',
-    body: 'You have new activity on +chorus',
+    body: 'You have new activity on Wavlake',
     icon: '/web-app-manifest-192x192.png',
     badge: '/web-app-manifest-192x192.png',
     data: {}

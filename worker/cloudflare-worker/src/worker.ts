@@ -333,7 +333,7 @@ async function queuePushNotification(target: NotificationTarget, event: RelayEve
  */
 function createNotificationPayload(target: NotificationTarget, event: RelayEvent): any {
   let title = 'New Activity';
-  let body = 'You have new activity on +chorus';
+  let body = 'You have new activity on Wavlake';
 
   const groupTag = event.tags.find(tag => tag[0] === 'a');
   const groupId = groupTag?.[1];

@@ -1,6 +1,6 @@
 # Push Notifications Implementation Guide
 
-This implementation provides comprehensive push notification support for the Nostr-based +chorus web app, following the PRD specifications.
+This implementation provides comprehensive push notification support for the Nostr-based Wavlake web app, following the PRD specifications.
 
 ## Architecture Overview
 

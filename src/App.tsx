@@ -15,7 +15,6 @@ import { WalletLoader } from "@/components/WalletLoader";
 // DO NOT MODIFY THIS LIST UNLESS YOU ARE ABSOLUTELY CERTAIN EACH RELAY URL YOU ARE ADDING IS VALID AND THE RELAY IS CURRENTLY ONLINE AND CONFIRMED TO BE FULLY FUNCTIONAL AND WORKING.
 const defaultRelays = [
   "wss://relay.wavlake.com/", // DO NOT MODIFY THIS UNLESS EXPLICITLY REQUESTED
-  "wss://relay.chorus.community",
 ];
 
 const queryClient = new QueryClient({
