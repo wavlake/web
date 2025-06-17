@@ -25,6 +25,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { EditProfileForm } from "@/components/EditProfileForm";
+import { MusicPublisher } from "@/components/music/MusicPublisher";
 
 const dashboardTabs: TabItem[] = [
   {
@@ -478,6 +479,8 @@ export function ArtistDashboard({
     switch (activeSection) {
       case "overview":
         return renderOverview();
+      case "music":
+        return <MusicPublisher artistId={user?.pubkey} />;
       case "community":
         return renderCommunity();
       case "settings":

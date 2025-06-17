@@ -1,135 +1,128 @@
 import { useQuery } from "@tanstack/react-query";
-import { Album } from "@/components/music/MusicSection";
+import { useNostr } from "@nostrify/react";
+import { KINDS } from "@/lib/nostr-kinds";
+import { NostrEvent } from "@nostrify/nostrify";
+import { useArtistTracks, NostrTrack } from "./useArtistTracks";
 
-export function useArtistAlbums(artistId: string) {
+export interface NostrAlbum {
+  id: string;
+  title: string;
+  artist: string;
+  coverUrl?: string;
+  releaseDate?: string;
+  description?: string;
+  genre?: string;
+  explicit?: boolean;
+  price?: number;
+  tags?: string[];
+  tracks: NostrTrack[];
+  upc?: string;
+  label?: string;
+  pubkey: string;
+  created_at: number;
+  event: NostrEvent;
+}
+
+function parseAlbumFromEvent(
+  event: NostrEvent
+): Omit<NostrAlbum, "tracks"> | null {
+  try {
+    // Extract metadata from tags (content is plain text description)
+    const titleTag = event.tags.find((tag) => tag[0] === "title")?.[1];
+    const artistTag = event.tags.find((tag) => tag[0] === "artist")?.[1];
+    const genreTag = event.tags.find((tag) => tag[0] === "genre")?.[1];
+
+    // Cover art from image tag
+    const coverUrl = event.tags.find((tag) => tag[0] === "image")?.[1];
+
+    // Other metadata from tags
+    const explicitTag = event.tags.find((tag) => tag[0] === "explicit")?.[1];
+    const releasedAtTag = event.tags.find(
+      (tag) => tag[0] === "released_at"
+    )?.[1];
+    const priceTag = event.tags.find((tag) => tag[0] === "price")?.[1];
+    const upcTag = event.tags.find((tag) => tag[0] === "upc")?.[1];
+    const labelTag = event.tags.find((tag) => tag[0] === "label")?.[1];
+
+    // Get tags with 't' prefix
+    const hashTags = event.tags
+      .filter((tag) => tag[0] === "t")
+      .map((tag) => tag[1]);
+
+    return {
+      id: event.id,
+      title: titleTag || "Untitled Album",
+      artist: artistTag || "Unknown Artist",
+      coverUrl,
+      releaseDate: releasedAtTag
+        ? new Date(parseInt(releasedAtTag)).toISOString()
+        : undefined,
+      description: event.content || "", // Content is the description
+      genre: genreTag,
+      explicit: explicitTag === "true",
+      price: priceTag ? parseInt(priceTag) : 0,
+      tags: hashTags,
+      upc: upcTag,
+      label: labelTag,
+      pubkey: event.pubkey,
+      created_at: event.created_at,
+      event,
+    };
+  } catch (error) {
+    console.error("Failed to parse album event:", error);
+    return null;
+  }
+}
+
+export function useArtistAlbums(artistPubkey: string) {
+  const { nostr } = useNostr();
+  const { data: allTracks = [] } = useArtistTracks(artistPubkey);
+
   return useQuery({
-    queryKey: ["artist-albums", artistId],
-    queryFn: async () => {
-      // In a real implementation, this would fetch from Nostr events
-      // For now, return mock data
-      const mockAlbums: Album[] = [
-        {
-          id: "album-1",
-          title: "Electric Dreams",
-          coverArt: "https://picsum.photos/seed/album1/300/300",
-          releaseYear: "2024",
-          fundingGoal: 1000000,
-          fundingRaised: 750000,
-          tracks: [
-            {
-              id: "track-1",
-              title: "Opening Act",
-              duration: "3:45",
-              plays: 1234,
-              ecash: 5000,
-              streamCost: 0,
-              isExclusive: false,
-            },
-            {
-              id: "track-2",
-              title: "Digital Sunrise",
-              duration: "4:20",
-              plays: 892,
-              ecash: 8500,
-              streamCost: 100,
-              isExclusive: false,
-            },
-            {
-              id: "track-3",
-              title: "Exclusive Mix",
-              duration: "5:15",
-              plays: 456,
-              ecash: 15000,
-              streamCost: 500,
-              isExclusive: true,
-            },
-            {
-              id: "track-4",
-              title: "Midnight Pulse",
-              duration: "3:58",
-              plays: 2345,
-              ecash: 7200,
-              streamCost: 0,
-              isExclusive: false,
-            },
-          ],
-        },
-        {
-          id: "album-2",
-          title: "Acoustic Sessions",
-          coverArt: "https://picsum.photos/seed/album2/300/300",
-          releaseYear: "2023",
-          tracks: [
-            {
-              id: "track-5",
-              title: "Unplugged",
-              duration: "3:30",
-              plays: 2100,
-              ecash: 3000,
-              streamCost: 0,
-              isExclusive: false,
-            },
-            {
-              id: "track-6",
-              title: "Raw & Real",
-              duration: "4:00",
-              plays: 1800,
-              ecash: 4500,
-              streamCost: 0,
-              isExclusive: false,
-            },
-            {
-              id: "track-7",
-              title: "Strings Attached",
-              duration: "5:45",
-              plays: 950,
-              ecash: 6000,
-              streamCost: 200,
-              isExclusive: false,
-            },
-          ],
-        },
-        {
-          id: "album-3",
-          title: "Summer Vibes EP",
-          coverArt: "https://picsum.photos/seed/album3/300/300",
-          releaseYear: "2023",
-          fundingGoal: 500000,
-          fundingRaised: 520000,
-          tracks: [
-            {
-              id: "track-8",
-              title: "Beach Days",
-              duration: "3:15",
-              plays: 3200,
-              ecash: 4800,
-              streamCost: 0,
-              isExclusive: false,
-            },
-            {
-              id: "track-9",
-              title: "Sunset Drive",
-              duration: "4:30",
-              plays: 2800,
-              ecash: 5500,
-              streamCost: 0,
-              isExclusive: false,
-            },
-            {
-              id: "track-10",
-              title: "VIP Lounge Mix",
-              duration: "6:00",
-              plays: 580,
-              ecash: 12000,
-              streamCost: 1000,
-              isExclusive: true,
-            },
-          ],
-        },
-      ];
+    queryKey: ["artist-albums-real", artistPubkey],
+    queryFn: async ({ signal }) => {
+      if (!artistPubkey) return [];
 
-      return mockAlbums;
+      try {
+        const events = await nostr.query(
+          [
+            {
+              kinds: [KINDS.MUSIC_ALBUM],
+              authors: [artistPubkey],
+              limit: 50,
+            },
+          ],
+          { signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) }
+        );
+
+        const albums = events
+          .map(parseAlbumFromEvent)
+          .filter(
+            (album): album is Omit<NostrAlbum, "tracks"> => album !== null
+          )
+          .map((album) => {
+            // Find tracks that belong to this album
+            const albumTracks = allTracks
+              .filter(
+                (track) =>
+                  track.albumTitle?.toLowerCase() === album.title.toLowerCase()
+              )
+              .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0));
+
+            return {
+              ...album,
+              tracks: albumTracks,
+            } as NostrAlbum;
+          })
+          .sort((a, b) => b.created_at - a.created_at); // Sort by newest first
+
+        return albums;
+      } catch (error) {
+        console.error("Failed to fetch artist albums:", error);
+        return [];
+      }
     },
+    enabled: !!artistPubkey && allTracks.length >= 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

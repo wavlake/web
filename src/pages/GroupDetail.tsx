@@ -42,6 +42,7 @@ import { AlertTriangle } from "lucide-react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { MusicSection } from "@/components/music/MusicSection";
 import { useArtistAlbums } from "@/hooks/useArtistAlbums";
+import { useArtistTracks } from "@/hooks/useArtistTracks";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -142,8 +143,11 @@ export default function GroupDetail({
   // Get approved members
   const { approvedMembers } = useApprovedMembers(groupId || "");
 
-  const { data: albums, isLoading: isLoadingAlbums } = useArtistAlbums(
-    groupId || ""
+  const { data: albums = [], isLoading: isLoadingAlbums } = useArtistAlbums(
+    parsedId?.pubkey || ""
+  );
+  const { data: tracks = [], isLoading: isLoadingTracks } = useArtistTracks(
+    parsedId?.pubkey || ""
   );
 
   // Get artist data from community metadata
@@ -366,12 +370,12 @@ export default function GroupDetail({
               </TabsContent>
 
               <TabsContent value="music">
-                {isLoadingAlbums ? (
+                {isLoadingAlbums || isLoadingTracks ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Loading music...
                   </div>
                 ) : (
-                  <MusicSection albums={albums || []} />
+                  <MusicSection albums={albums} allTracks={tracks} />
                 )}
               </TabsContent>
 
