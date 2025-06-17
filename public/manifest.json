@@ -1,6 +1,6 @@
 {
   "id": "wavlake-music-platform",
-  "name": "Wavlake - Bitcoin Music Platform",
+  "name": "Wavlake",
   "short_name": "Wavlake",
   "description": "A Bitcoin-powered music platform where artists earn sats and fans discover amazing music. Stream, support, and connect through decentralized music.",
   "start_url": "/",
