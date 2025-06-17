@@ -26,6 +26,7 @@ import { useAudioPlayerStore } from "@/stores/audioPlayerStore";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NutzapButton } from "@/components/groups/NutzapButton";
+import { NutzapInterface } from "@/components/groups/NutzapInterface";
 import { shareContent } from "@/lib/share";
 import { nip19 } from "nostr-tools";
 import { KINDS } from "@/lib/nostr-kinds";
@@ -51,6 +52,7 @@ const formatCurrency = (amount: number) => {
 
 export function MusicSection({ albums, allTracks }: MusicSectionProps) {
   const [currentAlbumId, setCurrentAlbumId] = useState(albums[0]?.id);
+  const [showNutzaps, setShowNutzaps] = useState<Record<string, boolean>>({});
   const playlistInitialized = useRef(false);
 
   // Use global audio player store
@@ -127,6 +129,13 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
     } else {
       loadTrack(track);
     }
+  };
+
+  const handleNutzapToggle = (trackId: string, isOpen: boolean) => {
+    setShowNutzaps(prev => ({
+      ...prev,
+      [trackId]: isOpen
+    }));
   };
 
   const handleShareTrack = async (track: NostrTrack) => {
@@ -291,6 +300,8 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           authorPubkey={displayTrack.pubkey}
                           relayHint="wss://relay.wavlake.com"
                           showText={true}
+                          onToggle={(isOpen) => handleNutzapToggle(displayTrack.id, isOpen)}
+                          isOpen={showNutzaps[displayTrack.id] || false}
                         />
                       )}
                       <Button variant="ghost" size="icon">
@@ -312,6 +323,22 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Nutzap Interface for main player */}
+      {displayTrack && showNutzaps[displayTrack.id] && (
+        <div className="w-full mb-6">
+          <NutzapInterface
+            postId={displayTrack.id}
+            authorPubkey={displayTrack.pubkey}
+            relayHint="wss://relay.wavlake.com"
+            onSuccess={() => {
+              // Call the refetch function if available
+              const refetchFn = window[`zapRefetch_${displayTrack.id}`];
+              if (typeof refetchFn === 'function') refetchFn();
+            }}
+          />
+        </div>
       )}
 
       {/* Music Content Tabs */}
@@ -465,6 +492,8 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                                 authorPubkey={track.pubkey}
                                 relayHint="wss://relay.wavlake.com"
                                 showText={false}
+                                onToggle={(isOpen) => handleNutzapToggle(track.id, isOpen)}
+                                isOpen={showNutzaps[track.id] || false}
                               />
                               <Button
                                 variant="ghost"
@@ -478,6 +507,23 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           </div>
                         ))}
                       </div>
+
+                      {/* Nutzap Interfaces for album tracks */}
+                      {currentAlbum.tracks.map((track) => 
+                        showNutzaps[track.id] && (
+                          <div key={`nutzap-${track.id}`} className="w-full mt-4">
+                            <NutzapInterface
+                              postId={track.id}
+                              authorPubkey={track.pubkey}
+                              relayHint="wss://relay.wavlake.com"
+                              onSuccess={() => {
+                                const refetchFn = window[`zapRefetch_${track.id}`];
+                                if (typeof refetchFn === 'function') refetchFn();
+                              }}
+                            />
+                          </div>
+                        )
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -583,6 +629,8 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           authorPubkey={track.pubkey}
                           relayHint="wss://relay.wavlake.com"
                           showText={false}
+                          onToggle={(isOpen) => handleNutzapToggle(track.id, isOpen)}
+                          isOpen={showNutzaps[track.id] || false}
                         />
                         <Button
                           variant="ghost"
@@ -596,6 +644,23 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                     </div>
                   ))}
                 </div>
+
+                {/* Nutzap Interfaces for all tracks */}
+                {displayTracks.map((track) => 
+                  showNutzaps[track.id] && (
+                    <div key={`nutzap-${track.id}`} className="w-full mt-4">
+                      <NutzapInterface
+                        postId={track.id}
+                        authorPubkey={track.pubkey}
+                        relayHint="wss://relay.wavlake.com"
+                        onSuccess={() => {
+                          const refetchFn = window[`zapRefetch_${track.id}`];
+                          if (typeof refetchFn === 'function') refetchFn();
+                        }}
+                      />
+                    </div>
+                  )
+                )}
               </CardContent>
             </Card>
           ) : (
