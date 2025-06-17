@@ -48,7 +48,8 @@ export const CASHU_EVENT_KINDS = {
 };
 
 export const defaultMints = [
-  "https://mint.wavlake.com",
+  "https://mint.chorus.community",
+  // "https://mint.wavlake.com",
   // "https://testnut.cashu.space",
 ];
 

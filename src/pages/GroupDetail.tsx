@@ -25,7 +25,13 @@ import { CreatePostForm } from "@/components/groups/CreatePostForm";
 import { PostList } from "@/components/groups/PostList";
 import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { Layout } from "@/components/Layout";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -34,6 +40,8 @@ import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { KINDS } from "@/lib/nostr-kinds";
+import { MusicSection } from "@/components/music/MusicSection";
+import { useArtistAlbums } from "@/hooks/useArtistAlbums";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -73,14 +81,22 @@ interface GroupDetailProps {
   groupId?: string;
 }
 
-export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps = {}) {
+export default function GroupDetail({
+  groupId: propGroupId,
+}: GroupDetailProps = {}) {
   const { groupId: paramGroupId } = useParams<{ groupId: string }>();
   const groupId = propGroupId || paramGroupId;
   const location = useLocation();
-  
+
   const [activeTab, setActiveTab] = useState("home");
-  const [postFilter, setPostFilter] = useState<'all' | 'approved' | 'pending'>('approved');
-  const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  const [postFilter, setPostFilter] = useState<"all" | "approved" | "pending">(
+    "approved"
+  );
+  const [parsedId, setParsedId] = useState<{
+    kind: number;
+    pubkey: string;
+    identifier: string;
+  } | null>(null);
 
   const { user } = useCurrentUser();
 
@@ -112,29 +128,48 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
 
   // Check if group has been deleted
   const { isDeleted: isGroupDeleted, deletionRequest } = useIsGroupDeleted(
-    parsedId ? `${KINDS.GROUP}:${parsedId.pubkey}:${parsedId.identifier}` : undefined
+    parsedId
+      ? `${KINDS.GROUP}:${parsedId.pubkey}:${parsedId.identifier}`
+      : undefined
   );
 
   // Get user role for this community
-  const { data: userRole } = useUserRole(groupId || '');
-  
-  const isOwner = userRole === 'owner';
-  const isModerator = userRole === 'moderator' || userRole === 'owner';
+  const { data: userRole } = useUserRole(groupId || "");
+
+  const isOwner = userRole === "owner";
+  const isModerator = userRole === "moderator" || userRole === "owner";
 
   // Get approved members
-  const { approvedMembers } = useApprovedMembers(groupId || '');
+  const { approvedMembers } = useApprovedMembers(groupId || "");
+
+  const { data: albums, isLoading: isLoadingAlbums } = useArtistAlbums(
+    groupId || ""
+  );
 
   // Get artist data from community metadata
   const artist = {
-    name: community?.tags.find(tag => tag[0] === "name")?.[1] || (parsedId?.identifier || "Unknown Artist"),
-    username: community?.tags.find(tag => tag[0] === "name")?.[1]?.toLowerCase().replace(/\s+/g, "") || "artist",
+    name:
+      community?.tags.find((tag) => tag[0] === "name")?.[1] ||
+      parsedId?.identifier ||
+      "Unknown Artist",
+    username:
+      community?.tags
+        .find((tag) => tag[0] === "name")?.[1]
+        ?.toLowerCase()
+        .replace(/\s+/g, "") || "artist",
     npub: community?.pubkey || "",
     nip05: "",
-    bio: community?.tags.find(tag => tag[0] === "description")?.[1] || "Artist on Wavlake",
+    bio:
+      community?.tags.find((tag) => tag[0] === "description")?.[1] ||
+      "Artist on Wavlake",
     location: "",
     website: "",
-    profileImage: community?.tags.find(tag => tag[0] === "image")?.[1] || "/placeholder.svg",
-    bannerImage: community?.tags.find(tag => tag[0] === "image")?.[1] || "/placeholder.svg",
+    profileImage:
+      community?.tags.find((tag) => tag[0] === "image")?.[1] ||
+      "/placeholder.svg",
+    bannerImage:
+      community?.tags.find((tag) => tag[0] === "image")?.[1] ||
+      "/placeholder.svg",
     verified: false,
   };
 
@@ -187,7 +222,10 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
               <div className="font-semibold">This group has been deleted</div>
               <p>
                 The group owner has requested deletion of this group on{" "}
-                {new Date(deletionRequest.deletionEvent.created_at * 1000).toLocaleDateString()}.
+                {new Date(
+                  deletionRequest.deletionEvent.created_at * 1000
+                ).toLocaleDateString()}
+                .
               </p>
               {deletionRequest.reason && (
                 <p className="text-sm text-muted-foreground">
@@ -249,7 +287,13 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
                         <span className="font-medium text-foreground">
                           Your membership:
                         </span>{" "}
-                        {user ? (isOwner ? "Owner" : isModerator ? "Moderator" : "Member") : "Not logged in"}
+                        {user
+                          ? isOwner
+                            ? "Owner"
+                            : isModerator
+                            ? "Moderator"
+                            : "Member"
+                          : "Not logged in"}
                       </p>
                     </div>
                   </div>
@@ -258,7 +302,7 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
                     <h3 className="text-lg font-semibold">Latest Updates</h3>
                     <div className="max-w-3xl mx-auto">
                       <PostList
-                        communityId={groupId || ''}
+                        communityId={groupId || ""}
                         showOnlyApproved={true}
                         onPostCountChange={() => {}}
                       />
@@ -274,23 +318,27 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
                         <Button
-                          variant={postFilter === 'approved' ? 'default' : 'outline'}
+                          variant={
+                            postFilter === "approved" ? "default" : "outline"
+                          }
                           size="sm"
-                          onClick={() => setPostFilter('approved')}
+                          onClick={() => setPostFilter("approved")}
                         >
                           Approved
                         </Button>
                         <Button
-                          variant={postFilter === 'all' ? 'default' : 'outline'}
+                          variant={postFilter === "all" ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setPostFilter('all')}
+                          onClick={() => setPostFilter("all")}
                         >
                           All Posts
                         </Button>
                         <Button
-                          variant={postFilter === 'pending' ? 'default' : 'outline'}
+                          variant={
+                            postFilter === "pending" ? "default" : "outline"
+                          }
                           size="sm"
-                          onClick={() => setPostFilter('pending')}
+                          onClick={() => setPostFilter("pending")}
                         >
                           Pending
                         </Button>
@@ -300,14 +348,17 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
 
                   {user && (
                     <div className="max-w-3xl mx-auto">
-                      <CreatePostForm communityId={groupId || ''} onPostSuccess={() => {}} />
+                      <CreatePostForm
+                        communityId={groupId || ""}
+                        onPostSuccess={() => {}}
+                      />
                     </div>
                   )}
 
                   <div className="max-w-3xl mx-auto">
                     <PostList
-                      communityId={groupId || ''}
-                      showOnlyApproved={postFilter === 'approved'}
+                      communityId={groupId || ""}
+                      showOnlyApproved={postFilter === "approved"}
                       onPostCountChange={() => {}}
                     />
                   </div>
@@ -315,16 +366,21 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
               </TabsContent>
 
               <TabsContent value="music">
-                <div className="bg-background p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-bold mb-4">Music</h2>
-                  <p className="text-muted-foreground">Music content coming soon...</p>
-                </div>
+                {isLoadingAlbums ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading music...
+                  </div>
+                ) : (
+                  <MusicSection albums={albums || []} />
+                )}
               </TabsContent>
 
               <TabsContent value="updates">
                 <div className="bg-background p-6 rounded-lg shadow-sm border">
                   <h2 className="text-xl font-bold mb-4">Artist Updates</h2>
-                  <p className="text-muted-foreground">Updates coming soon...</p>
+                  <p className="text-muted-foreground">
+                    Updates coming soon...
+                  </p>
                 </div>
               </TabsContent>
 
@@ -349,7 +405,7 @@ export default function GroupDetail({ groupId: propGroupId }: GroupDetailProps =
           <div className="hidden xl:block w-full xl:w-1/3">
             <div className="bg-background p-6 rounded-lg shadow-sm border">
               <h3 className="text-lg font-semibold mb-4">Community Info</h3>
-              <SimpleMembersList communityId={groupId || ''} />
+              <SimpleMembersList communityId={groupId || ""} />
             </div>
           </div>
         </div>
