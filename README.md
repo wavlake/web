@@ -2,6 +2,8 @@
 
 Wavlake is creating a new, online world where musicians and listeners can freely transact with one another in an open ecosystem. Discover new music on Wavlake mobile, powered by Nostr. https://app.wavlake.com
 
+This project was forked from [Chorus](https://github.com/andotherstuff/chorus), a decentralized community platform built on Nostr. We've adapted it specifically for the music community, adding features tailored for artists and fans.
+
 ## Key Features
 
 - **Artist Communities**: Musicians can create dedicated spaces with custom branding, images, and descriptions — managed their way
