@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -22,6 +22,13 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
 import { NostrTrack } from "@/hooks/useArtistTracks";
+import { useAudioPlayerStore } from "@/stores/audioPlayerStore";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { EmojiReactionButton } from "@/components/EmojiReactionButton";
+import { NutzapButton } from "@/components/groups/NutzapButton";
+import { shareContent } from "@/lib/share";
+import { nip19 } from "nostr-tools";
+import { KINDS } from "@/lib/nostr-kinds";
 
 interface MusicSectionProps {
   albums: NostrAlbum[];
@@ -44,17 +51,33 @@ const formatCurrency = (amount: number) => {
 
 export function MusicSection({ albums, allTracks }: MusicSectionProps) {
   const [currentAlbumId, setCurrentAlbumId] = useState(albums[0]?.id);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrackId, setCurrentTrackId] = useState(
-    albums[0]?.tracks[0]?.id
-  );
+  const playlistInitialized = useRef(false);
+
+  // Use global audio player store
+  const {
+    isPlaying,
+    currentTrack,
+    currentTrackId,
+    currentTime,
+    duration,
+    loadTrack,
+    togglePlay,
+    setCurrentTime,
+    previousTrack,
+    nextTrack,
+  } = useAudioPlayerStore();
+
+  // Get setPlaylist separately to avoid including it in dependencies
+  const setPlaylist = useAudioPlayerStore((state) => state.setPlaylist);
+
+  // Initialize audio player
+  useAudioPlayer();
 
   const currentAlbum =
     albums.find((album) => album.id === currentAlbumId) || albums[0];
-  const currentTrack = currentTrackId
-    ? currentAlbum?.tracks.find((track) => track.id === currentTrackId) ||
-      allTracks.find((track) => track.id === currentTrackId)
-    : currentAlbum?.tracks[0] || allTracks[0];
+
+  // Fallback to first track if no current track is set
+  const displayTrack = currentTrack || currentAlbum?.tracks[0] || allTracks[0];
 
   // Combine album tracks with standalone tracks (tracks not part of any album)
   const standaloneTracks = allTracks.filter(
@@ -64,30 +87,33 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
       )
   );
 
-  const displayTracks = [
-    ...albums.flatMap((album) =>
-      album.tracks.map((track) => ({
+  const displayTracks = useMemo(
+    () => [
+      ...albums.flatMap((album) =>
+        album.tracks.map((track) => ({
+          ...track,
+          albumId: album.id,
+          albumTitle: album.title,
+          albumCover: album.coverUrl,
+          releaseYear: album.releaseDate
+            ? new Date(album.releaseDate).getFullYear().toString()
+            : undefined,
+        }))
+      ),
+      ...standaloneTracks.map((track) => ({
         ...track,
-        albumId: album.id,
-        albumTitle: album.title,
-        albumCover: album.coverUrl,
-        releaseYear: album.releaseDate
-          ? new Date(album.releaseDate).getFullYear().toString()
+        albumId: null,
+        albumTitle: track.albumTitle || "Single",
+        albumCover: track.coverUrl,
+        releaseYear: track.releaseDate
+          ? new Date(track.releaseDate).getFullYear().toString()
           : undefined,
-      }))
-    ),
-    ...standaloneTracks.map((track) => ({
-      ...track,
-      albumId: null,
-      albumTitle: track.albumTitle || "Single",
-      albumCover: track.coverUrl,
-      releaseYear: track.releaseDate
-        ? new Date(track.releaseDate).getFullYear().toString()
-        : undefined,
-    })),
-  ];
+      })),
+    ],
+    [albums, standaloneTracks]
+  );
 
-  const handlePlayTrack = (trackId: string, albumId?: string | null) => {
+  const handlePlayTrack = (track: NostrTrack, albumId?: string | null) => {
     if (albumId) {
       const album = albums.find((a) => a.id === albumId);
       if (album) {
@@ -95,13 +121,44 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
       }
     }
 
-    if (currentTrackId === trackId) {
-      setIsPlaying(!isPlaying);
+    if (currentTrackId === track.id) {
+      togglePlay();
     } else {
-      setCurrentTrackId(trackId);
-      setIsPlaying(true);
+      loadTrack(track);
     }
   };
+
+  const handleShareTrack = async (track: NostrTrack) => {
+    try {
+      // Create nevent for the track
+      const nevent = nip19.neventEncode({
+        id: track.id,
+        author: track.pubkey,
+        kind: KINDS.MUSIC_TRACK,
+        relays: ["wss://relay.wavlake.com"],
+      });
+
+      const njumpUrl = `https://njump.me/${nevent}`;
+      const fallbackUrl = `${window.location.origin}/track/${track.id}`;
+
+      await shareContent({
+        title: `Check out this track: ${track.title}`,
+        text: `${track.title} by ${track.artist}`,
+        url: njumpUrl || fallbackUrl,
+      });
+    } catch (error) {
+      console.error("Error sharing track:", error);
+    }
+  };
+
+  // Initialize playlist once when tracks are available
+  if (displayTracks.length > 0 && !playlistInitialized.current) {
+    setPlaylist(displayTracks);
+    playlistInitialized.current = true;
+  }
+
+  // Calculate progress percentage
+  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (!albums.length && !allTracks.length) {
     return (
@@ -114,15 +171,15 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
   return (
     <div className="space-y-8">
       {/* Now Playing */}
-      {currentTrack && (
+      {displayTrack && (
         <Card className="overflow-hidden">
           <div className="flex flex-col md:flex-row items-start">
             <div className="relative w-full md:w-48 h-48 flex-shrink-0 bg-muted">
-              {currentTrack.coverUrl || currentAlbum?.coverUrl ? (
+              {displayTrack.coverUrl || currentAlbum?.coverUrl ? (
                 <img
-                  src={currentTrack.coverUrl || currentAlbum?.coverUrl}
+                  src={displayTrack.coverUrl || currentAlbum?.coverUrl}
                   alt={
-                    currentTrack.albumTitle ||
+                    displayTrack.albumTitle ||
                     currentAlbum?.title ||
                     "Album cover"
                   }
@@ -139,47 +196,64 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                 <div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Now Playing</span>
-                    {currentTrack &&
-                      currentTrack.price &&
-                      currentTrack.price > 0 && (
+                    {displayTrack &&
+                      displayTrack.price &&
+                      displayTrack.price > 0 && (
                         <>
                           <span>•</span>
                           <div className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             <span>
-                              {formatCurrency(currentTrack.price)} sats
+                              {formatCurrency(displayTrack.price)} sats
                             </span>
                           </div>
                         </>
                       )}
                   </div>
                   <h3 className="text-xl font-bold">
-                    {currentTrack?.title || "Select a track"}
+                    {displayTrack?.title || "Select a track"}
                   </h3>
                   <p className="text-muted-foreground">
-                    {currentTrack?.albumTitle || "Single"} •{" "}
-                    {currentTrack?.artist}
+                    {displayTrack?.albumTitle || "Single"} •{" "}
+                    {displayTrack?.artist}
                   </p>
                 </div>
 
                 <div className="space-y-2 mt-4">
                   <div className="space-y-2">
-                    <Progress value={33} className="h-1" />
+                    <Progress
+                      value={progressPercentage}
+                      className="h-1 cursor-pointer"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const percentage = x / rect.width;
+                        const newTime = percentage * duration;
+                        setCurrentTime(newTime);
+                      }}
+                    />
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>1:15</span>
-                      <span>{formatDuration(currentTrack?.duration)}</span>
+                      <span>{formatDuration(Math.floor(currentTime))}</span>
+                      {!!displayTrack?.duration && (
+                        <span>{formatDuration(displayTrack?.duration)}</span>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={previousTrack}
+                      >
                         <SkipBack className="h-5 w-5" />
                       </Button>
                       <Button
                         size="icon"
                         className="h-10 w-10 rounded-full"
-                        onClick={() => setIsPlaying(!isPlaying)}
+                        onClick={togglePlay}
+                        disabled={!displayTrack?.audioUrl}
                       >
                         {isPlaying ? (
                           <Pause className="h-5 w-5" />
@@ -187,31 +261,39 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           <Play className="h-5 w-5" />
                         )}
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={nextTrack}>
                         <SkipForward className="h-5 w-5" />
                       </Button>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <Button variant="ghost" size="icon">
-                        <Heart className="h-5 w-5" />
-                      </Button>
+                      {displayTrack && (
+                        <EmojiReactionButton
+                          postId={displayTrack.id}
+                          showText={false}
+                        />
+                      )}
                       <Button variant="ghost" size="icon">
                         <ListPlus className="h-5 w-5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1"
-                        title="Send additional eCash to support the artist"
-                      >
-                        <DollarSign className="h-4 w-4" />
-                        <span className="text-xs">Support</span>
-                      </Button>
+                      {displayTrack && (
+                        <NutzapButton
+                          postId={displayTrack.id}
+                          authorPubkey={displayTrack.pubkey}
+                          relayHint="wss://relay.wavlake.com"
+                          showText={true}
+                        />
+                      )}
                       <Button variant="ghost" size="icon">
                         <Download className="h-5 w-5" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          displayTrack && handleShareTrack(displayTrack)
+                        }
+                      >
                         <Share2 className="h-5 w-5" />
                       </Button>
                     </div>
@@ -329,8 +411,9 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                                     : ""
                                 )}
                                 onClick={() =>
-                                  handlePlayTrack(track.id, currentAlbum.id)
+                                  handlePlayTrack(track, currentAlbum.id)
                                 }
+                                disabled={!track.audioUrl}
                               >
                                 {currentTrackId === track.id && isPlaying ? (
                                   <Pause className="h-4 w-4" />
@@ -364,19 +447,23 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                               <span className="text-sm text-muted-foreground">
                                 {formatDuration(track.duration)}
                               </span>
+                              <EmojiReactionButton
+                                postId={track.id}
+                                showText={false}
+                              />
+                              <NutzapButton
+                                postId={track.id}
+                                authorPubkey={track.pubkey}
+                                relayHint="wss://relay.wavlake.com"
+                                showText={false}
+                              />
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
+                                onClick={() => handleShareTrack(track)}
                               >
-                                <Heart className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                              >
-                                <DollarSign className="h-4 w-4" />
+                                <Share2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -437,9 +524,8 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                             "h-8 w-8 rounded-full",
                             currentTrackId === track.id ? "bg-background" : ""
                           )}
-                          onClick={() =>
-                            handlePlayTrack(track.id, track.albumId)
-                          }
+                          onClick={() => handlePlayTrack(track, track.albumId)}
+                          disabled={!track.audioUrl}
                         >
                           {currentTrackId === track.id && isPlaying ? (
                             <Pause className="h-4 w-4" />
@@ -479,11 +565,23 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                         <span className="text-sm text-muted-foreground">
                           {formatDuration(track.duration)}
                         </span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Heart className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <DollarSign className="h-4 w-4" />
+                        <EmojiReactionButton
+                          postId={track.id}
+                          showText={false}
+                        />
+                        <NutzapButton
+                          postId={track.id}
+                          authorPubkey={track.pubkey}
+                          relayHint="wss://relay.wavlake.com"
+                          showText={false}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleShareTrack(track)}
+                        >
+                          <Share2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
