@@ -121,7 +121,8 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
       }
     }
 
-    if (currentTrackId === track.id) {
+    // Check if this track is already loaded AND playing (not just same ID)
+    if (currentTrackId === track.id && currentTrack && useAudioPlayerStore.getState().currentAudioUrl) {
       togglePlay();
     } else {
       loadTrack(track);
@@ -152,10 +153,12 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
   };
 
   // Initialize playlist once when tracks are available
-  if (displayTracks.length > 0 && !playlistInitialized.current) {
-    setPlaylist(displayTracks);
-    playlistInitialized.current = true;
-  }
+  useEffect(() => {
+    if (displayTracks.length > 0 && !playlistInitialized.current) {
+      setPlaylist(displayTracks);
+      playlistInitialized.current = true;
+    }
+  }, [displayTracks, setPlaylist]);
 
   // Calculate progress percentage
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -252,7 +255,13 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                       <Button
                         size="icon"
                         className="h-10 w-10 rounded-full"
-                        onClick={togglePlay}
+                        onClick={() => {
+                          if (currentTrack) {
+                            togglePlay();
+                          } else if (displayTrack?.audioUrl) {
+                            handlePlayTrack(displayTrack);
+                          }
+                        }}
                         disabled={!displayTrack?.audioUrl}
                       >
                         {isPlaying ? (

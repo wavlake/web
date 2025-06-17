@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useAudioPlayerStore } from '@/stores/audioPlayerStore';
+import { AudioPlayerEngineRef } from '@/components/audio/AudioPlayerEngine';
 
 export function useAudioPlayer() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<AudioPlayerEngineRef>(null);
   const {
-    audioElement,
-    setAudioElement,
+    setAudioPlayer,
     setIsLoading,
     setDuration,
     updateCurrentTime,
@@ -13,75 +13,79 @@ export function useAudioPlayer() {
     nextTrack,
     volume,
     isMuted,
+    currentAudioUrl,
+    isPlaying,
   } = useAudioPlayerStore();
 
+  // Set up the audio player reference
   useEffect(() => {
-    // Create audio element if it doesn't exist
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.preload = 'metadata';
-      setAudioElement(audioRef.current);
+    if (playerRef.current) {
+      setAudioPlayer(playerRef.current);
     }
-
-    const audio = audioRef.current;
-
-    // Event listeners
-    const handleLoadStart = () => {
-      setIsLoading(true);
-    };
-
-    const handleCanPlay = () => {
-      setIsLoading(false);
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
-      setIsLoading(false);
-    };
-
-    const handleTimeUpdate = () => {
-      updateCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      // Auto-advance to next track if available
-      nextTrack();
-    };
-
-    const handleError = (e: ErrorEvent) => {
-      console.error('Audio error:', e);
-      setIsLoading(false);
-      pause();
-    };
-
-    // Add event listeners
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-
-    // Set initial volume
-    audio.volume = isMuted ? 0 : volume;
 
     return () => {
-      // Cleanup event listeners
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
+      setAudioPlayer(null);
     };
-  }, [setAudioElement, setIsLoading, setDuration, updateCurrentTime, pause, nextTrack, volume, isMuted]);
+  }, [setAudioPlayer]);
 
-  // Update volume when store changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted]);
+  // Handle audio player events
+  const handleReady = () => {
+    setIsLoading(false);
+  };
 
-  return audioRef.current;
+  const handleStart = () => {
+    setIsLoading(false);
+  };
+
+  const handlePlay = () => {
+    // ReactPlayer manages play/pause state through props
+    // This is just for consistency with the store
+  };
+
+  const handlePause = () => {
+    // ReactPlayer manages play/pause state through props
+    // This is just for consistency with the store
+  };
+
+  const handleEnded = () => {
+    // Auto-advance to next track if available
+    nextTrack();
+  };
+
+  const handleError = (error: unknown) => {
+    console.error('Audio error:', error);
+    setIsLoading(false);
+    pause();
+  };
+
+  const handleProgress = (state: { played: number; playedSeconds: number; loaded: number; loadedSeconds: number }) => {
+    updateCurrentTime(state.playedSeconds);
+  };
+
+  const handleDuration = (duration: number) => {
+    setDuration(duration);
+  };
+
+  const handleSeek = (seconds: number) => {
+    updateCurrentTime(seconds);
+  };
+
+  return {
+    playerRef,
+    props: {
+      url: currentAudioUrl || undefined,
+      playing: isPlaying,
+      volume: isMuted ? 0 : volume,
+      muted: isMuted,
+      onReady: handleReady,
+      onStart: handleStart,
+      onPlay: handlePlay,
+      onPause: handlePause,
+      onEnded: handleEnded,
+      onError: handleError,
+      onProgress: handleProgress,
+      onDuration: handleDuration,
+      onSeek: handleSeek,
+    },
+  };
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NostrTrack } from '@/hooks/useArtistTracks';
+import { AudioPlayerEngineRef } from '@/components/audio/AudioPlayerEngine';
 
 interface AudioPlayerState {
   // Playback state
@@ -11,6 +12,7 @@ interface AudioPlayerState {
   // Current track info
   currentTrack: NostrTrack | null;
   currentTrackId: string | null;
+  currentAudioUrl: string | null;
   
   // Audio element properties
   currentTime: number;
@@ -25,8 +27,8 @@ interface AudioPlayerState {
   // UI state
   showPlayer: boolean;
   
-  // Audio element reference (not persisted)
-  audioElement: HTMLAudioElement | null;
+  // Audio player reference (not persisted)
+  audioPlayer: AudioPlayerEngineRef | null;
 }
 
 interface AudioPlayerActions {
@@ -49,8 +51,8 @@ interface AudioPlayerActions {
   nextTrack: () => void;
   previousTrack: () => void;
   
-  // Audio element management
-  setAudioElement: (element: HTMLAudioElement | null) => void;
+  // Audio player management
+  setAudioPlayer: (player: AudioPlayerEngineRef | null) => void;
   
   // UI state
   setShowPlayer: (show: boolean) => void;
@@ -72,6 +74,7 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
       isLoading: false,
       currentTrack: null,
       currentTrackId: null,
+      currentAudioUrl: null,
       currentTime: 0,
       duration: 0,
       volume: 1,
@@ -79,32 +82,23 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
       playlist: [],
       currentIndex: -1,
       showPlayer: false,
-      audioElement: null,
+      audioPlayer: null,
 
       // Actions
       play: () => {
-        const { audioElement } = get();
-        if (audioElement) {
-          audioElement.play().catch(console.error);
-          set({ isPlaying: true, isPaused: false });
-        }
+        set({ isPlaying: true, isPaused: false });
       },
 
       pause: () => {
-        const { audioElement } = get();
-        if (audioElement) {
-          audioElement.pause();
-          set({ isPlaying: false, isPaused: true });
-        }
+        set({ isPlaying: false, isPaused: true });
       },
 
       stop: () => {
-        const { audioElement } = get();
-        if (audioElement) {
-          audioElement.pause();
-          audioElement.currentTime = 0;
-          set({ isPlaying: false, isPaused: false, currentTime: 0 });
+        const { audioPlayer } = get();
+        if (audioPlayer) {
+          audioPlayer.seekTo(0);
         }
+        set({ isPlaying: false, isPaused: false, currentTime: 0 });
       },
 
       togglePlay: () => {
@@ -117,18 +111,9 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
       },
 
       loadTrack: (track: NostrTrack) => {
-        const { audioElement, setIsLoading } = get();
-        
         if (!track.audioUrl) {
           console.error('Track has no audio URL');
           return;
-        }
-
-        setIsLoading(true);
-        
-        if (audioElement) {
-          audioElement.src = track.audioUrl;
-          audioElement.load();
         }
 
         set({
@@ -136,6 +121,10 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
           currentTrackId: track.id,
           currentTime: 0,
           showPlayer: true,
+          currentAudioUrl: track.audioUrl,
+          isLoading: true,
+          isPlaying: true, // Auto-play when loading new track
+          isPaused: false,
         });
 
         // Update playlist index if track is in playlist
@@ -147,32 +136,26 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
       },
 
       setCurrentTime: (time: number) => {
-        const { audioElement } = get();
-        if (audioElement) {
-          audioElement.currentTime = time;
+        const { audioPlayer } = get();
+        if (audioPlayer) {
+          audioPlayer.seekTo(time);
           set({ currentTime: time });
         }
       },
 
       setVolume: (volume: number) => {
-        const { audioElement } = get();
         const clampedVolume = Math.max(0, Math.min(1, volume));
-        if (audioElement) {
-          audioElement.volume = clampedVolume;
-        }
         set({ volume: clampedVolume, isMuted: clampedVolume === 0 });
       },
 
       toggleMute: () => {
-        const { audioElement, isMuted, volume } = get();
-        if (audioElement) {
-          if (isMuted) {
-            audioElement.volume = volume;
-            set({ isMuted: false });
-          } else {
-            audioElement.volume = 0;
-            set({ isMuted: true });
-          }
+        const { isMuted, volume, setVolume } = get();
+        if (isMuted) {
+          setVolume(volume);
+          set({ isMuted: false });
+        } else {
+          setVolume(0);
+          set({ isMuted: true });
         }
       },
 
@@ -208,8 +191,8 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
         }
       },
 
-      setAudioElement: (element: HTMLAudioElement | null) => {
-        set({ audioElement: element });
+      setAudioPlayer: (player: AudioPlayerEngineRef | null) => {
+        set({ audioPlayer: player });
       },
 
       setShowPlayer: (show: boolean) => {
