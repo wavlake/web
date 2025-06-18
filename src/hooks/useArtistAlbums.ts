@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNostr } from "@nostrify/react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
-import { useArtistTracks, NostrTrack } from "./useArtistTracks";
+import { NostrTrack, parseTrackFromEvent } from "./useArtistTracks";
 
 export interface NostrAlbum {
   id: string;
@@ -76,7 +76,6 @@ function parseAlbumFromEvent(
 
 export function useArtistAlbums(artistPubkey: string) {
   const { nostr } = useNostr();
-  const { data: allTracks = [] } = useArtistTracks(artistPubkey);
 
   return useQuery({
     queryKey: ["artist-albums-real", artistPubkey],
@@ -84,7 +83,8 @@ export function useArtistAlbums(artistPubkey: string) {
       if (!artistPubkey) return [];
 
       try {
-        const events = await nostr.query(
+        // First, fetch all album events
+        const albumEvents = await nostr.query(
           [
             {
               kinds: [KINDS.MUSIC_ALBUM],
@@ -95,25 +95,78 @@ export function useArtistAlbums(artistPubkey: string) {
           { signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) }
         );
 
-        const albums = events
-          .map(parseAlbumFromEvent)
-          .filter(
-            (album): album is Omit<NostrAlbum, "tracks"> => album !== null
-          )
-          .map((album) => {
-            // Find tracks that belong to this album
-            const albumTracks = allTracks
-              .filter(
-                (track) =>
-                  track.albumTitle?.toLowerCase() === album.title.toLowerCase()
-              )
-              .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0));
+        // Extract all track event IDs from album track tags
+        const allTrackIds = new Set<string>();
+        albumEvents.forEach((albumEvent) => {
+          const trackTags = albumEvent.tags.filter(
+            (tag) => tag[0] === "track" && tag.length >= 3
+          );
+          trackTags.forEach((tag) => {
+            const eventId = tag[2];
+            if (eventId) {
+              allTrackIds.add(eventId);
+            }
+          });
+        });
+
+        // Fetch all referenced track events
+        let trackEvents: NostrEvent[] = [];
+        if (allTrackIds.size > 0) {
+          trackEvents = await nostr.query(
+            [
+              {
+                kinds: [KINDS.MUSIC_TRACK],
+                ids: Array.from(allTrackIds),
+                limit: 200,
+              },
+            ],
+            { signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) }
+          );
+        }
+
+        // Parse track events
+        const trackMap = new Map<string, NostrTrack>();
+        trackEvents.forEach((trackEvent) => {
+          const parsedTrack = parseTrackFromEvent(trackEvent);
+          if (parsedTrack) {
+            trackMap.set(trackEvent.id, parsedTrack);
+          }
+        });
+
+        // Parse albums and associate tracks
+        const albums = albumEvents
+          .map((albumEvent) => {
+            const albumBase = parseAlbumFromEvent(albumEvent);
+            if (!albumBase) return null;
+
+            // Extract track tags and build track list with proper ordering
+            const trackTags = albumEvent.tags.filter(
+              (tag) => tag[0] === "track" && tag.length >= 3
+            );
+            const albumTracks: (NostrTrack & { trackNumber: number })[] = [];
+
+            trackTags.forEach((tag) => {
+              const trackNumber = parseInt(tag[1]);
+              const eventId = tag[2];
+              const track = trackMap.get(eventId);
+
+              if (track && !isNaN(trackNumber)) {
+                albumTracks.push({
+                  ...track,
+                  trackNumber,
+                });
+              }
+            });
+
+            // Sort tracks by track number
+            albumTracks.sort((a, b) => a.trackNumber - b.trackNumber);
 
             return {
-              ...album,
+              ...albumBase,
               tracks: albumTracks,
             } as NostrAlbum;
           })
+          .filter((album): album is NostrAlbum => album !== null)
           .sort((a, b) => b.created_at - a.created_at); // Sort by newest first
 
         return albums;
@@ -122,7 +175,7 @@ export function useArtistAlbums(artistPubkey: string) {
         return [];
       }
     },
-    enabled: !!artistPubkey && allTracks.length >= 0,
+    enabled: !!artistPubkey,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

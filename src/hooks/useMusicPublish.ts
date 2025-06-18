@@ -18,6 +18,9 @@ interface TrackData {
   albumTitle?: string;
   trackNumber?: number;
   artistId?: string;
+  // For editing existing tracks
+  existingTrackId?: string;
+  existingEvent?: any;
 }
 
 interface AlbumData {
@@ -38,6 +41,9 @@ interface AlbumData {
     trackNumber: number;
   }>;
   artistId?: string;
+  // For editing existing albums
+  existingAlbumId?: string;
+  existingEvent?: any;
 }
 
 export function useMusicPublish() {
@@ -49,10 +55,18 @@ export function useMusicPublish() {
     mutationFn: async (trackData: TrackData) => {
       if (!user) throw new Error("User not logged in");
 
-      // Create identifier for the track (used for replaceable events)
-      const identifier = `track-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
+      // Use existing identifier for editing, or create new one for new tracks
+      let identifier: string;
+      if (trackData.existingEvent) {
+        // Extract identifier from existing event's 'd' tag
+        const dTag = trackData.existingEvent.tags.find((tag: string[]) => tag[0] === "d");
+        identifier = dTag ? dTag[1] : `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      } else {
+        // Create new identifier for new tracks
+        identifier = `track-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+      }
 
       // Build tags for the track event
       const tags = [
@@ -124,10 +138,18 @@ export function useMusicPublish() {
     mutationFn: async (albumData: AlbumData) => {
       if (!user) throw new Error("User not logged in");
 
-      // Create identifier for the album
-      const identifier = `album-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
+      // Use existing identifier for editing, or create new one for new albums
+      let identifier: string;
+      if (albumData.existingEvent) {
+        // Extract identifier from existing event's 'd' tag
+        const dTag = albumData.existingEvent.tags.find((tag: string[]) => tag[0] === "d");
+        identifier = dTag ? dTag[1] : `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      } else {
+        // Create new identifier for new albums
+        identifier = `album-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+      }
 
       // Build tags for the album event
       const tags = [

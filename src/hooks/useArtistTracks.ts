@@ -24,7 +24,7 @@ export interface NostrTrack {
   event: NostrEvent;
 }
 
-function parseTrackFromEvent(event: NostrEvent): NostrTrack | null {
+export function parseTrackFromEvent(event: NostrEvent): NostrTrack | null {
   try {
     // Extract metadata from tags (content is plain text description)
     const titleTag = event.tags.find(tag => tag[0] === "title")?.[1];

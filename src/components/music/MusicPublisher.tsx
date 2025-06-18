@@ -42,6 +42,9 @@ import { useArtistAlbums } from "@/hooks/useArtistAlbums";
 import { useArtistTracks } from "@/hooks/useArtistTracks";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
+import { useTrackNutzapTotals } from "@/hooks/useTrackNutzapTotals";
+import { useUploadHistory } from "@/hooks/useUploadHistory";
+import { NostrAlbum } from "@/hooks/useArtistAlbums";
 
 interface MusicPublisherProps {
   artistId?: string;
@@ -51,10 +54,12 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const { user } = useCurrentUser();
   const [showTrackForm, setShowTrackForm] = useState(false);
   const [showAlbumForm, setShowAlbumForm] = useState(false);
+  const [editingAlbum, setEditingAlbum] = useState<NostrAlbum | null>(null);
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
   );
+
   const { data: tracks = [], isLoading: tracksLoading } = useArtistTracks(
     user?.pubkey || ""
   );
@@ -79,7 +84,6 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         albumTitle: album.title,
         albumImage: album.coverUrl,
         price: track.price || 0,
-        revenue: 0, // TODO: Add revenue tracking
         exclusive: track.explicit || false,
       }))
     ),
@@ -95,35 +99,23 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         albumTitle: track.albumTitle || "Single",
         albumImage: track.coverUrl,
         price: track.price || 0,
-        revenue: 0, // TODO: Add revenue tracking
         exclusive: track.explicit || false,
       })),
   ];
 
-  // Mock upload history data
-  const uploadHistory = [
-    {
-      date: "Jun 2, 2025",
-      title: "Starlit Highway",
-      type: "Single Track",
-      status: "Published",
-      statusColor: "bg-green-100 text-green-800 hover:bg-green-100",
-    },
-    {
-      date: "May 28, 2025",
-      title: "Golden Hour (Acoustic)",
-      type: "Single Track",
-      status: "Processing",
-      statusColor: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-    },
-    {
-      date: "May 15, 2025",
-      title: "EXLESS",
-      type: "Album (4 tracks)",
-      status: "Published",
-      statusColor: "bg-green-100 text-green-800 hover:bg-green-100",
-    },
-  ];
+  // Get all track IDs for nutzap totals query
+  const trackIds = allTracks.map((track) => track.id);
+  const { data: nutzapTotals = [], isLoading: nutzapsLoading } =
+    useTrackNutzapTotals(trackIds);
+
+  // Create a map for quick lookup of nutzap totals
+  const nutzapTotalMap = new Map(
+    nutzapTotals.map((total) => [total.trackId, total.totalAmount])
+  );
+
+  // Get real upload history
+  const { data: uploadHistory = [], isLoading: uploadHistoryLoading } =
+    useUploadHistory();
 
   if (!user) {
     return (
@@ -180,6 +172,16 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         />
       )}
 
+      {editingAlbum && (
+        <AlbumForm
+          onCancel={() => setEditingAlbum(null)}
+          onSuccess={() => setEditingAlbum(null)}
+          artistId={artistId}
+          album={editingAlbum}
+          isEditing={true}
+        />
+      )}
+
       <Tabs defaultValue="albums" className="space-y-6">
         <TabsList>
           <TabsTrigger value="albums">Albums</TabsTrigger>
@@ -216,7 +218,11 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                   </p>
 
                   <div className="flex items-center justify-between mt-4">
-                    <Button size="sm" variant="outline">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingAlbum(album)}
+                    >
                       <Edit className="h-3 w-3 mr-1" />
                       Edit
                     </Button>
@@ -229,7 +235,11 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>View Details</DropdownMenuItem>
                         <DropdownMenuItem>Add Tracks</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Album</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setEditingAlbum(album)}
+                        >
+                          Edit Album
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive">
                           Delete Album
@@ -293,7 +303,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                       <TableHead className="text-center">Exclusive</TableHead>
                       <TableHead className="text-right">Stream Cost</TableHead>
                       <TableHead className="text-right">Plays</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead className="text-right">
+                        Revenue (Nutzaps)
+                      </TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -316,7 +328,23 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         </TableCell>
                         <TableCell className="text-right">0</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(track.revenue)}
+                          {nutzapsLoading ? (
+                            <span className="text-muted-foreground">
+                              Loading...
+                            </span>
+                          ) : (
+                            <span
+                              className={
+                                nutzapTotalMap.get(track.id)
+                                  ? "text-green-600 font-medium"
+                                  : ""
+                              }
+                            >
+                              {formatCurrency(
+                                nutzapTotalMap.get(track.id) || 0
+                              )}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -377,25 +405,53 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {uploadHistory.map((upload, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{upload.date}</TableCell>
-                        <TableCell className="font-medium">
-                          {upload.title}
-                        </TableCell>
-                        <TableCell>{upload.type}</TableCell>
-                        <TableCell>
-                          <Badge className={upload.statusColor}>
-                            {upload.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                    {uploadHistoryLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center text-muted-foreground"
+                        >
+                          Loading upload history...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : uploadHistory.length > 0 ? (
+                      uploadHistory.map((upload) => (
+                        <TableRow key={upload.id}>
+                          <TableCell>{upload.date}</TableCell>
+                          <TableCell className="font-medium">
+                            {upload.title}
+                          </TableCell>
+                          <TableCell>
+                            {upload.type === "album"
+                              ? `Album${
+                                  upload.trackCount
+                                    ? ` (${upload.trackCount} tracks)`
+                                    : ""
+                                }`
+                              : "Single Track"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                              {upload.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="ghost">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center text-muted-foreground"
+                        >
+                          No upload history found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

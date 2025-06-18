@@ -15,6 +15,7 @@ import {
   Download,
   Music,
   Disc,
+  Link,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ import { NutzapInterface } from "@/components/groups/NutzapInterface";
 import { shareContent } from "@/lib/share";
 import { nip19 } from "nostr-tools";
 import { KINDS } from "@/lib/nostr-kinds";
+import { toast } from "sonner";
 
 interface MusicSectionProps {
   albums: NostrAlbum[];
@@ -124,7 +126,11 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
     }
 
     // Check if this track is already loaded AND playing (not just same ID)
-    if (currentTrackId === track.id && currentTrack && useAudioPlayerStore.getState().currentAudioUrl) {
+    if (
+      currentTrackId === track.id &&
+      currentTrack &&
+      useAudioPlayerStore.getState().currentAudioUrl
+    ) {
       togglePlay();
     } else {
       loadTrack(track);
@@ -132,10 +138,39 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
   };
 
   const handleNutzapToggle = (trackId: string, isOpen: boolean) => {
-    setShowNutzaps(prev => ({
+    setShowNutzaps((prev) => ({
       ...prev,
-      [trackId]: isOpen
+      [trackId]: isOpen,
     }));
+  };
+
+  const handleCopyTrackLink = async (track: NostrTrack) => {
+    try {
+      // Create nevent for the track
+      const nevent = nip19.neventEncode({
+        id: track.id,
+        author: track.pubkey,
+        kind: KINDS.MUSIC_TRACK,
+        relays: ["wss://relay.wavlake.com"],
+      });
+
+      const njumpUrl = `https://njump.me/${nevent}`;
+
+      await navigator.clipboard.writeText(njumpUrl);
+      toast.success("Track link copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying track link:", error);
+      // Fallback to the original URL format
+      const fallbackUrl = `${window.location.origin}/track/${track.id}`;
+
+      try {
+        await navigator.clipboard.writeText(fallbackUrl);
+        toast.success("Track link copied to clipboard!");
+      } catch (clipboardError) {
+        console.error("Error copying to clipboard:", clipboardError);
+        toast.error("Failed to copy track link");
+      }
+    }
   };
 
   const handleShareTrack = async (track: NostrTrack) => {
@@ -300,12 +335,20 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           authorPubkey={displayTrack.pubkey}
                           relayHint="wss://relay.wavlake.com"
                           showText={true}
-                          onToggle={(isOpen) => handleNutzapToggle(displayTrack.id, isOpen)}
+                          onToggle={(isOpen) =>
+                            handleNutzapToggle(displayTrack.id, isOpen)
+                          }
                           isOpen={showNutzaps[displayTrack.id] || false}
                         />
                       )}
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-5 w-5" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          displayTrack && handleCopyTrackLink(displayTrack)
+                        }
+                      >
+                        <Link className="h-5 w-5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -335,7 +378,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
             onSuccess={() => {
               // Call the refetch function if available
               const refetchFn = window[`zapRefetch_${displayTrack.id}`];
-              if (typeof refetchFn === 'function') refetchFn();
+              if (typeof refetchFn === "function") refetchFn();
             }}
           />
         </div>
@@ -492,9 +535,19 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                                 authorPubkey={track.pubkey}
                                 relayHint="wss://relay.wavlake.com"
                                 showText={false}
-                                onToggle={(isOpen) => handleNutzapToggle(track.id, isOpen)}
+                                onToggle={(isOpen) =>
+                                  handleNutzapToggle(track.id, isOpen)
+                                }
                                 isOpen={showNutzaps[track.id] || false}
                               />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleCopyTrackLink(track)}
+                              >
+                                <Link className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -509,20 +562,26 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                       </div>
 
                       {/* Nutzap Interfaces for album tracks */}
-                      {currentAlbum.tracks.map((track) => 
-                        showNutzaps[track.id] && (
-                          <div key={`nutzap-${track.id}`} className="w-full mt-4">
-                            <NutzapInterface
-                              postId={track.id}
-                              authorPubkey={track.pubkey}
-                              relayHint="wss://relay.wavlake.com"
-                              onSuccess={() => {
-                                const refetchFn = window[`zapRefetch_${track.id}`];
-                                if (typeof refetchFn === 'function') refetchFn();
-                              }}
-                            />
-                          </div>
-                        )
+                      {currentAlbum.tracks.map(
+                        (track) =>
+                          showNutzaps[track.id] && (
+                            <div
+                              key={`nutzap-${track.id}`}
+                              className="w-full mt-4"
+                            >
+                              <NutzapInterface
+                                postId={track.id}
+                                authorPubkey={track.pubkey}
+                                relayHint="wss://relay.wavlake.com"
+                                onSuccess={() => {
+                                  const refetchFn =
+                                    window[`zapRefetch_${track.id}`];
+                                  if (typeof refetchFn === "function")
+                                    refetchFn();
+                                }}
+                              />
+                            </div>
+                          )
                       )}
                     </CardContent>
                   </Card>
@@ -629,9 +688,19 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                           authorPubkey={track.pubkey}
                           relayHint="wss://relay.wavlake.com"
                           showText={false}
-                          onToggle={(isOpen) => handleNutzapToggle(track.id, isOpen)}
+                          onToggle={(isOpen) =>
+                            handleNutzapToggle(track.id, isOpen)
+                          }
                           isOpen={showNutzaps[track.id] || false}
                         />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleCopyTrackLink(track)}
+                        >
+                          <Link className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -646,20 +715,21 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                 </div>
 
                 {/* Nutzap Interfaces for all tracks */}
-                {displayTracks.map((track) => 
-                  showNutzaps[track.id] && (
-                    <div key={`nutzap-${track.id}`} className="w-full mt-4">
-                      <NutzapInterface
-                        postId={track.id}
-                        authorPubkey={track.pubkey}
-                        relayHint="wss://relay.wavlake.com"
-                        onSuccess={() => {
-                          const refetchFn = window[`zapRefetch_${track.id}`];
-                          if (typeof refetchFn === 'function') refetchFn();
-                        }}
-                      />
-                    </div>
-                  )
+                {displayTracks.map(
+                  (track) =>
+                    showNutzaps[track.id] && (
+                      <div key={`nutzap-${track.id}`} className="w-full mt-4">
+                        <NutzapInterface
+                          postId={track.id}
+                          authorPubkey={track.pubkey}
+                          relayHint="wss://relay.wavlake.com"
+                          onSuccess={() => {
+                            const refetchFn = window[`zapRefetch_${track.id}`];
+                            if (typeof refetchFn === "function") refetchFn();
+                          }}
+                        />
+                      </div>
+                    )
                 )}
               </CardContent>
             </Card>

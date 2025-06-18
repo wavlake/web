@@ -1,7 +1,12 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,12 +17,25 @@ import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { usePinnedPosts } from "@/hooks/usePinnedPosts";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { toast } from "sonner";
-import { MessageSquare, Share2, CheckCircle, XCircle, MoreVertical, Ban, ChevronDown, ChevronUp, Flag, Timer, Pin } from "lucide-react";
+import {
+  MessageSquare,
+  Share2,
+  CheckCircle,
+  XCircle,
+  MoreVertical,
+  Ban,
+  ChevronDown,
+  ChevronUp,
+  Flag,
+  Timer,
+  Pin,
+  Link as LinkIcon,
+} from "lucide-react";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";
 import { NutzapButton } from "@/components/groups/NutzapButton";
 import { NutzapInterface } from "@/components/groups/NutzapInterface";
 import { NostrEvent } from "@nostrify/nostrify";
-import { nip19 } from 'nostr-tools';
+import { nip19 } from "nostr-tools";
 import { NoteContent } from "../NoteContent";
 import { Link } from "react-router-dom";
 import { parseNostrAddress } from "@/lib/nostr-utils";
@@ -31,7 +49,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -61,11 +79,16 @@ function ReplyCount({ postId }: { postId: string }) {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
 
       // Get all kind 1111 replies that reference this post
-      const events = await nostr.query([{
-        kinds: [KINDS.GROUP_POST_REPLY],
-        "#e": [postId],
-        limit: 100,
-      }], { signal });
+      const events = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_POST_REPLY],
+            "#e": [postId],
+            limit: 100,
+          },
+        ],
+        { signal }
+      );
 
       return events?.length || 0;
     },
@@ -86,11 +109,17 @@ interface PostListProps {
   onPostCountChange?: (count: number) => void; // New prop for tracking post count
 }
 
-export function PostList({ communityId, showOnlyApproved = false, pendingOnly = false, onPostCountChange }: PostListProps) {
+export function PostList({
+  communityId,
+  showOnlyApproved = false,
+  pendingOnly = false,
+  onPostCountChange,
+}: PostListProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { bannedUsers } = useBannedUsers(communityId);
-  const { pinnedPostIds, isLoading: isLoadingPinnedPostIds } = usePinnedPosts(communityId);
+  const { pinnedPostIds, isLoading: isLoadingPinnedPostIds } =
+    usePinnedPosts(communityId);
 
   // Query for approved posts
   const { data: approvedPosts, isLoading: isLoadingApproved } = useQuery({
@@ -98,55 +127,64 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      const approvals = await nostr.query([{
-        kinds: [KINDS.GROUP_POST_APPROVAL],
-        "#a": [communityId],
-        limit: 50,
-      }], { signal });
+      const approvals = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_POST_APPROVAL],
+            "#a": [communityId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
 
       // Extract the approved posts from the content field and filter out replies
-      return approvals.map(approval => {
-        try {
-          // Get the kind tag to check if it's a reply
-          const kindTag = approval.tags.find(tag => tag[0] === "k");
-          const kind = kindTag ? Number.parseInt(kindTag[1]) : null;
+      return approvals
+        .map((approval) => {
+          try {
+            // Get the kind tag to check if it's a reply
+            const kindTag = approval.tags.find((tag) => tag[0] === "k");
+            const kind = kindTag ? Number.parseInt(kindTag[1]) : null;
 
-          // Skip this approval if it's for a reply (kind 1111)
-          if (kind === KINDS.GROUP_POST_REPLY) {
-            return null;
-          }
-
-          const approvedPost = JSON.parse(approval.content) as NostrEvent;
-
-          // Skip if the post itself is a reply
-          if (approvedPost.kind === KINDS.GROUP_POST_REPLY) {
-            return null;
-          }
-
-          // Add the approval information
-          return {
-            ...approvedPost,
-            approval: {
-              id: approval.id,
-              pubkey: approval.pubkey,
-              created_at: approval.created_at,
-              kind: kind || approvedPost.kind
+            // Skip this approval if it's for a reply (kind 1111)
+            if (kind === KINDS.GROUP_POST_REPLY) {
+              return null;
             }
-          };
-        } catch (error) {
-          console.error("Error parsing approved post:", error);
-          return null;
-        }
-      }).filter((post): post is NostrEvent & {
-        approval: { id: string; pubkey: string; created_at: number; kind: number }
-      } => post !== null);
 
-      // Debug logging
-      console.log("Filtered approved posts:", {
-        totalApprovedPosts: approvedPosts.length
-      });
+            const approvedPost = JSON.parse(approval.content) as NostrEvent;
 
-      return approvedPosts;
+            // Skip if the post itself is a reply
+            if (approvedPost.kind === KINDS.GROUP_POST_REPLY) {
+              return null;
+            }
+
+            // Add the approval information
+            return {
+              ...approvedPost,
+              approval: {
+                id: approval.id,
+                pubkey: approval.pubkey,
+                created_at: approval.created_at,
+                kind: kind || approvedPost.kind,
+              },
+            };
+          } catch (error) {
+            console.error("Error parsing approved post:", error);
+            return null;
+          }
+        })
+        .filter(
+          (
+            post
+          ): post is NostrEvent & {
+            approval: {
+              id: string;
+              pubkey: string;
+              created_at: number;
+              kind: number;
+            };
+          } => post !== null
+        );
     },
     enabled: !!nostr && !!communityId,
   });
@@ -157,16 +195,23 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      const removals = await nostr.query([{
-        kinds: [KINDS.GROUP_POST_REMOVAL],
-        "#a": [communityId],
-        limit: 50,
-      }], { signal });
+      const removals = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_POST_REMOVAL],
+            "#a": [communityId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
 
-      return removals.map(removal => {
-        const eventTag = removal.tags.find(tag => tag[0] === "e");
-        return eventTag ? eventTag[1] : null;
-      }).filter((id): id is string => id !== null);
+      return removals
+        .map((removal) => {
+          const eventTag = removal.tags.find((tag) => tag[0] === "e");
+          return eventTag ? eventTag[1] : null;
+        })
+        .filter((id): id is string => id !== null);
     },
     enabled: !!nostr && !!communityId,
   });
@@ -176,14 +221,19 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     queryKey: ["pending-posts", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const posts = await nostr.query([{
-        kinds: [KINDS.GROUP_POST],
-        "#a": [communityId],
-        limit: 50,
-      }], { signal });
+      const posts = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_POST],
+            "#a": [communityId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
 
       // Filter out replies (kind 1111) and any posts with a parent reference
-      const filteredPosts = posts.filter(post => {
+      const filteredPosts = posts.filter((post) => {
         // Exclude posts with kind 1111 (replies)
         if (post.kind === KINDS.GROUP_POST_REPLY) {
           return false;
@@ -191,8 +241,8 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
 
         // Exclude posts that have an 'e' tag with a 'reply' marker
         // This checks for posts that are replies to other posts
-        const replyTags = post.tags.filter(tag =>
-          tag[0] === 'e' && (tag[3] === 'reply' || tag[3] === 'root')
+        const replyTags = post.tags.filter(
+          (tag) => tag[0] === "e" && (tag[3] === "reply" || tag[3] === "root")
         );
 
         return replyTags.length === 0;
@@ -202,7 +252,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
       console.log("Filtered posts:", {
         totalPosts: posts.length,
         filteredPosts: filteredPosts.length,
-        removedReplies: posts.length - filteredPosts.length
+        removedReplies: posts.length - filteredPosts.length,
       });
 
       return filteredPosts;
@@ -211,22 +261,28 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   });
 
   // Get approved members using the centralized hook
-  const { approvedMembers, moderators: hookModerators } = useApprovedMembers(communityId);
+  const { approvedMembers, moderators: hookModerators } =
+    useApprovedMembers(communityId);
 
   // Query for community details to get moderators
   const { data: communityEvent } = useQuery({
     queryKey: ["community-details", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const parsedId = communityId.includes(':')
+      const parsedId = communityId.includes(":")
         ? parseNostrAddress(communityId)
         : null;
       if (!parsedId) return null;
-      const events = await nostr.query([{
-        kinds: [KINDS.GROUP],
-        authors: [parsedId.pubkey],
-        "#d": [parsedId.identifier],
-      }], { signal });
+      const events = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP],
+            authors: [parsedId.pubkey],
+            "#d": [parsedId.identifier],
+          },
+        ],
+        { signal }
+      );
       return events[0] || null;
     },
     enabled: !!nostr && !!communityId,
@@ -237,14 +293,19 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     queryKey: ["pinned-posts-content", communityId, pinnedPostIds],
     queryFn: async (c) => {
       if (!pinnedPostIds || pinnedPostIds.length === 0) return [];
-      
+
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
+
       // Fetch the actual pinned posts
-      const posts = await nostr.query([{
-        kinds: [1, KINDS.GROUP_POST],
-        ids: pinnedPostIds,
-      }], { signal });
+      const posts = await nostr.query(
+        [
+          {
+            kinds: [1, KINDS.GROUP_POST],
+            ids: pinnedPostIds,
+          },
+        ],
+        { signal }
+      );
 
       return posts;
     },
@@ -259,33 +320,37 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     if (hookModerators.length > 0) {
       return hookModerators;
     }
-    return communityEvent?.tags
-      .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-      .map(tag => tag[1]) || [];
+    return (
+      communityEvent?.tags
+        .filter((tag) => tag[0] === "p" && tag[3] === "moderator")
+        .map((tag) => tag[1]) || []
+    );
   }, [hookModerators, communityEvent]);
 
   const isUserModerator = Boolean(user && moderators.includes(user.pubkey));
 
   const allPosts = [...(approvedPosts || []), ...(pendingPosts || [])];
 
-  const uniquePosts = allPosts.filter((post, index, self) =>
-    index === self.findIndex(p => p.id === post.id)
+  const uniquePosts = allPosts.filter(
+    (post, index, self) => index === self.findIndex((p) => p.id === post.id)
   );
 
   const removedPostIds = useMemo(() => removedPosts || [], [removedPosts]);
-  const postsWithoutRemoved = uniquePosts.filter(post =>
-    !removedPostIds.includes(post.id) &&
-    !bannedUsers.includes(post.pubkey)
+  const postsWithoutRemoved = uniquePosts.filter(
+    (post) =>
+      !removedPostIds.includes(post.id) && !bannedUsers.includes(post.pubkey)
   );
 
-  const processedPosts = postsWithoutRemoved.map(post => {
+  const processedPosts = postsWithoutRemoved.map((post) => {
     // If post already has approval info, return it as is
-    if ('approval' in post) return post;
+    if ("approval" in post) return post;
 
     // Check if this is a reply by looking at the kind or tags
-    const isReply = post.kind === KINDS.GROUP_POST_REPLY || post.tags.some(tag =>
-      tag[0] === 'e' && (tag[3] === 'reply' || tag[3] === 'root')
-    );
+    const isReply =
+      post.kind === KINDS.GROUP_POST_REPLY ||
+      post.tags.some(
+        (tag) => tag[0] === "e" && (tag[3] === "reply" || tag[3] === "root")
+      );
 
     // If it's a reply, don't auto-approve it as a top-level post
     if (isReply) return post;
@@ -301,15 +366,17 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           pubkey: post.pubkey,
           created_at: post.created_at,
           autoApproved: true,
-          kind: post.kind
-        }
+          kind: post.kind,
+        },
       };
     }
     return post;
   });
 
   // Count approved and pending posts
-  const pendingCount = processedPosts.filter(post => !('approval' in post)).length;
+  const pendingCount = processedPosts.filter(
+    (post) => !("approval" in post)
+  ).length;
   const approvedCount = processedPosts.length - pendingCount;
 
   // Filter posts based on approval status
@@ -317,12 +384,12 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
 
   if (showOnlyApproved) {
     // Show only approved posts
-    filteredPosts = processedPosts.filter(post => 'approval' in post);
+    filteredPosts = processedPosts.filter((post) => "approval" in post);
   } else if (pendingOnly) {
     // Show only pending posts (not auto-approved and not manually approved)
-    filteredPosts = processedPosts.filter(post => {
+    filteredPosts = processedPosts.filter((post) => {
       // If it has an approval property, it's either manually approved or auto-approved
-      if ('approval' in post) {
+      if ("approval" in post) {
         return false;
       }
       return true;
@@ -333,13 +400,16 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
   const sortedPosts = useMemo(() => {
     // Process pinned posts through the same approval logic
     const pinnedPostsProcessed = (pinnedPosts || [])
-      .filter(post => 
-        !removedPostIds.includes(post.id) && 
-        !bannedUsers.includes(post.pubkey)
+      .filter(
+        (post) =>
+          !removedPostIds.includes(post.id) &&
+          !bannedUsers.includes(post.pubkey)
       )
-      .map(post => {
+      .map((post) => {
         // Check if this pinned post is already in the approved posts
-        const existingApproval = (approvedPosts || []).find(ap => ap.id === post.id);
+        const existingApproval = (approvedPosts || []).find(
+          (ap) => ap.id === post.id
+        );
         if (existingApproval) {
           return existingApproval;
         }
@@ -355,8 +425,8 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
               pubkey: post.pubkey,
               created_at: post.created_at,
               autoApproved: true,
-              kind: post.kind
-            }
+              kind: post.kind,
+            },
           };
         }
         return post;
@@ -365,35 +435,43 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     // Filter pinned posts based on approval status
     let filteredPinnedPosts = pinnedPostsProcessed;
     if (showOnlyApproved) {
-      filteredPinnedPosts = pinnedPostsProcessed.filter(post => 'approval' in post);
+      filteredPinnedPosts = pinnedPostsProcessed.filter(
+        (post) => "approval" in post
+      );
     } else if (pendingOnly) {
-      filteredPinnedPosts = pinnedPostsProcessed.filter(post => !('approval' in post));
+      filteredPinnedPosts = pinnedPostsProcessed.filter(
+        (post) => !("approval" in post)
+      );
     }
 
     // Separate regular posts (excluding pinned ones)
-    const regularPosts = filteredPosts.filter(post => 
-      !pinnedPostIds.includes(post.id)
+    const regularPosts = filteredPosts.filter(
+      (post) => !pinnedPostIds.includes(post.id)
     );
 
     // Sort regular posts by creation time
-    const sortedRegularPosts = regularPosts.sort((a, b) => b.created_at - a.created_at);
-    
+    const sortedRegularPosts = regularPosts.sort(
+      (a, b) => b.created_at - a.created_at
+    );
+
     // Sort pinned posts by creation time (most recent pins first)
-    const sortedPinnedPosts = filteredPinnedPosts.sort((a, b) => b.created_at - a.created_at);
+    const sortedPinnedPosts = filteredPinnedPosts.sort(
+      (a, b) => b.created_at - a.created_at
+    );
 
     // Combine pinned posts first, then regular posts
     return [...sortedPinnedPosts, ...sortedRegularPosts];
   }, [
-    pinnedPosts, 
-    removedPostIds, 
-    bannedUsers, 
-    approvedPosts, 
-    approvedMembers, 
-    moderators, 
-    showOnlyApproved, 
-    pendingOnly, 
-    filteredPosts, 
-    pinnedPostIds
+    pinnedPosts,
+    removedPostIds,
+    bannedUsers,
+    approvedPosts,
+    approvedMembers,
+    moderators,
+    showOnlyApproved,
+    pendingOnly,
+    filteredPosts,
+    pinnedPostIds,
   ]);
 
   useEffect(() => {
@@ -402,11 +480,19 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
     }
   }, [sortedPosts, onPostCountChange]);
 
-  if (isLoadingApproved || isLoadingPending || isLoadingPinnedPostIds || isLoadingPinnedPosts) {
+  if (
+    isLoadingApproved ||
+    isLoadingPending ||
+    isLoadingPinnedPostIds ||
+    isLoadingPinnedPosts
+  ) {
     return (
       <div className="space-y-0">
         {[1, 2, 3].map((i) => (
-          <div key={i} className={`py-4 ${i < 3 ? 'border-b-2 border-border/70' : ''}`}>
+          <div
+            key={i}
+            className={`py-4 ${i < 3 ? "border-b-2 border-border/70" : ""}`}
+          >
             <div className="px-3">
               <div className="flex flex-row items-center pb-2">
                 <Skeleton className="h-9 w-9 rounded-md mr-2.5" />
@@ -441,15 +527,15 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           {showOnlyApproved
             ? "No approved posts in this group yet"
             : pendingOnly
-              ? "No pending posts in this group"
-              : "No posts in this group yet"}
+            ? "No pending posts in this group"
+            : "No posts in this group yet"}
         </p>
         <p className="text-sm">
           {showOnlyApproved && pendingCount > 0
             ? `There are ${pendingCount} pending posts waiting for approval.`
             : pendingOnly
-              ? "All posts have been approved or removed."
-              : "Be the first to post something!"}
+            ? "All posts have been approved or removed."
+            : "Be the first to post something!"}
         </p>
       </div>
     );
@@ -462,7 +548,7 @@ export function PostList({ communityId, showOnlyApproved = false, pendingOnly = 
           key={post.id}
           post={post}
           communityId={communityId}
-          isApproved={'approval' in post}
+          isApproved={"approval" in post}
           isModerator={isUserModerator}
           isLastItem={index === sortedPosts.length - 1}
           isPinned={pinnedPostIds.includes(post.id)}
@@ -482,7 +568,7 @@ interface PostItemProps {
       created_at: number;
       autoApproved?: boolean;
       kind: number;
-    }
+    };
   };
   communityId: string;
   isApproved: boolean;
@@ -491,7 +577,14 @@ interface PostItemProps {
   isPinned?: boolean;
 }
 
-function PostItem({ post, communityId, isApproved, isModerator, isLastItem = false, isPinned = false }: PostItemProps) {
+function PostItem({
+  post,
+  communityId,
+  isApproved,
+  isModerator,
+  isLastItem = false,
+  isPinned = false,
+}: PostItemProps) {
   const author = useAuthor(post.pubkey);
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish({
@@ -500,11 +593,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
       { queryKey: ["pending-posts", communityId] },
       { queryKey: ["pending-posts-count", communityId] },
       { queryKey: ["pinned-posts", communityId] },
-      { queryKey: ["pinned-posts-content", communityId] }
-    ]
+      { queryKey: ["pinned-posts-content", communityId] },
+    ],
   });
   const { banUser } = useBannedUsers(communityId);
-  const { pinPost, unpinPost, isPinning, isUnpinning } = usePinnedPosts(communityId);
+  const { pinPost, unpinPost, isPinning, isUnpinning } =
+    usePinnedPosts(communityId);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -529,8 +623,10 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   };
 
   // Extract expiration timestamp from post tags
-  const expirationTag = post.tags.find(tag => tag[0] === "expiration");
-  const expirationTimestamp = expirationTag ? Number.parseInt(expirationTag[1]) : null;
+  const expirationTag = post.tags.find((tag) => tag[0] === "expiration");
+  const expirationTimestamp = expirationTag
+    ? Number.parseInt(expirationTag[1])
+    : null;
 
   // Update time remaining every minute
   useEffect(() => {
@@ -564,14 +660,16 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   const authorNip05 = metadata?.nip05;
   let authorIdentifier = authorNip05 || post.pubkey;
   if (!authorNip05 && post.pubkey.match(/^[0-9a-fA-F]{64}$/)) {
-      try {
-          const npub = nip19.npubEncode(post.pubkey);
-          authorIdentifier = `${npub.slice(0,10)}...${npub.slice(-4)}`;
-      } catch (e) {
-          authorIdentifier = `${post.pubkey.slice(0,8)}...${post.pubkey.slice(-4)}`;
-      }
+    try {
+      const npub = nip19.npubEncode(post.pubkey);
+      authorIdentifier = `${npub.slice(0, 10)}...${npub.slice(-4)}`;
+    } catch (e) {
+      authorIdentifier = `${post.pubkey.slice(0, 8)}...${post.pubkey.slice(
+        -4
+      )}`;
+    }
   } else if (!authorNip05) {
-    authorIdentifier = `${post.pubkey.slice(0,8)}...${post.pubkey.slice(-4)}`;
+    authorIdentifier = `${post.pubkey.slice(0, 8)}...${post.pubkey.slice(-4)}`;
   }
 
   // Format the timestamp as relative time
@@ -580,12 +678,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   // Keep the absolute time as a tooltip
   const postDate = new Date(post.created_at * 1000);
   const formattedAbsoluteTime = `${postDate.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   })} ${postDate.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit'
+    hour: "numeric",
+    minute: "2-digit",
   })}`;
 
   const handleApprovePost = async () => {
@@ -596,7 +694,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
     try {
       await publishEvent({
         kind: KINDS.GROUP_POST_APPROVAL,
-        tags: [["a", communityId], ["e", post.id], ["p", post.pubkey], ["k", String(post.kind)]],
+        tags: [
+          ["a", communityId],
+          ["e", post.id],
+          ["p", post.pubkey],
+          ["k", String(post.kind)],
+        ],
         content: JSON.stringify(post),
       });
       toast.success("Post approved successfully!");
@@ -614,7 +717,12 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
     try {
       await publishEvent({
         kind: KINDS.GROUP_POST_REMOVAL,
-        tags: [["a", communityId], ["e", post.id], ["p", post.pubkey], ["k", String(post.kind)]],
+        tags: [
+          ["a", communityId],
+          ["e", post.id],
+          ["p", post.pubkey],
+          ["k", String(post.kind)],
+        ],
         content: "", // Empty content - do not redistribute removed content
       });
       toast.success("Post removed successfully!");
@@ -640,6 +748,38 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      // Create nevent identifier for the post with relay hint
+      const nevent = nip19.neventEncode({
+        id: post.id,
+        author: post.pubkey,
+        kind: post.kind,
+        relays: ["wss://relay.wavlake.com"],
+      });
+
+      // Create njump.me URL
+      const shareUrl = `https://njump.me/${nevent}`;
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard!");
+    } catch (error) {
+      console.error("Error creating link:", error);
+      // Fallback to the original URL format
+      const shareUrl = `${window.location.origin}/group/${encodeURIComponent(
+        communityId
+      )}#${post.id}`;
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard!");
+      } catch (clipboardError) {
+        console.error("Error copying to clipboard:", clipboardError);
+        toast.error("Failed to copy link");
+      }
+    }
+  };
+
   const handleSharePost = async () => {
     try {
       // Create nevent identifier for the post with relay hint
@@ -649,24 +789,28 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
         kind: post.kind,
         relays: ["wss://relay.wavlake.com"],
       });
-      
+
       // Create njump.me URL
       const shareUrl = `https://njump.me/${nevent}`;
-      
+
       await shareContent({
         title: "Check out this post",
-        text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
-        url: shareUrl
+        text:
+          post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
+        url: shareUrl,
       });
     } catch (error) {
       console.error("Error creating share URL:", error);
       // Fallback to the original URL format
-      const shareUrl = `${window.location.origin}/group/${encodeURIComponent(communityId)}#${post.id}`;
-      
+      const shareUrl = `${window.location.origin}/group/${encodeURIComponent(
+        communityId
+      )}#${post.id}`;
+
       await shareContent({
         title: "Check out this post",
-        text: post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
-        url: shareUrl
+        text:
+          post.content.slice(0, 100) + (post.content.length > 100 ? "..." : ""),
+        url: shareUrl,
       });
     }
   };
@@ -700,15 +844,19 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
   };
 
   return (
-    <div 
+    <div
       id={post.id} // Add this id for anchor navigation
-      className={`py-4 hover:bg-muted/5 transition-colors ${!isLastItem ? 'border-b-2 border-border/70' : ''}`}
+      className={`py-4 hover:bg-muted/5 transition-colors ${
+        !isLastItem ? "border-b-2 border-border/70" : ""
+      }`}
     >
       <div className="flex flex-row items-start px-3">
         <Link to={`/profile/${post.pubkey}`} className="flex-shrink-0 mr-2.5">
           <Avatar className="h-9 w-9 cursor-pointer hover:opacity-80 transition-opacity rounded-md">
             <AvatarImage src={profileImage} alt={displayName} />
-            <AvatarFallback>{displayName.slice(0, 1).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {displayName.slice(0, 1).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </Link>
 
@@ -716,8 +864,13 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-1.5">
-                <Link to={`/profile/${post.pubkey}`} className="hover:underline">
-                  <span className="font-semibold text-sm leading-tight block">{displayName}</span>
+                <Link
+                  to={`/profile/${post.pubkey}`}
+                  className="hover:underline"
+                >
+                  <span className="font-semibold text-sm leading-tight block">
+                    {displayName}
+                  </span>
                 </Link>
                 {isPinned && (
                   <TooltipProvider>
@@ -743,7 +896,9 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="mr-1.5 whitespace-nowrap hover:underline">{relativeTime}</span>
+                      <span className="mr-1.5 whitespace-nowrap hover:underline">
+                        {relativeTime}
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{formattedAbsoluteTime}</p>
@@ -798,60 +953,135 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" title="More options">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      title="More options"
+                    >
                       <MoreVertical className="h-3.5 w-3.5" />
                       <span className="sr-only">More options</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleSharePost} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
+                    <DropdownMenuItem
+                      onClick={handleCopyLink}
+                      className="text-xs"
+                    >
+                      <LinkIcon className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                      Copy Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleSharePost}
+                      className="text-xs"
+                    >
+                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                      Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
-                      <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
+                      <DropdownMenuItem
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-xs"
+                      >
+                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                        Report Post
                       </DropdownMenuItem>
                     )}
                     {isModerator && (
                       <>
                         <DropdownMenuSeparator />
                         {!isApproved && (
-                          <DropdownMenuItem onClick={handleApprovePost} className="text-xs">
-                            <CheckCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Approve Post
+                          <DropdownMenuItem
+                            onClick={handleApprovePost}
+                            className="text-xs"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                            Approve Post
                           </DropdownMenuItem>
                         )}
                         {isPinned ? (
-                          <DropdownMenuItem 
-                            onClick={handleUnpinPost} 
+                          <DropdownMenuItem
+                            onClick={handleUnpinPost}
                             className="text-xs"
                             disabled={isUnpinning}
                           >
-                            <Pin className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Unpin Post
+                            <Pin className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                            Unpin Post
                           </DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem 
-                            onClick={handlePinPost} 
+                          <DropdownMenuItem
+                            onClick={handlePinPost}
                             className="text-xs"
                             disabled={isPinning}
                           >
-                            <Pin className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Pin Post
+                            <Pin className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                            Pin Post
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => setIsRemoveDialogOpen(true)} className="text-red-600 text-xs">
-                          <XCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Remove Post
+                        <DropdownMenuItem
+                          onClick={() => setIsRemoveDialogOpen(true)}
+                          className="text-red-600 text-xs"
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                          Remove Post
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsBanDialogOpen(true)} className="text-red-600 text-xs">
-                          <Ban className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Ban User
+                        <DropdownMenuItem
+                          onClick={() => setIsBanDialogOpen(true)}
+                          className="text-red-600 text-xs"
+                        >
+                          <Ban className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                          Ban User
                         </DropdownMenuItem>
                       </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Remove Post</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove this post? This action will hide the post from the group.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleRemovePost} className="bg-red-600 hover:bg-red-700">Remove Post</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                <AlertDialog
+                  open={isRemoveDialogOpen}
+                  onOpenChange={setIsRemoveDialogOpen}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Post</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove this post? This action
+                        will hide the post from the group.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleRemovePost}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Remove Post
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
                 </AlertDialog>
-                <AlertDialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
-                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Ban User</AlertDialogTitle><AlertDialogDescription>Are you sure you want to ban this user? They will no longer be able to post in this group, and all their existing posts will be hidden.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleBanUser} className="bg-red-600 hover:bg-red-700">Ban User</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                <AlertDialog
+                  open={isBanDialogOpen}
+                  onOpenChange={setIsBanDialogOpen}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Ban User</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to ban this user? They will no
+                        longer be able to post in this group, and all their
+                        existing posts will be hidden.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleBanUser}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Ban User
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
                 </AlertDialog>
               </div>
             ) : (
@@ -886,18 +1116,38 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" title="More options">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      title="More options"
+                    >
                       <MoreVertical className="h-3.5 w-3.5" />
                       <span className="sr-only">More options</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleSharePost} className="text-xs">
-                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Share Post
+                    <DropdownMenuItem
+                      onClick={handleCopyLink}
+                      className="text-xs"
+                    >
+                      <LinkIcon className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                      Copy Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleSharePost}
+                      className="text-xs"
+                    >
+                      <Share2 className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                      Share Post
                     </DropdownMenuItem>
                     {user && user.pubkey !== post.pubkey && (
-                      <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-xs">
-                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5 h-4 w-4" /> Report Post
+                      <DropdownMenuItem
+                        onClick={() => setIsReportDialogOpen(true)}
+                        className="text-xs"
+                      >
+                        <Flag className="h-3.5 w-3.5 mr-1.5 md:h-3.5 md:w-3.5" />{" "}
+                        Report Post
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -929,10 +1179,10 @@ function PostItem({ post, communityId, isApproved, isModerator, isLastItem = fal
               <ReplyCount postId={post.id} />
             </Button>
             <EmojiReactionButton postId={post.id} showText={false} />
-            <NutzapButton 
-              postId={post.id} 
-              authorPubkey={post.pubkey} 
-              showText={true} 
+            <NutzapButton
+              postId={post.id}
+              authorPubkey={post.pubkey}
+              showText={true}
               onToggle={handleZapToggle}
               isOpen={showZaps}
             />
