@@ -48,3 +48,7 @@ temp.*
 \#*\#
 .certs/
 .vercel
+
+# env files
+.env
+.env.local
