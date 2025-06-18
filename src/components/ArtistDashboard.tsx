@@ -26,6 +26,13 @@ import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { MusicPublisher } from "@/components/music/MusicPublisher";
+import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementForm";
+import { useUserGroups } from "@/hooks/useUserGroups";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useGroupSettings } from "@/hooks/useGroupSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const dashboardTabs: TabItem[] = [
   {
@@ -82,8 +89,12 @@ export function ArtistDashboard({
   communityId = "placeholder-community",
 }: ArtistDashboardProps) {
   const [activeSection, setActiveSection] = useState("overview");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
+  const { data: userGroups } = useUserGroups();
+  const { data: userRole } = useUserRole(selectedGroupId);
+  const { settings, updateSettings } = useGroupSettings(selectedGroupId);
 
   // Check URL hash for initial tab on mount
   useEffect(() => {
@@ -99,6 +110,18 @@ export function ArtistDashboard({
     setActiveSection(newTab);
     window.history.replaceState(null, "", `#${newTab}`);
   };
+
+  // Auto-select the first group where user is owner or moderator
+  useEffect(() => {
+    if (userGroups && !selectedGroupId) {
+      const managedGroups = [...userGroups.owned, ...userGroups.moderated];
+      if (managedGroups.length > 0) {
+        const dTag = managedGroups[0].tags.find(tag => tag[0] === "d");
+        const groupId = `34550:${managedGroups[0].pubkey}:${dTag ? dTag[1] : ""}`;
+        setSelectedGroupId(groupId);
+      }
+    }
+  }, [userGroups, selectedGroupId]);
 
   // Stats placeholder data
   const stats = [
@@ -447,6 +470,120 @@ export function ArtistDashboard({
     </div>
   );
 
+  const renderUpdates = () => {
+    if (!userGroups) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Community Updates</h2>
+            <p className="text-muted-foreground">
+              Loading your communities...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const managedGroups = [...userGroups.owned, ...userGroups.moderated];
+
+    if (managedGroups.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Community Updates</h2>
+            <p className="text-muted-foreground">
+              Publish announcements to your community
+            </p>
+          </div>
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-muted flex items-center justify-center">
+                  <Bell className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">No Communities Found</h3>
+                <p className="text-muted-foreground mt-2">
+                  You need to be an owner or moderator of a community to publish announcements.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    const isOwner = userRole === "owner";
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold">Community Updates</h2>
+          <p className="text-muted-foreground">
+            Publish announcements to your community
+          </p>
+        </div>
+
+        {/* Group Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Community</CardTitle>
+            <CardDescription>
+              Choose which community you'd like to publish an announcement to
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="group-select">Community</Label>
+              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a community" />
+                </SelectTrigger>
+                <SelectContent>
+                  {managedGroups.map((group) => {
+                    const dTag = group.tags.find(tag => tag[0] === "d");
+                    const groupId = `34550:${group.pubkey}:${dTag ? dTag[1] : ""}`;
+                    const groupName = group.tags.find(tag => tag[0] === "name")?.[1] || dTag?.[1] || "Unnamed Group";
+                    const isGroupOwner = group.pubkey === user?.pubkey;
+                    
+                    return (
+                      <SelectItem key={groupId} value={groupId}>
+                        {groupName} {isGroupOwner ? "(Owner)" : "(Moderator)"}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Owner-only toggle for hiding moderator announcements */}
+            {isOwner && (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="hide-moderator-announcements"
+                  checked={settings.hideModeratorsAnnouncements}
+                  onCheckedChange={(checked) => updateSettings({ hideModeratorsAnnouncements: checked })}
+                />
+                <Label htmlFor="hide-moderator-announcements">
+                  Hide moderator announcements from Home page
+                </Label>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Announcement Form */}
+        {selectedGroupId && (
+          <CreateAnnouncementForm
+            communityId={selectedGroupId}
+            onAnnouncementSuccess={() => {
+              // Could add a refresh callback here if needed
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
   const renderPlaceholder = (section: string) => {
     const sectionTitle = dashboardTabs.find(tab => tab.value === section)?.label || section;
     
@@ -481,6 +618,8 @@ export function ArtistDashboard({
         return renderOverview();
       case "music":
         return <MusicPublisher artistId={user?.pubkey} />;
+      case "updates":
+        return renderUpdates();
       case "community":
         return renderCommunity();
       case "settings":

@@ -43,6 +43,7 @@ import { KINDS } from "@/lib/nostr-kinds";
 import { MusicSection } from "@/components/music/MusicSection";
 import { useArtistAlbums } from "@/hooks/useArtistAlbums";
 import { useArtistTracks } from "@/hooks/useArtistTracks";
+import { useGroupSettings } from "@/hooks/useGroupSettings";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -149,6 +150,9 @@ export default function GroupDetail({
   const { data: tracks = [], isLoading: isLoadingTracks } = useArtistTracks(
     parsedId?.pubkey || ""
   );
+
+  // Get group settings for the owner
+  const { settings } = useGroupSettings(groupId || "");
 
   // Get artist data from community metadata
   const artist = {
@@ -308,6 +312,9 @@ export default function GroupDetail({
                       <PostList
                         communityId={groupId || ""}
                         showOnlyApproved={true}
+                        showOnlyOwnerAndModerators={true}
+                        showOnlyAnnouncements={true}
+                        hideModeratorsAnnouncements={isOwner ? settings.hideModeratorsAnnouncements : false}
                         onPostCountChange={() => {}}
                       />
                     </div>
