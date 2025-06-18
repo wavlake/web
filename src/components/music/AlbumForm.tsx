@@ -510,23 +510,48 @@ export function AlbumForm({ onCancel, onSuccess, artistId, album, isEditing = fa
                                         const track = availableTracks.find(
                                           (t) => t.id === eventIdField.value
                                         );
-                                        return track
-                                          ? `${track.title} (${track.artist})`
-                                          : eventIdField.value;
+                                        if (track) {
+                                          return `${track.title} (${track.artist})`;
+                                        } else if (eventIdField.value) {
+                                          return `Custom Track (${eventIdField.value.slice(0, 8)}...)`;
+                                        }
+                                        return "Select a track or enter event ID";
                                       })()}
                                     </SelectValue>
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                  {/* Only show manual input if the current value is not in available tracks */}
+                                  {!availableTracks.find(t => t.id === eventIdField.value) && eventIdField.value && (
+                                    <div className="p-2 border-b">
+                                      <div className="text-xs text-muted-foreground mb-1">Custom Event ID:</div>
+                                      <Input
+                                        placeholder="Event ID"
+                                        value={eventIdField.value}
+                                        onChange={(e) =>
+                                          eventIdField.onChange(e.target.value)
+                                        }
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-xs"
+                                      />
+                                    </div>
+                                  )}
                                   <div className="p-2">
                                     <Input
-                                      placeholder="Or paste event ID here..."
-                                      value={eventIdField.value}
-                                      onChange={(e) =>
-                                        eventIdField.onChange(e.target.value)
-                                      }
+                                      placeholder="Or paste custom event ID here..."
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          eventIdField.onChange(e.target.value);
+                                          // Clear the title when manually entering ID
+                                          form.setValue(`tracks.${index}.title`, "");
+                                        }
+                                      }}
                                       onClick={(e) => e.stopPropagation()}
                                     />
+                                  </div>
+                                  <div className="border-t border-border mx-2"></div>
+                                  <div className="px-2 py-1 text-xs text-muted-foreground font-medium">
+                                    Available Tracks:
                                   </div>
                                   {tracksLoading ? (
                                     <SelectItem value="_loading" disabled>
