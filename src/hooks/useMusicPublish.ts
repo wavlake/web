@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { KINDS } from "@/lib/nostr-kinds";
+import { NostrEvent } from "@nostrify/nostrify";
 
 interface TrackData {
   title: string;
@@ -20,7 +21,7 @@ interface TrackData {
   artistId?: string;
   // For editing existing tracks
   existingTrackId?: string;
-  existingEvent?: any;
+  existingEvent?: NostrEvent;
 }
 
 interface AlbumData {
@@ -43,7 +44,7 @@ interface AlbumData {
   artistId?: string;
   // For editing existing albums
   existingAlbumId?: string;
-  existingEvent?: any;
+  existingEvent?: NostrEvent;
 }
 
 export function useMusicPublish() {

@@ -27,6 +27,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Upload,
   Edit,
@@ -34,6 +44,7 @@ import {
   MoreHorizontal,
   Filter,
   Star,
+  Trash2,
 } from "lucide-react";
 import { TrackForm } from "./TrackForm";
 import { AlbumForm } from "./AlbumForm";
@@ -45,6 +56,8 @@ import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 import { useTrackNutzapTotals } from "@/hooks/useTrackNutzapTotals";
 import { useUploadHistory } from "@/hooks/useUploadHistory";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
+import { NostrTrack } from "@/hooks/useArtistTracks";
+import { TrackDetailsDialog } from "./TrackDetailsDialog";
 
 interface MusicPublisherProps {
   artistId?: string;
@@ -55,6 +68,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [showTrackForm, setShowTrackForm] = useState(false);
   const [showAlbumForm, setShowAlbumForm] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<NostrAlbum | null>(null);
+  const [editingTrack, setEditingTrack] = useState<NostrTrack | null>(null);
+  const [viewingTrack, setViewingTrack] = useState<NostrTrack | null>(null);
+  const [deletingTrack, setDeletingTrack] = useState<NostrTrack | null>(null);
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -84,7 +100,6 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         albumTitle: album.title,
         albumImage: album.coverUrl,
         price: track.price || 0,
-        exclusive: track.explicit || false,
       }))
     ),
     ...tracks
@@ -99,7 +114,6 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         albumTitle: track.albumTitle || "Single",
         albumImage: track.coverUrl,
         price: track.price || 0,
-        exclusive: track.explicit || false,
       })),
   ];
 
@@ -116,6 +130,14 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   // Get real upload history
   const { data: uploadHistory = [], isLoading: uploadHistoryLoading } =
     useUploadHistory();
+
+  const handleDeleteTrack = (track: NostrTrack) => {
+    // For now, just show a placeholder - actual deletion would need to be implemented
+    // This could involve publishing a deletion event or similar
+    console.log("Delete track:", track);
+    setDeletingTrack(null);
+    // TODO: Implement actual track deletion logic
+  };
 
   if (!user) {
     return (
@@ -179,6 +201,24 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
           artistId={artistId}
           album={editingAlbum}
           isEditing={true}
+        />
+      )}
+
+      {editingTrack && (
+        <TrackForm
+          onCancel={() => setEditingTrack(null)}
+          onSuccess={() => setEditingTrack(null)}
+          artistId={artistId}
+          track={editingTrack}
+          isEditing={true}
+        />
+      )}
+
+      {viewingTrack && (
+        <TrackDetailsDialog
+          track={viewingTrack}
+          isOpen={!!viewingTrack}
+          onClose={() => setViewingTrack(null)}
         />
       )}
 
@@ -300,7 +340,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     <TableRow>
                       <TableHead>Track</TableHead>
                       <TableHead>Album</TableHead>
-                      <TableHead className="text-center">Exclusive</TableHead>
+                      {/* <TableHead className="text-center">Exclusive</TableHead> */}
                       <TableHead className="text-right">Stream Cost</TableHead>
                       <TableHead className="text-right">Plays</TableHead>
                       <TableHead className="text-right">
@@ -316,13 +356,13 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           {track.title}
                         </TableCell>
                         <TableCell>{track.albumTitle}</TableCell>
-                        <TableCell className="text-center">
+                        {/* <TableCell className="text-center">
                           {track.exclusive ? (
                             <Star className="h-4 w-4 text-amber-500 inline" />
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="text-right">
                           {formatCurrency(track.price)}
                         </TableCell>
@@ -348,7 +388,11 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button size="sm" variant="ghost">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingTrack(track)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>
@@ -358,17 +402,30 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setViewingTrack(track)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Edit Track</DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setEditingTrack(track)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Track
+                                </DropdownMenuItem>
+                                {/* <DropdownMenuItem>
+                                  <Star className="h-4 w-4 mr-2" />
                                   {track.exclusive
                                     ? "Remove Exclusive"
                                     : "Make Exclusive"}
-                                </DropdownMenuItem>
+                                </DropdownMenuItem> */}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => setDeletingTrack(track)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
                                   Delete Track
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -459,6 +516,31 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Track Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingTrack}
+        onOpenChange={() => setDeletingTrack(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Track</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingTrack?.title}"? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingTrack && handleDeleteTrack(deletingTrack)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Track
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { Upload, X, Music, Image as ImageIcon } from "lucide-react";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
+import { NostrTrack } from "@/hooks/useArtistTracks";
 
 const trackFormSchema = z.object({
   title: z.string().min(1, "Track title is required"),
@@ -36,21 +37,40 @@ interface TrackFormProps {
   onCancel: () => void;
   onSuccess: () => void;
   artistId?: string;
+  track?: NostrTrack; // For editing existing tracks
+  isEditing?: boolean;
 }
 
 
-export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
+export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = false }: TrackFormProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [audioPreview, setAudioPreview] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [audioPreview, setAudioPreview] = useState<string | null>(
+    isEditing && track?.audioUrl ? track.audioUrl : null
+  );
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    isEditing && track?.coverUrl ? track.coverUrl : null
+  );
   
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutate: publishTrack, isPending: isPublishing } = useMusicPublish();
 
   const form = useForm<TrackFormData>({
     resolver: zodResolver(trackFormSchema),
-    defaultValues: {
+    defaultValues: isEditing && track ? {
+      title: track.title,
+      artist: track.artist,
+      description: track.description || "",
+      genre: track.genre || "",
+      subgenre: "", // subgenre isn't stored in NostrTrack currently
+      duration: track.duration || 0,
+      explicit: track.explicit || false,
+      price: track.price || 0,
+      tags: track.tags?.join(", ") || "",
+      releaseDate: track.releaseDate || "",
+      albumTitle: track.albumTitle || "",
+      trackNumber: track.trackNumber || 1,
+    } : {
       explicit: false,
       price: 0,
       duration: 0,
@@ -65,6 +85,31 @@ export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
       albumTitle: "",
     },
   });
+
+  // Reset form when track changes (for edit mode)
+  useEffect(() => {
+    if (isEditing && track) {
+      form.reset({
+        title: track.title,
+        artist: track.artist,
+        description: track.description || "",
+        genre: track.genre || "",
+        subgenre: "", // subgenre isn't stored in NostrTrack currently
+        duration: track.duration || 0,
+        explicit: track.explicit || false,
+        price: track.price || 0,
+        tags: track.tags?.join(", ") || "",
+        releaseDate: track.releaseDate || "",
+        albumTitle: track.albumTitle || "",
+        trackNumber: track.trackNumber || 1,
+      });
+      // Also reset the preview states
+      setAudioPreview(track.audioUrl || null);
+      setImagePreview(track.coverUrl || null);
+      setAudioFile(null);
+      setCoverImage(null);
+    }
+  }, [isEditing, track, form]);
 
   const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -91,18 +136,22 @@ export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
   };
 
   const onSubmit = async (data: TrackFormData) => {
-    if (!audioFile) {
+    // For editing, audio file is optional (keep existing if not provided)
+    if (!isEditing && !audioFile) {
       form.setError('root', { message: 'Audio file is required' });
       return;
     }
 
     try {
-      // Upload audio file
-      const audioTags = await uploadFile(audioFile);
-      const audioUrl = audioTags[0][1]; // First tag contains the URL
+      // Upload audio file if provided, otherwise use existing URL
+      let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : '';
+      if (audioFile) {
+        const audioTags = await uploadFile(audioFile);
+        audioUrl = audioTags[0][1]; // First tag contains the URL
+      }
 
-      // Upload cover image if provided
-      let coverUrl = '';
+      // Upload cover image if provided, otherwise use existing URL
+      let coverUrl = isEditing && track?.coverUrl ? track.coverUrl : '';
       if (coverImage) {
         const imageTags = await uploadFile(coverImage);
         coverUrl = imageTags[0][1];
@@ -125,6 +174,11 @@ export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
         albumTitle: data.albumTitle,
         trackNumber: data.trackNumber,
         artistId,
+        // Add existing track info for editing
+        ...(isEditing && track ? {
+          existingTrackId: track.id,
+          existingEvent: track.event,
+        } : {}),
       };
 
       publishTrack(trackEvent, {
@@ -149,10 +203,13 @@ export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Music className="w-5 h-5" />
-          Publish New Track
+          {isEditing ? "Edit Track" : "Publish New Track"}
         </CardTitle>
         <CardDescription>
-          Upload and publish a music track to Nostr (Kind 31337)
+          {isEditing 
+            ? "Update your track metadata and files (Kind 31337)"
+            : "Upload and publish a music track to Nostr (Kind 31337)"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -516,7 +573,10 @@ export function TrackForm({ onCancel, onSuccess, artistId }: TrackFormProps) {
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Publishing..." : "Publish Track"}
+                {isLoading 
+                  ? (isEditing ? "Updating..." : "Publishing...") 
+                  : (isEditing ? "Update Track" : "Publish Track")
+                }
               </Button>
             </div>
           </form>
