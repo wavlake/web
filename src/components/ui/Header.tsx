@@ -22,7 +22,9 @@ const Header: React.FC<HeaderProps> = ({ className, title }) => {
   const onboardingStore = useOnboardingStore();
   const { user } = useCurrentUser();
   const location = useLocation();
-  const [currencyMode, setCurrencyMode] = useState<"USD" | "SATS" | "BOTH">("USD");
+  const [currencyMode, setCurrencyMode] = useState<"USD" | "SATS" | "BOTH">(
+    "USD"
+  );
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -36,7 +38,10 @@ const Header: React.FC<HeaderProps> = ({ className, title }) => {
 
   // Calculate total balance across all mints
   const balances = calculateBalance(cashuStore.proofs);
-  const walletBalance = Object.values(balances).reduce((sum, balance) => sum + balance, 0);
+  const walletBalance = Object.values(balances).reduce(
+    (sum, balance) => sum + balance,
+    0
+  );
 
   const handleCurrencyToggle = () => {
     setCurrencyMode((prev) => {
@@ -94,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ className, title }) => {
             className="bg-black/80 backdrop-blur-sm rounded-lg w-10 h-10 flex items-center justify-center hover:bg-black/90 transition-colors overflow-hidden"
           >
             <img
-              src="/wavlake-icon-192.png"
+              src="/web-app-manifest-192x192.png"
               alt="Wavlake"
               width={40}
               height={40}
