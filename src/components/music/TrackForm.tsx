@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Upload, X, Music, Image as ImageIcon } from "lucide-react";
 import { useUploadFile } from "@/hooks/useUploadFile";
+import { useUploadWavlakeAudio } from "@/hooks/useUploadWavlakeAudio";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
 import { NostrTrack } from "@/hooks/useArtistTracks";
@@ -53,6 +54,7 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
   );
   
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const { mutateAsync: uploadWavlakeAudio, isPending: isUploadingAudio } = useUploadWavlakeAudio();
   const { mutate: publishTrack, isPending: isPublishing } = useMusicPublish();
 
   const form = useForm<TrackFormData>({
@@ -143,14 +145,23 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
     }
 
     try {
-      // Upload audio file if provided, otherwise use existing URL
+      // Upload audio file using Wavlake catalog API if provided, otherwise use existing URL
       let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : '';
       if (audioFile) {
-        const audioTags = await uploadFile(audioFile);
-        audioUrl = audioTags[0][1]; // First tag contains the URL
+        const uploadResult = await uploadWavlakeAudio({
+          audioFile,
+          options: {
+            title: data.title,
+            artist: data.artist,
+            order: data.trackNumber || 1,
+            lyrics: data.description,
+            isExplicit: data.explicit,
+          }
+        });
+        audioUrl = uploadResult.liveUrl;
       }
 
-      // Upload cover image if provided, otherwise use existing URL
+      // Upload cover image using Blossom if provided, otherwise use existing URL
       let coverUrl = isEditing && track?.coverUrl ? track.coverUrl : '';
       if (coverImage) {
         const imageTags = await uploadFile(coverImage);
@@ -196,7 +207,7 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
     }
   };
 
-  const isLoading = isUploading || isPublishing;
+  const isLoading = isUploading || isUploadingAudio || isPublishing;
 
   return (
     <Card>
