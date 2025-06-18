@@ -7,7 +7,7 @@ import { KINDS } from '@/lib/nostr-kinds';
 
 export interface Notification {
   id: string;
-  type: 'group_update' | 'tag_post' | 'tag_reply' | 'reaction' | 'post_approved' | 'post_removed' | 'join_request' | 'report' | 'report_action' | 'leave_request';
+  type: 'group_update' | 'tag_post' | 'tag_reply' | 'reaction' | 'post_approved' | 'post_removed' | 'join_request' | 'report' | 'report_action' | 'leave_request' | 'track_published' | 'album_published' | 'track_reaction' | 'album_reaction';
   message: string;
   createdAt: number;
   read: boolean;
@@ -16,6 +16,11 @@ export interface Notification {
   pubkey?: string;
   reportType?: string;
   actionType?: string;
+  trackId?: string;
+  albumId?: string;
+  trackTitle?: string;
+  albumTitle?: string;
+  artistName?: string;
 }
 
 // Helper function to get community ID
@@ -46,10 +51,63 @@ export function useNotifications() {
         KINDS.GROUP
       ];
 
+      // Query for events that tag the user (group-related)
       const events = await nostr.query(
         [{ kinds, '#p': [user.pubkey], limit: 20 }],
         { signal },
       );
+
+      // Get user's follow list to show music from people they follow
+      const followListEvents = await nostr.query(
+        [{ kinds: [KINDS.FOLLOW_LIST], authors: [user.pubkey], limit: 1 }],
+        { signal },
+      );
+
+      let followedPubkeys: string[] = [];
+      if (followListEvents.length > 0) {
+        // Get the most recent follow list
+        const latestFollowList = followListEvents.sort((a, b) => b.created_at - a.created_at)[0];
+        followedPubkeys = latestFollowList.tags
+          .filter(tag => tag[0] === 'p' && tag[1])
+          .map(tag => tag[1]);
+      }
+
+      // Query for music events from people the user follows
+      let musicEvents: NostrEvent[] = [];
+      if (followedPubkeys.length > 0) {
+        musicEvents = await nostr.query(
+          [{ 
+            kinds: [KINDS.MUSIC_TRACK, KINDS.MUSIC_ALBUM], 
+            authors: followedPubkeys, 
+            limit: 10,
+            since: Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60) // Last 7 days
+          }],
+          { signal },
+        );
+      }
+
+      // Also query for reactions to user's music
+      const userMusicEvents = await nostr.query(
+        [{ 
+          kinds: [KINDS.MUSIC_TRACK, KINDS.MUSIC_ALBUM], 
+          authors: [user.pubkey], 
+          limit: 50 
+        }],
+        { signal },
+      );
+
+      const userMusicEventIds = userMusicEvents.map(event => event.id);
+      let musicReactions: NostrEvent[] = [];
+      if (userMusicEventIds.length > 0) {
+        musicReactions = await nostr.query(
+          [{ 
+            kinds: [KINDS.REACTION], 
+            '#e': userMusicEventIds, 
+            limit: 20 
+          }],
+          { signal },
+        );
+      }
 
       for (const event of events) {
         // Skip notifications from the user themselves
@@ -151,6 +209,87 @@ export function useNotifications() {
             });
             break;
           }
+        }
+      }
+
+      // Process music events from followed users
+      for (const event of musicEvents) {
+        // Skip notifications from the user themselves
+        if (event.pubkey === user.pubkey) continue;
+        
+        const titleTag = event.tags.find(tag => tag[0] === 'title')?.[1];
+        const artistTag = event.tags.find(tag => tag[0] === 'artist')?.[1];
+        
+        if (event.kind === KINDS.MUSIC_TRACK) {
+          notifications.push({
+            id: event.id,
+            type: 'track_published',
+            message: `published a new track`,
+            createdAt: event.created_at,
+            read: !!readNotifications[event.id],
+            eventId: event.id,
+            pubkey: event.pubkey,
+            trackId: event.id,
+            trackTitle: titleTag || 'Untitled Track',
+            artistName: artistTag || 'Unknown Artist'
+          });
+        } else if (event.kind === KINDS.MUSIC_ALBUM) {
+          notifications.push({
+            id: event.id,
+            type: 'album_published',
+            message: `published a new album`,
+            createdAt: event.created_at,
+            read: !!readNotifications[event.id],
+            eventId: event.id,
+            pubkey: event.pubkey,
+            albumId: event.id,
+            albumTitle: titleTag || 'Untitled Album',
+            artistName: artistTag || 'Unknown Artist'
+          });
+        }
+      }
+
+      // Process reactions to user's music
+      for (const event of musicReactions) {
+        // Skip notifications from the user themselves
+        if (event.pubkey === user.pubkey) continue;
+        
+        const targetEventId = event.tags.find(tag => tag[0] === 'e')?.[1];
+        if (!targetEventId) continue;
+        
+        // Find the original music event to get details
+        const originalEvent = userMusicEvents.find(musicEvent => musicEvent.id === targetEventId);
+        if (!originalEvent) continue;
+        
+        const titleTag = originalEvent.tags.find(tag => tag[0] === 'title')?.[1];
+        const artistTag = originalEvent.tags.find(tag => tag[0] === 'artist')?.[1];
+        
+        if (originalEvent.kind === KINDS.MUSIC_TRACK) {
+          notifications.push({
+            id: event.id,
+            type: 'track_reaction',
+            message: `reacted to your track`,
+            createdAt: event.created_at,
+            read: !!readNotifications[event.id],
+            eventId: targetEventId,
+            pubkey: event.pubkey,
+            trackId: targetEventId,
+            trackTitle: titleTag || 'Untitled Track',
+            artistName: artistTag || 'Unknown Artist'
+          });
+        } else if (originalEvent.kind === KINDS.MUSIC_ALBUM) {
+          notifications.push({
+            id: event.id,
+            type: 'album_reaction',
+            message: `reacted to your album`,
+            createdAt: event.created_at,
+            read: !!readNotifications[event.id],
+            eventId: targetEventId,
+            pubkey: event.pubkey,
+            albumId: targetEventId,
+            albumTitle: titleTag || 'Untitled Album',
+            artistName: artistTag || 'Unknown Artist'
+          });
         }
       }
 

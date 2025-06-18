@@ -1,11 +1,28 @@
 import { useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Header from "@/components/ui/Header";
-import { Bell, AlertTriangle, ShieldAlert, UserPlus, UserMinus } from "lucide-react";
+import {
+  Bell,
+  AlertTriangle,
+  ShieldAlert,
+  UserPlus,
+  UserMinus,
+  Music,
+  Disc,
+} from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
-import { useNotifications, useMarkNotificationAsRead } from "@/hooks/useNotifications";
+import {
+  useNotifications,
+  useMarkNotificationAsRead,
+} from "@/hooks/useNotifications";
 import type { Notification } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -33,9 +50,16 @@ export default function Notifications() {
     return () => clearTimeout(timer);
   }, [markAsRead, notifications, refetch]);
 
-  const NotificationItem = ({ notification }: { notification: Notification }) => {
+  const NotificationItem = ({
+    notification,
+  }: {
+    notification: Notification;
+  }) => {
     const { data: authorData } = useAuthor(notification.pubkey || "");
-    const authorName = authorData?.metadata?.name || notification.pubkey?.slice(0, 8) || "Unknown";
+    const authorName =
+      authorData?.metadata?.name ||
+      notification.pubkey?.slice(0, 8) ||
+      "Unknown";
     const authorPicture = authorData?.metadata?.picture;
 
     let linkTo = "";
@@ -101,12 +125,35 @@ export default function Notifications() {
           }
         }
         break;
+      case "track_published":
+        // Link to the track in the music section or artist profile
+        linkTo = `/dashboard#music`;
+        linkText = "View tracks";
+        break;
+      case "album_published":
+        // Link to the album in the music section or artist profile
+        linkTo = `/dashboard#music`;
+        linkText = "View albums";
+        break;
+      case "track_reaction":
+      case "album_reaction":
+        // Link to the music dashboard to see the track/album
+        linkTo = `/dashboard#music`;
+        linkText = "View in dashboard";
+        break;
     }
-    
+
     // Get the appropriate icon for the notification type
     const getNotificationIcon = () => {
-      if (notification.pubkey && notification.type !== 'report' && notification.type !== 'report_action' && 
-          notification.type !== 'join_request' && notification.type !== 'leave_request') {
+      if (
+        notification.pubkey &&
+        notification.type !== "report" &&
+        notification.type !== "report_action" &&
+        notification.type !== "join_request" &&
+        notification.type !== "leave_request" &&
+        notification.type !== "track_published" &&
+        notification.type !== "album_published"
+      ) {
         return (
           <Avatar className="w-10 h-10">
             <AvatarImage src={authorPicture} />
@@ -114,31 +161,57 @@ export default function Notifications() {
           </Avatar>
         );
       }
-      
+
       switch (notification.type) {
-        case 'report':
+        case "report":
           return (
             <div className="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/20 rounded-full">
               <AlertTriangle className="w-5 h-5 text-red-500" />
             </div>
           );
-        case 'report_action':
+        case "report_action":
           return (
             <div className="w-10 h-10 flex items-center justify-center bg-amber-100 dark:bg-amber-900/20 rounded-full">
               <ShieldAlert className="w-5 h-5 text-amber-500" />
             </div>
           );
-        case 'join_request':
+        case "join_request":
           return (
             <div className="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/20 rounded-full">
               <UserPlus className="w-5 h-5 text-green-500" />
             </div>
           );
-        case 'leave_request':
+        case "leave_request":
           return (
             <div className="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/20 rounded-full">
               <UserMinus className="w-5 h-5 text-blue-500" />
             </div>
+          );
+        case "track_published":
+          return (
+            <div className="w-10 h-10 flex items-center justify-center bg-purple-100 dark:bg-purple-900/20 rounded-full">
+              <Music className="w-5 h-5 text-purple-500" />
+            </div>
+          );
+        case "album_published":
+          return (
+            <div className="w-10 h-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/20 rounded-full">
+              <Disc className="w-5 h-5 text-indigo-500" />
+            </div>
+          );
+        case "track_reaction":
+          return (
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={authorPicture} />
+              <AvatarFallback>{authorName[0]}</AvatarFallback>
+            </Avatar>
+          );
+        case "album_reaction":
+          return (
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={authorPicture} />
+              <AvatarFallback>{authorName[0]}</AvatarFallback>
+            </Avatar>
           );
         default:
           return (
@@ -154,28 +227,65 @@ export default function Notifications() {
       return <Navigate to="/" />;
     }
 
-
-
     return (
-      <Card className={`mb-4 ${notification.read ? 'opacity-70' : ''}`}>
+      <Card className={`mb-4 ${notification.read ? "opacity-70" : ""}`}>
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
             {getNotificationIcon()}
             <div className="flex-1">
               <div className="font-medium">
-                {notification.pubkey && (notification.type === 'reaction' || notification.type === 'tag_post' || notification.type === 'tag_reply' || notification.type === 'post_approved' || notification.type === 'post_removed') ? `${authorName} ` : ''}
+                {notification.pubkey &&
+                (notification.type === "reaction" ||
+                  notification.type === "tag_post" ||
+                  notification.type === "tag_reply" ||
+                  notification.type === "post_approved" ||
+                  notification.type === "post_removed" ||
+                  notification.type === "track_reaction" ||
+                  notification.type === "album_reaction")
+                  ? `${authorName} `
+                  : ""}
                 {notification.message}
-                {notification.pubkey && (notification.type !== 'reaction' && notification.type !== 'tag_post' && notification.type !== 'tag_reply' && notification.type !== 'post_approved' && notification.type !== 'post_removed' && notification.type !== 'report' && notification.type !== 'report_action') && ` from ${authorName}`}
-                {notification.groupId && <GroupReference groupId={notification.groupId} />}
+                {notification.pubkey &&
+                  (notification.type === "track_published" ||
+                    notification.type === "album_published") &&
+                  ` by ${authorName}`}
+                {notification.pubkey &&
+                  notification.type !== "reaction" &&
+                  notification.type !== "tag_post" &&
+                  notification.type !== "tag_reply" &&
+                  notification.type !== "post_approved" &&
+                  notification.type !== "post_removed" &&
+                  notification.type !== "report" &&
+                  notification.type !== "report_action" &&
+                  notification.type !== "track_published" &&
+                  notification.type !== "album_published" &&
+                  notification.type !== "track_reaction" &&
+                  notification.type !== "album_reaction" &&
+                  ` from ${authorName}`}
+                {(notification.trackTitle || notification.albumTitle) && (
+                  <span className="block text-sm text-muted-foreground mt-1">
+                    "{notification.trackTitle || notification.albumTitle}"
+                    {notification.artistName &&
+                      ` by ${notification.artistName}`}
+                  </span>
+                )}
+                {notification.groupId && (
+                  <GroupReference groupId={notification.groupId} />
+                )}
               </div>
               <div className="text-sm text-muted-foreground">
-                {formatDistanceToNow(notification.createdAt * 1000, { addSuffix: true })}
+                {formatDistanceToNow(notification.createdAt * 1000, {
+                  addSuffix: true,
+                })}
               </div>
-              {linkTo && notification.groupId && (
-                <Button variant="link" className="p-0 h-auto mt-1" asChild>
-                  <Link to={linkTo}>{linkText}</Link>
-                </Button>
-              )}
+              {linkTo &&
+                (notification.groupId ||
+                  notification.trackId ||
+                  notification.albumId) && (
+                  <Button variant="link" className="p-0 h-auto mt-1" asChild>
+                    <Link to={linkTo}>{linkText}</Link>
+                  </Button>
+                )}
             </div>
           </div>
         </CardContent>
@@ -204,7 +314,10 @@ export default function Notifications() {
             ) : (
               <div>
                 {notifications.map((notification) => (
-                  <NotificationItem key={notification.id} notification={notification} />
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                  />
                 ))}
               </div>
             )}
