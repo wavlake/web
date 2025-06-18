@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserGroups } from '@/hooks/useUserGroups';
 import { NostrEvent } from '@nostrify/nostrify';
 import { KINDS } from '@/lib/nostr-kinds';
+import { CASHU_EVENT_KINDS } from '@/lib/cashu';
 
 export interface Notification {
   id: string;
-  type: 'group_update' | 'tag_post' | 'tag_reply' | 'reaction' | 'post_approved' | 'post_removed' | 'join_request' | 'report' | 'report_action' | 'leave_request' | 'track_published' | 'album_published' | 'track_reaction' | 'album_reaction';
+  type: 'group_update' | 'tag_post' | 'tag_reply' | 'reaction' | 'post_approved' | 'post_removed' | 'join_request' | 'report' | 'report_action' | 'leave_request' | 'track_published' | 'album_published' | 'track_reaction' | 'album_reaction' | 'nutzap_received' | 'nutzap_track' | 'nutzap_album' | 'nutzap_post';
   message: string;
   createdAt: number;
   read: boolean;
@@ -21,6 +22,8 @@ export interface Notification {
   trackTitle?: string;
   albumTitle?: string;
   artistName?: string;
+  nutzapAmount?: number;
+  nutzapComment?: string;
 }
 
 // Helper function to get community ID
@@ -108,6 +111,17 @@ export function useNotifications() {
           { signal },
         );
       }
+
+      // Query for nutzaps received by the user
+      const receivedNutzaps = await nostr.query(
+        [{ 
+          kinds: [CASHU_EVENT_KINDS.ZAP], 
+          '#p': [user.pubkey], 
+          limit: 20,
+          since: Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60) // Last 7 days
+        }],
+        { signal },
+      );
 
       for (const event of events) {
         // Skip notifications from the user themselves
@@ -289,6 +303,108 @@ export function useNotifications() {
             albumId: targetEventId,
             albumTitle: titleTag || 'Untitled Album',
             artistName: artistTag || 'Unknown Artist'
+          });
+        }
+      }
+
+      // Process nutzaps received by the user
+      for (const event of receivedNutzaps) {
+        // Skip notifications from the user themselves
+        if (event.pubkey === user.pubkey) continue;
+        
+        // Parse the nutzap amount from proof tags
+        const proofTags = event.tags.filter(tag => tag[0] === 'proof');
+        const totalAmount = proofTags.reduce((sum, tag) => {
+          try {
+            const proof = JSON.parse(tag[1]);
+            return sum + (proof.amount || 0);
+          } catch {
+            return sum;
+          }
+        }, 0);
+
+        // Get the target event (if any) to determine if it's a track, album, or post
+        const targetEventTag = event.tags.find(tag => tag[0] === 'e');
+        const targetEventId = targetEventTag?.[1];
+        
+        // Get the comment from the event content
+        const comment = event.content || '';
+
+        if (targetEventId) {
+          // Find what type of content was nutzapped
+          const targetTrack = userMusicEvents.find(musicEvent => 
+            musicEvent.id === targetEventId && musicEvent.kind === KINDS.MUSIC_TRACK
+          );
+          const targetAlbum = userMusicEvents.find(musicEvent => 
+            musicEvent.id === targetEventId && musicEvent.kind === KINDS.MUSIC_ALBUM
+          );
+
+          if (targetTrack) {
+            // Nutzap on user's track
+            const titleTag = targetTrack.tags.find(tag => tag[0] === 'title')?.[1];
+            const artistTag = targetTrack.tags.find(tag => tag[0] === 'artist')?.[1];
+            
+            notifications.push({
+              id: event.id,
+              type: 'nutzap_track',
+              message: `sent you ${totalAmount} sats for your track`,
+              createdAt: event.created_at,
+              read: !!readNotifications[event.id],
+              eventId: targetEventId,
+              pubkey: event.pubkey,
+              trackId: targetEventId,
+              trackTitle: titleTag || 'Untitled Track',
+              artistName: artistTag || 'Unknown Artist',
+              nutzapAmount: totalAmount,
+              nutzapComment: comment
+            });
+          } else if (targetAlbum) {
+            // Nutzap on user's album
+            const titleTag = targetAlbum.tags.find(tag => tag[0] === 'title')?.[1];
+            const artistTag = targetAlbum.tags.find(tag => tag[0] === 'artist')?.[1];
+            
+            notifications.push({
+              id: event.id,
+              type: 'nutzap_album',
+              message: `sent you ${totalAmount} sats for your album`,
+              createdAt: event.created_at,
+              read: !!readNotifications[event.id],
+              eventId: targetEventId,
+              pubkey: event.pubkey,
+              albumId: targetEventId,
+              albumTitle: titleTag || 'Untitled Album',
+              artistName: artistTag || 'Unknown Artist',
+              nutzapAmount: totalAmount,
+              nutzapComment: comment
+            });
+          } else {
+            // Nutzap on a post (could be group post or regular post)
+            const groupId = event.tags.find(tag => tag[0] === 'a')?.[1];
+            
+            notifications.push({
+              id: event.id,
+              type: 'nutzap_post',
+              message: `sent you ${totalAmount} sats for your post`,
+              createdAt: event.created_at,
+              read: !!readNotifications[event.id],
+              eventId: targetEventId,
+              pubkey: event.pubkey,
+              groupId,
+              nutzapAmount: totalAmount,
+              nutzapComment: comment
+            });
+          }
+        } else {
+          // General nutzap to the user (no specific target)
+          notifications.push({
+            id: event.id,
+            type: 'nutzap_received',
+            message: `sent you ${totalAmount} sats`,
+            createdAt: event.created_at,
+            read: !!readNotifications[event.id],
+            pubkey: event.pubkey,
+            nutzapAmount: totalAmount,
+            nutzapComment: comment
           });
         }
       }

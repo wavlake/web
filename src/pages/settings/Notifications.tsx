@@ -15,6 +15,8 @@ import {
   UserMinus,
   Music,
   Disc,
+  Zap,
+  Coins,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -141,6 +143,26 @@ export default function Notifications() {
         linkTo = `/dashboard#music`;
         linkText = "View in dashboard";
         break;
+      case "nutzap_received":
+        // Link to wallet/cashu interface
+        linkTo = `/dashboard#wallet`;
+        linkText = "View wallet";
+        break;
+      case "nutzap_track":
+      case "nutzap_album":
+        // Link to music dashboard to see the nutzapped content
+        linkTo = `/dashboard#music`;
+        linkText = "View music";
+        break;
+      case "nutzap_post":
+        if (notification.groupId) {
+          linkTo = `/group/${notification.groupId}`;
+          if (notification.eventId) {
+            linkTo += `?post=${notification.eventId}`;
+          }
+          linkText = "View post";
+        }
+        break;
     }
 
     // Get the appropriate icon for the notification type
@@ -152,7 +174,8 @@ export default function Notifications() {
         notification.type !== "join_request" &&
         notification.type !== "leave_request" &&
         notification.type !== "track_published" &&
-        notification.type !== "album_published"
+        notification.type !== "album_published" &&
+        notification.type !== "nutzap_received"
       ) {
         return (
           <Avatar className="w-10 h-10">
@@ -213,6 +236,21 @@ export default function Notifications() {
               <AvatarFallback>{authorName[0]}</AvatarFallback>
             </Avatar>
           );
+        case "nutzap_received":
+          return (
+            <div className="w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900/20 rounded-full">
+              <Coins className="w-5 h-5 text-orange-500" />
+            </div>
+          );
+        case "nutzap_track":
+        case "nutzap_album":
+        case "nutzap_post":
+          return (
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={authorPicture} />
+              <AvatarFallback>{authorName[0]}</AvatarFallback>
+            </Avatar>
+          );
         default:
           return (
             <div className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-full">
@@ -241,7 +279,10 @@ export default function Notifications() {
                   notification.type === "post_approved" ||
                   notification.type === "post_removed" ||
                   notification.type === "track_reaction" ||
-                  notification.type === "album_reaction")
+                  notification.type === "album_reaction" ||
+                  notification.type === "nutzap_track" ||
+                  notification.type === "nutzap_album" ||
+                  notification.type === "nutzap_post")
                   ? `${authorName} `
                   : ""}
                 {notification.message}
@@ -261,12 +302,21 @@ export default function Notifications() {
                   notification.type !== "album_published" &&
                   notification.type !== "track_reaction" &&
                   notification.type !== "album_reaction" &&
+                  notification.type !== "nutzap_track" &&
+                  notification.type !== "nutzap_album" &&
+                  notification.type !== "nutzap_post" &&
+                  notification.type !== "nutzap_received" &&
                   ` from ${authorName}`}
                 {(notification.trackTitle || notification.albumTitle) && (
                   <span className="block text-sm text-muted-foreground mt-1">
                     "{notification.trackTitle || notification.albumTitle}"
                     {notification.artistName &&
                       ` by ${notification.artistName}`}
+                  </span>
+                )}
+                {notification.nutzapComment && (
+                  <span className="block text-sm text-muted-foreground mt-1 italic">
+                    "{notification.nutzapComment}"
                   </span>
                 )}
                 {notification.groupId && (
@@ -281,7 +331,8 @@ export default function Notifications() {
               {linkTo &&
                 (notification.groupId ||
                   notification.trackId ||
-                  notification.albumId) && (
+                  notification.albumId ||
+                  notification.nutzapAmount !== undefined) && (
                   <Button variant="link" className="p-0 h-auto mt-1" asChild>
                     <Link to={linkTo}>{linkText}</Link>
                   </Button>
