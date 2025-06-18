@@ -27,6 +27,12 @@ const getCommunityId = (community: NostrEvent) => {
   return `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
 };
 
+const hasWavlakeClientTag = (event: NostrEvent) => {
+  return event.tags.some(
+    ([tag, client]) => tag === "client" && client === "wavlake"
+  );
+};
+
 export default function Groups() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
@@ -70,7 +76,7 @@ export default function Groups() {
         );
 
         // Ensure we always return an array, even if the query fails
-        return Array.isArray(events) ? events : [];
+        return Array.isArray(events) ? events.filter(hasWavlakeClientTag) : [];
       } catch (error) {
         console.error("Error fetching communities:", error);
         // Return empty array on error instead of throwing
@@ -86,7 +92,8 @@ export default function Groups() {
   });
 
   // Get user's groups (filtered to exclude deleted groups)
-  const { data: userGroups, isLoading: isUserGroupsLoading } = useUserGroupsFiltered();
+  const { data: userGroups, isLoading: isUserGroupsLoading } =
+    useUserGroupsFiltered();
 
   // Get user's pending join requests
   const {
@@ -177,73 +184,75 @@ export default function Groups() {
     const stableGroups = [...allGroups];
 
     return stableGroups
-      .filter(community => matchesSearch(community) && !isGroupDeleted(community))
+      .filter(
+        (community) => matchesSearch(community) && !isGroupDeleted(community)
+      )
       .sort((a, b) => {
-      // Ensure both a and b are valid objects
-      if (!a || !b) return 0;
+        // Ensure both a and b are valid objects
+        if (!a || !b) return 0;
 
-      try {
-        const aId = getCommunityId(a);
-        const bId = getCommunityId(b);
+        try {
+          const aId = getCommunityId(a);
+          const bId = getCommunityId(b);
 
-        const aIsPinned = isGroupPinned(aId);
-        const bIsPinned = isGroupPinned(bId);
+          const aIsPinned = isGroupPinned(aId);
+          const bIsPinned = isGroupPinned(bId);
 
-        // First priority: pinned groups
-        if (aIsPinned && !bIsPinned) return -1;
-        if (!aIsPinned && bIsPinned) return 1;
+          // First priority: pinned groups
+          if (aIsPinned && !bIsPinned) return -1;
+          if (!aIsPinned && bIsPinned) return 1;
 
-        // Get user roles and pending status
-        const aUserRole = userMembershipMap.get(aId);
-        const bUserRole = userMembershipMap.get(bId);
-        const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
-        const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
+          // Get user roles and pending status
+          const aUserRole = userMembershipMap.get(aId);
+          const bUserRole = userMembershipMap.get(bId);
+          const aHasPendingRequest = pendingJoinRequestsSet.has(aId);
+          const bHasPendingRequest = pendingJoinRequestsSet.has(bId);
 
-        // Define role priority (lower number = higher priority)
-        const getRolePriority = (
-          role: UserRole | undefined,
-          hasPending: boolean
-        ) => {
-          if (role === "owner") return 1;
-          if (role === "moderator") return 2;
-          if (role === "member") return 3;
-          if (hasPending) return 4;
-          return 5; // Not a member and no pending request
-        };
+          // Define role priority (lower number = higher priority)
+          const getRolePriority = (
+            role: UserRole | undefined,
+            hasPending: boolean
+          ) => {
+            if (role === "owner") return 1;
+            if (role === "moderator") return 2;
+            if (role === "member") return 3;
+            if (hasPending) return 4;
+            return 5; // Not a member and no pending request
+          };
 
-        const aPriority = getRolePriority(aUserRole, aHasPendingRequest);
-        const bPriority = getRolePriority(bUserRole, bHasPendingRequest);
+          const aPriority = getRolePriority(aUserRole, aHasPendingRequest);
+          const bPriority = getRolePriority(bUserRole, bHasPendingRequest);
 
-        // Second priority: user's relationship to the group (owner > mod > member > pending > other)
-        if (aPriority !== bPriority) {
-          return aPriority - bPriority;
+          // Second priority: user's relationship to the group (owner > mod > member > pending > other)
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
+
+          // If same priority, sort by member count (descending), then alphabetically by name
+          const aStats = communityStats ? communityStats[aId] : undefined;
+          const bStats = communityStats ? communityStats[bId] : undefined;
+
+          const aMemberCount = aStats ? aStats.participants.size : 0;
+          const bMemberCount = bStats ? bStats.participants.size : 0;
+
+          // Sort by member count (descending)
+          if (aMemberCount !== bMemberCount) {
+            return bMemberCount - aMemberCount;
+          }
+
+          // If same member count, sort alphabetically by name
+          const aNameTag = a.tags.find((tag) => tag[0] === "name");
+          const bNameTag = b.tags.find((tag) => tag[0] === "name");
+
+          const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
+          const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
+
+          return aName.localeCompare(bName);
+        } catch (error) {
+          console.error("Error sorting groups:", error);
+          return 0;
         }
-
-        // If same priority, sort by member count (descending), then alphabetically by name
-        const aStats = communityStats ? communityStats[aId] : undefined;
-        const bStats = communityStats ? communityStats[bId] : undefined;
-        
-        const aMemberCount = aStats ? aStats.participants.size : 0;
-        const bMemberCount = bStats ? bStats.participants.size : 0;
-        
-        // Sort by member count (descending)
-        if (aMemberCount !== bMemberCount) {
-          return bMemberCount - aMemberCount;
-        }
-        
-        // If same member count, sort alphabetically by name
-        const aNameTag = a.tags.find((tag) => tag[0] === "name");
-        const bNameTag = b.tags.find((tag) => tag[0] === "name");
-
-        const aName = aNameTag ? aNameTag[1].toLowerCase() : "";
-        const bName = bNameTag ? bNameTag[1].toLowerCase() : "";
-
-        return aName.localeCompare(bName);
-      } catch (error) {
-        console.error("Error sorting groups:", error);
-        return 0;
-      }
-    });
+      });
   }, [
     allGroups,
     searchQuery,
@@ -286,7 +295,6 @@ export default function Groups() {
 
   return (
     <Layout className="container mx-auto py-1 px-3 sm:px-4">
-
       <div className="flex flex-col mt-2">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
           <div className="w-full md:w-64 lg:w-72">
