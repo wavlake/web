@@ -2,14 +2,34 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Upload, X, Music, Image as ImageIcon } from "lucide-react";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useUploadWavlakeAudio } from "@/hooks/useUploadWavlakeAudio";
@@ -42,8 +62,13 @@ interface TrackFormProps {
   isEditing?: boolean;
 }
 
-
-export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = false }: TrackFormProps) {
+export function TrackForm({
+  onCancel,
+  onSuccess,
+  artistId,
+  track,
+  isEditing = false,
+}: TrackFormProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState<string | null>(
@@ -52,40 +77,44 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
   const [imagePreview, setImagePreview] = useState<string | null>(
     isEditing && track?.coverUrl ? track.coverUrl : null
   );
-  
+
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
-  const { mutateAsync: uploadWavlakeAudio, isPending: isUploadingAudio } = useUploadWavlakeAudio();
+  const { mutateAsync: uploadWavlakeAudio, isPending: isUploadingAudio } =
+    useUploadWavlakeAudio();
   const { mutate: publishTrack, isPending: isPublishing } = useMusicPublish();
 
   const form = useForm<TrackFormData>({
     resolver: zodResolver(trackFormSchema),
-    defaultValues: isEditing && track ? {
-      title: track.title,
-      artist: track.artist,
-      description: track.description || "",
-      genre: track.genre || "",
-      subgenre: "", // subgenre isn't stored in NostrTrack currently
-      duration: track.duration || 0,
-      explicit: track.explicit || false,
-      price: track.price || 0,
-      tags: track.tags?.join(", ") || "",
-      releaseDate: track.releaseDate || "",
-      albumTitle: track.albumTitle || "",
-      trackNumber: track.trackNumber || 1,
-    } : {
-      explicit: false,
-      price: 0,
-      duration: 0,
-      trackNumber: 1,
-      title: "",
-      artist: "",
-      description: "",
-      genre: "",
-      subgenre: "",
-      tags: "",
-      releaseDate: "",
-      albumTitle: "",
-    },
+    defaultValues:
+      isEditing && track
+        ? {
+            title: track.title,
+            artist: track.artist,
+            description: track.description || "",
+            genre: track.genre || "",
+            subgenre: "", // subgenre isn't stored in NostrTrack currently
+            duration: track.duration || 0,
+            explicit: track.explicit || false,
+            price: track.price || 0,
+            tags: track.tags?.join(", ") || "",
+            releaseDate: track.releaseDate || "",
+            albumTitle: track.albumTitle || "",
+            trackNumber: track.trackNumber || 1,
+          }
+        : {
+            explicit: false,
+            price: 0,
+            duration: 0,
+            trackNumber: 1,
+            title: "",
+            artist: "",
+            description: "",
+            genre: "",
+            subgenre: "",
+            tags: "",
+            releaseDate: "",
+            albumTitle: "",
+          },
   });
 
   // Reset form when track changes (for edit mode)
@@ -115,22 +144,22 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
 
   const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('audio/')) {
+    if (file && file.type.startsWith("audio/")) {
       setAudioFile(file);
       const url = URL.createObjectURL(file);
       setAudioPreview(url);
-      
+
       // Try to extract duration from audio file
       const audio = new Audio(url);
-      audio.addEventListener('loadedmetadata', () => {
-        form.setValue('duration', Math.round(audio.duration));
+      audio.addEventListener("loadedmetadata", () => {
+        form.setValue("duration", Math.round(audio.duration));
       });
     }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && file.type.startsWith("image/")) {
       setCoverImage(file);
       const url = URL.createObjectURL(file);
       setImagePreview(url);
@@ -140,13 +169,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
   const onSubmit = async (data: TrackFormData) => {
     // For editing, audio file is optional (keep existing if not provided)
     if (!isEditing && !audioFile) {
-      form.setError('root', { message: 'Audio file is required' });
+      form.setError("root", { message: "Audio file is required" });
       return;
     }
 
     try {
       // Upload audio file using Wavlake catalog API if provided, otherwise use existing URL
-      let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : '';
+      let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : "";
       if (audioFile) {
         const uploadResult = await uploadWavlakeAudio({
           audioFile,
@@ -156,13 +185,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
             order: data.trackNumber || 1,
             lyrics: data.description,
             isExplicit: data.explicit,
-          }
+          },
         });
         audioUrl = uploadResult.liveUrl;
       }
 
       // Upload cover image using Blossom if provided, otherwise use existing URL
-      let coverUrl = isEditing && track?.coverUrl ? track.coverUrl : '';
+      let coverUrl = isEditing && track?.coverUrl ? track.coverUrl : "";
       if (coverImage) {
         const imageTags = await uploadFile(coverImage);
         coverUrl = imageTags[0][1];
@@ -172,7 +201,7 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
       const trackEvent = {
         title: data.title,
         artist: data.artist,
-        description: data.description || '',
+        description: data.description || "",
         genre: data.genre,
         subgenre: data.subgenre,
         duration: data.duration,
@@ -180,16 +209,22 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
         price: data.price,
         audioUrl,
         coverUrl,
-        tags: data.tags?.split(',').map(t => t.trim()).filter(Boolean) || [],
+        tags:
+          data.tags
+            ?.split(",")
+            .map((t) => t.trim())
+            .filter(Boolean) || [],
         releaseDate: data.releaseDate,
         albumTitle: data.albumTitle,
         trackNumber: data.trackNumber,
         artistId,
         // Add existing track info for editing
-        ...(isEditing && track ? {
-          existingTrackId: track.id,
-          existingEvent: track.event,
-        } : {}),
+        ...(isEditing && track
+          ? {
+              existingTrackId: track.id,
+              existingEvent: track.event,
+            }
+          : {}),
       };
 
       publishTrack(trackEvent, {
@@ -197,13 +232,17 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
           onSuccess();
         },
         onError: (error) => {
-          console.error('Failed to publish track:', error);
-          form.setError('root', { message: 'Failed to publish track. Please try again.' });
+          console.error("Failed to publish track:", error);
+          form.setError("root", {
+            message: "Failed to publish track. Please try again.",
+          });
         },
       });
     } catch (error) {
-      console.error('Upload failed:', error);
-      form.setError('root', { message: 'Failed to upload files. Please try again.' });
+      console.error("Upload failed:", error);
+      form.setError("root", {
+        message: "Failed to upload files. Please try again.",
+      });
     }
   };
 
@@ -217,10 +256,9 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
           {isEditing ? "Edit Track" : "Publish New Track"}
         </CardTitle>
         <CardDescription>
-          {isEditing 
+          {isEditing
             ? "Update your track metadata and files (Kind 31337)"
-            : "Upload and publish a music track to Nostr (Kind 31337)"
-          }
+            : "Upload and publish a music track to Nostr (Kind 31337)"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -362,10 +400,10 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Describe your track..." 
+                    <Textarea
+                      placeholder="Describe your track..."
                       className="min-h-[80px]"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -381,12 +419,12 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Genre *</FormLabel>
-                    <Select 
+                    <Select
                       onValueChange={(value) => {
                         field.onChange(value);
                         // Reset subgenre when genre changes
-                        form.setValue('subgenre', '');
-                      }} 
+                        form.setValue("subgenre", "");
+                      }}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -414,11 +452,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                   <FormItem>
                     <FormLabel>Duration (seconds)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         placeholder="Auto-detected"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || undefined)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -433,11 +473,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                   <FormItem>
                     <FormLabel>Price (sats)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         placeholder="0 for free"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
                     <FormDescription>Set to 0 for free tracks</FormDescription>
@@ -448,7 +490,7 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
             </div>
 
             {/* Sub-genre selector - only shows when a genre with subgenres is selected */}
-            {form.watch('genre') && MUSIC_SUBGENRES[form.watch('genre')] && (
+            {form.watch("genre") && MUSIC_SUBGENRES[form.watch("genre")] && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -456,18 +498,23 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sub-genre</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select sub-genre (optional)" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MUSIC_SUBGENRES[form.watch('genre')].map((subgenre) => (
-                            <SelectItem key={subgenre} value={subgenre}>
-                              {subgenre}
-                            </SelectItem>
-                          ))}
+                          {MUSIC_SUBGENRES[form.watch("genre")].map(
+                            (subgenre) => (
+                              <SelectItem key={subgenre} value={subgenre}>
+                                {subgenre}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -486,7 +533,10 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                   <FormItem>
                     <FormLabel>Tags</FormLabel>
                     <FormControl>
-                      <Input placeholder="rock, indie, guitar (comma separated)" {...field} />
+                      <Input
+                        placeholder="rock, indie, guitar (comma separated)"
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription>Comma-separated tags</FormDescription>
                     <FormMessage />
@@ -532,11 +582,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                   <FormItem>
                     <FormLabel>Track Number</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         placeholder="1"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || undefined)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -584,10 +636,13 @@ export function TrackForm({ onCancel, onSuccess, artistId, track, isEditing = fa
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading 
-                  ? (isEditing ? "Updating..." : "Publishing...") 
-                  : (isEditing ? "Update Track" : "Publish Track")
-                }
+                {isLoading
+                  ? isEditing
+                    ? "Updating..."
+                    : "Publishing..."
+                  : isEditing
+                  ? "Update Track"
+                  : "Publish Track"}
               </Button>
             </div>
           </form>

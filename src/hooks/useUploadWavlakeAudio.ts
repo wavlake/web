@@ -30,84 +30,99 @@ interface CatalogApiResponse<T> {
 }
 
 // You'll need to set this environment variable in your .env file
-const CATALOG_API_BASE_URL = process.env.VITE_CATALOG_API_URL || 'http://localhost:3210/v1';
+const CATALOG_API_BASE_URL =
+  import.meta.env.VITE_CATALOG_API_URL || "http://localhost:3210/v1";
 
 export function useUploadWavlakeAudio() {
   const { user } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async ({ 
-      audioFile, 
-      options 
-    }: { 
-      audioFile: File; 
+    mutationFn: async ({
+      audioFile,
+      options,
+    }: {
+      audioFile: File;
       options: UploadWavlakeAudioOptions;
     }): Promise<UploadWavlakeAudioResponse> => {
       if (!user) {
-        throw new Error('Must be logged in to upload audio');
+        throw new Error("Must be logged in to upload audio");
       }
 
-      if (!audioFile.type.startsWith('audio/')) {
-        throw new Error('File must be an audio file');
+      if (!audioFile.type.startsWith("audio/")) {
+        throw new Error("File must be an audio file");
       }
 
       // Extract file extension
-      const extension = audioFile.name.split('.').pop()?.toLowerCase();
-      if (!extension || !['mp3', 'wav', 'flac', 'm4a', 'aac'].includes(extension)) {
-        throw new Error('Unsupported audio format. Please use MP3, WAV, FLAC, M4A, or AAC.');
+      const extension = audioFile.name.split(".").pop()?.toLowerCase();
+      if (
+        !extension ||
+        !["mp3", "wav", "flac", "m4a", "aac"].includes(extension)
+      ) {
+        throw new Error(
+          "Unsupported audio format. Please use MP3, WAV, FLAC, M4A, or AAC."
+        );
       }
 
       // Prepare headers
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       // Add authorization if available
       if (options.authToken) {
-        headers['Authorization'] = `Bearer ${options.authToken}`;
+        headers["Authorization"] = `Bearer ${options.authToken}`;
       } else {
         // For Nostr users, you might need to implement a different auth method
         // This is a placeholder - you'll need to implement proper auth with your catalog API
-        headers['X-Nostr-Pubkey'] = user.pubkey;
+        headers["X-Nostr-Pubkey"] = user.pubkey;
       }
 
       // Step 1: Create track record and get presigned URL
-      const createTrackResponse = await fetch(`${CATALOG_API_BASE_URL}/tracks`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          title: options.title.trim(),
-          order: options.order?.toString() || '1',
-          lyrics: options.lyrics || '',
-          extension: extension,
-          albumId: options.albumId,
-          isExplicit: options.isExplicit || false,
-        }),
-      });
+      const createTrackResponse = await fetch(
+        `${CATALOG_API_BASE_URL}/tracks`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            title: options.title.trim(),
+            order: options.order?.toString() || "1",
+            lyrics: options.lyrics || "",
+            extension: extension,
+            albumId: options.albumId,
+            isExplicit: options.isExplicit || false,
+          }),
+        }
+      );
 
       if (!createTrackResponse.ok) {
         const errorData = await createTrackResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to create track: ${createTrackResponse.statusText}`);
+        throw new Error(
+          errorData.error ||
+            `Failed to create track: ${createTrackResponse.statusText}`
+        );
       }
 
-      const createTrackData: CatalogApiResponse<UploadWavlakeAudioResponse & { presignedUrl: string }> = 
-        await createTrackResponse.json();
+      const createTrackData: CatalogApiResponse<
+        UploadWavlakeAudioResponse & { presignedUrl: string }
+      > = await createTrackResponse.json();
 
       if (!createTrackData.success || !createTrackData.data.presignedUrl) {
-        throw new Error(createTrackData.error || 'Failed to get upload URL');
+        throw new Error(createTrackData.error || "Failed to get upload URL");
       }
 
       // Step 2: Upload audio file to S3 using presigned URL
       const uploadResponse = await fetch(createTrackData.data.presignedUrl, {
-        method: 'PUT',
+        method: "PUT",
         body: audioFile,
         headers: {
-          'Content-Type': audioFile.type,
+          "Content-Type": audioFile.type,
         },
       });
 
       if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload audio file: ${uploadResponse.statusText}`);
+        throw new Error(
+          `Failed to upload audio file: ${uploadResponse.statusText}`
+        );
       }
 
       // Return the track data (without presignedUrl)
