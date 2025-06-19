@@ -12,6 +12,7 @@ import { nip19 } from 'nostr-tools';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
+import { AccountRecoverySettings } from "@/components/auth/AccountRecoverySettings";
 
 export default function Settings() {
   const { user } = useCurrentUser();
@@ -124,6 +125,9 @@ export default function Settings() {
       <div className="space-y-6 my-6">
         {/* Push Notifications Section */}
         <PushNotificationSettings />
+
+        {/* Account Recovery Section */}
+        <AccountRecoverySettings />
 
         {/* Keys Section */}
         <Card>

@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
+import { usePublishingAuth } from "./usePublishingAuth";
 
 interface UploadWavlakeAudioOptions {
   title: string;
@@ -8,7 +9,6 @@ interface UploadWavlakeAudioOptions {
   order?: number;
   lyrics?: string;
   isExplicit?: boolean;
-  authToken?: string; // Optional auth token for catalog API
 }
 
 interface UploadWavlakeAudioResponse {
@@ -29,12 +29,14 @@ interface CatalogApiResponse<T> {
   error?: string;
 }
 
-// You'll need to set this environment variable in your .env file
-const CATALOG_API_BASE_URL =
-  import.meta.env.VITE_CATALOG_API_URL || "http://localhost:3210/v1";
+// Catalog API base URL - use proxy in development to avoid CSP issues
+const CATALOG_API_BASE_URL = import.meta.env.DEV 
+  ? "/api/catalog"
+  : import.meta.env.VITE_CATALOG_API_URL || "http://localhost:3210/v1";
 
 export function useUploadWavlakeAudio() {
   const { user } = useCurrentUser();
+  const { canPublish, firebaseToken } = usePublishingAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -46,6 +48,10 @@ export function useUploadWavlakeAudio() {
     }): Promise<UploadWavlakeAudioResponse> => {
       if (!user) {
         throw new Error("Must be logged in to upload audio");
+      }
+
+      if (!canPublish || !firebaseToken) {
+        throw new Error("Publishing features must be enabled to upload audio");
       }
 
       if (!audioFile.type.startsWith("audio/")) {
@@ -63,19 +69,11 @@ export function useUploadWavlakeAudio() {
         );
       }
 
-      // Prepare headers
+      // Prepare headers with Firebase token
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${firebaseToken}`,
       };
-
-      // Add authorization if available
-      if (options.authToken) {
-        headers["Authorization"] = `Bearer ${options.authToken}`;
-      } else {
-        // For Nostr users, you might need to implement a different auth method
-        // This is a placeholder - you'll need to implement proper auth with your catalog API
-        headers["X-Nostr-Pubkey"] = user.pubkey;
-      }
 
       // Step 1: Create track record and get presigned URL
       const createTrackResponse = await fetch(

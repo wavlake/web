@@ -192,9 +192,7 @@ const Index = () => {
                 height={64}
                 className="object-contain"
               />
-              <h1 className="text-4xl font-bold">
-                Wavlake
-              </h1>
+              <h1 className="text-4xl font-bold">Wavlake</h1>
             </div>
             <div className="text-lg text-muted-foreground font-extralight">
               Stream Anywhere, Earn Everywhere
@@ -239,21 +237,6 @@ const Index = () => {
               />
             </div>
           )}
-
-          {/* Footer attribution */}
-          <div className="absolute bottom-4 left-0 right-0 text-center">
-            <p className="text-xs text-muted-foreground">
-              vibed by{" "}
-              <a
-                href="https://andotherstuff.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                AOS
-              </a>
-            </p>
-          </div>
         </div>
         <LoginDialog
           isOpen={loginOpen}
