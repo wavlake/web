@@ -113,9 +113,22 @@ export function usePushSubscription() {
     queryFn: async () => {
       if (!user) return [];
       
-      // This would call the actual API endpoint
-      // For now, return empty array since backend isn't implemented yet
-      return [];
+      try {
+        const response = await fetch('/api/catalog/push/subscriptions', {
+          headers: {
+            'X-Nostr-Pubkey': user.pubkey,
+          },
+        });
+
+        if (!response.ok) {
+          return [];
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.warn('Failed to fetch subscriptions:', error);
+        return [];
+      }
     },
     enabled: !!user && state.isSupported,
   });
@@ -149,14 +162,17 @@ export function usePushSubscription() {
         }
       };
 
-      // Send subscription to server
-      const response = await fetch('/api/subscriptions', {
+      // Send subscription to server - using catalog API
+      const response = await fetch('/api/catalog/push/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer placeholder', // TODO: Implement proper auth // Would need actual auth
+          'X-Nostr-Pubkey': user?.pubkey || '',
         },
-        body: JSON.stringify(subscriptionData),
+        body: JSON.stringify({
+          ...subscriptionData,
+          nostrPubkey: user?.pubkey,
+        }),
       });
 
       if (!response.ok) {
@@ -195,18 +211,25 @@ export function usePushSubscription() {
       // Unsubscribe from browser
       await state.subscription.unsubscribe();
 
-      // Remove from server if we have subscription ID
-      if (subscriptionId) {
-        const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
-          method: 'DELETE',
+      // Remove from server
+      try {
+        const response = await fetch('/api/catalog/push/unsubscribe', {
+          method: 'POST',
           headers: {
-            'Authorization': 'Bearer placeholder', // TODO: Implement proper auth
+            'Content-Type': 'application/json',
+            'X-Nostr-Pubkey': user?.pubkey || '',
           },
+          body: JSON.stringify({
+            endpoint: state.subscription.endpoint,
+            nostrPubkey: user?.pubkey,
+          }),
         });
 
         if (!response.ok) {
           console.warn('Failed to remove subscription from server');
         }
+      } catch (error) {
+        console.warn('Failed to remove subscription from server:', error);
       }
 
       setState(prev => ({
@@ -238,23 +261,39 @@ export function usePushSubscription() {
   };
 }
 
-// Hook for sending test notifications (development only)
+// Hook for sending test notifications
 export function useTestPushNotification() {
+  const { user } = useCurrentUser();
+  
   return useMutation({
     mutationFn: async (testData: { title: string; body: string }) => {
-      const response = await fetch('/api/push/test', {
+      if (!user) {
+        throw new Error('Must be logged in to send test notification');
+      }
+
+      const response = await fetch('/api/catalog/push/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Nostr-Pubkey': user.pubkey,
         },
-        body: JSON.stringify(testData),
+        body: JSON.stringify({
+          ...testData,
+          nostrPubkey: user.pubkey,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send test notification');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Server returned ${response.status}`;
+        throw new Error(errorMessage);
       }
 
-      return response.json();
+      const result = await response.json();
+      return {
+        ...result,
+        timestamp: Date.now(), // Add timestamp for user feedback
+      };
     },
   });
 }

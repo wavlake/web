@@ -11,7 +11,7 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { nip19 } from 'nostr-tools';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 import { PWAInstallButton } from "@/components/PWAInstallButton";
-import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
+// import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
 
 export default function Settings() {
   const { user } = useCurrentUser();
@@ -122,8 +122,11 @@ export default function Settings() {
     <div className="container mx-auto py-1 px-3 sm:px-4">
       <Header />
       <div className="space-y-6 my-6">
-        {/* Push Notifications Section */}
-        <PushNotificationSettings />
+        {/* Push Notifications Section - Hidden for now */}
+        {/* <PushNotificationSettings /> */}
+
+        {/* Account Recovery Section */}
+        {/* <AccountRecoverySettings /> */}
 
         {/* Keys Section */}
         <Card>

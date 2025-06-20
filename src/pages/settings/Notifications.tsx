@@ -25,6 +25,7 @@ import {
   useNotifications,
   useMarkNotificationAsRead,
 } from "@/hooks/useNotifications";
+import { useConsumerNotifications } from "@/hooks/useConsumerNotifications";
 import type { Notification } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthor } from "@/hooks/useAuthor";
@@ -33,7 +34,7 @@ import { GroupReference } from "@/components/groups/GroupReference";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
-  const { data: notifications = [], isLoading, refetch } = useNotifications();
+  const { data: notifications = [], isLoading, refetch } = useConsumerNotifications();
   const markAsRead = useMarkNotificationAsRead();
 
   // Mark all notifications as read when the page is viewed
@@ -101,8 +102,8 @@ export default function Notifications() {
         break;
       case "join_request":
         if (notification.groupId) {
-          // Link to the group settings members tab
-          linkTo = `/group/${notification.groupId}/settings?tab=members`;
+          // Link to the group settings members tab with request focus
+          linkTo = `/group/${notification.groupId}/settings?tab=members&membersTab=requests`;
           linkText = "Manage join requests";
         }
         break;
@@ -350,10 +351,19 @@ export default function Notifications() {
       <div className="space-y-6 my-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your Notifications</CardTitle>
-            <CardDescription>
-              Stay updated on activity related to your account and groups
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Your Notifications</CardTitle>
+                <CardDescription>
+                  Stay updated on activity related to your account and groups
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard#updates">
+                  Artist View
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
