@@ -34,7 +34,11 @@ import { GroupReference } from "@/components/groups/GroupReference";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
-  const { data: notifications = [], isLoading, refetch } = useConsumerNotifications();
+  const {
+    data: notifications = [],
+    isLoading,
+    refetch,
+  } = useConsumerNotifications();
   const markAsRead = useMarkNotificationAsRead();
 
   // Mark all notifications as read when the page is viewed
@@ -358,11 +362,6 @@ export default function Notifications() {
                   Stay updated on activity related to your account and groups
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/dashboard#updates">
-                  Artist View
-                </Link>
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
