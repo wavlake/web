@@ -10,6 +10,7 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
 import { toast } from "@/hooks/useToast";
 import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
+import { useCreateAccount } from "@/hooks/useCreateAccount";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { Smartphone } from "lucide-react";
@@ -24,12 +25,12 @@ import { OnboardingContext } from "@/contexts/OnboardingContext";
 const Index = () => {
   const { currentUser } = useLoggedInAccounts();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
   const { addLogin } = useNostrLogin();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const [newUser, setNewUser] = useState(false);
   const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
+  const { createAccount, isCreating } = useCreateAccount();
   const { wallet, isLoading } = useCashuWallet();
 
   const [generatedName, setGeneratedName] = useState<string | null>(null);
@@ -136,40 +137,23 @@ const Index = () => {
   // Handle account creation inline
   const handleCreateAccount = async () => {
     setNewUser(true);
-    setCreating(true);
     try {
-      // Generate new secret key
-      const sk = generateSecretKey();
-      const nsec = nip19.nsecEncode(sk);
-      // Create login and sign in
-      const login = NLogin.fromNsec(nsec);
-      addLogin(login);
-      // Generate fake name and publish kind:0 metadata
-      const fakeName = generateFakeName();
-      // Store the generated name in state immediately
-      setGeneratedName(fakeName);
-
-      // Wait for login to be available (since addLogin is sync but state update is async)
-      setTimeout(async () => {
-        try {
-          await createCashuWallet();
-          await publishEvent({
-            kind: 0,
-            content: JSON.stringify({ name: fakeName }),
-          });
-        } catch {
-          // fallthrough
+      const result = await createAccount({
+        generateName: true,
+        createWallet: true,
+        onComplete: ({ name }) => {
+          // Store the generated name in state immediately
+          setGeneratedName(name || null);
+          setNewUser(true); // Mark as new user
+        },
+        onError: (error) => {
+          console.error("Account creation failed:", error);
+          setNewUser(false);
         }
-      }, 100);
-      setNewUser(true); // Mark as new user
-    } catch (e) {
-      toast({
-        title: "Error",
-        description: "Failed to create account. Please try again.",
-        variant: "destructive",
       });
-    } finally {
-      setCreating(false);
+    } catch (error) {
+      console.error("Account creation failed:", error);
+      setNewUser(false);
     }
   };
 
@@ -201,10 +185,10 @@ const Index = () => {
           <Button
             variant="outline"
             onClick={handleCreateAccount}
-            disabled={creating}
+            disabled={isCreating}
             className="w-full max-w-[200px] flex items-center justify-center gap-2 mb-6"
           >
-            {creating ? "Creating..." : "Get Started"}
+            {isCreating ? "Creating..." : "Get Started"}
           </Button>
           <div className="text-sm text-muted-foreground flex items-center justify-center mt-3">
             <span>Have a Nostr/Wavlake account?</span>&nbsp;

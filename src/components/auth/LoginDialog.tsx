@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tabs.tsx";
 import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
-import { FirebaseLegacyLogin } from "./FirebaseLegacyLogin";
+import { FirebaseLegacyLogin } from "./firebase-legacy";
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -37,6 +37,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   const [nsec, setNsec] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
   const [showLegacyLogin, setShowLegacyLogin] = useState(false);
+  const [isInPubkeySelection, setIsInPubkeySelection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const login = useLoginActions();
   const { syncProfile } = useProfileSync();
@@ -116,14 +117,41 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   // Show legacy login flow
   if (showLegacyLogin) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          // Only allow closing if not in pubkey selection
+          if (!open) {
+            onClose();
+          }
+        }}
+      >
+        <DialogContent
+          className={
+            isInPubkeySelection
+              ? "max-w-5xl h-[95vh] p-0 overflow-hidden rounded-2xl top-[50%]"
+              : "sm:max-w-md p-0 overflow-hidden rounded-2xl"
+          }
+          onEscapeKeyDown={(e) => {
+            // Prevent closing with escape key if in pubkey selection
+            if (isInPubkeySelection) {
+              e.preventDefault();
+            }
+          }}
+        >
           <FirebaseLegacyLogin
-            onBack={() => setShowLegacyLogin(false)}
+            onBack={() => {
+              setShowLegacyLogin(false);
+              setIsInPubkeySelection(false);
+            }}
             onComplete={() => {
               onLogin();
               onClose();
               setShowLegacyLogin(false);
+              setIsInPubkeySelection(false);
+            }}
+            onStepChange={(step) => {
+              setIsInPubkeySelection(step === "pubkey-selection");
             }}
           />
         </DialogContent>
