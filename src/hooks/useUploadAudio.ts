@@ -1,26 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
+import { createNip98AuthHeader } from "@/lib/nip98Auth";
 
-interface UploadWavlakeAudioOptions {
-  title: string;
-  artist: string;
-  albumId?: string;
-  order?: number;
-  lyrics?: string;
-  isExplicit?: boolean;
-  authToken?: string; // Optional auth token for catalog API
-}
-
-interface UploadWavlakeAudioResponse {
+interface UploadAudioResponse {
   id: string;
-  artistId: string;
-  albumId: string;
-  title: string;
-  order: number;
+  userId: string;
+  pubkey: string;
   liveUrl: string;
   rawUrl: string;
-  lyrics?: string;
-  isExplicit: boolean;
 }
 
 interface CatalogApiResponse<T> {
@@ -29,23 +16,22 @@ interface CatalogApiResponse<T> {
   error?: string;
 }
 
-// You'll need to set this environment variable in your .env file
-const CATALOG_API_BASE_URL =
-  import.meta.env.VITE_CATALOG_API_URL || "http://localhost:3210/v1";
+// Catalog API base URL - use proxy in development to avoid CSP issues
+const CATALOG_API_BASE_URL = import.meta.env.DEV
+  ? "/api/catalog"
+  : import.meta.env.VITE_CATALOG_API_URL || "http://localhost:3210/v1";
 
-export function useUploadWavlakeAudio() {
+export function useUploadAudio() {
   const { user } = useCurrentUser();
 
   return useMutation({
     mutationFn: async ({
       audioFile,
-      options,
     }: {
       audioFile: File;
-      options: UploadWavlakeAudioOptions;
-    }): Promise<UploadWavlakeAudioResponse> => {
-      if (!user) {
-        throw new Error("Must be logged in to upload audio");
+    }): Promise<UploadAudioResponse> => {
+      if (!user || !user.signer) {
+        throw new Error("Must be logged in with Nostr to upload audio");
       }
 
       if (!audioFile.type.startsWith("audio/")) {
@@ -63,36 +49,32 @@ export function useUploadWavlakeAudio() {
         );
       }
 
-      // Prepare headers
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+      const url = `${CATALOG_API_BASE_URL}/tracks/nostr`;
+      const method = "POST";
+      const body = {
+        extension: extension,
       };
 
-      // Add authorization if available
-      if (options.authToken) {
-        headers["Authorization"] = `Bearer ${options.authToken}`;
-      } else {
-        // For Nostr users, you might need to implement a different auth method
-        // This is a placeholder - you'll need to implement proper auth with your catalog API
-        headers["X-Nostr-Pubkey"] = user.pubkey;
-      }
+      // Create NIP-98 auth header
+      const authHeader = await createNip98AuthHeader(
+        url,
+        method,
+        body,
+        user.signer
+      );
+
+      // Prepare headers with NIP-98 auth
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      };
 
       // Step 1: Create track record and get presigned URL
-      const createTrackResponse = await fetch(
-        `${CATALOG_API_BASE_URL}/tracks`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            title: options.title.trim(),
-            order: options.order?.toString() || "1",
-            lyrics: options.lyrics || "",
-            extension: extension,
-            albumId: options.albumId,
-            isExplicit: options.isExplicit || false,
-          }),
-        }
-      );
+      const createTrackResponse = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(body),
+      });
 
       if (!createTrackResponse.ok) {
         const errorData = await createTrackResponse.json().catch(() => ({}));
@@ -103,7 +85,7 @@ export function useUploadWavlakeAudio() {
       }
 
       const createTrackData: CatalogApiResponse<
-        UploadWavlakeAudioResponse & { presignedUrl: string }
+        UploadAudioResponse & { presignedUrl: string }
       > = await createTrackResponse.json();
 
       if (!createTrackData.success || !createTrackData.data.presignedUrl) {
@@ -132,4 +114,4 @@ export function useUploadWavlakeAudio() {
   });
 }
 
-export type { UploadWavlakeAudioOptions, UploadWavlakeAudioResponse };
+export type { UploadAudioResponse };

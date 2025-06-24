@@ -32,10 +32,12 @@ import {
 } from "@/components/ui/form";
 import { Upload, X, Music, Image as ImageIcon } from "lucide-react";
 import { useUploadFile } from "@/hooks/useUploadFile";
-import { useUploadWavlakeAudio } from "@/hooks/useUploadWavlakeAudio";
+import { useUploadAudio } from "@/hooks/useUploadAudio";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
 import { NostrTrack } from "@/hooks/useArtistTracks";
+import { AlertCircle } from "lucide-react";
 
 const trackFormSchema = z.object({
   title: z.string().min(1, "Track title is required"),
@@ -77,10 +79,11 @@ export function TrackForm({
   const [imagePreview, setImagePreview] = useState<string | null>(
     isEditing && track?.coverUrl ? track.coverUrl : null
   );
+  const { user } = useCurrentUser();
 
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
-  const { mutateAsync: uploadWavlakeAudio, isPending: isUploadingAudio } =
-    useUploadWavlakeAudio();
+  const { mutateAsync: UploadAudio, isPending: isUploadingAudio } =
+    useUploadAudio();
   const { mutate: publishTrack, isPending: isPublishing } = useMusicPublish();
 
   const form = useForm<TrackFormData>({
@@ -174,18 +177,11 @@ export function TrackForm({
     }
 
     try {
-      // Upload audio file using Wavlake catalog API if provided, otherwise use existing URL
+      // Upload audio file using Nostr catalog API if provided, otherwise use existing URL
       let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : "";
       if (audioFile) {
-        const uploadResult = await uploadWavlakeAudio({
+        const uploadResult = await UploadAudio({
           audioFile,
-          options: {
-            title: data.title,
-            artist: data.artist,
-            order: data.trackNumber || 1,
-            lyrics: data.description,
-            isExplicit: data.explicit,
-          },
         });
         audioUrl = uploadResult.liveUrl;
       }
@@ -262,6 +258,28 @@ export function TrackForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Show Nostr upload info for new tracks */}
+        {!isEditing && user && (
+          <div className="mb-6 p-4 border rounded-lg bg-blue-50 border-blue-200">
+            <div className="font-medium text-blue-900">Direct Nostr Upload</div>
+            <div className="text-sm text-blue-700 mt-1">
+              Using pure Nostr upload - no metadata stored in Wavlake database.
+              All track information will be managed via Nostr events.
+            </div>
+          </div>
+        )}
+
+        {/* Show error if user has no upload options */}
+        {!isEditing && !user && (
+          <div className="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+            <div className="font-medium text-red-900">
+              Authentication Required
+            </div>
+            <div className="text-sm text-red-700 mt-1">
+              Please log in with Nostr to upload tracks.
+            </div>
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* File Uploads */}
@@ -635,7 +653,10 @@ export function TrackForm({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button
+                type="submit"
+                disabled={isLoading || (!user && !isEditing)}
+              >
                 {isLoading
                   ? isEditing
                     ? "Updating..."

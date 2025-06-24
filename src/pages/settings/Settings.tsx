@@ -125,6 +125,7 @@ export default function Settings() {
         {/* Push Notifications Section */}
         <PushNotificationSettings />
 
+
         {/* Keys Section */}
         <Card>
           <CardHeader>
