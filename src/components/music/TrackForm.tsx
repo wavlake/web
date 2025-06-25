@@ -35,11 +35,13 @@ import { useUploadFile } from "@/hooks/useUploadFile";
 import { useUploadAudio } from "@/hooks/useUploadAudio";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCanUpload } from "@/hooks/useAccountLinkingStatus";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
 import { NostrTrack } from "@/hooks/useArtistTracks";
 import { DraftTrack } from "@/types/drafts";
 import { useDraftPublish } from "@/hooks/useDraftPublish";
 import { AlertCircle } from "lucide-react";
+import { UploadRestrictionBanner } from "./UploadRestrictionBanner";
 
 const trackFormSchema = z.object({
   title: z.string().min(1, "Track title is required"),
@@ -82,6 +84,7 @@ export function TrackForm({
   );
   const [saveAsDraft, setSaveAsDraft] = useState(isDraftMode || !!draft);
   const { user } = useCurrentUser();
+  const canUpload = useCanUpload();
 
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutateAsync: UploadAudio, isPending: isUploadingAudio } =
@@ -301,6 +304,9 @@ export function TrackForm({
             </div>
           </div>
         )}
+        
+        {/* Show upload restriction banner for users who need to link accounts */}
+        {!isEditing && <UploadRestrictionBanner className="mb-6" />}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* File Uploads */}
@@ -585,7 +591,7 @@ export function TrackForm({
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || (!user && !isEditing)}
+                disabled={isLoading || (!user && !isEditing) || (!canUpload && !isEditing)}
               >
                 {isLoading
                   ? draft && !saveAsDraft

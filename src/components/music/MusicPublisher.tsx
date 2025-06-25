@@ -53,6 +53,8 @@ import {
 import { TrackForm } from "./TrackForm";
 import { AlbumForm } from "./AlbumForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCanUpload } from "@/hooks/useAccountLinkingStatus";
+import { UploadRestrictionBannerCompact } from "./UploadRestrictionBanner";
 import { useArtistAlbums } from "@/hooks/useArtistAlbums";
 import { useArtistTracks } from "@/hooks/useArtistTracks";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
@@ -88,6 +90,7 @@ interface MusicPublisherProps {
 
 export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const { user } = useCurrentUser();
+  const canUpload = useCanUpload();
   const [showTrackForm, setShowTrackForm] = useState(false);
   const [showAlbumForm, setShowAlbumForm] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<NostrAlbum | null>(null);
@@ -333,11 +336,15 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         <Button
           className="bg-primary hover:bg-primary/90"
           onClick={() => setShowTrackForm(true)}
+          disabled={!canUpload}
         >
           <Upload className="mr-2 h-4 w-4" />
           Upload New Music
         </Button>
       </div>
+
+      {/* Show upload restriction warning if user can't upload */}
+      {!canUpload && <UploadRestrictionBannerCompact />}
 
       {/* Show forms when active */}
       {showTrackForm && (

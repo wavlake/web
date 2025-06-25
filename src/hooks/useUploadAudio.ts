@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "./useCurrentUser";
 import { useNostrPublish } from "./useNostrPublish";
 import { createNip98AuthHeader } from "@/lib/nip98Auth";
+import { useAccountLinkingStatus } from "./useAccountLinkingStatus";
 
 interface NostrTrackResponse {
   id: string;
@@ -52,6 +53,7 @@ const API_BASE_URL =
 // Hook for uploading audio files to GCS and getting track URLs
 export function useUploadAudio() {
   const { user } = useCurrentUser();
+  const { isLinked, isLoading: isCheckingLink } = useAccountLinkingStatus();
 
   return useMutation({
     mutationFn: async ({
@@ -61,6 +63,13 @@ export function useUploadAudio() {
     }): Promise<NostrTrackResponse> => {
       if (!user || !user.signer) {
         throw new Error("Must be logged in with Nostr to upload audio");
+      }
+
+      // Check if account is linked to Firebase (unless still loading)
+      if (!isCheckingLink && !isLinked) {
+        throw new Error(
+          "You must link your Firebase account to your Nostr identity before uploading tracks. Please complete account linking in Settings."
+        );
       }
 
       if (!audioFile.type.startsWith("audio/")) {

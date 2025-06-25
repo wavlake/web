@@ -85,6 +85,34 @@ export function useFirebaseLegacyAuth() {
     []
   );
 
+  const handleFirebaseEmailSignup = useCallback(
+    async (email: string, password: string) => {
+      const { initializeFirebaseAuth, isFirebaseAuthConfigured } = await import(
+        "@/lib/firebaseAuth"
+      );
+
+      if (!isFirebaseAuthConfigured()) {
+        throw new Error("Firebase authentication is not configured");
+      }
+
+      const { createUserWithEmailAndPassword } = await import("firebase/auth");
+      const { auth } = initializeFirebaseAuth();
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const firebaseToken = await userCredential.user.getIdToken();
+
+      // Store token for later use
+      sessionStorage.setItem("firebaseToken", firebaseToken);
+
+      return firebaseToken;
+    },
+    []
+  );
+
   const linkPubkey = useCallback(async (pubkey: string, signer: any) => {
     const firebaseToken = sessionStorage.getItem("firebaseToken");
     if (!firebaseToken) throw new Error("No Firebase token found");
@@ -217,6 +245,7 @@ export function useFirebaseLegacyAuth() {
     setError,
     handleError,
     handleFirebaseEmailLogin,
+    handleFirebaseEmailSignup,
     linkPubkey,
     getLinkedPubkeys,
     handleExtensionLogin,
