@@ -78,8 +78,12 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [viewingTrack, setViewingTrack] = useState<NostrTrack | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<NostrTrack | null>(null);
   const [trackSearchQuery, setTrackSearchQuery] = useState("");
-  const [editingDraftTrack, setEditingDraftTrack] = useState<DraftTrack | null>(null);
-  const [editingDraftAlbum, setEditingDraftAlbum] = useState<DraftAlbum | null>(null);
+  const [editingDraftTrack, setEditingDraftTrack] = useState<DraftTrack | null>(
+    null
+  );
+  const [editingDraftAlbum, setEditingDraftAlbum] = useState<DraftAlbum | null>(
+    null
+  );
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -129,14 +133,14 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   // Filter tracks based on search query
   const filteredTracks = allTracks.filter((track) => {
     if (!trackSearchQuery.trim()) return true;
-    
+
     const searchTerm = trackSearchQuery.toLowerCase();
     return (
       track.title.toLowerCase().includes(searchTerm) ||
       track.artist.toLowerCase().includes(searchTerm) ||
       track.albumTitle.toLowerCase().includes(searchTerm) ||
       track.genre?.toLowerCase().includes(searchTerm) ||
-      track.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
+      track.tags?.some((tag) => tag.toLowerCase().includes(searchTerm))
     );
   });
 
@@ -155,13 +159,52 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
     useUploadHistory();
 
   // Get drafts
-  const { tracks: draftTracks, albums: draftAlbums, isLoading: draftsLoading } = useAllDrafts();
-  const { 
-    publishDraftTrack, 
-    publishDraftAlbum, 
-    deleteDraft, 
-    convertTrackToDraft, 
-    convertAlbumToDraft 
+  const {
+    tracks: draftTracks,
+    albums: draftAlbums,
+    isLoading: draftsLoading,
+  } = useAllDrafts();
+
+  // Combine upload history with drafts for complete upload history
+  const combinedUploadHistory = [
+    ...uploadHistory,
+    // Add draft tracks
+    ...draftTracks.map((draft) => ({
+      id: draft.draftEventId,
+      date: new Date(draft.draftCreatedAt * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      title: draft.metadata.title,
+      type: "track" as const,
+      status: "Draft",
+      isDraft: true as const,
+      draftData: draft,
+    })),
+    // Add draft albums
+    ...draftAlbums.map((draft) => ({
+      id: draft.draftEventId,
+      date: new Date(draft.draftCreatedAt * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      title: draft.metadata.title,
+      type: "album" as const,
+      status: "Draft",
+      trackCount: draft.metadata.tracks.length,
+      isDraft: true as const,
+      draftData: draft,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
+
+  const {
+    publishDraftTrack,
+    publishDraftAlbum,
+    deleteDraft,
+    convertTrackToDraft,
+    convertAlbumToDraft,
   } = useDraftPublish();
 
   const handleDeleteTrack = (track: NostrTrack) => {
@@ -304,12 +347,17 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex-1">
-                          <h4 className="font-medium">{draft.metadata.title}</h4>
+                          <h4 className="font-medium">
+                            {draft.metadata.title}
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {draft.metadata.artist}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Created: {new Date(draft.draftCreatedAt * 1000).toLocaleDateString()}
+                            Created:{" "}
+                            {new Date(
+                              draft.draftCreatedAt * 1000
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -341,17 +389,21 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                 Edit Draft
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => publishDraftTrack.mutateAsync(draft)}
+                                onClick={() =>
+                                  publishDraftTrack.mutateAsync(draft)
+                                }
                               >
                                 Publish Track
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => deleteDraft.mutateAsync({ 
-                                  draftId: draft.draftId, 
-                                  kind: 31337 
-                                })}
+                                onClick={() =>
+                                  deleteDraft.mutateAsync({
+                                    draftId: draft.draftId,
+                                    kind: 31337,
+                                  })
+                                }
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete Draft
@@ -394,13 +446,17 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex-1">
-                          <h4 className="font-medium">{draft.metadata.title}</h4>
+                          <h4 className="font-medium">
+                            {draft.metadata.title}
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {draft.metadata.artist}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {draft.metadata.tracks.length} tracks • Created:{" "}
-                            {new Date(draft.draftCreatedAt * 1000).toLocaleDateString()}
+                            {new Date(
+                              draft.draftCreatedAt * 1000
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -432,17 +488,21 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                 Edit Draft
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => publishDraftAlbum.mutateAsync(draft)}
+                                onClick={() =>
+                                  publishDraftAlbum.mutateAsync(draft)
+                                }
                               >
                                 Publish Album
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => deleteDraft.mutateAsync({ 
-                                  draftId: draft.draftId, 
-                                  kind: 31338 
-                                })}
+                                onClick={() =>
+                                  deleteDraft.mutateAsync({
+                                    draftId: draft.draftId,
+                                    kind: 31338,
+                                  })
+                                }
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete Draft
@@ -559,16 +619,17 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                   <CardTitle>All Tracks</CardTitle>
                   {trackSearchQuery && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      Showing {filteredTracks.length} of {allTracks.length} tracks
+                      Showing {filteredTracks.length} of {allTracks.length}{" "}
+                      tracks
                     </p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search tracks..." 
-                      className="w-[200px] pl-8 pr-8" 
+                    <Input
+                      placeholder="Search tracks..."
+                      className="w-[200px] pl-8 pr-8"
                       value={trackSearchQuery}
                       onChange={(e) => setTrackSearchQuery(e.target.value)}
                     />
@@ -684,7 +745,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                     Edit Track
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => convertTrackToDraft.mutateAsync(track)}
+                                    onClick={() =>
+                                      convertTrackToDraft.mutateAsync(track)
+                                    }
                                   >
                                     <EyeOff className="h-4 w-4 mr-2" />
                                     Convert to Draft
@@ -715,10 +778,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           colSpan={6}
                           className="text-center text-muted-foreground py-8"
                         >
-                          {trackSearchQuery.trim() 
+                          {trackSearchQuery.trim()
                             ? `No tracks found matching "${trackSearchQuery}"`
-                            : "No tracks found"
-                          }
+                            : "No tracks found"}
                         </TableCell>
                       </TableRow>
                     )}
@@ -750,17 +812,17 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {uploadHistoryLoading ? (
+                    {uploadHistoryLoading || draftsLoading ? (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={6}
                           className="text-center text-muted-foreground"
                         >
                           Loading upload history...
                         </TableCell>
                       </TableRow>
-                    ) : uploadHistory.length > 0 ? (
-                      uploadHistory.map((upload) => (
+                    ) : combinedUploadHistory.length > 0 ? (
+                      combinedUploadHistory.map((upload) => (
                         <TableRow key={upload.id}>
                           <TableCell>{upload.date}</TableCell>
                           <TableCell className="font-medium">
@@ -769,28 +831,65 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <TableCell>
                             {upload.type === "album"
                               ? `Album${
-                                  upload.trackCount
-                                    ? ` (${upload.trackCount} tracks)`
+                                  (upload as any).trackCount
+                                    ? ` (${(upload as any).trackCount} tracks)`
                                     : ""
                                 }`
                               : "Single Track"}
                           </TableCell>
                           <TableCell>
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                            <Badge 
+                              className={
+                                (upload as any).isDraft
+                                  ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
+                                  : "bg-green-100 text-green-800 hover:bg-green-100"
+                              }
+                            >
                               {upload.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" variant="ghost">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            {(upload as any).isDraft ? (
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (upload.type === "track") {
+                                      setEditingDraftTrack((upload as any).draftData);
+                                    } else {
+                                      setEditingDraftAlbum((upload as any).draftData);
+                                    }
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="default"
+                                  onClick={() => {
+                                    if (upload.type === "track") {
+                                      publishDraftTrack.mutateAsync((upload as any).draftData);
+                                    } else {
+                                      publishDraftAlbum.mutateAsync((upload as any).draftData);
+                                    }
+                                  }}
+                                >
+                                  Publish
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="ghost">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={6}
                           className="text-center text-muted-foreground"
                         >
                           No upload history found
