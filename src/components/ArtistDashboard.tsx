@@ -33,6 +33,8 @@ import { useGroupSettings } from "@/hooks/useGroupSettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { DashboardActivityFeed } from "@/components/dashboard/DashboardActivityFeed";
+import { ArtistNotifications } from "@/components/dashboard/ArtistNotifications";
 
 const dashboardTabs: TabItem[] = [
   {
@@ -199,9 +201,9 @@ export function ArtistDashboard({
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Activity and Notifications */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
@@ -210,23 +212,19 @@ export function ArtistDashboard({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[1, 2, 3].map((item) => (
-                  <div key={item} className="flex items-center space-x-4">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>U{item}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">
-                        User {item} commented on your track
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        2 hours ago
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <DashboardActivityFeed />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue & Engagement</CardTitle>
+              <CardDescription>
+                Important notifications about your earnings and fan engagement
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ArtistNotifications compact={true} maxItems={5} />
             </CardContent>
           </Card>
         </div>
@@ -475,9 +473,9 @@ export function ArtistDashboard({
       return (
         <div className="space-y-6">
           <div>
-            <h2 className="text-2xl font-bold">Community Updates</h2>
+            <h2 className="text-2xl font-bold">Updates & Notifications</h2>
             <p className="text-muted-foreground">
-              Loading your communities...
+              Loading your notifications...
             </p>
           </div>
         </div>
@@ -486,99 +484,96 @@ export function ArtistDashboard({
 
     const managedGroups = [...userGroups.owned, ...userGroups.moderated];
 
-    if (managedGroups.length === 0) {
-      return (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold">Community Updates</h2>
-            <p className="text-muted-foreground">
-              Publish announcements to your community
-            </p>
-          </div>
-          <Card>
-            <CardContent className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-muted flex items-center justify-center">
-                  <Bell className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold">No Communities Found</h3>
-                <p className="text-muted-foreground mt-2">
-                  You need to be an owner or moderator of a community to publish announcements.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
-    const isOwner = userRole === "owner";
-
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold">Community Updates</h2>
+          <h2 className="text-2xl font-bold">Updates & Notifications</h2>
           <p className="text-muted-foreground">
-            Publish announcements to your community
+            Manage your notifications and publish announcements
           </p>
         </div>
 
-        {/* Group Selection */}
+        {/* Artist Notifications */}
         <Card>
           <CardHeader>
-            <CardTitle>Select Community</CardTitle>
+            <CardTitle>Artist Notifications</CardTitle>
             <CardDescription>
-              Choose which community you'd like to publish an announcement to
+              Revenue, engagement, and moderation notifications
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="group-select">Community</Label>
-              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a community" />
-                </SelectTrigger>
-                <SelectContent>
-                  {managedGroups.map((group) => {
-                    const dTag = group.tags.find(tag => tag[0] === "d");
-                    const groupId = `34550:${group.pubkey}:${dTag ? dTag[1] : ""}`;
-                    const groupName = group.tags.find(tag => tag[0] === "name")?.[1] || dTag?.[1] || "Unnamed Group";
-                    const isGroupOwner = group.pubkey === user?.pubkey;
-                    
-                    return (
-                      <SelectItem key={groupId} value={groupId}>
-                        {groupName} {isGroupOwner ? "(Owner)" : "(Moderator)"}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Owner-only toggle for hiding moderator announcements */}
-            {isOwner && (
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="hide-moderator-announcements"
-                  checked={settings.hideModeratorsAnnouncements}
-                  onCheckedChange={(checked) => updateSettings({ hideModeratorsAnnouncements: checked })}
-                />
-                <Label htmlFor="hide-moderator-announcements">
-                  Hide moderator announcements from Home page
-                </Label>
-              </div>
-            )}
+          <CardContent>
+            <ArtistNotifications />
           </CardContent>
         </Card>
 
-        {/* Announcement Form */}
-        {selectedGroupId && (
-          <CreateAnnouncementForm
-            communityId={selectedGroupId}
-            onAnnouncementSuccess={() => {
-              // Could add a refresh callback here if needed
-            }}
-          />
+        {/* Community Management Section */}
+        {managedGroups.length > 0 && (
+          <>
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-2">Community Management</h3>
+              <p className="text-muted-foreground text-sm">
+                Publish announcements to your community
+              </p>
+            </div>
+
+            {/* Group Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Community</CardTitle>
+                <CardDescription>
+                  Choose which community you'd like to publish an announcement to
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="group-select">Community</Label>
+                  <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a community" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managedGroups.map((group) => {
+                        const dTag = group.tags.find(tag => tag[0] === "d");
+                        const groupId = `34550:${group.pubkey}:${dTag ? dTag[1] : ""}`;
+                        const groupName = group.tags.find(tag => tag[0] === "name")?.[1] || dTag?.[1] || "Unnamed Group";
+                        const isGroupOwner = group.pubkey === user?.pubkey;
+                        
+                        return (
+                          <SelectItem key={groupId} value={groupId}>
+                            {groupName} {isGroupOwner ? "(Owner)" : "(Moderator)"}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Owner-only toggle for hiding moderator announcements */}
+                {userRole === "owner" && (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="hide-moderator-announcements"
+                      checked={settings.hideModeratorsAnnouncements}
+                      onCheckedChange={(checked) => updateSettings({ hideModeratorsAnnouncements: checked })}
+                    />
+                    <Label htmlFor="hide-moderator-announcements">
+                      Hide moderator announcements from Home page
+                    </Label>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Announcement Form */}
+            {selectedGroupId && (
+              <CreateAnnouncementForm
+                communityId={selectedGroupId}
+                onAnnouncementSuccess={() => {
+                  // Could add a refresh callback here if needed
+                }}
+              />
+            )}
+          </>
         )}
       </div>
     );

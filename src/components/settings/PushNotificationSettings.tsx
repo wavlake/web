@@ -196,7 +196,21 @@ export function PushNotificationSettings() {
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Test notification sent! You should receive it shortly.
+                    Test notification sent successfully! You should receive it shortly.
+                    {testNotification.data?.timestamp && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        Sent at {new Date(testNotification.data.timestamp).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {testNotification.isError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Failed to send test notification: {testNotification.error?.message}
                   </AlertDescription>
                 </Alert>
               )}

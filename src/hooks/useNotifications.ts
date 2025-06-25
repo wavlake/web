@@ -518,13 +518,76 @@ export function useNotifications() {
           });
         }
 
-        // Process join request events
+        // Query for approved, declined, and banned members to filter out processed join requests
+        const approvedMembersEvents = await Promise.all(
+          groupIds.map(groupId => 
+            nostr.query(
+              [{ 
+                kinds: [KINDS.GROUP_APPROVED_MEMBERS_LIST],
+                '#d': [groupId],
+                limit: 10,
+              }],
+              { signal },
+            )
+          )
+        ).then(results => results.flat());
+
+        const declinedUsersEvents = await Promise.all(
+          groupIds.map(groupId => 
+            nostr.query(
+              [{ 
+                kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
+                '#d': [groupId],
+                limit: 50,
+              }],
+              { signal },
+            )
+          )
+        ).then(results => results.flat());
+
+        const bannedUsersEvents = await Promise.all(
+          groupIds.map(groupId => 
+            nostr.query(
+              [{ 
+                kinds: [KINDS.GROUP_BANNED_MEMBERS_LIST],
+                '#d': [groupId],
+                limit: 50,
+              }],
+              { signal },
+            )
+          )
+        ).then(results => results.flat());
+
+        // Extract processed user pubkeys
+        const approvedMembers = approvedMembersEvents.flatMap(event => 
+          event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
+        );
+        const declinedUsers = declinedUsersEvents.flatMap(event => 
+          event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
+        );
+        const bannedUsers = bannedUsersEvents.flatMap(event => 
+          event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
+        );
+
+        // Remove duplicates
+        const uniqueApprovedMembers = [...new Set(approvedMembers)];
+        const uniqueDeclinedUsers = [...new Set(declinedUsers)];
+        const uniqueBannedUsers = [...new Set(bannedUsers)];
+
+        // Process join request events (only show pending ones)
         for (const event of joinRequestEvents) {
           // Skip notifications from the user themselves
           if (event.pubkey === user.pubkey) continue;
           
           const groupId = event.tags.find(tag => tag[0] === 'a')?.[1];
           if (!groupId) continue;
+
+          // Skip if this join request has already been processed
+          if (uniqueApprovedMembers.includes(event.pubkey) || 
+              uniqueDeclinedUsers.includes(event.pubkey) ||
+              uniqueBannedUsers.includes(event.pubkey)) {
+            continue;
+          }
 
           // Find the group name
           const group = moderatedGroups.find(g => getCommunityId(g) === groupId);
