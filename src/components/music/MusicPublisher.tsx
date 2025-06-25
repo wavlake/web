@@ -47,6 +47,7 @@ import {
   Trash2,
   Search,
   X,
+  EyeOff,
 } from "lucide-react";
 import { TrackForm } from "./TrackForm";
 import { AlbumForm } from "./AlbumForm";
@@ -60,6 +61,9 @@ import { useUploadHistory } from "@/hooks/useUploadHistory";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
 import { NostrTrack } from "@/hooks/useArtistTracks";
 import { TrackDetailsDialog } from "./TrackDetailsDialog";
+import { DraftTrack, DraftAlbum } from "@/types/drafts";
+import { useAllDrafts } from "@/hooks/useDrafts";
+import { useDraftPublish } from "@/hooks/useDraftPublish";
 
 interface MusicPublisherProps {
   artistId?: string;
@@ -74,6 +78,8 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [viewingTrack, setViewingTrack] = useState<NostrTrack | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<NostrTrack | null>(null);
   const [trackSearchQuery, setTrackSearchQuery] = useState("");
+  const [editingDraftTrack, setEditingDraftTrack] = useState<DraftTrack | null>(null);
+  const [editingDraftAlbum, setEditingDraftAlbum] = useState<DraftAlbum | null>(null);
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -147,6 +153,16 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   // Get real upload history
   const { data: uploadHistory = [], isLoading: uploadHistoryLoading } =
     useUploadHistory();
+
+  // Get drafts
+  const { tracks: draftTracks, albums: draftAlbums, isLoading: draftsLoading } = useAllDrafts();
+  const { 
+    publishDraftTrack, 
+    publishDraftAlbum, 
+    deleteDraft, 
+    convertTrackToDraft, 
+    convertAlbumToDraft 
+  } = useDraftPublish();
 
   const handleDeleteTrack = (track: NostrTrack) => {
     // For now, just show a placeholder - actual deletion would need to be implemented
@@ -231,6 +247,24 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         />
       )}
 
+      {editingDraftTrack && (
+        <TrackForm
+          onCancel={() => setEditingDraftTrack(null)}
+          onSuccess={() => setEditingDraftTrack(null)}
+          artistId={artistId}
+          draft={editingDraftTrack}
+        />
+      )}
+
+      {editingDraftAlbum && (
+        <AlbumForm
+          onCancel={() => setEditingDraftAlbum(null)}
+          onSuccess={() => setEditingDraftAlbum(null)}
+          artistId={artistId}
+          draft={editingDraftAlbum}
+        />
+      )}
+
       {viewingTrack && (
         <TrackDetailsDialog
           track={viewingTrack}
@@ -241,10 +275,196 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
 
       <Tabs defaultValue="albums" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="drafts">Drafts</TabsTrigger>
           <TabsTrigger value="albums">Albums</TabsTrigger>
           <TabsTrigger value="tracks">Tracks</TabsTrigger>
           <TabsTrigger value="uploads">Upload History</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="drafts" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Draft Tracks */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Draft Tracks</CardTitle>
+                <CardDescription>
+                  Private encrypted tracks visible only to you
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {draftsLoading ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    Loading drafts...
+                  </div>
+                ) : draftTracks.length > 0 ? (
+                  <div className="space-y-3">
+                    {draftTracks.map((draft) => (
+                      <div
+                        key={draft.draftId}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium">{draft.metadata.title}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {draft.metadata.artist}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Created: {new Date(draft.draftCreatedAt * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingDraftTrack(draft)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => publishDraftTrack.mutateAsync(draft)}
+                          >
+                            Publish
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setEditingDraftTrack(draft)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Draft
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => publishDraftTrack.mutateAsync(draft)}
+                              >
+                                Publish Track
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => deleteDraft.mutateAsync({ 
+                                  draftId: draft.draftId, 
+                                  kind: 31337 
+                                })}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Draft
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    No draft tracks found
+                    <p className="text-sm mt-2">
+                      Create a new track and save it as a draft to get started
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Draft Albums */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Draft Albums</CardTitle>
+                <CardDescription>
+                  Private encrypted albums visible only to you
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {draftsLoading ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    Loading drafts...
+                  </div>
+                ) : draftAlbums.length > 0 ? (
+                  <div className="space-y-3">
+                    {draftAlbums.map((draft) => (
+                      <div
+                        key={draft.draftId}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-medium">{draft.metadata.title}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {draft.metadata.artist}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {draft.metadata.tracks.length} tracks • Created:{" "}
+                            {new Date(draft.draftCreatedAt * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingDraftAlbum(draft)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => publishDraftAlbum.mutateAsync(draft)}
+                          >
+                            Publish
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setEditingDraftAlbum(draft)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Draft
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => publishDraftAlbum.mutateAsync(draft)}
+                              >
+                                Publish Album
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => deleteDraft.mutateAsync({ 
+                                  draftId: draft.draftId, 
+                                  kind: 31338 
+                                })}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Draft
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    No draft albums found
+                    <p className="text-sm mt-2">
+                      Create a new album and save it as a draft to get started
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="albums" className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -296,6 +516,12 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           onClick={() => setEditingAlbum(album)}
                         >
                           Edit Album
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => convertAlbumToDraft.mutateAsync(album)}
+                        >
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Convert to Draft
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive">
@@ -456,6 +682,12 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                   >
                                     <Edit className="h-4 w-4 mr-2" />
                                     Edit Track
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => convertTrackToDraft.mutateAsync(track)}
+                                  >
+                                    <EyeOff className="h-4 w-4 mr-2" />
+                                    Convert to Draft
                                   </DropdownMenuItem>
                                   {/* <DropdownMenuItem>
                                     <Star className="h-4 w-4 mr-2" />

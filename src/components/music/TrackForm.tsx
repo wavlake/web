@@ -37,6 +37,8 @@ import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
 import { NostrTrack } from "@/hooks/useArtistTracks";
+import { DraftTrack } from "@/types/drafts";
+import { useDraftPublish } from "@/hooks/useDraftPublish";
 import { AlertCircle } from "lucide-react";
 
 const trackFormSchema = z.object({
@@ -61,7 +63,9 @@ interface TrackFormProps {
   onSuccess: () => void;
   artistId?: string;
   track?: NostrTrack; // For editing existing tracks
+  draft?: DraftTrack; // For editing existing drafts
   isEditing?: boolean;
+  isDraftMode?: boolean; // For creating new drafts
 }
 
 export function TrackForm({
@@ -69,40 +73,44 @@ export function TrackForm({
   onSuccess,
   artistId,
   track,
+  draft,
   isEditing = false,
+  isDraftMode = false,
 }: TrackFormProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState<string | null>(
-    isEditing && track?.audioUrl ? track.audioUrl : null
+    track?.audioUrl || draft?.metadata.audioUrl || null
   );
   const [imagePreview, setImagePreview] = useState<string | null>(
-    isEditing && track?.coverUrl ? track.coverUrl : null
+    track?.coverUrl || draft?.metadata.coverUrl || null
   );
+  const [saveAsDraft, setSaveAsDraft] = useState(isDraftMode || !!draft);
   const { user } = useCurrentUser();
 
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutateAsync: UploadAudio, isPending: isUploadingAudio } =
     useUploadAudio();
   const { mutate: publishTrack, isPending: isPublishing } = useMusicPublish();
+  const { saveDraftTrack, publishDraftTrack, isLoading: isDraftLoading } = useDraftPublish();
 
   const form = useForm<TrackFormData>({
     resolver: zodResolver(trackFormSchema),
     defaultValues:
-      isEditing && track
+      (isEditing && track) || draft
         ? {
-            title: track.title,
-            artist: track.artist,
-            description: track.description || "",
-            genre: track.genre || "",
+            title: track?.title || draft?.metadata.title || "",
+            artist: track?.artist || draft?.metadata.artist || "",
+            description: track?.description || draft?.metadata.description || "",
+            genre: track?.genre || draft?.metadata.genre || "",
             subgenre: "", // subgenre isn't stored in NostrTrack currently
-            duration: track.duration || 0,
-            explicit: track.explicit || false,
-            price: track.price || 0,
-            tags: track.tags?.join(", ") || "",
-            releaseDate: track.releaseDate || "",
-            albumTitle: track.albumTitle || "",
-            trackNumber: track.trackNumber || 1,
+            duration: track?.duration || draft?.metadata.duration || 0,
+            explicit: track?.explicit || draft?.metadata.explicit || false,
+            price: track?.price || draft?.metadata.price || 0,
+            tags: track?.tags?.join(", ") || draft?.metadata.tags?.join(", ") || "",
+            releaseDate: track?.releaseDate || draft?.metadata.releaseDate || "",
+            albumTitle: track?.albumTitle || draft?.metadata.albumTitle || "",
+            trackNumber: track?.trackNumber || draft?.metadata.trackNumber || 1,
           }
         : {
             explicit: false,
@@ -120,30 +128,33 @@ export function TrackForm({
           },
   });
 
-  // Reset form when track changes (for edit mode)
+  // Reset form when track or draft changes (for edit mode)
   useEffect(() => {
-    if (isEditing && track) {
-      form.reset({
-        title: track.title,
-        artist: track.artist,
-        description: track.description || "",
-        genre: track.genre || "",
-        subgenre: "", // subgenre isn't stored in NostrTrack currently
-        duration: track.duration || 0,
-        explicit: track.explicit || false,
-        price: track.price || 0,
-        tags: track.tags?.join(", ") || "",
-        releaseDate: track.releaseDate || "",
-        albumTitle: track.albumTitle || "",
-        trackNumber: track.trackNumber || 1,
-      });
-      // Also reset the preview states
-      setAudioPreview(track.audioUrl || null);
-      setImagePreview(track.coverUrl || null);
-      setAudioFile(null);
-      setCoverImage(null);
+    if ((isEditing && track) || draft) {
+      const data = track || draft?.metadata;
+      if (data) {
+        form.reset({
+          title: data.title || "",
+          artist: data.artist || "",
+          description: data.description || "",
+          genre: data.genre || "",
+          subgenre: "", // subgenre isn't stored in NostrTrack currently
+          duration: data.duration || 0,
+          explicit: data.explicit || false,
+          price: data.price || 0,
+          tags: data.tags?.join(", ") || "",
+          releaseDate: data.releaseDate || "",
+          albumTitle: data.albumTitle || "",
+          trackNumber: data.trackNumber || 1,
+        });
+        // Also reset the preview states
+        setAudioPreview(data.audioUrl || null);
+        setImagePreview(data.coverUrl || null);
+        setAudioFile(null);
+        setCoverImage(null);
+      }
     }
-  }, [isEditing, track, form]);
+  }, [isEditing, track, draft, form]);
 
   const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -170,15 +181,15 @@ export function TrackForm({
   };
 
   const onSubmit = async (data: TrackFormData) => {
-    // For editing, audio file is optional (keep existing if not provided)
-    if (!isEditing && !audioFile) {
+    // For editing or drafts, audio file is optional (keep existing if not provided)
+    if (!isEditing && !draft && !audioFile) {
       form.setError("root", { message: "Audio file is required" });
       return;
     }
 
     try {
       // Upload audio file using Nostr catalog API if provided, otherwise use existing URL
-      let audioUrl = isEditing && track?.audioUrl ? track.audioUrl : "";
+      let audioUrl = (isEditing && track?.audioUrl) || draft?.metadata.audioUrl || "";
       if (audioFile) {
         const uploadResult = await UploadAudio({
           audioFile,
@@ -187,75 +198,131 @@ export function TrackForm({
       }
 
       // Upload cover image using Blossom if provided, otherwise use existing URL
-      let coverUrl = isEditing && track?.coverUrl ? track.coverUrl : "";
+      let coverUrl = (isEditing && track?.coverUrl) || draft?.metadata.coverUrl || "";
       if (coverImage) {
         const imageTags = await uploadFile(coverImage);
         coverUrl = imageTags[0][1];
       }
 
-      // Prepare track metadata
-      const trackEvent = {
-        title: data.title,
-        artist: data.artist,
-        description: data.description || "",
-        genre: data.genre,
-        subgenre: data.subgenre,
-        duration: data.duration,
-        explicit: data.explicit,
-        price: data.price,
-        audioUrl,
-        coverUrl,
-        tags:
-          data.tags
+      if (saveAsDraft) {
+        // Save as draft
+        const draftData = {
+          title: data.title,
+          artist: data.artist,
+          description: data.description || "",
+          genre: data.genre,
+          duration: data.duration,
+          explicit: data.explicit,
+          price: data.price,
+          audioUrl,
+          coverUrl,
+          tags: data.tags
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-        releaseDate: data.releaseDate,
-        albumTitle: data.albumTitle,
-        trackNumber: data.trackNumber,
-        artistId,
-        // Add existing track info for editing
-        ...(isEditing && track
-          ? {
-              existingTrackId: track.id,
-              existingEvent: track.event,
-            }
-          : {}),
-      };
+          releaseDate: data.releaseDate,
+          albumTitle: data.albumTitle,
+          trackNumber: data.trackNumber,
+          artistId,
+          draftId: draft?.draftId, // Include draft ID for updates
+        };
 
-      publishTrack(trackEvent, {
-        onSuccess: () => {
-          onSuccess();
-        },
-        onError: (error) => {
-          console.error("Failed to publish track:", error);
-          form.setError("root", {
-            message: "Failed to publish track. Please try again.",
-          });
-        },
-      });
+        await saveDraftTrack.mutateAsync(draftData);
+        onSuccess();
+      } else if (draft && !saveAsDraft) {
+        // Publish existing draft
+        await publishDraftTrack.mutateAsync(draft);
+        onSuccess();
+      } else {
+        // Normal publish flow
+        const trackEvent = {
+          title: data.title,
+          artist: data.artist,
+          description: data.description || "",
+          genre: data.genre,
+          subgenre: data.subgenre,
+          duration: data.duration,
+          explicit: data.explicit,
+          price: data.price,
+          audioUrl,
+          coverUrl,
+          tags: data.tags
+            ?.split(",")
+            .map((t) => t.trim())
+            .filter(Boolean) || [],
+          releaseDate: data.releaseDate,
+          albumTitle: data.albumTitle,
+          trackNumber: data.trackNumber,
+          artistId,
+          // Add existing track info for editing
+          ...(isEditing && track
+            ? {
+                existingTrackId: track.id,
+                existingEvent: track.event,
+              }
+            : {}),
+        };
+
+        publishTrack(trackEvent, {
+          onSuccess: () => {
+            onSuccess();
+          },
+          onError: (error) => {
+            console.error("Failed to publish track:", error);
+            form.setError("root", {
+              message: "Failed to publish track. Please try again.",
+            });
+          },
+        });
+      }
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("Operation failed:", error);
       form.setError("root", {
-        message: "Failed to upload files. Please try again.",
+        message: "Failed to save/publish track. Please try again.",
       });
     }
   };
 
-  const isLoading = isUploading || isUploadingAudio || isPublishing;
+  const isLoading = isUploading || isUploadingAudio || isPublishing || isDraftLoading;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Music className="w-5 h-5" />
-          {isEditing ? "Edit Track" : "Publish New Track"}
+          {draft 
+            ? (saveAsDraft ? "Edit Draft Track" : "Publish Draft Track")
+            : isEditing 
+              ? "Edit Track" 
+              : (saveAsDraft ? "Create Draft Track" : "Publish New Track")
+          }
         </CardTitle>
         <CardDescription>
-          {isEditing
-            ? "Update your track metadata and files (Kind 31337)"
-            : "Upload and publish a music track to Nostr (Kind 31337)"}
+          {draft 
+            ? (saveAsDraft 
+                ? "Update your draft track (encrypted, private)" 
+                : "Publish your draft as a public track (Kind 31337)")
+            : isEditing
+              ? "Update your track metadata and files (Kind 31337)"
+              : (saveAsDraft 
+                  ? "Create an encrypted draft track (private)" 
+                  : "Upload and publish a music track to Nostr (Kind 31337)")
+          }
         </CardDescription>
+        
+        {/* Draft/Publish Toggle - only show for new tracks and drafts */}
+        {(!isEditing || draft) && (
+          <div className="flex items-center space-x-2 mt-4">
+            <Switch
+              checked={saveAsDraft}
+              onCheckedChange={setSaveAsDraft}
+              disabled={isLoading}
+            />
+            <Label htmlFor="draft-mode" className="text-sm">
+              {saveAsDraft ? "Save as private draft" : "Publish publicly"}
+            </Label>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {/* Show error if user has no upload options */}
@@ -647,12 +714,22 @@ export function TrackForm({
                 disabled={isLoading || (!user && !isEditing)}
               >
                 {isLoading
-                  ? isEditing
-                    ? "Updating..."
-                    : "Publishing..."
-                  : isEditing
-                  ? "Update Track"
-                  : "Publish Track"}
+                  ? draft && !saveAsDraft
+                    ? "Publishing..."
+                    : saveAsDraft
+                      ? "Saving Draft..."
+                      : isEditing
+                        ? "Updating..."
+                        : "Publishing..."
+                  : draft && !saveAsDraft
+                    ? "Publish Draft"
+                    : saveAsDraft
+                      ? draft
+                        ? "Update Draft"
+                        : "Save Draft"
+                      : isEditing
+                        ? "Update Track"
+                        : "Publish Track"}
               </Button>
             </div>
           </form>

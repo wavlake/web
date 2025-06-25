@@ -45,6 +45,8 @@ import { MUSIC_GENRES } from "@/constants/music";
 import { useArtistTracks } from "@/hooks/useArtistTracks";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
+import { DraftAlbum } from "@/types/drafts";
+import { useDraftPublish } from "@/hooks/useDraftPublish";
 
 const albumFormSchema = z.object({
   title: z.string().min(1, "Album title is required"),
@@ -74,38 +76,53 @@ interface AlbumFormProps {
   onSuccess: () => void;
   artistId?: string;
   album?: NostrAlbum; // For editing existing albums
+  draft?: DraftAlbum; // For editing existing drafts
   isEditing?: boolean;
+  isDraftMode?: boolean; // For creating new drafts
 }
 
-export function AlbumForm({ onCancel, onSuccess, artistId, album, isEditing = false }: AlbumFormProps) {
+export function AlbumForm({ 
+  onCancel, 
+  onSuccess, 
+  artistId, 
+  album, 
+  draft, 
+  isEditing = false, 
+  isDraftMode = false 
+}: AlbumFormProps) {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
-    isEditing && album?.coverUrl ? album.coverUrl : null
+    album?.coverUrl || draft?.metadata.coverUrl || null
   );
+  const [saveAsDraft, setSaveAsDraft] = useState(isDraftMode || !!draft);
 
   const { user } = useCurrentUser();
   const { data: availableTracks = [], isLoading: tracksLoading } =
     useArtistTracks(user?.pubkey || "");
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutate: publishAlbum, isPending: isPublishing } = useMusicPublish();
+  const { saveDraftAlbum, publishDraftAlbum, isLoading: isDraftLoading } = useDraftPublish();
 
   const form = useForm<AlbumFormData>({
     resolver: zodResolver(albumFormSchema),
-    defaultValues: isEditing && album ? {
-      title: album.title,
-      artist: album.artist,
-      description: album.description || "",
-      genre: album.genre || "",
-      releaseDate: album.releaseDate || "",
-      price: album.price || 0,
-      tags: album.tags?.join(", ") || "",
-      upc: album.upc || "",
-      label: album.label || "",
-      explicit: album.explicit || false,
-      tracks: album.tracks.map(track => ({
+    defaultValues: (isEditing && album) || draft ? {
+      title: album?.title || draft?.metadata.title || "",
+      artist: album?.artist || draft?.metadata.artist || "",
+      description: album?.description || draft?.metadata.description || "",
+      genre: album?.genre || draft?.metadata.genre || "",
+      releaseDate: album?.releaseDate || draft?.metadata.releaseDate || "",
+      price: album?.price || draft?.metadata.price || 0,
+      tags: album?.tags?.join(", ") || draft?.metadata.tags?.join(", ") || "",
+      upc: album?.upc || draft?.metadata.upc || "",
+      label: album?.label || draft?.metadata.label || "",
+      explicit: album?.explicit || draft?.metadata.explicit || false,
+      tracks: album?.tracks.map(track => ({
         eventId: track.id,
         title: track.title,
-      })),
+      })) || draft?.metadata.tracks.map(track => ({
+        eventId: track.eventId,
+        title: track.title,
+      })) || [],
     } : {
       explicit: false,
       price: 0,
@@ -129,58 +146,91 @@ export function AlbumForm({ onCancel, onSuccess, artistId, album, isEditing = fa
 
   const onSubmit = async (data: AlbumFormData) => {
     try {
-      // Upload cover image if provided
-      let coverUrl = "";
+      // Upload cover image if provided, otherwise use existing URL
+      let coverUrl = (isEditing && album?.coverUrl) || draft?.metadata.coverUrl || "";
       if (coverImage) {
         const imageTags = await uploadFile(coverImage);
         coverUrl = imageTags[0][1];
       }
 
-      // Prepare album metadata
-      const albumEvent = {
-        title: data.title,
-        artist: data.artist,
-        description: data.description || "",
-        genre: data.genre,
-        releaseDate: data.releaseDate,
-        price: data.price,
-        coverUrl: coverUrl || (isEditing && album?.coverUrl ? album.coverUrl : ""),
-        tags:
-          data.tags
+      if (saveAsDraft) {
+        // Save as draft
+        const draftData = {
+          title: data.title,
+          artist: data.artist,
+          description: data.description || "",
+          genre: data.genre,
+          releaseDate: data.releaseDate,
+          price: data.price,
+          coverUrl,
+          tags: data.tags
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-        upc: data.upc,
-        label: data.label,
-        explicit: data.explicit,
-        tracks: data.tracks.map((track, index) => ({
-          eventId: track.eventId,
-          title: track.title,
-          trackNumber: index + 1,
-        })),
-        artistId,
-        // Add existing album info for editing
-        ...(isEditing && album ? {
-          existingAlbumId: album.id,
-          existingEvent: album.event,
-        } : {}),
-      };
+          upc: data.upc,
+          label: data.label,
+          explicit: data.explicit,
+          tracks: data.tracks.map((track, index) => ({
+            eventId: track.eventId,
+            title: track.title,
+            trackNumber: index + 1,
+          })),
+          artistId,
+          draftId: draft?.draftId, // Include draft ID for updates
+        };
 
-      publishAlbum(albumEvent, {
-        onSuccess: () => {
-          onSuccess();
-        },
-        onError: (error) => {
-          console.error("Failed to publish album:", error);
-          form.setError("root", {
-            message: "Failed to publish album. Please try again.",
-          });
-        },
-      });
+        await saveDraftAlbum.mutateAsync(draftData);
+        onSuccess();
+      } else if (draft && !saveAsDraft) {
+        // Publish existing draft
+        await publishDraftAlbum.mutateAsync(draft);
+        onSuccess();
+      } else {
+        // Normal publish flow
+        const albumEvent = {
+          title: data.title,
+          artist: data.artist,
+          description: data.description || "",
+          genre: data.genre,
+          releaseDate: data.releaseDate,
+          price: data.price,
+          coverUrl,
+          tags: data.tags
+            ?.split(",")
+            .map((t) => t.trim())
+            .filter(Boolean) || [],
+          upc: data.upc,
+          label: data.label,
+          explicit: data.explicit,
+          tracks: data.tracks.map((track, index) => ({
+            eventId: track.eventId,
+            title: track.title,
+            trackNumber: index + 1,
+          })),
+          artistId,
+          // Add existing album info for editing
+          ...(isEditing && album ? {
+            existingAlbumId: album.id,
+            existingEvent: album.event,
+          } : {}),
+        };
+
+        publishAlbum(albumEvent, {
+          onSuccess: () => {
+            onSuccess();
+          },
+          onError: (error) => {
+            console.error("Failed to publish album:", error);
+            form.setError("root", {
+              message: "Failed to publish album. Please try again.",
+            });
+          },
+        });
+      }
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("Operation failed:", error);
       form.setError("root", {
-        message: "Failed to upload cover image. Please try again.",
+        message: "Failed to save/publish album. Please try again.",
       });
     }
   };
@@ -192,21 +242,46 @@ export function AlbumForm({ onCancel, onSuccess, artistId, album, isEditing = fa
     });
   };
 
-  const isLoading = isUploading || isPublishing;
+  const isLoading = isUploading || isPublishing || isDraftLoading;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Album className="w-5 h-5" />
-          {isEditing ? "Edit Album" : "Create New Album"}
+          {draft 
+            ? (saveAsDraft ? "Edit Draft Album" : "Publish Draft Album")
+            : isEditing 
+              ? "Edit Album" 
+              : (saveAsDraft ? "Create Draft Album" : "Create New Album")
+          }
         </CardTitle>
         <CardDescription>
-          {isEditing 
-            ? "Update your album collection and track references (Kind 31338)"
-            : "Create an album collection that references your published tracks (Kind 31338)"
+          {draft 
+            ? (saveAsDraft 
+                ? "Update your draft album (encrypted, private)" 
+                : "Publish your draft as a public album (Kind 31338)")
+            : isEditing
+              ? "Update your album collection and track references (Kind 31338)"
+              : (saveAsDraft 
+                  ? "Create an encrypted draft album (private)" 
+                  : "Create an album collection that references your published tracks (Kind 31338)")
           }
         </CardDescription>
+        
+        {/* Draft/Publish Toggle - only show for new albums and drafts */}
+        {(!isEditing || draft) && (
+          <div className="flex items-center space-x-2 mt-4">
+            <Switch
+              checked={saveAsDraft}
+              onCheckedChange={setSaveAsDraft}
+              disabled={isLoading}
+            />
+            <Label htmlFor="draft-mode" className="text-sm">
+              {saveAsDraft ? "Save as private draft" : "Publish publicly"}
+            </Label>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -648,10 +723,23 @@ export function AlbumForm({ onCancel, onSuccess, artistId, album, isEditing = fa
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading 
-                  ? (isEditing ? "Updating..." : "Publishing...") 
-                  : (isEditing ? "Update Album" : "Publish Album")
-                }
+                {isLoading
+                  ? draft && !saveAsDraft
+                    ? "Publishing..."
+                    : saveAsDraft
+                      ? "Saving Draft..."
+                      : isEditing
+                        ? "Updating..."
+                        : "Publishing..."
+                  : draft && !saveAsDraft
+                    ? "Publish Draft"
+                    : saveAsDraft
+                      ? draft
+                        ? "Update Draft"
+                        : "Save Draft"
+                      : isEditing
+                        ? "Update Album"
+                        : "Publish Album"}
               </Button>
             </div>
           </form>
