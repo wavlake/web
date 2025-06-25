@@ -48,6 +48,7 @@ import {
   Search,
   X,
   EyeOff,
+  AlertCircle,
 } from "lucide-react";
 import { TrackForm } from "./TrackForm";
 import { AlbumForm } from "./AlbumForm";
@@ -84,6 +85,10 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [editingDraftAlbum, setEditingDraftAlbum] = useState<DraftAlbum | null>(
     null
   );
+  const [unpublishingContent, setUnpublishingContent] = useState<{
+    type: 'track' | 'album';
+    content: NostrTrack | NostrAlbum;
+  } | null>(null);
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -879,9 +884,47 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                 </Button>
                               </div>
                             ) : (
-                              <Button size="sm" variant="ghost">
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => {
+                                    // Find the actual track/album object for editing
+                                    if (upload.type === "track") {
+                                      const track = allTracks.find(t => t.id === upload.id);
+                                      if (track) setEditingTrack(track);
+                                    } else {
+                                      const album = albums.find(a => a.id === upload.id);
+                                      if (album) setEditingAlbum(album);
+                                    }
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    // Show confirmation dialog before unpublishing
+                                    if (upload.type === "track") {
+                                      const track = allTracks.find(t => t.id === upload.id);
+                                      if (track) setUnpublishingContent({ type: 'track', content: track });
+                                    } else {
+                                      const album = albums.find(a => a.id === upload.id);
+                                      if (album) setUnpublishingContent({ type: 'album', content: album });
+                                    }
+                                  }}
+                                >
+                                  Unpublish
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => setViewingTrack(upload.type === "track" ? allTracks.find(t => t.id === upload.id) || null : null)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>
@@ -924,6 +967,60 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete Track
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unpublish Content Confirmation Dialog */}
+      <AlertDialog
+        open={!!unpublishingContent}
+        onOpenChange={() => setUnpublishingContent(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Unpublish {unpublishingContent?.type === 'track' ? 'Track' : 'Album'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to unpublish "{unpublishingContent?.content.title}"?
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-medium mb-1">Important consequences:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Your content will no longer be publicly available</li>
+                      <li>All social interactions (comments, reactions, zaps) will be lost</li>
+                      <li>If you republish later, it will have a new event ID</li>
+                      <li>Historical social activity cannot be restored</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                The content will be converted to a private encrypted draft that only you can see.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (unpublishingContent) {
+                  if (unpublishingContent.type === 'track') {
+                    convertTrackToDraft.mutateAsync(unpublishingContent.content as NostrTrack);
+                  } else {
+                    convertAlbumToDraft.mutateAsync(unpublishingContent.content as NostrAlbum);
+                  }
+                  setUnpublishingContent(null);
+                }
+              }}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              Unpublish {unpublishingContent?.type === 'track' ? 'Track' : 'Album'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
