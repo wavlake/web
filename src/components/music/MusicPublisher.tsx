@@ -65,6 +65,22 @@ import { TrackDetailsDialog } from "./TrackDetailsDialog";
 import { DraftTrack, DraftAlbum } from "@/types/drafts";
 import { useAllDrafts } from "@/hooks/useDrafts";
 import { useDraftPublish } from "@/hooks/useDraftPublish";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  ChevronDown,
+  ChevronRight,
+  Code,
+  Copy,
+  Hash,
+  ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
+import { nip19 } from "nostr-tools";
+import { KINDS } from "@/lib/nostr-kinds";
 
 interface MusicPublisherProps {
   artistId?: string;
@@ -77,7 +93,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [editingAlbum, setEditingAlbum] = useState<NostrAlbum | null>(null);
   const [editingTrack, setEditingTrack] = useState<NostrTrack | null>(null);
   const [viewingTrack, setViewingTrack] = useState<NostrTrack | null>(null);
+  const [viewingAlbum, setViewingAlbum] = useState<NostrAlbum | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<NostrTrack | null>(null);
+  const [deletingAlbum, setDeletingAlbum] = useState<NostrAlbum | null>(null);
   const [trackSearchQuery, setTrackSearchQuery] = useState("");
   const [editingDraftTrack, setEditingDraftTrack] = useState<DraftTrack | null>(
     null
@@ -86,9 +104,10 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
     null
   );
   const [unpublishingContent, setUnpublishingContent] = useState<{
-    type: 'track' | 'album';
+    type: "track" | "album";
     content: NostrTrack | NostrAlbum;
   } | null>(null);
+  const [isAlbumRawEventOpen, setIsAlbumRawEventOpen] = useState(false);
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -220,6 +239,68 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
     // TODO: Implement actual track deletion logic
   };
 
+  const handleDeleteAlbum = (album: NostrAlbum) => {
+    // For now, just show a placeholder - actual deletion would need to be implemented
+    // This could involve publishing a deletion event or similar
+    console.log("Delete album:", album);
+    setDeletingAlbum(null);
+    // TODO: Implement actual album deletion logic
+  };
+
+  const handleCopyAlbumEventId = async (album: NostrAlbum) => {
+    try {
+      await navigator.clipboard.writeText(album.id);
+      toast.success("Album Event ID copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying album event ID:", error);
+      toast.error("Failed to copy album event ID");
+    }
+  };
+
+  const handleCopyAlbumNjumpLink = async (album: NostrAlbum) => {
+    try {
+      const nevent = nip19.neventEncode({
+        id: album.id,
+        author: album.pubkey,
+        kind: KINDS.MUSIC_ALBUM,
+        relays: ["wss://relay.wavlake.com"],
+      });
+      const njumpUrl = `https://njump.me/${nevent}`;
+      await navigator.clipboard.writeText(njumpUrl);
+      toast.success("Album Njump link copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying album njump link:", error);
+      toast.error("Failed to copy album njump link");
+    }
+  };
+
+  const handleOpenAlbumNjump = (album: NostrAlbum) => {
+    try {
+      const nevent = nip19.neventEncode({
+        id: album.id,
+        author: album.pubkey,
+        kind: KINDS.MUSIC_ALBUM,
+        relays: ["wss://relay.wavlake.com"],
+      });
+      const njumpUrl = `https://njump.me/${nevent}`;
+      window.open(njumpUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error opening album njump link:", error);
+      toast.error("Failed to open album njump link");
+    }
+  };
+
+  const handleCopyAlbumRawEvent = async (album: NostrAlbum) => {
+    try {
+      const rawEventJson = JSON.stringify(album.event, null, 2);
+      await navigator.clipboard.writeText(rawEventJson);
+      toast.success("Album raw event JSON copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying album raw event:", error);
+      toast.error("Failed to copy album raw event");
+    }
+  };
+
   if (!user) {
     return (
       <Card>
@@ -321,6 +402,236 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         />
       )}
 
+      {/* Album Details Dialog */}
+      {viewingAlbum && (
+        <AlertDialog
+          open={!!viewingAlbum}
+          onOpenChange={() => setViewingAlbum(null)}
+        >
+          <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                Album Details
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="space-y-4">
+              {/* Header Section - Always Full Width */}
+              <div className="flex gap-4">
+                {viewingAlbum.coverUrl && (
+                  <img
+                    src={viewingAlbum.coverUrl}
+                    alt={viewingAlbum.title}
+                    className="w-20 h-20 rounded object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold truncate">
+                    {viewingAlbum.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm">{viewingAlbum.artist}</p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                    <span>{viewingAlbum.genre}</span>
+                    {viewingAlbum.releaseDate && (
+                      <span>
+                        Released: {new Date(viewingAlbum.releaseDate).toLocaleDateString()}
+                      </span>
+                    )}
+                    <span>Published: {new Date(viewingAlbum.created_at * 1000).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Two Column Layout for larger screens */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  {/* Description */}
+                  {viewingAlbum.description && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {viewingAlbum.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Tracks */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">
+                      Tracks ({viewingAlbum.tracks.length})
+                    </h4>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {viewingAlbum.tracks.map((track, index) => (
+                        <div
+                          key={track.id}
+                          className="flex items-center justify-between text-xs py-1"
+                        >
+                          <span className="truncate flex-1 mr-2">
+                            {index + 1}. {track.title}
+                          </span>
+                          <span className="text-muted-foreground text-xs flex-shrink-0">
+                            {track.artist}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price and Tags */}
+                  <div className="space-y-3">
+                    {viewingAlbum.price && viewingAlbum.price > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-1">Price</h4>
+                        <p className="text-sm">{formatCurrency(viewingAlbum.price)}</p>
+                      </div>
+                    )}
+
+                    {viewingAlbum.tags && viewingAlbum.tags.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-1">Tags</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {viewingAlbum.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  {/* Event ID Section */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
+                      <Hash className="w-3 h-3" />
+                      Event ID
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
+                        {viewingAlbum.id}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCopyAlbumEventId(viewingAlbum)}
+                        title="Copy full event ID"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Media & Links Section */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Links</h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {viewingAlbum.coverUrl && (
+                        <Button variant="outline" size="sm" asChild className="justify-start">
+                          <a
+                            href={viewingAlbum.coverUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-2" />
+                            Cover Art
+                          </a>
+                        </Button>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenAlbumNjump(viewingAlbum)}
+                        className="justify-start"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-2" />
+                        Open in Njump
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyAlbumNjumpLink(viewingAlbum)}
+                        className="justify-start"
+                      >
+                        <Copy className="w-3 h-3 mr-2" />
+                        Copy Njump Link
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Raw Event Viewer - Full Width */}
+              <div className="space-y-2 min-w-0 w-full max-w-full overflow-hidden border-t pt-4">
+                <Collapsible
+                  open={isAlbumRawEventOpen}
+                  onOpenChange={setIsAlbumRawEventOpen}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-2 p-0 h-auto"
+                    >
+                      {isAlbumRawEventOpen ? (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium">
+                        View Raw Event
+                      </span>
+                      <Code className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent
+                    className="space-y-2 mt-2 min-w-0 w-full overflow-hidden"
+                    style={{ maxWidth: "100%" }}
+                  >
+                    <div className="flex items-center justify-between min-w-0 w-full">
+                      <span className="text-xs text-muted-foreground">
+                        Event JSON
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopyAlbumRawEvent(viewingAlbum)}
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy JSON
+                      </Button>
+                    </div>
+                    <div
+                      className="w-full overflow-hidden"
+                      style={{ maxWidth: "100%" }}
+                    >
+                      <pre
+                        className="text-xs bg-muted p-3 rounded border max-h-48 overflow-y-auto whitespace-pre-wrap break-words w-full"
+                        style={{ maxWidth: "100%", wordBreak: "break-all" }}
+                      >
+                        <code
+                          className="whitespace-pre-wrap break-words block"
+                          style={{ maxWidth: "100%", wordBreak: "break-all" }}
+                        >
+                          {JSON.stringify(viewingAlbum.event, null, 2)}
+                        </code>
+                      </pre>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       <Tabs defaultValue="albums" className="space-y-6">
         <TabsList>
           <TabsTrigger value="drafts">Drafts</TabsTrigger>
@@ -355,9 +666,6 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <h4 className="font-medium">
                             {draft.metadata.title}
                           </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {draft.metadata.artist}
-                          </p>
                           <p className="text-xs text-muted-foreground">
                             Created:{" "}
                             {new Date(
@@ -542,10 +850,18 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button size="sm" variant="secondary">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setEditingAlbum(album)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="secondary">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setViewingAlbum(album)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
@@ -575,21 +891,35 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Add Tracks</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setViewingAlbum(album)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setEditingAlbum(album)}
                         >
+                          <Edit className="h-4 w-4 mr-2" />
                           Edit Album
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => convertAlbumToDraft.mutateAsync(album)}
+                          onClick={() =>
+                            setUnpublishingContent({
+                              type: "album",
+                              content: album,
+                            })
+                          }
                         >
                           <EyeOff className="h-4 w-4 mr-2" />
-                          Convert to Draft
+                          Unpublish
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeletingAlbum(album)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete Album
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -843,7 +1173,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                               : "Single Track"}
                           </TableCell>
                           <TableCell>
-                            <Badge 
+                            <Badge
                               className={
                                 (upload as any).isDraft
                                   ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
@@ -856,27 +1186,35 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <TableCell className="text-right">
                             {(upload as any).isDraft ? (
                               <div className="flex items-center gap-2">
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="ghost"
                                   onClick={() => {
                                     if (upload.type === "track") {
-                                      setEditingDraftTrack((upload as any).draftData);
+                                      setEditingDraftTrack(
+                                        (upload as any).draftData
+                                      );
                                     } else {
-                                      setEditingDraftAlbum((upload as any).draftData);
+                                      setEditingDraftAlbum(
+                                        (upload as any).draftData
+                                      );
                                     }
                                   }}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="default"
                                   onClick={() => {
                                     if (upload.type === "track") {
-                                      publishDraftTrack.mutateAsync((upload as any).draftData);
+                                      publishDraftTrack.mutateAsync(
+                                        (upload as any).draftData
+                                      );
                                     } else {
-                                      publishDraftAlbum.mutateAsync((upload as any).draftData);
+                                      publishDraftAlbum.mutateAsync(
+                                        (upload as any).draftData
+                                      );
                                     }
                                   }}
                                 >
@@ -885,42 +1223,66 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="ghost"
                                   onClick={() => {
                                     // Find the actual track/album object for editing
                                     if (upload.type === "track") {
-                                      const track = allTracks.find(t => t.id === upload.id);
+                                      const track = allTracks.find(
+                                        (t) => t.id === upload.id
+                                      );
                                       if (track) setEditingTrack(track);
                                     } else {
-                                      const album = albums.find(a => a.id === upload.id);
+                                      const album = albums.find(
+                                        (a) => a.id === upload.id
+                                      );
                                       if (album) setEditingAlbum(album);
                                     }
                                   }}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => {
                                     // Show confirmation dialog before unpublishing
                                     if (upload.type === "track") {
-                                      const track = allTracks.find(t => t.id === upload.id);
-                                      if (track) setUnpublishingContent({ type: 'track', content: track });
+                                      const track = allTracks.find(
+                                        (t) => t.id === upload.id
+                                      );
+                                      if (track)
+                                        setUnpublishingContent({
+                                          type: "track",
+                                          content: track,
+                                        });
                                     } else {
-                                      const album = albums.find(a => a.id === upload.id);
-                                      if (album) setUnpublishingContent({ type: 'album', content: album });
+                                      const album = albums.find(
+                                        (a) => a.id === upload.id
+                                      );
+                                      if (album)
+                                        setUnpublishingContent({
+                                          type: "album",
+                                          content: album,
+                                        });
                                     }
                                   }}
                                 >
                                   Unpublish
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="ghost"
-                                  onClick={() => setViewingTrack(upload.type === "track" ? allTracks.find(t => t.id === upload.id) || null : null)}
+                                  onClick={() =>
+                                    setViewingTrack(
+                                      upload.type === "track"
+                                        ? allTracks.find(
+                                            (t) => t.id === upload.id
+                                          ) || null
+                                        : null
+                                    )
+                                  }
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -972,6 +1334,32 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete Album Confirmation Dialog */}
+      <AlertDialog
+        open={!!deletingAlbum}
+        onOpenChange={() => setDeletingAlbum(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Album</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deletingAlbum?.title}"? This
+              will delete the album but not the individual tracks. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingAlbum && handleDeleteAlbum(deletingAlbum)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Album
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Unpublish Content Confirmation Dialog */}
       <AlertDialog
         open={!!unpublishingContent}
@@ -980,11 +1368,13 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Unpublish {unpublishingContent?.type === 'track' ? 'Track' : 'Album'}
+              Unpublish{" "}
+              {unpublishingContent?.type === "track" ? "Track" : "Album"}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                Are you sure you want to unpublish "{unpublishingContent?.content.title}"?
+                Are you sure you want to unpublish "
+                {unpublishingContent?.content.title}"?
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <div className="flex items-start gap-2">
@@ -993,15 +1383,21 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     <p className="font-medium mb-1">Important consequences:</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Your content will no longer be publicly available</li>
-                      <li>All social interactions (comments, reactions, zaps) will be lost</li>
-                      <li>If you republish later, it will have a new event ID</li>
+                      <li>
+                        All social interactions (comments, reactions, zaps) will
+                        be lost
+                      </li>
+                      <li>
+                        If you republish later, it will have a new event ID
+                      </li>
                       <li>Historical social activity cannot be restored</li>
                     </ul>
                   </div>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                The content will be converted to a private encrypted draft that only you can see.
+                The content will be converted to a private encrypted draft that
+                only you can see.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1010,17 +1406,22 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
             <AlertDialogAction
               onClick={() => {
                 if (unpublishingContent) {
-                  if (unpublishingContent.type === 'track') {
-                    convertTrackToDraft.mutateAsync(unpublishingContent.content as NostrTrack);
+                  if (unpublishingContent.type === "track") {
+                    convertTrackToDraft.mutateAsync(
+                      unpublishingContent.content as NostrTrack
+                    );
                   } else {
-                    convertAlbumToDraft.mutateAsync(unpublishingContent.content as NostrAlbum);
+                    convertAlbumToDraft.mutateAsync(
+                      unpublishingContent.content as NostrAlbum
+                    );
                   }
                   setUnpublishingContent(null);
                 }
               }}
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              Unpublish {unpublishingContent?.type === 'track' ? 'Track' : 'Album'}
+              Unpublish{" "}
+              {unpublishingContent?.type === "track" ? "Track" : "Album"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

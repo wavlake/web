@@ -137,7 +137,7 @@ export function useDraftPublish() {
       // Invalidate both draft and published track queries
       queryClient.invalidateQueries({ queryKey: ["draft-tracks"] });
       queryClient.invalidateQueries({ queryKey: ["artist-tracks"] });
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
     },
     onError: (error) => {
       console.error("Failed to publish draft track:", error);
@@ -172,7 +172,7 @@ export function useDraftPublish() {
       toast.success("Album published successfully!");
       // Invalidate both draft and published album queries
       queryClient.invalidateQueries({ queryKey: ["draft-albums"] });
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
       queryClient.invalidateQueries({ queryKey: ["artist-tracks"] });
     },
     onError: (error) => {
@@ -228,21 +228,15 @@ export function useDraftPublish() {
         tags: [
           ["d", track.id.replace('track-', 'track-')], // Keep same identifier
           ["title", track.title],
-          ["artist", track.artist],
           ["genre", track.genre],
           ["url", track.audioUrl],
           ["explicit", track.explicit.toString()],
           ...(track.description ? [["description", track.description]] : []),
-          ...(track.duration ? [["duration", track.duration.toString()]] : []),
           ...(track.price && track.price > 0 ? [["price", track.price.toString(), "sat"]] : []),
           ...(track.coverUrl ? [["image", track.coverUrl]] : []),
-          ...(track.releaseDate ? [["released_at", new Date(track.releaseDate).getTime().toString()]] : []),
-          ...(track.albumTitle ? [["album", track.albumTitle]] : []),
-          ...(track.trackNumber ? [["track", track.trackNumber.toString()]] : []),
           ...(track.tags || []).map((tag: string) => ["t", tag]),
         ],
         pubkey: "",
-        created_at: 0,
         id: "",
         sig: "",
       };
@@ -290,7 +284,7 @@ export function useDraftPublish() {
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["draft-tracks"] });
       queryClient.invalidateQueries({ queryKey: ["artist-tracks"] });
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
     },
     onError: (error) => {
       console.error("Failed to convert track to draft:", error);
@@ -332,7 +326,6 @@ export function useDraftPublish() {
           ...(album.tags || []).map((tag: string) => ["t", tag]),
         ],
         pubkey: "",
-        created_at: 0,
         id: "",
         sig: "",
       };
@@ -379,7 +372,7 @@ export function useDraftPublish() {
       toast.success("Album converted to draft successfully!");
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["draft-albums"] });
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
       queryClient.invalidateQueries({ queryKey: ["artist-tracks"] });
     },
     onError: (error) => {

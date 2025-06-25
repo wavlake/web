@@ -43,17 +43,12 @@ import { AlertCircle } from "lucide-react";
 
 const trackFormSchema = z.object({
   title: z.string().min(1, "Track title is required"),
-  artist: z.string().min(1, "Artist name is required"),
   description: z.string().optional(),
   genre: z.string().min(1, "Genre is required"),
   subgenre: z.string().optional(),
-  duration: z.number().optional(),
   explicit: z.boolean().default(false),
   price: z.number().min(0).optional(),
   tags: z.string().optional(),
-  releaseDate: z.string().optional(),
-  albumTitle: z.string().optional(),
-  trackNumber: z.number().optional(),
 });
 
 type TrackFormData = z.infer<typeof trackFormSchema>;
@@ -100,31 +95,21 @@ export function TrackForm({
       (isEditing && track) || draft
         ? {
             title: track?.title || draft?.metadata.title || "",
-            artist: track?.artist || draft?.metadata.artist || "",
             description: track?.description || draft?.metadata.description || "",
             genre: track?.genre || draft?.metadata.genre || "",
             subgenre: "", // subgenre isn't stored in NostrTrack currently
-            duration: track?.duration || draft?.metadata.duration || 0,
             explicit: track?.explicit || draft?.metadata.explicit || false,
             price: track?.price || draft?.metadata.price || 0,
             tags: track?.tags?.join(", ") || draft?.metadata.tags?.join(", ") || "",
-            releaseDate: track?.releaseDate || draft?.metadata.releaseDate || "",
-            albumTitle: track?.albumTitle || draft?.metadata.albumTitle || "",
-            trackNumber: track?.trackNumber || draft?.metadata.trackNumber || 1,
           }
         : {
             explicit: false,
             price: 0,
-            duration: 0,
-            trackNumber: 1,
             title: "",
-            artist: "",
             description: "",
             genre: "",
             subgenre: "",
             tags: "",
-            releaseDate: "",
-            albumTitle: "",
           },
   });
 
@@ -135,17 +120,12 @@ export function TrackForm({
       if (data) {
         form.reset({
           title: data.title || "",
-          artist: data.artist || "",
           description: data.description || "",
           genre: data.genre || "",
           subgenre: "", // subgenre isn't stored in NostrTrack currently
-          duration: data.duration || 0,
           explicit: data.explicit || false,
           price: data.price || 0,
           tags: data.tags?.join(", ") || "",
-          releaseDate: data.releaseDate || "",
-          albumTitle: data.albumTitle || "",
-          trackNumber: data.trackNumber || 1,
         });
         // Also reset the preview states
         setAudioPreview(data.audioUrl || null);
@@ -163,11 +143,6 @@ export function TrackForm({
       const url = URL.createObjectURL(file);
       setAudioPreview(url);
 
-      // Try to extract duration from audio file
-      const audio = new Audio(url);
-      audio.addEventListener("loadedmetadata", () => {
-        form.setValue("duration", Math.round(audio.duration));
-      });
     }
   };
 
@@ -208,10 +183,8 @@ export function TrackForm({
         // Save as draft
         const draftData = {
           title: data.title,
-          artist: data.artist,
           description: data.description || "",
           genre: data.genre,
-          duration: data.duration,
           explicit: data.explicit,
           price: data.price,
           audioUrl,
@@ -220,9 +193,6 @@ export function TrackForm({
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-          releaseDate: data.releaseDate,
-          albumTitle: data.albumTitle,
-          trackNumber: data.trackNumber,
           artistId,
           draftId: draft?.draftId, // Include draft ID for updates
         };
@@ -237,11 +207,9 @@ export function TrackForm({
         // Normal publish flow
         const trackEvent = {
           title: data.title,
-          artist: data.artist,
           description: data.description || "",
           genre: data.genre,
           subgenre: data.subgenre,
-          duration: data.duration,
           explicit: data.explicit,
           price: data.price,
           audioUrl,
@@ -250,9 +218,6 @@ export function TrackForm({
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-          releaseDate: data.releaseDate,
-          albumTitle: data.albumTitle,
-          trackNumber: data.trackNumber,
           artistId,
           // Add existing track info for editing
           ...(isEditing && track
@@ -437,35 +402,19 @@ export function TrackForm({
             </div>
 
             {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Track Title *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter track title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="artist"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Artist Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter artist name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Track Title *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter track title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -486,7 +435,7 @@ export function TrackForm({
             />
 
             {/* Metadata */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="genre"
@@ -514,27 +463,6 @@ export function TrackForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration (seconds)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Auto-detected"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value) || undefined)
-                        }
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -599,77 +527,23 @@ export function TrackForm({
             )}
 
             {/* Additional Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="rock, indie, guitar (comma separated)"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>Comma-separated tags</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="releaseDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Release Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Album Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="albumTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Album Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter album title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="trackNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Track Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="1"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value) || undefined)
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="rock, indie, guitar (comma separated)"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>Comma-separated tags</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Advanced Fields */}
             <FormField

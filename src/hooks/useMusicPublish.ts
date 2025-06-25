@@ -6,18 +6,13 @@ import { NostrEvent } from "@nostrify/nostrify";
 
 interface TrackData {
   title: string;
-  artist: string;
   description?: string;
   genre: string;
-  duration?: number;
   explicit: boolean;
   price?: number;
   audioUrl: string;
   coverUrl?: string;
   tags: string[];
-  releaseDate?: string;
-  albumTitle?: string;
-  trackNumber?: number;
   artistId?: string;
   // For editing existing tracks
   existingTrackId?: string;
@@ -73,7 +68,6 @@ export function useMusicPublish() {
       const tags = [
         ["d", identifier], // identifier tag for replaceable events
         ["title", trackData.title],
-        ["artist", trackData.artist],
         ["genre", trackData.genre],
         ["url", trackData.audioUrl], // audio file URL
         ["explicit", trackData.explicit.toString()],
@@ -84,31 +78,12 @@ export function useMusicPublish() {
         tags.push(["description", trackData.description]);
       }
 
-      if (trackData.duration) {
-        tags.push(["duration", trackData.duration.toString()]);
-      }
-
       if (trackData.price && trackData.price > 0) {
         tags.push(["price", trackData.price.toString(), "sat"]);
       }
 
       if (trackData.coverUrl) {
         tags.push(["image", trackData.coverUrl]);
-      }
-
-      if (trackData.releaseDate) {
-        tags.push([
-          "released_at",
-          new Date(trackData.releaseDate).getTime().toString(),
-        ]);
-      }
-
-      if (trackData.albumTitle) {
-        tags.push(["album", trackData.albumTitle]);
-      }
-
-      if (trackData.trackNumber) {
-        tags.push(["track", trackData.trackNumber.toString()]);
       }
 
       // Add custom tags
@@ -131,7 +106,7 @@ export function useMusicPublish() {
     },
     onSuccess: () => {
       // Invalidate artist albums query to refresh the music list
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
       // Invalidate artist tracks query to refresh the track list
       if (user?.pubkey) {
         queryClient.invalidateQueries({ queryKey: ["artist-tracks", user.pubkey] });
@@ -221,7 +196,7 @@ export function useMusicPublish() {
     },
     onSuccess: () => {
       // Invalidate artist albums query to refresh the music list
-      queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["artist-albums-real"] });
       // Invalidate artist tracks query to refresh the track list
       if (user?.pubkey) {
         queryClient.invalidateQueries({ queryKey: ["artist-tracks", user.pubkey] });

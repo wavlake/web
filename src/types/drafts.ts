@@ -36,18 +36,13 @@ export interface DraftTrack {
   // Extracted metadata for easy access
   metadata: {
     title: string;
-    artist: string;
     genre?: string;
-    albumTitle?: string;
     audioUrl?: string;
     coverUrl?: string;
     description?: string;
     explicit?: boolean;
     price?: number;
     tags?: string[];
-    releaseDate?: string;
-    trackNumber?: number;
-    duration?: number;
   };
 }
 
@@ -88,18 +83,13 @@ export interface DraftAlbum {
 // Draft creation data
 export interface CreateDraftTrackData {
   title: string;
-  artist: string;
   description?: string;
   genre: string;
-  duration?: number;
   explicit: boolean;
   price?: number;
   audioUrl: string;
   coverUrl?: string;
   tags: string[];
-  releaseDate?: string;
-  albumTitle?: string;
-  trackNumber?: number;
   artistId?: string;
   draftId?: string; // for updating existing drafts
 }

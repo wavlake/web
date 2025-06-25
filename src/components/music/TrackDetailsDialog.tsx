@@ -233,10 +233,10 @@ export function TrackDetailsDialog({
                   <span className="text-sm font-medium">Event ID:</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 break-all">
+                  <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
                     {track.id}
                   </code>
-                  <Button size="sm" variant="ghost" onClick={handleCopyEventId}>
+                  <Button size="sm" variant="ghost" onClick={handleCopyEventId} title="Copy full event ID">
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
