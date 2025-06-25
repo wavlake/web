@@ -28,18 +28,14 @@ export async function createNip98AuthHeader(
     getPublicKey?: () => Promise<string>;
   } | any
 ): Promise<string> {
-  let signerFunction;
-  
-  if (signer?.signEvent) {
-    signerFunction = signer.signEvent;
-  } else if (typeof signer === 'function') {
-    signerFunction = signer;
-  } else if (signer?.getPublicKey && signer?.signEvent) {
-    // For window.nostr-like objects
-    signerFunction = signer.signEvent.bind(signer);
-  } else {
+  if (!signer?.signEvent) {
     throw new Error("Signer with signEvent method is required for NIP-98 authentication");
   }
+
+  // Create a safe wrapper function that doesn't expose private fields
+  const signerFunction = async (event: NostrEvent): Promise<NostrEvent> => {
+    return await signer.signEvent(event);
+  };
 
   // Use nip98.getToken which handles everything internally
   // This includes creating the auth event, signing it, and packing it into a token

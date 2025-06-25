@@ -8,7 +8,7 @@ import type { LinkedPubkeysResponse } from "./types";
 
 // Helper to get API URLs
 const getApiUrls = () => {
-  const authApiUrl = import.meta.env.VITE_AUTH_API_URL;
+  const authApiUrl = import.meta.env.VITE_NEW_API_URL;
   const actualServerUrl = import.meta.env.DEV
     ? "https://api-854568123236.us-central1.run.app/v1"
     : authApiUrl || "https://api-854568123236.us-central1.run.app/v1";
@@ -57,36 +57,61 @@ export function useFirebaseLegacyAuth() {
     handleFirebaseError(error, defaultMessage, setError);
   }, []);
 
-  const linkPubkey = useCallback(
-    async (pubkey: string, signer: any) => {
-      const firebaseToken = sessionStorage.getItem("firebaseToken");
-      if (!firebaseToken) throw new Error("No Firebase token found");
-
-      const { fetchUrl, headers, body } = await createAuthHeaders(
-        firebaseToken,
-        pubkey,
-        signer
+  const handleFirebaseEmailLogin = useCallback(
+    async (email: string, password: string) => {
+      const { initializeFirebaseAuth, isFirebaseAuthConfigured } = await import(
+        "@/lib/firebaseAuth"
       );
 
-      const response = await fetch(fetchUrl, {
-        method: "POST",
-        headers,
-        body,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to link pubkey");
+      if (!isFirebaseAuthConfigured()) {
+        throw new Error("Firebase authentication is not configured");
       }
 
-      return response.json();
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth } = initializeFirebaseAuth();
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const firebaseToken = await userCredential.user.getIdToken();
+
+      // Store token for later use
+      sessionStorage.setItem("firebaseToken", firebaseToken);
+
+      return firebaseToken;
     },
     []
   );
 
+  const linkPubkey = useCallback(async (pubkey: string, signer: any) => {
+    const firebaseToken = sessionStorage.getItem("firebaseToken");
+    if (!firebaseToken) throw new Error("No Firebase token found");
+
+    const { fetchUrl, headers, body } = await createAuthHeaders(
+      firebaseToken,
+      pubkey,
+      signer
+    );
+
+    const response = await fetch(fetchUrl, {
+      method: "POST",
+      headers,
+      body,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to link pubkey");
+    }
+
+    return response.json();
+  }, []);
+
   const getLinkedPubkeys = useCallback(
     async (firebaseToken: string): Promise<LinkedPubkeysResponse> => {
-      const authApiUrl = import.meta.env.VITE_AUTH_API_URL;
+      const authApiUrl = import.meta.env.VITE_NEW_API_URL;
       const response = await fetch(`${authApiUrl}/auth/get-linked-pubkeys`, {
         headers: {
           Authorization: `Bearer ${firebaseToken}`,
@@ -171,23 +196,27 @@ export function useFirebaseLegacyAuth() {
     };
   }, []);
 
-  const handleBunkerLogin = useCallback(async (bunkerUri: string) => {
-    if (!bunkerUri.trim()) throw new Error("Please enter a bunker URI");
-    const login = await NLogin.fromBunker(bunkerUri, nostr);
-    const user = NUser.fromBunkerLogin(login, nostr);
+  const handleBunkerLogin = useCallback(
+    async (bunkerUri: string) => {
+      if (!bunkerUri.trim()) throw new Error("Please enter a bunker URI");
+      const login = await NLogin.fromBunker(bunkerUri, nostr);
+      const user = NUser.fromBunkerLogin(login, nostr);
 
-    return {
-      login,
-      pubkey: login.pubkey,
-      signer: user.signer,
-    };
-  }, [nostr]);
+      return {
+        login,
+        pubkey: login.pubkey,
+        signer: user.signer,
+      };
+    },
+    [nostr]
+  );
 
   return {
     isLoading,
     error,
     setError,
     handleError,
+    handleFirebaseEmailLogin,
     linkPubkey,
     getLinkedPubkeys,
     handleExtensionLogin,

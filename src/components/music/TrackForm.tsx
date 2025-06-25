@@ -183,7 +183,7 @@ export function TrackForm({
         const uploadResult = await UploadAudio({
           audioFile,
         });
-        audioUrl = uploadResult.liveUrl;
+        audioUrl = uploadResult.compressed_url || uploadResult.original_url;
       }
 
       // Upload cover image using Blossom if provided, otherwise use existing URL
@@ -258,17 +258,6 @@ export function TrackForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Show Nostr upload info for new tracks */}
-        {!isEditing && user && (
-          <div className="mb-6 p-4 border rounded-lg bg-blue-50 border-blue-200">
-            <div className="font-medium text-blue-900">Direct Nostr Upload</div>
-            <div className="text-sm text-blue-700 mt-1">
-              Using pure Nostr upload - no metadata stored in Wavlake database.
-              All track information will be managed via Nostr events.
-            </div>
-          </div>
-        )}
-
         {/* Show error if user has no upload options */}
         {!isEditing && !user && (
           <div className="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">

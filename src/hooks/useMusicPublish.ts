@@ -132,6 +132,10 @@ export function useMusicPublish() {
     onSuccess: () => {
       // Invalidate artist albums query to refresh the music list
       queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      // Invalidate artist tracks query to refresh the track list
+      if (user?.pubkey) {
+        queryClient.invalidateQueries({ queryKey: ["artist-tracks", user.pubkey] });
+      }
     },
   });
 
@@ -218,6 +222,10 @@ export function useMusicPublish() {
     onSuccess: () => {
       // Invalidate artist albums query to refresh the music list
       queryClient.invalidateQueries({ queryKey: ["artist-albums"] });
+      // Invalidate artist tracks query to refresh the track list
+      if (user?.pubkey) {
+        queryClient.invalidateQueries({ queryKey: ["artist-tracks", user.pubkey] });
+      }
     },
   });
 

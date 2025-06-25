@@ -4,10 +4,6 @@ import { useNostr } from "@nostrify/react";
 import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCreateAccount } from "@/hooks/useCreateAccount";
-import {
-  initializeFirebasePublishing,
-  isPublishingConfigured,
-} from "@/lib/firebasePublishing";
 import { useFirebaseLegacyAuth } from "./useFirebaseLegacyAuth";
 import { LoginStep } from "./steps/LoginStep";
 import { PubkeySelectionStep } from "./steps/PubkeySelectionStep";
@@ -53,6 +49,7 @@ export function FirebaseLegacyLogin({
     error,
     setError,
     handleError,
+    handleFirebaseEmailLogin,
     linkPubkey,
     getLinkedPubkeys,
     createAuthHandler,
@@ -61,36 +58,13 @@ export function FirebaseLegacyLogin({
     handleBunkerLogin,
   } = useFirebaseLegacyAuth();
 
-  // Import Firebase auth functions dynamically
-  const signInWithEmailAndPassword = useMemo(() => {
-    if (!isPublishingConfigured()) return null;
-
-    return import("firebase/auth").then(
-      (auth) => auth.signInWithEmailAndPassword
-    );
-  }, []);
-
   const handleFirebaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!signInWithEmailAndPassword) {
-      setError("Firebase authentication is not configured");
-      return;
-    }
-
     try {
-      const { auth } = initializeFirebasePublishing();
-      const signIn = await signInWithEmailAndPassword;
-      const userCredential = await signIn(
-        auth,
-        formData.email,
-        formData.password
-      );
-      const firebaseToken = await userCredential.user.getIdToken();
-      
-      // Store token for later use
-      sessionStorage.setItem("firebaseToken", firebaseToken);
+      // Use the hook's Firebase login method
+      const firebaseToken = await handleFirebaseEmailLogin(formData.email, formData.password);
 
       // Check if this user has linked pubkeys
       const data = await getLinkedPubkeys(firebaseToken);
