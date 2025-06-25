@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { createNip98AuthHeader } from "@/lib/nip98Auth";
 
 export interface AccountLinkingStatus {
   isLinked: boolean;
@@ -18,19 +19,27 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
   const query = useQuery({
     queryKey: ["account-linking-status", user?.pubkey],
     queryFn: async (): Promise<{ isLinked: boolean; firebaseUid: string | null }> => {
-      if (!user?.pubkey) {
+      if (!user?.pubkey || !user?.signer) {
         return { isLinked: false, firebaseUid: null };
       }
 
       try {
         // Use the new API endpoint to check if pubkey is linked
         const API_BASE_URL = import.meta.env.VITE_NEW_API_URL || "https://api-cgi4gylh7q-uc.a.run.app/v1";
-        const response = await fetch(`${API_BASE_URL}/auth/check-pubkey-link`, {
-          method: "POST",
+        const url = `${API_BASE_URL}/auth/check-pubkey-link`;
+        const method = "POST";
+        const body = { pubkey: user.pubkey };
+
+        // Create NIP-98 auth header
+        const authHeader = await createNip98AuthHeader(url, method, body, user.signer);
+
+        const response = await fetch(url, {
+          method,
           headers: {
             "Content-Type": "application/json",
+            "Authorization": authHeader,
           },
-          body: JSON.stringify({ pubkey: user.pubkey }),
+          body: JSON.stringify(body),
         });
 
         if (!response.ok) {
@@ -50,7 +59,7 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
         throw error;
       }
     },
-    enabled: !!user?.pubkey,
+    enabled: !!user?.pubkey && !!user?.signer,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1, // Only retry once on failure
   });
