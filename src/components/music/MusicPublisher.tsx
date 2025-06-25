@@ -45,6 +45,8 @@ import {
   Filter,
   Star,
   Trash2,
+  Search,
+  X,
 } from "lucide-react";
 import { TrackForm } from "./TrackForm";
 import { AlbumForm } from "./AlbumForm";
@@ -71,6 +73,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
   const [editingTrack, setEditingTrack] = useState<NostrTrack | null>(null);
   const [viewingTrack, setViewingTrack] = useState<NostrTrack | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<NostrTrack | null>(null);
+  const [trackSearchQuery, setTrackSearchQuery] = useState("");
 
   const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
     user?.pubkey || ""
@@ -116,6 +119,20 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
         price: track.price || 0,
       })),
   ];
+
+  // Filter tracks based on search query
+  const filteredTracks = allTracks.filter((track) => {
+    if (!trackSearchQuery.trim()) return true;
+    
+    const searchTerm = trackSearchQuery.toLowerCase();
+    return (
+      track.title.toLowerCase().includes(searchTerm) ||
+      track.artist.toLowerCase().includes(searchTerm) ||
+      track.albumTitle.toLowerCase().includes(searchTerm) ||
+      track.genre?.toLowerCase().includes(searchTerm) ||
+      track.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
+    );
+  });
 
   // Get all track IDs for nutzap totals query
   const trackIds = allTracks.map((track) => track.id);
@@ -312,9 +329,34 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <CardTitle>All Tracks</CardTitle>
+                <div>
+                  <CardTitle>All Tracks</CardTitle>
+                  {trackSearchQuery && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Showing {filteredTracks.length} of {allTracks.length} tracks
+                    </p>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
-                  <Input placeholder="Search tracks..." className="w-[200px]" />
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search tracks..." 
+                      className="w-[200px] pl-8 pr-8" 
+                      value={trackSearchQuery}
+                      onChange={(e) => setTrackSearchQuery(e.target.value)}
+                    />
+                    {trackSearchQuery && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute right-0 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        onClick={() => setTrackSearchQuery("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="icon">
@@ -350,90 +392,104 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allTracks.map((track, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-medium">
-                          {track.title}
-                        </TableCell>
-                        <TableCell>{track.albumTitle}</TableCell>
-                        {/* <TableCell className="text-center">
-                          {track.exclusive ? (
-                            <Star className="h-4 w-4 text-amber-500 inline" />
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell> */}
-                        <TableCell className="text-right">
-                          {formatCurrency(track.price)}
-                        </TableCell>
-                        <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">
-                          {nutzapsLoading ? (
-                            <span className="text-muted-foreground">
-                              Loading...
-                            </span>
-                          ) : (
-                            <span
-                              className={
-                                nutzapTotalMap.get(track.id)
-                                  ? "text-green-600 font-medium"
-                                  : ""
-                              }
-                            >
-                              {formatCurrency(
-                                nutzapTotalMap.get(track.id) || 0
-                              )}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingTrack(track)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="ghost">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => setViewingTrack(track)}
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setEditingTrack(track)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit Track
-                                </DropdownMenuItem>
-                                {/* <DropdownMenuItem>
-                                  <Star className="h-4 w-4 mr-2" />
-                                  {track.exclusive
-                                    ? "Remove Exclusive"
-                                    : "Make Exclusive"}
-                                </DropdownMenuItem> */}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => setDeletingTrack(track)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete Track
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                    {filteredTracks.length > 0 ? (
+                      filteredTracks.map((track, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">
+                            {track.title}
+                          </TableCell>
+                          <TableCell>{track.albumTitle}</TableCell>
+                          {/* <TableCell className="text-center">
+                            {track.exclusive ? (
+                              <Star className="h-4 w-4 text-amber-500 inline" />
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell> */}
+                          <TableCell className="text-right">
+                            {formatCurrency(track.price)}
+                          </TableCell>
+                          <TableCell className="text-right">0</TableCell>
+                          <TableCell className="text-right">
+                            {nutzapsLoading ? (
+                              <span className="text-muted-foreground">
+                                Loading...
+                              </span>
+                            ) : (
+                              <span
+                                className={
+                                  nutzapTotalMap.get(track.id)
+                                    ? "text-green-600 font-medium"
+                                    : ""
+                                }
+                              >
+                                {formatCurrency(
+                                  nutzapTotalMap.get(track.id) || 0
+                                )}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingTrack(track)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => setViewingTrack(track)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setEditingTrack(track)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Track
+                                  </DropdownMenuItem>
+                                  {/* <DropdownMenuItem>
+                                    <Star className="h-4 w-4 mr-2" />
+                                    {track.exclusive
+                                      ? "Remove Exclusive"
+                                      : "Make Exclusive"}
+                                  </DropdownMenuItem> */}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => setDeletingTrack(track)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Track
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center text-muted-foreground py-8"
+                        >
+                          {trackSearchQuery.trim() 
+                            ? `No tracks found matching "${trackSearchQuery}"`
+                            : "No tracks found"
+                          }
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
