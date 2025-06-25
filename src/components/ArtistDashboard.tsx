@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,7 +26,10 @@ import {
   HelpCircle,
   Shield,
 } from "lucide-react";
-import { ResponsiveTabNavigation, TabItem } from "@/components/ResponsiveTabNavigation";
+import {
+  ResponsiveTabNavigation,
+  TabItem,
+} from "@/components/ResponsiveTabNavigation";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { SimpleMembersList } from "@/components/groups/SimpleMembersList";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -30,7 +39,13 @@ import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementFo
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useGroupSettings } from "@/hooks/useGroupSettings";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -116,8 +131,10 @@ export function ArtistDashboard({
     if (userGroups && !selectedGroupId) {
       const managedGroups = [...userGroups.owned, ...userGroups.moderated];
       if (managedGroups.length > 0) {
-        const dTag = managedGroups[0].tags.find(tag => tag[0] === "d");
-        const groupId = `34550:${managedGroups[0].pubkey}:${dTag ? dTag[1] : ""}`;
+        const dTag = managedGroups[0].tags.find((tag) => tag[0] === "d");
+        const groupId = `34550:${managedGroups[0].pubkey}:${
+          dTag ? dTag[1] : ""
+        }`;
         setSelectedGroupId(groupId);
       }
     }
@@ -171,7 +188,7 @@ export function ArtistDashboard({
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      {/* <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -197,7 +214,7 @@ export function ArtistDashboard({
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div> */}
 
       {/* Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -276,7 +293,9 @@ export function ArtistDashboard({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Members
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">892</div>
@@ -285,7 +304,9 @@ export function ArtistDashboard({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Requests
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">5</div>
@@ -366,7 +387,9 @@ export function ArtistDashboard({
                       Display detailed analytics on the overview page
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">Enable</Button>
+                  <Button variant="outline" size="sm">
+                    Enable
+                  </Button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
@@ -375,7 +398,9 @@ export function ArtistDashboard({
                       Receive email updates about your community
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">Configure</Button>
+                  <Button variant="outline" size="sm">
+                    Configure
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -399,7 +424,9 @@ export function ArtistDashboard({
                       Automatically approve new member requests
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">Disabled</Button>
+                  <Button variant="outline" size="sm">
+                    Disabled
+                  </Button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
@@ -408,7 +435,9 @@ export function ArtistDashboard({
                       Set rules and guidelines for your community
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">Edit</Button>
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -440,7 +469,9 @@ export function ArtistDashboard({
             <p className="text-sm text-muted-foreground">≈ $4.23 USD</p>
             <div className="flex gap-2 mt-4">
               <Button size="sm">Withdraw</Button>
-              <Button size="sm" variant="outline">View Transactions</Button>
+              <Button size="sm" variant="outline">
+                View Transactions
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -476,9 +507,7 @@ export function ArtistDashboard({
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold">Community Updates</h2>
-            <p className="text-muted-foreground">
-              Loading your communities...
-            </p>
+            <p className="text-muted-foreground">Loading your communities...</p>
           </div>
         </div>
       );
@@ -503,7 +532,8 @@ export function ArtistDashboard({
                 </div>
                 <h3 className="text-lg font-semibold">No Communities Found</h3>
                 <p className="text-muted-foreground mt-2">
-                  You need to be an owner or moderator of a community to publish announcements.
+                  You need to be an owner or moderator of a community to publish
+                  announcements.
                 </p>
               </div>
             </CardContent>
@@ -534,17 +564,25 @@ export function ArtistDashboard({
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="group-select">Community</Label>
-              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+              <Select
+                value={selectedGroupId}
+                onValueChange={setSelectedGroupId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a community" />
                 </SelectTrigger>
                 <SelectContent>
                   {managedGroups.map((group) => {
-                    const dTag = group.tags.find(tag => tag[0] === "d");
-                    const groupId = `34550:${group.pubkey}:${dTag ? dTag[1] : ""}`;
-                    const groupName = group.tags.find(tag => tag[0] === "name")?.[1] || dTag?.[1] || "Unnamed Group";
+                    const dTag = group.tags.find((tag) => tag[0] === "d");
+                    const groupId = `34550:${group.pubkey}:${
+                      dTag ? dTag[1] : ""
+                    }`;
+                    const groupName =
+                      group.tags.find((tag) => tag[0] === "name")?.[1] ||
+                      dTag?.[1] ||
+                      "Unnamed Group";
                     const isGroupOwner = group.pubkey === user?.pubkey;
-                    
+
                     return (
                       <SelectItem key={groupId} value={groupId}>
                         {groupName} {isGroupOwner ? "(Owner)" : "(Moderator)"}
@@ -561,7 +599,9 @@ export function ArtistDashboard({
                 <Switch
                   id="hide-moderator-announcements"
                   checked={settings.hideModeratorsAnnouncements}
-                  onCheckedChange={(checked) => updateSettings({ hideModeratorsAnnouncements: checked })}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ hideModeratorsAnnouncements: checked })
+                  }
                 />
                 <Label htmlFor="hide-moderator-announcements">
                   Hide moderator announcements from Home page
@@ -585,8 +625,9 @@ export function ArtistDashboard({
   };
 
   const renderPlaceholder = (section: string) => {
-    const sectionTitle = dashboardTabs.find(tab => tab.value === section)?.label || section;
-    
+    const sectionTitle =
+      dashboardTabs.find((tab) => tab.value === section)?.label || section;
+
     return (
       <div className="space-y-6">
         <div>
@@ -643,9 +684,7 @@ export function ArtistDashboard({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
-          {renderContent()}
-        </div>
+        <div className="p-6">{renderContent()}</div>
       </div>
     </div>
   );
