@@ -9,9 +9,7 @@ import { NostrEvent } from "@nostrify/nostrify";
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-export interface Community extends NostrEvent {
-  // Community is a NostrEvent of kind 34550
-}
+export type Community = NostrEvent;
 
 export type UserRole = "owner" | "moderator" | "member" | null;
 

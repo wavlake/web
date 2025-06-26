@@ -50,6 +50,8 @@ import { CommunityPrivileges } from "@/components/dashboard/CommunityPrivileges"
 import { useNavigate } from "react-router-dom";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
+import { useCommunityActivity } from "@/hooks/useCommunityContent";
+import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import {
   Select,
   SelectContent,
@@ -104,6 +106,12 @@ function ArtistDashboardContent({
 
   // Calculate total notification count for Moderation tab
   const moderationNotificationCount = openReportsCount + pendingRequestsCount;
+
+  // Get recent community activity
+  const { data: recentActivity = [], isLoading: isLoadingActivity } = useCommunityActivity(
+    selectedCommunityId,
+    10 // Limit to 10 most recent activities
+  );
 
   // Define dashboard tabs with notification count
   const dashboardTabs: TabItem[] = useMemo(
@@ -351,23 +359,35 @@ function ArtistDashboardContent({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="flex items-center space-x-4">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>U{item}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                          User {item} commented on your track
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          2 hours ago
-                        </p>
+                {isLoadingActivity ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                          <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : recentActivity.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentActivity.map((activity) => (
+                      <ActivityItem key={activity.id} activity={activity} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-muted flex items-center justify-center">
+                      <Bell className="h-6 w-6" />
                     </div>
-                  ))}
-                </div>
+                    <p className="text-sm">No recent activity</p>
+                    <p className="text-xs mt-1">
+                      Activity will appear here when your community becomes active
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -377,17 +397,62 @@ function ArtistDashboardContent({
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full" variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Music
+              <Button 
+                className="w-full justify-start text-left" 
+                variant="outline"
+                onClick={() => handleTabChange("music")}
+              >
+                <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Upload Music</span>
               </Button>
-              <Button className="w-full" variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Post
+              <Button 
+                className="w-full justify-start text-left" 
+                variant="outline"
+                onClick={() => handleTabChange("updates")}
+                disabled={!selectedCommunity}
+              >
+                <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Create Announcement</span>
               </Button>
-              <Button className="w-full" variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule Event
+              <Button 
+                className="w-full justify-start text-left" 
+                variant="outline"
+                onClick={() => handleTabChange("community")}
+                disabled={!selectedCommunity}
+              >
+                <Users className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Manage Community</span>
+              </Button>
+              {isOwnerOrModerator && moderationNotificationCount > 0 && (
+                <Button 
+                  className="w-full justify-between" 
+                  variant="outline"
+                  onClick={() => handleTabChange("moderation")}
+                >
+                  <div className="flex items-center min-w-0">
+                    <Shield className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">Review Reports</span>
+                  </div>
+                  <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 hover:bg-red-600 flex-shrink-0">
+                    {moderationNotificationCount > 99 ? "99+" : moderationNotificationCount}
+                  </Badge>
+                </Button>
+              )}
+              <Button 
+                className="w-full justify-start text-left" 
+                variant="outline"
+                onClick={() => handleTabChange("settings")}
+              >
+                <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Settings</span>
+              </Button>
+              <Button 
+                className="w-full justify-start text-left" 
+                variant="outline"
+                onClick={() => handleTabChange("wallet")}
+              >
+                <Wallet className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">View Earnings</span>
               </Button>
             </CardContent>
           </Card>

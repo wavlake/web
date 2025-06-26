@@ -191,7 +191,7 @@ export function TrackDetailsDialog({
                 </span>
               </div>
 
-              {track.price && track.price > 0 && (
+              {!!track.price && track.price > 0 && (
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">
@@ -236,7 +236,12 @@ export function TrackDetailsDialog({
                   <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
                     {track.id}
                   </code>
-                  <Button size="sm" variant="ghost" onClick={handleCopyEventId} title="Copy full event ID">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCopyEventId}
+                    title="Copy full event ID"
+                  >
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
@@ -279,7 +284,10 @@ export function TrackDetailsDialog({
                   <Code className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 mt-2 min-w-0 w-full overflow-hidden" style={{maxWidth: "100%"}}>
+              <CollapsibleContent
+                className="space-y-2 mt-2 min-w-0 w-full overflow-hidden"
+                style={{ maxWidth: "100%" }}
+              >
                 <div className="flex items-center justify-between min-w-0 w-full">
                   <span className="text-xs text-muted-foreground">
                     Event JSON
@@ -293,9 +301,20 @@ export function TrackDetailsDialog({
                     Copy JSON
                   </Button>
                 </div>
-                <div className="w-full overflow-hidden" style={{maxWidth: "100%"}}>
-                  <pre className="text-xs bg-muted p-3 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap break-words w-full" style={{maxWidth: "100%", wordBreak: "break-all"}}>
-                    <code className="whitespace-pre-wrap break-words block" style={{maxWidth: "100%", wordBreak: "break-all"}}>{JSON.stringify(track.event, null, 2)}</code>
+                <div
+                  className="w-full overflow-hidden"
+                  style={{ maxWidth: "100%" }}
+                >
+                  <pre
+                    className="text-xs bg-muted p-3 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap break-words w-full"
+                    style={{ maxWidth: "100%", wordBreak: "break-all" }}
+                  >
+                    <code
+                      className="whitespace-pre-wrap break-words block"
+                      style={{ maxWidth: "100%", wordBreak: "break-all" }}
+                    >
+                      {JSON.stringify(track.event, null, 2)}
+                    </code>
                   </pre>
                 </div>
               </CollapsibleContent>

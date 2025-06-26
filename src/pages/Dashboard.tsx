@@ -3,9 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
 import { Layout } from "@/components/Layout";
+import { CommunityProvider, useCommunityContext } from "@/contexts/CommunityContext";
 
-export default function Dashboard() {
+// Internal component that uses community context
+function DashboardContent() {
   const { user } = useCurrentUser();
+  const { selectedCommunity, getCommunityName } = useCommunityContext();
 
   if (!user) {
     return (
@@ -27,14 +30,26 @@ export default function Dashboard() {
     );
   }
 
+  // Get the artist name from the selected community, fallback to "Artist"
+  const artistName = selectedCommunity ? getCommunityName(selectedCommunity) : "Artist";
+
   return (
     <Layout className="container mx-auto py-1 px-3 sm:px-4">
       <div className="my-6">
         <ArtistDashboard 
-          artistName="Artist Name"
+          artistName={artistName}
           artistImage=""
         />
       </div>
     </Layout>
+  );
+}
+
+// Main export with CommunityProvider wrapper
+export default function Dashboard() {
+  return (
+    <CommunityProvider>
+      <DashboardContent />
+    </CommunityProvider>
   );
 }

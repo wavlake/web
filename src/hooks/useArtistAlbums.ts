@@ -82,7 +82,8 @@ export function useArtistAlbums(artistPubkey: string) {
   return useQuery({
     queryKey: ["artist-albums-real", artistPubkey, selectedCommunityId],
     queryFn: async ({ signal }) => {
-      if (!artistPubkey || !selectedCommunity || !selectedCommunityId) return [];
+      if (!artistPubkey || !selectedCommunity || !selectedCommunityId)
+        return [];
 
       try {
         // Query for albums that are both:
