@@ -37,7 +37,7 @@ import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCanUpload } from "@/hooks/useAccountLinkingStatus";
 import { MUSIC_GENRES, MUSIC_SUBGENRES } from "@/constants/music";
-import { NostrTrack } from "@/hooks/useArtistTracks";
+import { NostrTrack } from "@/types/music";
 import { DraftTrack } from "@/types/drafts";
 import { useDraftPublish } from "@/hooks/useDraftPublish";
 import { AlertCircle } from "lucide-react";

@@ -12,7 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { NostrTrack } from "@/hooks/useArtistTracks";
+import { NostrTrack } from "@/types/music";
 import {
   Music,
   Calendar,

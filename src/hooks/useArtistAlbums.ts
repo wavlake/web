@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNostr } from "@nostrify/react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
-import { NostrTrack, parseTrackFromEvent } from "./useArtistTracks";
+import { NostrTrack, parseTrackFromEvent } from "@/types/music";
 import { useCommunityContext } from "@/contexts/CommunityContext";
 
 export interface NostrAlbum {
@@ -24,7 +24,7 @@ export interface NostrAlbum {
   event: NostrEvent;
 }
 
-function parseAlbumFromEvent(
+export function parseAlbumFromEvent(
   event: NostrEvent
 ): Omit<NostrAlbum, "tracks"> | null {
   try {

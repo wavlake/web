@@ -42,7 +42,7 @@ import {
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { MUSIC_GENRES } from "@/constants/music";
-import { useArtistTracks } from "@/hooks/useArtistTracks";
+import { useCommunityTracks } from "@/hooks/useCommunityContent";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
 import { DraftAlbum } from "@/types/drafts";
@@ -121,7 +121,7 @@ export function AlbumForm({
 
   const { user } = useCurrentUser();
   const { data: availableTracks = [], isLoading: tracksLoading } =
-    useArtistTracks(user?.pubkey || "");
+    useCommunityTracks();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutate: publishAlbum, isPending: isPublishing } = useMusicPublish();
   const { saveDraftAlbum, publishDraftAlbum, isLoading: isDraftLoading } = useDraftPublish();

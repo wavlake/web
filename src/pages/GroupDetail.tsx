@@ -41,8 +41,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { MusicSection } from "@/components/music/MusicSection";
-import { useArtistAlbums } from "@/hooks/useArtistAlbums";
-import { useArtistTracks } from "@/hooks/useArtistTracks";
+import { useCommunityTracks, useCommunityAlbums } from "@/hooks/useCommunityContent";
 import { useGroupSettings } from "@/hooks/useGroupSettings";
 
 // Dashboard navigation items for the tabs
@@ -144,12 +143,9 @@ export default function GroupDetail({
   // Get approved members
   const { approvedMembers } = useApprovedMembers(groupId || "");
 
-  const { data: albums = [], isLoading: isLoadingAlbums } = useArtistAlbums(
-    parsedId?.pubkey || ""
-  );
-  const { data: tracks = [], isLoading: isLoadingTracks } = useArtistTracks(
-    parsedId?.pubkey || ""
-  );
+  // Get community content using the community ID (not just pubkey)
+  const { data: albums = [], isLoading: isLoadingAlbums } = useCommunityAlbums(groupId || null);
+  const { data: tracks = [], isLoading: isLoadingTracks } = useCommunityTracks(groupId || null);
 
   // Get group settings for the owner
   const { settings } = useGroupSettings(groupId || "");

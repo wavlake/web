@@ -47,7 +47,7 @@ export interface CommunityContextValue {
   getCommunityId: (community: Community) => string;
 }
 
-const CommunityContext = createContext<CommunityContextValue | undefined>(
+export const CommunityContext = createContext<CommunityContextValue | undefined>(
   undefined
 );
 

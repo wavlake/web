@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { LucideIcon } from "lucide-react";
@@ -8,6 +9,7 @@ export interface TabItem {
   label: string;
   value: string;
   icon: LucideIcon;
+  badgeCount?: number;
 }
 
 interface ResponsiveTabNavigationProps {
@@ -44,12 +46,20 @@ export function ResponsiveTabNavigation({
                   size="sm"
                   onClick={() => onTabChange(tab.value)}
                   className={cn(
-                    "flex items-center space-x-2 whitespace-nowrap",
+                    "flex items-center space-x-2 whitespace-nowrap relative",
                     isActive && "bg-primary text-primary-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.badgeCount && tab.badgeCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="h-5 w-5 p-0 flex items-center justify-center text-xs min-w-[20px] ml-1"
+                    >
+                      {tab.badgeCount > 99 ? '99+' : tab.badgeCount}
+                    </Badge>
+                  )}
                 </Button>
               );
             })}
@@ -75,12 +85,20 @@ export function ResponsiveTabNavigation({
                 size="sm"
                 onClick={() => onTabChange(tab.value)}
                 className={cn(
-                  "justify-start space-x-2 w-full",
+                  "justify-start space-x-2 w-full relative",
                   isActive && "bg-primary text-primary-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
-                <span>{tab.label}</span>
+                <span className="flex-1 text-left">{tab.label}</span>
+                {tab.badgeCount && tab.badgeCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="h-5 w-5 p-0 flex items-center justify-center text-xs min-w-[20px]"
+                  >
+                    {tab.badgeCount > 99 ? '99+' : tab.badgeCount}
+                  </Badge>
+                )}
               </Button>
             );
           })}

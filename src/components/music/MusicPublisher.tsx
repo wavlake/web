@@ -55,14 +55,12 @@ import { AlbumForm } from "./AlbumForm";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCanUpload } from "@/hooks/useAccountLinkingStatus";
 import { UploadRestrictionBannerCompact } from "./UploadRestrictionBanner";
-import { useArtistAlbums } from "@/hooks/useArtistAlbums";
-import { useArtistTracks } from "@/hooks/useArtistTracks";
 import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
 import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
 import { useTrackNutzapTotals } from "@/hooks/useTrackNutzapTotals";
-import { useUploadHistory } from "@/hooks/useUploadHistory";
+import { useCommunityContent, useCommunityTracks, useCommunityAlbums, useCommunityUploadHistory } from "@/hooks/useCommunityContent";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
-import { NostrTrack } from "@/hooks/useArtistTracks";
+import { NostrTrack } from "@/types/music";
 import { TrackDetailsDialog } from "./TrackDetailsDialog";
 import { DraftTrack, DraftAlbum } from "@/types/drafts";
 import { useAllDrafts } from "@/hooks/useDrafts";
@@ -136,13 +134,9 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
   } | null>(null);
   const [isAlbumRawEventOpen, setIsAlbumRawEventOpen] = useState(false);
 
-  const { data: albums = [], isLoading: albumsLoading } = useArtistAlbums(
-    user?.pubkey || ""
-  );
-
-  const { data: tracks = [], isLoading: tracksLoading } = useArtistTracks(
-    user?.pubkey || ""
-  );
+  // Use consolidated community content hooks
+  const { data: albums = [], isLoading: albumsLoading } = useCommunityAlbums();
+  const { data: tracks = [], isLoading: tracksLoading } = useCommunityTracks();
   const { showSats } = useCurrencyDisplayStore();
   const { data: btcPrice } = useBitcoinPrice();
 
@@ -205,9 +199,9 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
     nutzapTotals.map((total) => [total.trackId, total.totalAmount])
   );
 
-  // Get real upload history
+  // Get upload history from consolidated hook
   const { data: uploadHistory = [], isLoading: uploadHistoryLoading } =
-    useUploadHistory();
+    useCommunityUploadHistory();
 
   // Get drafts
   const {

@@ -1,8 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { useNostr } from "@nostrify/react";
-import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
-import { useCommunityContext } from "@/contexts/CommunityContext";
 
 export interface NostrTrack {
   id: string;
@@ -72,45 +68,4 @@ export function parseTrackFromEvent(event: NostrEvent): NostrTrack | null {
     console.error("Failed to parse track event:", error);
     return null;
   }
-}
-
-export function useArtistTracks(artistPubkey: string) {
-  const { nostr } = useNostr();
-  const { selectedCommunity, selectedCommunityId } = useCommunityContext();
-
-  return useQuery({
-    queryKey: ["artist-tracks", artistPubkey, selectedCommunityId],
-    queryFn: async ({ signal }) => {
-      if (!artistPubkey || !selectedCommunity || !selectedCommunityId) return [];
-
-      try {
-        // Query for tracks that are both:
-        // 1. Authored by the community owner
-        // 2. Tagged with the community 'a' tag (NIP-72)
-        const events = await nostr.query(
-          [
-            {
-              kinds: [KINDS.MUSIC_TRACK],
-              authors: [selectedCommunity.pubkey],
-              "#a": [selectedCommunityId], // Filter by community tag at relay level
-              limit: 100,
-            },
-          ],
-          { signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) }
-        );
-
-        const tracks = events
-          .map(parseTrackFromEvent)
-          .filter((track): track is NostrTrack => track !== null)
-          .sort((a, b) => b.created_at - a.created_at); // Sort by newest first
-
-        return tracks;
-      } catch (error) {
-        console.error("Failed to fetch artist tracks:", error);
-        return [];
-      }
-    },
-    enabled: !!artistPubkey,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
 }

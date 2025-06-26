@@ -14,7 +14,6 @@ import Dashboard from "./pages/Dashboard";
 
 // Lazy load less frequently used pages
 const NotFound = lazy(() => import("./pages/NotFound"));
-const GroupSettings = lazy(() => import("./pages/GroupSettings"));
 const GroupGuidelines = lazy(() => import("./pages/GroupGuidelines"));
 const CreateGroup = lazy(() => import("./pages/CreateGroup"));
 const ProfileSettings = lazy(() => import("./pages/settings/ProfileSettings"));
@@ -53,11 +52,6 @@ export function AppRouter() {
         <Route path="/feed" element={<GroupPostsFeed />} />
         
         {/* Lazy loaded routes */}
-        <Route path="/group/:groupId/settings" element={
-          <Suspense fallback={<PageLoader />}>
-            <GroupSettings />
-          </Suspense>
-        } />
         <Route path="/group/:groupId/guidelines" element={
           <Suspense fallback={<PageLoader />}>
             <GroupGuidelines />
