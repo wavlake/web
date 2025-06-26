@@ -167,6 +167,12 @@ export async function parseDraftTrack(
       return null;
     }
 
+    // Check if content is empty (deleted draft)
+    if (!draftEvent.content || draftEvent.content.trim() === "") {
+      console.log("Skipping deleted draft track:", draftId);
+      return null;
+    }
+
     // Decrypt the future event
     const futureEvent = await decryptDraftContent(signer, userPubkey, draftEvent.content);
     
@@ -210,6 +216,12 @@ export async function parseDraftAlbum(
     
     if (!draftId) {
       console.error("Draft event missing 'd' tag");
+      return null;
+    }
+
+    // Check if content is empty (deleted draft)
+    if (!draftEvent.content || draftEvent.content.trim() === "") {
+      console.log("Skipping deleted draft album:", draftId);
       return null;
     }
 

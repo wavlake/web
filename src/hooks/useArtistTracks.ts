@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNostr } from "@nostrify/react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 
 export interface NostrTrack {
   id: string;
@@ -75,18 +76,23 @@ export function parseTrackFromEvent(event: NostrEvent): NostrTrack | null {
 
 export function useArtistTracks(artistPubkey: string) {
   const { nostr } = useNostr();
+  const { selectedCommunity, selectedCommunityId } = useCommunityContext();
 
   return useQuery({
-    queryKey: ["artist-tracks", artistPubkey],
+    queryKey: ["artist-tracks", artistPubkey, selectedCommunityId],
     queryFn: async ({ signal }) => {
-      if (!artistPubkey) return [];
+      if (!artistPubkey || !selectedCommunity || !selectedCommunityId) return [];
 
       try {
+        // Query for tracks that are both:
+        // 1. Authored by the community owner
+        // 2. Tagged with the community 'a' tag (NIP-72)
         const events = await nostr.query(
           [
             {
               kinds: [KINDS.MUSIC_TRACK],
-              authors: [artistPubkey],
+              authors: [selectedCommunity.pubkey],
+              "#a": [selectedCommunityId], // Filter by community tag at relay level
               limit: 100,
             },
           ],

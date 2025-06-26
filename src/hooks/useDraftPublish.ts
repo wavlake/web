@@ -111,13 +111,34 @@ export function useDraftPublish() {
 
   // Publish draft track as final kind 31337 event
   const publishDraftTrack = useMutation({
-    mutationFn: async (draft: DraftTrack) => {
+    mutationFn: async ({ draft, communityId }: { draft: DraftTrack; communityId?: string }) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
 
-      // Publish the decrypted future event
-      const publishedEvent = await publishEvent(draft.futureEvent);
+      // Create a copy of the future event and add community tags if provided
+      const eventToPublish = { ...draft.futureEvent };
+      
+      // Add community tag if communityId is provided (NIP-72)
+      if (communityId) {
+        console.log('Publishing draft track with communityId:', communityId);
+        // communityId format: "34550:pubkey:d-identifier"
+        const [kind, pubkey, dIdentifier] = communityId.split(":");
+        console.log('Parsed communityId parts:', { kind, pubkey, dIdentifier });
+        if (kind === "34550" && pubkey && dIdentifier) {
+          // Add community tag to existing tags
+          eventToPublish.tags = [...eventToPublish.tags, ["a", communityId]];
+          console.log('Added community tag to draft track:', ["a", communityId]);
+          console.log('Final draft track tags:', eventToPublish.tags);
+        } else {
+          console.error('Invalid communityId format for draft track:', communityId, 'Expected format: 34550:pubkey:d-identifier');
+        }
+      } else {
+        console.warn('No communityId provided for draft track - this will create orphaned content!');
+      }
+
+      // Publish the modified future event
+      const publishedEvent = await publishEvent(eventToPublish);
 
       // Delete the draft by publishing an empty event with same 'd' tag
       const deleteDraftEvent = {
@@ -147,13 +168,34 @@ export function useDraftPublish() {
 
   // Publish draft album as final kind 31338 event
   const publishDraftAlbum = useMutation({
-    mutationFn: async (draft: DraftAlbum) => {
+    mutationFn: async ({ draft, communityId }: { draft: DraftAlbum; communityId?: string }) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
 
-      // Publish the decrypted future event
-      const publishedEvent = await publishEvent(draft.futureEvent);
+      // Create a copy of the future event and add community tags if provided
+      const eventToPublish = { ...draft.futureEvent };
+      
+      // Add community tag if communityId is provided (NIP-72)
+      if (communityId) {
+        console.log('Publishing draft album with communityId:', communityId);
+        // communityId format: "34550:pubkey:d-identifier"
+        const [kind, pubkey, dIdentifier] = communityId.split(":");
+        console.log('Parsed communityId parts:', { kind, pubkey, dIdentifier });
+        if (kind === "34550" && pubkey && dIdentifier) {
+          // Add community tag to existing tags
+          eventToPublish.tags = [...eventToPublish.tags, ["a", communityId]];
+          console.log('Added community tag to draft album:', ["a", communityId]);
+          console.log('Final draft album tags:', eventToPublish.tags);
+        } else {
+          console.error('Invalid communityId format for draft album:', communityId, 'Expected format: 34550:pubkey:d-identifier');
+        }
+      } else {
+        console.warn('No communityId provided for draft album - this will create orphaned content!');
+      }
+
+      // Publish the modified future event
+      const publishedEvent = await publishEvent(eventToPublish);
 
       // Delete the draft by publishing an empty event with same 'd' tag
       const deleteDraftEvent = {

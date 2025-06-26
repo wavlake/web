@@ -43,7 +43,19 @@ import { useDraftPublish } from "@/hooks/useDraftPublish";
 import { AlertCircle } from "lucide-react";
 import { UploadRestrictionBanner } from "./UploadRestrictionBanner";
 
-const trackFormSchema = z.object({
+// Base schema for drafts (all fields optional)
+const baseDraftSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  genre: z.string().optional(),
+  subgenre: z.string().optional(),
+  explicit: z.boolean().default(false),
+  price: z.number().min(0).optional(),
+  tags: z.string().optional(),
+});
+
+// Full schema for publishing (required fields)
+const publishSchema = z.object({
   title: z.string().min(1, "Track title is required"),
   description: z.string().optional(),
   genre: z.string().min(1, "Genre is required"),
@@ -53,7 +65,7 @@ const trackFormSchema = z.object({
   tags: z.string().optional(),
 });
 
-type TrackFormData = z.infer<typeof trackFormSchema>;
+type TrackFormData = z.infer<typeof baseDraftSchema>;
 
 interface TrackFormProps {
   onCancel: () => void;
@@ -63,6 +75,7 @@ interface TrackFormProps {
   draft?: DraftTrack; // For editing existing drafts
   isEditing?: boolean;
   isDraftMode?: boolean; // For creating new drafts
+  communityId?: string; // For posting to community (NIP-72)
 }
 
 export function TrackForm({
@@ -73,6 +86,7 @@ export function TrackForm({
   draft,
   isEditing = false,
   isDraftMode = false,
+  communityId,
 }: TrackFormProps) {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
@@ -93,7 +107,7 @@ export function TrackForm({
   const { saveDraftTrack, publishDraftTrack, isLoading: isDraftLoading } = useDraftPublish();
 
   const form = useForm<TrackFormData>({
-    resolver: zodResolver(trackFormSchema),
+    resolver: zodResolver(saveAsDraft ? baseDraftSchema : publishSchema),
     defaultValues:
       (isEditing && track) || draft
         ? {
@@ -139,6 +153,11 @@ export function TrackForm({
     }
   }, [isEditing, track, draft, form]);
 
+  // Clear validation errors when switching between draft and publish modes
+  useEffect(() => {
+    form.clearErrors(); // Clear any existing validation errors when mode changes
+  }, [saveAsDraft, form]);
+
   const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("audio/")) {
@@ -159,10 +178,27 @@ export function TrackForm({
   };
 
   const onSubmit = async (data: TrackFormData) => {
-    // For editing or drafts, audio file is optional (keep existing if not provided)
-    if (!isEditing && !draft && !audioFile) {
-      form.setError("root", { message: "Audio file is required" });
-      return;
+    // Validate based on action type
+    if (!saveAsDraft) {
+      // Publishing requires audio file and required fields
+      if (!isEditing && !draft && !audioFile) {
+        form.setError("root", { message: "Audio file is required for publishing" });
+        return;
+      }
+      
+      // Validate required fields for publishing
+      const publishValidation = publishSchema.safeParse(data);
+      if (!publishValidation.success) {
+        // Set field-specific errors
+        publishValidation.error.errors.forEach((error) => {
+          if (error.path.length > 0) {
+            form.setError(error.path[0] as keyof TrackFormData, {
+              message: error.message,
+            });
+          }
+        });
+        return;
+      }
     }
 
     try {
@@ -183,13 +219,13 @@ export function TrackForm({
       }
 
       if (saveAsDraft) {
-        // Save as draft
+        // Save as draft - handle optional fields gracefully
         const draftData = {
-          title: data.title,
+          title: data.title || "Untitled Track",
           description: data.description || "",
-          genre: data.genre,
-          explicit: data.explicit,
-          price: data.price,
+          genre: data.genre || "",
+          explicit: data.explicit || false,
+          price: data.price || 0,
           audioUrl,
           coverUrl,
           tags: data.tags
@@ -204,17 +240,17 @@ export function TrackForm({
         onSuccess();
       } else if (draft && !saveAsDraft) {
         // Publish existing draft
-        await publishDraftTrack.mutateAsync(draft);
+        await publishDraftTrack.mutateAsync({ draft, communityId });
         onSuccess();
       } else {
-        // Normal publish flow
+        // Normal publish flow - ensure required fields are not undefined
         const trackEvent = {
-          title: data.title,
+          title: data.title || "Untitled Track",
           description: data.description || "",
-          genre: data.genre,
-          subgenre: data.subgenre,
-          explicit: data.explicit,
-          price: data.price,
+          genre: data.genre || "",
+          subgenre: data.subgenre || "",
+          explicit: data.explicit || false,
+          price: data.price || 0,
           audioUrl,
           coverUrl,
           tags: data.tags
@@ -222,6 +258,8 @@ export function TrackForm({
             .map((t) => t.trim())
             .filter(Boolean) || [],
           artistId,
+          // Add community ID for posting to community (NIP-72)
+          communityId,
           // Add existing track info for editing
           ...(isEditing && track
             ? {
@@ -313,7 +351,7 @@ export function TrackForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Audio Upload */}
               <div className="space-y-2">
-                <Label htmlFor="audio">Audio File *</Label>
+                <Label htmlFor="audio">Audio File{!saveAsDraft ? " *" : ""}</Label>
                 <div className="relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   {audioFile ? (
                     <div className="space-y-3">
@@ -413,7 +451,7 @@ export function TrackForm({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Track Title *</FormLabel>
+                  <FormLabel>Track Title{!saveAsDraft ? " *" : ""}</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter track title" {...field} />
                   </FormControl>
@@ -447,7 +485,7 @@ export function TrackForm({
                 name="genre"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Genre *</FormLabel>
+                    <FormLabel>Genre{!saveAsDraft ? " *" : ""}</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -498,7 +536,7 @@ export function TrackForm({
             </div>
 
             {/* Sub-genre selector - only shows when a genre with subgenres is selected */}
-            {form.watch("genre") && MUSIC_SUBGENRES[form.watch("genre")] && (
+            {form.watch("genre") && MUSIC_SUBGENRES[form.watch("genre") || ""] && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -516,7 +554,7 @@ export function TrackForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {MUSIC_SUBGENRES[form.watch("genre")].map(
+                          {MUSIC_SUBGENRES[form.watch("genre") || ""]?.map(
                             (subgenre) => (
                               <SelectItem key={subgenre} value={subgenre}>
                                 {subgenre}

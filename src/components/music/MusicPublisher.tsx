@@ -79,18 +79,42 @@ import {
   Copy,
   Hash,
   ExternalLink,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { nip19 } from "nostr-tools";
 import { KINDS } from "@/lib/nostr-kinds";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 
 interface MusicPublisherProps {
   artistId?: string;
+  communityId?: string;
 }
 
-export function MusicPublisher({ artistId }: MusicPublisherProps) {
+export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
   const { user } = useCurrentUser();
   const canUpload = useCanUpload();
+  const {
+    selectedCommunity,
+    selectedCommunityId,
+    userRole,
+    canUpdateCommunity,
+  } = useCommunityContext();
+
+  // Permission checks
+  const isOwner = userRole === "owner";
+  const isModerator = userRole === "moderator";
+  const canCreateContent = isOwner; // Only community owners can create content
+  const canModerateContent = isOwner || isModerator; // Owners and moderators can moderate
+
+  // Content editing permission - only community owner can edit community content
+  const canEditContent = (content: NostrTrack | NostrAlbum) => {
+    // Community owner can edit all community content
+    if (isOwner) return true;
+
+    return false;
+  };
+
   const [showTrackForm, setShowTrackForm] = useState(false);
   const [showAlbumForm, setShowAlbumForm] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<NostrAlbum | null>(null);
@@ -322,6 +346,26 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
     );
   }
 
+  // Show message if no community is selected
+  if (!selectedCommunity || !selectedCommunityId) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold tracking-tight mb-4">
+            No Artist Page Selected
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            You must select or create an artist page to manage music content.
+          </p>
+          <Button onClick={() => (window.location.href = "/create-group")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Artist Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -330,56 +374,92 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
             Music Management
           </h2>
           <p className="text-muted-foreground">
-            Manage your albums, tracks, and uploads
+            {isModerator && !isOwner
+              ? `View ${
+                  selectedCommunity
+                    ? selectedCommunity.tags.find(
+                        (t) => t[0] === "name"
+                      )?.[1] || "community"
+                    : "community"
+                } music content (read-only)`
+              : `Manage ${
+                  selectedCommunity
+                    ? selectedCommunity.tags.find(
+                        (t) => t[0] === "name"
+                      )?.[1] || "community"
+                    : "community"
+                } music content`}
           </p>
         </div>
         <Button
           className="bg-primary hover:bg-primary/90"
           onClick={() => setShowTrackForm(true)}
-          disabled={!canUpload}
+          disabled={!canUpload || !canCreateContent}
         >
           <Upload className="mr-2 h-4 w-4" />
           Upload New Music
         </Button>
       </div>
 
+      {/* Community Permissions Info */}
+      {isModerator && !isOwner && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Moderator View
+              </span>
+            </div>
+            <p className="text-sm text-blue-700 mt-1">
+              You can view all community music content but cannot create or edit
+              tracks/albums. Only the community owner can manage music content.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Show upload restriction warning if user can't upload */}
       {!canUpload && <UploadRestrictionBannerCompact />}
 
-      {/* Show forms when active */}
-      {showTrackForm && (
+      {/* Show forms when active - only if user can create content */}
+      {showTrackForm && canCreateContent && (
         <TrackForm
           onCancel={() => setShowTrackForm(false)}
           onSuccess={() => setShowTrackForm(false)}
           artistId={artistId}
+          communityId={selectedCommunityId}
         />
       )}
 
-      {showAlbumForm && (
+      {showAlbumForm && canCreateContent && (
         <AlbumForm
           onCancel={() => setShowAlbumForm(false)}
           onSuccess={() => setShowAlbumForm(false)}
           artistId={artistId}
+          communityId={selectedCommunityId}
         />
       )}
 
-      {editingAlbum && (
+      {editingAlbum && canEditContent(editingAlbum) && (
         <AlbumForm
           onCancel={() => setEditingAlbum(null)}
           onSuccess={() => setEditingAlbum(null)}
           artistId={artistId}
           album={editingAlbum}
           isEditing={true}
+          communityId={selectedCommunityId}
         />
       )}
 
-      {editingTrack && (
+      {editingTrack && canEditContent(editingTrack) && (
         <TrackForm
           onCancel={() => setEditingTrack(null)}
           onSuccess={() => setEditingTrack(null)}
           artistId={artistId}
           track={editingTrack}
           isEditing={true}
+          communityId={selectedCommunityId}
         />
       )}
 
@@ -435,15 +515,25 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                   <h3 className="text-lg font-semibold truncate">
                     {viewingAlbum.title}
                   </h3>
-                  <p className="text-muted-foreground text-sm">{viewingAlbum.artist}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {viewingAlbum.artist}
+                  </p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                     <span>{viewingAlbum.genre}</span>
                     {viewingAlbum.releaseDate && (
                       <span>
-                        Released: {new Date(viewingAlbum.releaseDate).toLocaleDateString()}
+                        Released:{" "}
+                        {new Date(
+                          viewingAlbum.releaseDate
+                        ).toLocaleDateString()}
                       </span>
                     )}
-                    <span>Published: {new Date(viewingAlbum.created_at * 1000).toLocaleDateString()}</span>
+                    <span>
+                      Published:{" "}
+                      {new Date(
+                        viewingAlbum.created_at * 1000
+                      ).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -489,7 +579,9 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     {viewingAlbum.price && viewingAlbum.price > 0 && (
                       <div>
                         <h4 className="font-medium text-sm mb-1">Price</h4>
-                        <p className="text-sm">{formatCurrency(viewingAlbum.price)}</p>
+                        <p className="text-sm">
+                          {formatCurrency(viewingAlbum.price)}
+                        </p>
                       </div>
                     )}
 
@@ -498,7 +590,11 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                         <h4 className="font-medium text-sm mb-1">Tags</h4>
                         <div className="flex flex-wrap gap-1">
                           {viewingAlbum.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -536,7 +632,12 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     <h4 className="font-medium text-sm mb-2">Links</h4>
                     <div className="grid grid-cols-1 gap-2">
                       {viewingAlbum.coverUrl && (
-                        <Button variant="outline" size="sm" asChild className="justify-start">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="justify-start"
+                        >
                           <a
                             href={viewingAlbum.coverUrl}
                             target="_blank"
@@ -691,7 +792,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <Button
                             size="sm"
                             variant="default"
-                            onClick={() => publishDraftTrack.mutateAsync(draft)}
+                            onClick={() => publishDraftTrack.mutateAsync({ draft, communityId: selectedCommunityId })}
                           >
                             Publish
                           </Button>
@@ -710,7 +811,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  publishDraftTrack.mutateAsync(draft)
+                                  publishDraftTrack.mutateAsync({ draft, communityId: selectedCommunityId })
                                 }
                               >
                                 Publish Track
@@ -790,7 +891,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <Button
                             size="sm"
                             variant="default"
-                            onClick={() => publishDraftAlbum.mutateAsync(draft)}
+                            onClick={() => publishDraftAlbum.mutateAsync({ draft, communityId: selectedCommunityId })}
                           >
                             Publish
                           </Button>
@@ -809,7 +910,7 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  publishDraftAlbum.mutateAsync(draft)
+                                  publishDraftAlbum.mutateAsync({ draft, communityId: selectedCommunityId })
                                 }
                               >
                                 Publish Album
@@ -857,13 +958,15 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setEditingAlbum(album)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    {canEditContent(album) && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setEditingAlbum(album)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="secondary"
@@ -883,14 +986,16 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                   </p>
 
                   <div className="flex items-center justify-between mt-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingAlbum(album)}
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
+                    {canEditContent(album) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingAlbum(album)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="sm" variant="ghost">
@@ -904,12 +1009,14 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setEditingAlbum(album)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Album
-                        </DropdownMenuItem>
+                        {canEditContent(album) && (
+                          <DropdownMenuItem
+                            onClick={() => setEditingAlbum(album)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Album
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() =>
                             setUnpublishingContent({
@@ -1060,13 +1167,15 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingTrack(track)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                              {canEditContent(track) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setEditingTrack(track)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button size="sm" variant="ghost">
@@ -1080,12 +1189,14 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => setEditingTrack(track)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit Track
-                                  </DropdownMenuItem>
+                                  {canEditContent(track) && (
+                                    <DropdownMenuItem
+                                      onClick={() => setEditingTrack(track)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit Track
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() =>
                                       convertTrackToDraft.mutateAsync(track)
@@ -1230,26 +1341,35 @@ export function MusicPublisher({ artistId }: MusicPublisherProps) {
                               </div>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    // Find the actual track/album object for editing
-                                    if (upload.type === "track") {
-                                      const track = allTracks.find(
-                                        (t) => t.id === upload.id
-                                      );
-                                      if (track) setEditingTrack(track);
-                                    } else {
-                                      const album = albums.find(
-                                        (a) => a.id === upload.id
-                                      );
-                                      if (album) setEditingAlbum(album);
-                                    }
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                {(() => {
+                                  // Find the actual track/album object for permission checking
+                                  const content =
+                                    upload.type === "track"
+                                      ? allTracks.find(
+                                          (t) => t.id === upload.id
+                                        )
+                                      : albums.find((a) => a.id === upload.id);
+
+                                  return content && canEditContent(content) ? (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        if (upload.type === "track") {
+                                          setEditingTrack(
+                                            content as NostrTrack
+                                          );
+                                        } else {
+                                          setEditingAlbum(
+                                            content as NostrAlbum
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  ) : null;
+                                })()}
                                 <Button
                                   size="sm"
                                   variant="outline"

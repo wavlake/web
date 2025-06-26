@@ -103,16 +103,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-52 p-1.5 animate-scale-in">
-          <DropdownMenuItem
-            asChild
-            className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md font-bold text-sm md:gap-2 gap-3"
-          >
-            <Link to="/create-group">
-              <Plus className="w-3.5 h-3.5 font-bold md:w-3.5 md:h-3.5 w-4 h-4" />
-              <span>Create Artist Page</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="my-1" />
+          {/* Create Artist Page moved to Community Selector */}
           <DropdownMenuItem
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"

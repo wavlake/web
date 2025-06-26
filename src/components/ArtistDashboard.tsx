@@ -25,6 +25,7 @@ import {
   Bell,
   HelpCircle,
   Shield,
+  Crown,
 } from "lucide-react";
 import {
   ResponsiveTabNavigation,
@@ -39,6 +40,10 @@ import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementFo
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useGroupSettings } from "@/hooks/useGroupSettings";
+import { CommunityProvider, useCommunityContext } from "@/contexts/CommunityContext";
+import { CommunitySelector } from "@/components/dashboard/CommunitySelector";
+import { CommunityPrivileges } from "@/components/dashboard/CommunityPrivileges";
+import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -98,18 +103,32 @@ interface ArtistDashboardProps {
   communityId?: string;
 }
 
-export function ArtistDashboard({
+// Internal component that uses CommunityContext
+function ArtistDashboardContent({
   artistName = "Artist",
   artistImage,
   communityId = "placeholder-community",
 }: ArtistDashboardProps) {
   const [activeSection, setActiveSection] = useState("overview");
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
   const { data: userGroups } = useUserGroups();
-  const { data: userRole } = useUserRole(selectedGroupId);
-  const { settings, updateSettings } = useGroupSettings(selectedGroupId);
+  
+  // Use community context instead of local state
+  const {
+    selectedCommunity,
+    selectedCommunityId,
+    setSelectedCommunityId,
+    communities,
+    userRole,
+    canManageCommunity,
+    canUpdateCommunity,
+    getCommunityName,
+    getCommunityId,
+  } = useCommunityContext();
+  
+  const { settings, updateSettings } = useGroupSettings(selectedCommunityId || "");
 
   // Check URL hash for initial tab on mount
   useEffect(() => {
@@ -126,19 +145,7 @@ export function ArtistDashboard({
     window.history.replaceState(null, "", `#${newTab}`);
   };
 
-  // Auto-select the first group where user is owner or moderator
-  useEffect(() => {
-    if (userGroups && !selectedGroupId) {
-      const managedGroups = [...userGroups.owned, ...userGroups.moderated];
-      if (managedGroups.length > 0) {
-        const dTag = managedGroups[0].tags.find((tag) => tag[0] === "d");
-        const groupId = `34550:${managedGroups[0].pubkey}:${
-          dTag ? dTag[1] : ""
-        }`;
-        setSelectedGroupId(groupId);
-      }
-    }
-  }, [userGroups, selectedGroupId]);
+  // Note: Community auto-selection is now handled by CommunityContext
 
   // Stats placeholder data
   const stats = [
@@ -168,24 +175,109 @@ export function ArtistDashboard({
     },
   ];
 
-  const renderOverview = () => (
-    <div className="space-y-6">
-      {/* Artist Info */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg">
-                {artistName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-2xl">{artistName}</CardTitle>
-              <CardDescription>Artist Dashboard</CardDescription>
-            </div>
+  const renderOverview = () => {
+    // Show Create Artist Page CTA for users with no manageable communities
+    if (communities.manageable.length === 0) {
+      return (
+        <div className="space-y-6">
+          {/* Welcome Message for New Users */}
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center text-center py-16">
+              <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="h-10 w-10 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Welcome to Your Artist Dashboard</h2>
+              <p className="text-lg text-muted-foreground mb-8 max-w-2xl">
+                Start building your music community by creating your artist page. Connect with fans, 
+                share your music, and grow your audience on the decentralized web.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate('/create-group')}
+                  className="text-lg px-8 py-3"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Create Your Artist Page
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={() => handleTabChange('music')}
+                  className="text-lg px-8 py-3"
+                >
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload Music
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Benefits of Creating Artist Page */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold">Build Community</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Create a dedicated space for your fans to discover your music and connect with each other.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <Crown className="h-4 w-4 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold">Full Control</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Own your content and community on the decentralized web without platform restrictions.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Music className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold">Share Music</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload and distribute your music directly to your community and the Nostr network.
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      );
+    }
+
+    // Regular overview for users with communities
+    return (
+      <div className="space-y-6">
+        {/* Artist Info */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="text-lg">
+                  {artistName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-2xl">{artistName}</CardTitle>
+                <CardDescription>Artist Dashboard</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
 
       {/* Stats Grid */}
       {/* <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -269,76 +361,120 @@ export function ArtistDashboard({
         </Card>
       </div>
     </div>
-  );
+    );
+  };
 
-  const renderCommunity = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Community Management</h2>
-        <p className="text-muted-foreground">
-          Manage your artist community members and settings
-        </p>
+  const renderCommunity = () => {
+    if (!selectedCommunity) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Community Management</h2>
+            <p className="text-muted-foreground">
+              Manage your artist page community and settings
+            </p>
+          </div>
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-muted flex items-center justify-center">
+                  <Users className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">No Artist Page Selected</h3>
+                <p className="text-muted-foreground mt-2">
+                  Select or create an artist page to manage community members and settings.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    if (!selectedCommunity) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Community Management</h2>
+            <p className="text-muted-foreground">
+              Select a community above to manage members and settings
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const communityName = getCommunityName(selectedCommunity);
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold">Community Management</h2>
+          <p className="text-muted-foreground">
+            Managing <strong>{communityName}</strong>
+          </p>
+        </div>
+
+        {/* Community Privileges */}
+        <CommunityPrivileges />
+
+        {/* Community Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">1,234</div>
+              <p className="text-xs text-green-600">+24 this week</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                Active Members
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">892</div>
+              <p className="text-xs text-green-600">+12 this week</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pending Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">5</div>
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Members List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Community Members</CardTitle>
+            <CardDescription>
+              View and manage members of {communityName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedCommunityId ? (
+              <SimpleMembersList communityId={selectedCommunityId} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4" />
+                <p>Unable to load community members</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Community Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-green-600">+24 this week</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Members
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">892</div>
-            <p className="text-xs text-green-600">+12 this week</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Requests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Awaiting approval</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Members List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Community Members</CardTitle>
-          <CardDescription>
-            View and manage your community members
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {communityId !== "placeholder-community" ? (
-            <SimpleMembersList communityId={communityId} />
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4" />
-              <p>Set up your community to view members</p>
-              <Button className="mt-4" variant="outline">
-                Configure Community
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+    );
+  };
 
   const renderSettings = () => (
     <div className="space-y-6">
@@ -408,6 +544,9 @@ export function ArtistDashboard({
         </TabsContent>
 
         <TabsContent value="community" className="space-y-4">
+          {/* Community Privileges Component */}
+          <CommunityPrivileges showUpdateCommunityFeatures={true} />
+          
           <Card>
             <CardHeader>
               <CardTitle>Community Settings</CardTitle>
@@ -502,20 +641,34 @@ export function ArtistDashboard({
   );
 
   const renderUpdates = () => {
-    if (!userGroups) {
+    // Show message if no community selected
+    if (!selectedCommunity) {
       return (
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-bold">Community Updates</h2>
-            <p className="text-muted-foreground">Loading your communities...</p>
+            <p className="text-muted-foreground">
+              Publish announcements and updates to your community
+            </p>
           </div>
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="h-12 w-12 mx-auto mb-4 rounded-lg bg-muted flex items-center justify-center">
+                  <Bell className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">No Artist Page Selected</h3>
+                <p className="text-muted-foreground mt-2">
+                  Select or create an artist page to publish community updates.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       );
     }
 
-    const managedGroups = [...userGroups.owned, ...userGroups.moderated];
-
-    if (managedGroups.length === 0) {
+    if (communities.manageable.length === 0) {
       return (
         <div className="space-y-6">
           <div>
@@ -542,6 +695,20 @@ export function ArtistDashboard({
       );
     }
 
+    if (!selectedCommunity) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Community Updates</h2>
+            <p className="text-muted-foreground">
+              Select a community above to publish announcements
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const communityName = getCommunityName(selectedCommunity);
     const isOwner = userRole === "owner";
 
     return (
@@ -549,52 +716,20 @@ export function ArtistDashboard({
         <div>
           <h2 className="text-2xl font-bold">Community Updates</h2>
           <p className="text-muted-foreground">
-            Publish announcements to your community
+            Publishing announcements to <strong>{communityName}</strong>
           </p>
         </div>
 
-        {/* Group Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Community</CardTitle>
-            <CardDescription>
-              Choose which community you'd like to publish an announcement to
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="group-select">Community</Label>
-              <Select
-                value={selectedGroupId}
-                onValueChange={setSelectedGroupId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a community" />
-                </SelectTrigger>
-                <SelectContent>
-                  {managedGroups.map((group) => {
-                    const dTag = group.tags.find((tag) => tag[0] === "d");
-                    const groupId = `34550:${group.pubkey}:${
-                      dTag ? dTag[1] : ""
-                    }`;
-                    const groupName =
-                      group.tags.find((tag) => tag[0] === "name")?.[1] ||
-                      dTag?.[1] ||
-                      "Unnamed Group";
-                    const isGroupOwner = group.pubkey === user?.pubkey;
-
-                    return (
-                      <SelectItem key={groupId} value={groupId}>
-                        {groupName} {isGroupOwner ? "(Owner)" : "(Moderator)"}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Owner-only toggle for hiding moderator announcements */}
-            {isOwner && (
+        {/* Community Settings (Owner only) */}
+        {isOwner && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Community Settings</CardTitle>
+              <CardDescription>
+                Configure how announcements appear for {communityName}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="hide-moderator-announcements"
@@ -607,19 +742,17 @@ export function ArtistDashboard({
                   Hide moderator announcements from Home page
                 </Label>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Announcement Form */}
-        {selectedGroupId && (
-          <CreateAnnouncementForm
-            communityId={selectedGroupId}
-            onAnnouncementSuccess={() => {
-              // Could add a refresh callback here if needed
-            }}
-          />
-        )}
+        <CreateAnnouncementForm
+          communityId={selectedCommunityId!}
+          onAnnouncementSuccess={() => {
+            // Could add a refresh callback here if needed
+          }}
+        />
       </div>
     );
   };
@@ -658,7 +791,12 @@ export function ArtistDashboard({
       case "overview":
         return renderOverview();
       case "music":
-        return <MusicPublisher artistId={user?.pubkey} />;
+        return (
+          <MusicPublisher 
+            artistId={user?.pubkey} 
+            communityId={selectedCommunityId || undefined}
+          />
+        );
       case "updates":
         return renderUpdates();
       case "community":
@@ -684,8 +822,33 @@ export function ArtistDashboard({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
+        {/* Dashboard Header with Community Selector */}
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="p-6 pb-4">
+            <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Artist Dashboard</h1>
+                <p className="text-muted-foreground">
+                  Manage your content and community
+                </p>
+              </div>
+              <CommunitySelector />
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Content */}
         <div className="p-6">{renderContent()}</div>
       </div>
     </div>
+  );
+}
+
+// Main export component with CommunityProvider
+export function ArtistDashboard(props: ArtistDashboardProps) {
+  return (
+    <CommunityProvider>
+      <ArtistDashboardContent {...props} />
+    </CommunityProvider>
   );
 }
