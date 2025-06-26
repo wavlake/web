@@ -1013,22 +1013,24 @@ function ArtistDashboardContent({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Dashboard Header with Community Selector */}
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="p-6 pb-4">
-            <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">
-                  Artist Dashboard
-                </h1>
-                <p className="text-muted-foreground">
-                  Manage your content and community
-                </p>
+        {/* Dashboard Header with Community Selector - Only show if user has manageable communities */}
+        {communities.manageable.length > 0 && (
+          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="p-6 pb-4">
+              <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Artist Dashboard
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Manage your content and community
+                  </p>
+                </div>
+                <CommunitySelector />
               </div>
-              <CommunitySelector />
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tab Content */}
         <div className="p-6">{renderContent()}</div>
