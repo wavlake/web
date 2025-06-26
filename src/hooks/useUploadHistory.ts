@@ -1,6 +1,7 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
 
@@ -20,24 +21,35 @@ export interface UploadHistoryItem {
 export function useUploadHistory() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { selectedCommunity, selectedCommunityId } = useCommunityContext();
 
   return useQuery({
-    queryKey: ["upload-history", user?.pubkey],
+    queryKey: ["upload-history", user?.pubkey, selectedCommunityId],
     queryFn: async (c) => {
-      if (!nostr || !user) {
+      if (!nostr || !user || !selectedCommunity || !selectedCommunityId) {
         return [];
       }
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
 
-      // Fetch both tracks and albums
+      // Fetch both tracks and albums from community owner with community tags
       const [trackEvents, albumEvents] = await Promise.all([
         nostr.query(
-          [{ kinds: [KINDS.MUSIC_TRACK], authors: [user.pubkey], limit: 100 }],
+          [{ 
+            kinds: [KINDS.MUSIC_TRACK], 
+            authors: [selectedCommunity.pubkey], 
+            "#a": [selectedCommunityId],
+            limit: 100 
+          }],
           { signal }
         ),
         nostr.query(
-          [{ kinds: [KINDS.MUSIC_ALBUM], authors: [user.pubkey], limit: 100 }],
+          [{ 
+            kinds: [KINDS.MUSIC_ALBUM], 
+            authors: [selectedCommunity.pubkey], 
+            "#a": [selectedCommunityId],
+            limit: 100 
+          }],
           { signal }
         ),
       ]);
@@ -96,7 +108,7 @@ export function useUploadHistory() {
 
       return uploadHistory;
     },
-    enabled: !!nostr && !!user,
+    enabled: !!nostr && !!user && !!selectedCommunity && !!selectedCommunityId,
     staleTime: 30000, // Consider data stale after 30 seconds
   });
 }

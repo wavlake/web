@@ -22,7 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
-import { NostrTrack } from "@/hooks/useArtistTracks";
+import { NostrTrack } from "@/types/music";
 import { useAudioPlayerStore } from "@/stores/audioPlayerStore";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { EmojiReactionButton } from "@/components/EmojiReactionButton";

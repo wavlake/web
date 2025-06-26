@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { NostrTrack } from '@/hooks/useArtistTracks';
+import { NostrTrack } from '@/types/music';
 import { AudioPlayerEngineRef } from '@/components/audio/AudioPlayerEngine';
 
 interface AudioPlayerState {

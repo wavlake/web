@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -42,13 +42,34 @@ import {
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useMusicPublish } from "@/hooks/useMusicPublish";
 import { MUSIC_GENRES } from "@/constants/music";
-import { useArtistTracks } from "@/hooks/useArtistTracks";
+import { useCommunityTracks } from "@/hooks/useCommunityContent";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NostrAlbum } from "@/hooks/useArtistAlbums";
 import { DraftAlbum } from "@/types/drafts";
 import { useDraftPublish } from "@/hooks/useDraftPublish";
 
-const albumFormSchema = z.object({
+// Base schema for drafts (all fields optional)
+const baseDraftAlbumSchema = z.object({
+  title: z.string().optional(),
+  artist: z.string().optional(),
+  description: z.string().optional(),
+  genre: z.string().optional(),
+  releaseDate: z.string().optional(),
+  price: z.number().min(0).optional(),
+  tags: z.string().optional(),
+  upc: z.string().optional(),
+  label: z.string().optional(),
+  explicit: z.boolean().default(false),
+  tracks: z.array(
+    z.object({
+      eventId: z.string().optional(),
+      title: z.string().optional(),
+    })
+  ).optional(),
+});
+
+// Full schema for publishing (required fields)
+const publishAlbumSchema = z.object({
   title: z.string().min(1, "Album title is required"),
   artist: z.string().min(1, "Artist name is required"),
   description: z.string().optional(),
@@ -69,7 +90,7 @@ const albumFormSchema = z.object({
     .min(1, "At least one track is required"),
 });
 
-type AlbumFormData = z.infer<typeof albumFormSchema>;
+type AlbumFormData = z.infer<typeof baseDraftAlbumSchema>;
 
 interface AlbumFormProps {
   onCancel: () => void;
@@ -79,6 +100,7 @@ interface AlbumFormProps {
   draft?: DraftAlbum; // For editing existing drafts
   isEditing?: boolean;
   isDraftMode?: boolean; // For creating new drafts
+  communityId?: string; // For posting to community (NIP-72)
 }
 
 export function AlbumForm({ 
@@ -88,7 +110,8 @@ export function AlbumForm({
   album, 
   draft, 
   isEditing = false, 
-  isDraftMode = false 
+  isDraftMode = false,
+  communityId
 }: AlbumFormProps) {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
@@ -98,13 +121,13 @@ export function AlbumForm({
 
   const { user } = useCurrentUser();
   const { data: availableTracks = [], isLoading: tracksLoading } =
-    useArtistTracks(user?.pubkey || "");
+    useCommunityTracks();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { mutate: publishAlbum, isPending: isPublishing } = useMusicPublish();
   const { saveDraftAlbum, publishDraftAlbum, isLoading: isDraftLoading } = useDraftPublish();
 
   const form = useForm<AlbumFormData>({
-    resolver: zodResolver(albumFormSchema),
+    resolver: zodResolver(saveAsDraft ? baseDraftAlbumSchema : publishAlbumSchema),
     defaultValues: (isEditing && album) || draft ? {
       title: album?.title || draft?.metadata.title || "",
       artist: album?.artist || draft?.metadata.artist || "",
@@ -135,6 +158,11 @@ export function AlbumForm({
     name: "tracks",
   });
 
+  // Clear validation errors when switching between draft and publish modes
+  useEffect(() => {
+    form.clearErrors(); // Clear any existing validation errors when mode changes
+  }, [saveAsDraft, form]);
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
@@ -145,6 +173,23 @@ export function AlbumForm({
   };
 
   const onSubmit = async (data: AlbumFormData) => {
+    // Validate based on action type
+    if (!saveAsDraft) {
+      // Validate required fields for publishing
+      const publishValidation = publishAlbumSchema.safeParse(data);
+      if (!publishValidation.success) {
+        // Set field-specific errors
+        publishValidation.error.errors.forEach((error) => {
+          if (error.path.length > 0) {
+            form.setError(error.path[0] as keyof AlbumFormData, {
+              message: error.message,
+            });
+          }
+        });
+        return;
+      }
+    }
+
     try {
       // Upload cover image if provided, otherwise use existing URL
       let coverUrl = (isEditing && album?.coverUrl) || draft?.metadata.coverUrl || "";
@@ -154,25 +199,25 @@ export function AlbumForm({
       }
 
       if (saveAsDraft) {
-        // Save as draft
+        // Save as draft - handle optional fields gracefully
         const draftData = {
-          title: data.title,
-          artist: data.artist,
+          title: data.title || "Untitled Album",
+          artist: data.artist || "",
           description: data.description || "",
-          genre: data.genre,
+          genre: data.genre || "",
           releaseDate: data.releaseDate,
-          price: data.price,
+          price: data.price || 0,
           coverUrl,
           tags: data.tags
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-          upc: data.upc,
-          label: data.label,
-          explicit: data.explicit,
-          tracks: data.tracks.map((track, index) => ({
-            eventId: track.eventId,
-            title: track.title,
+          upc: data.upc || "",
+          label: data.label || "",
+          explicit: data.explicit || false,
+          tracks: (data.tracks || []).map((track, index) => ({
+            eventId: track.eventId || "",
+            title: track.title || "",
             trackNumber: index + 1,
           })),
           artistId,
@@ -183,31 +228,33 @@ export function AlbumForm({
         onSuccess();
       } else if (draft && !saveAsDraft) {
         // Publish existing draft
-        await publishDraftAlbum.mutateAsync(draft);
+        await publishDraftAlbum.mutateAsync({ draft, communityId });
         onSuccess();
       } else {
-        // Normal publish flow
+        // Normal publish flow - ensure required fields are not undefined
         const albumEvent = {
-          title: data.title,
-          artist: data.artist,
+          title: data.title || "Untitled Album",
+          artist: data.artist || "",
           description: data.description || "",
-          genre: data.genre,
+          genre: data.genre || "",
           releaseDate: data.releaseDate,
-          price: data.price,
+          price: data.price || 0,
           coverUrl,
           tags: data.tags
             ?.split(",")
             .map((t) => t.trim())
             .filter(Boolean) || [],
-          upc: data.upc,
-          label: data.label,
-          explicit: data.explicit,
-          tracks: data.tracks.map((track, index) => ({
-            eventId: track.eventId,
-            title: track.title,
+          upc: data.upc || "",
+          label: data.label || "",
+          explicit: data.explicit || false,
+          tracks: (data.tracks || []).map((track, index) => ({
+            eventId: track.eventId || "",
+            title: track.title || "",
             trackNumber: index + 1,
           })),
           artistId,
+          // Add community ID for posting to community (NIP-72)
+          communityId,
           // Add existing album info for editing
           ...(isEditing && album ? {
             existingAlbumId: album.id,
@@ -343,7 +390,7 @@ export function AlbumForm({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Album Title *</FormLabel>
+                    <FormLabel>Album Title{!saveAsDraft ? " *" : ""}</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter album title" {...field} />
                     </FormControl>
@@ -357,7 +404,7 @@ export function AlbumForm({
                 name="artist"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Artist Name *</FormLabel>
+                    <FormLabel>Artist Name{!saveAsDraft ? " *" : ""}</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter artist name" {...field} />
                     </FormControl>
@@ -392,7 +439,7 @@ export function AlbumForm({
                 name="genre"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Genre *</FormLabel>
+                    <FormLabel>Genre{!saveAsDraft ? " *" : ""}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}

@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNostr } from "@nostrify/react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
-import { NostrTrack, parseTrackFromEvent } from "./useArtistTracks";
+import { NostrTrack, parseTrackFromEvent } from "@/types/music";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 
 export interface NostrAlbum {
   id: string;
@@ -23,7 +24,7 @@ export interface NostrAlbum {
   event: NostrEvent;
 }
 
-function parseAlbumFromEvent(
+export function parseAlbumFromEvent(
   event: NostrEvent
 ): Omit<NostrAlbum, "tracks"> | null {
   try {
@@ -76,19 +77,23 @@ function parseAlbumFromEvent(
 
 export function useArtistAlbums(artistPubkey: string) {
   const { nostr } = useNostr();
+  const { selectedCommunity, selectedCommunityId } = useCommunityContext();
 
   return useQuery({
-    queryKey: ["artist-albums-real", artistPubkey],
+    queryKey: ["artist-albums-real", artistPubkey, selectedCommunityId],
     queryFn: async ({ signal }) => {
-      if (!artistPubkey) return [];
+      if (!artistPubkey || !selectedCommunity || !selectedCommunityId) return [];
 
       try {
-        // First, fetch all album events
+        // Query for albums that are both:
+        // 1. Authored by the community owner
+        // 2. Tagged with the community 'a' tag (NIP-72)
         const albumEvents = await nostr.query(
           [
             {
               kinds: [KINDS.MUSIC_ALBUM],
-              authors: [artistPubkey],
+              authors: [selectedCommunity.pubkey],
+              "#a": [selectedCommunityId], // Filter by community tag at relay level
               limit: 50,
             },
           ],
@@ -134,6 +139,7 @@ export function useArtistAlbums(artistPubkey: string) {
         });
 
         // Parse albums and associate tracks
+        // No need to filter since relay already filtered by #a tag and authors
         const albums = albumEvents
           .map((albumEvent) => {
             const albumBase = parseAlbumFromEvent(albumEvent);
