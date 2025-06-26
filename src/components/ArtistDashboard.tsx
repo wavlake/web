@@ -41,8 +41,6 @@ import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementFo
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
 import { useUserGroups } from "@/hooks/useUserGroups";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useGroupSettings } from "@/hooks/useGroupSettings";
 import {
   CommunityProvider,
   useCommunityContext,
@@ -93,10 +91,6 @@ function ArtistDashboardContent({
     getCommunityId,
   } = useCommunityContext();
 
-  const { settings, updateSettings } = useGroupSettings(
-    selectedCommunityId || ""
-  );
-
   // Check if user is owner or moderator for notification badges
   const isOwnerOrModerator = userRole === "owner" || userRole === "moderator";
 
@@ -138,7 +132,10 @@ function ArtistDashboardContent({
         label: "Moderation",
         value: "moderation",
         icon: Shield,
-        badgeCount: moderationNotificationCount > 0 ? moderationNotificationCount : undefined,
+        badgeCount:
+          moderationNotificationCount > 0
+            ? moderationNotificationCount
+            : undefined,
       },
       {
         label: "Wallet",
@@ -761,33 +758,6 @@ function ArtistDashboardContent({
             Publishing announcements to <strong>{communityName}</strong>
           </p>
         </div>
-
-        {/* Community Settings (Owner only) */}
-        {isOwner && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Community Settings</CardTitle>
-              <CardDescription>
-                Configure how announcements appear for {communityName}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="hide-moderator-announcements"
-                  checked={settings.hideModeratorsAnnouncements}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ hideModeratorsAnnouncements: checked })
-                  }
-                />
-                <Label htmlFor="hide-moderator-announcements">
-                  Hide moderator announcements from Home page
-                </Label>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Announcement Form */}
         <CreateAnnouncementForm
           communityId={selectedCommunityId!}

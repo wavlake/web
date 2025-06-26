@@ -41,8 +41,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { MusicSection } from "@/components/music/MusicSection";
-import { useCommunityTracks, useCommunityAlbums } from "@/hooks/useCommunityContent";
-import { useGroupSettings } from "@/hooks/useGroupSettings";
+import {
+  useCommunityTracks,
+  useCommunityAlbums,
+} from "@/hooks/useCommunityContent";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -144,11 +146,12 @@ export default function GroupDetail({
   const { approvedMembers } = useApprovedMembers(groupId || "");
 
   // Get community content using the community ID (not just pubkey)
-  const { data: albums = [], isLoading: isLoadingAlbums } = useCommunityAlbums(groupId || null);
-  const { data: tracks = [], isLoading: isLoadingTracks } = useCommunityTracks(groupId || null);
-
-  // Get group settings for the owner
-  const { settings } = useGroupSettings(groupId || "");
+  const { data: albums = [], isLoading: isLoadingAlbums } = useCommunityAlbums(
+    groupId || null
+  );
+  const { data: tracks = [], isLoading: isLoadingTracks } = useCommunityTracks(
+    groupId || null
+  );
 
   // Get artist data from community metadata
   const artist = {
@@ -310,7 +313,6 @@ export default function GroupDetail({
                         showOnlyApproved={true}
                         showOnlyOwnerAndModerators={true}
                         showOnlyAnnouncements={true}
-                        hideModeratorsAnnouncements={isOwner ? settings.hideModeratorsAnnouncements : false}
                         onPostCountChange={() => {}}
                       />
                     </div>

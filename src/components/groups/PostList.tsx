@@ -108,7 +108,6 @@ interface PostListProps {
   pendingOnly?: boolean;
   showOnlyOwnerAndModerators?: boolean; // New prop to filter by owner/moderators only
   showOnlyAnnouncements?: boolean; // New prop to filter only announcement posts
-  hideModeratorsAnnouncements?: boolean; // New prop to hide moderator announcements (owner only toggle)
   onPostCountChange?: (count: number) => void; // New prop for tracking post count
 }
 
@@ -118,7 +117,6 @@ export function PostList({
   pendingOnly = false,
   showOnlyOwnerAndModerators = false,
   showOnlyAnnouncements = false,
-  hideModeratorsAnnouncements = false,
   onPostCountChange,
 }: PostListProps) {
   const { nostr } = useNostr();
@@ -429,23 +427,10 @@ export function PostList({
   if (showOnlyAnnouncements) {
     filteredPosts = filteredPosts.filter((post) => {
       // Check if post has the announcement tag
-      const hasAnnouncementTag = post.tags.some(tag => tag[0] === "announcement" && tag[1] === "true");
+      const hasAnnouncementTag = post.tags.some(
+        (tag) => tag[0] === "announcement" && tag[1] === "true"
+      );
       return hasAnnouncementTag;
-    });
-  }
-
-  // Hide moderator announcements if requested (owner toggle)
-  if (hideModeratorsAnnouncements) {
-    filteredPosts = filteredPosts.filter((post) => {
-      // Check if it's an announcement from a moderator (not the owner)
-      const hasAnnouncementTag = post.tags.some(tag => tag[0] === "announcement" && tag[1] === "true");
-      const isFromModerator = moderators.includes(post.pubkey) && post.pubkey !== groupOwnerPubkey;
-      
-      // If it's an announcement from a moderator, hide it
-      if (hasAnnouncementTag && isFromModerator) {
-        return false;
-      }
-      return true;
     });
   }
 
@@ -516,23 +501,10 @@ export function PostList({
     if (showOnlyAnnouncements) {
       filteredPinnedPosts = filteredPinnedPosts.filter((post) => {
         // Check if post has the announcement tag
-        const hasAnnouncementTag = post.tags.some(tag => tag[0] === "announcement" && tag[1] === "true");
+        const hasAnnouncementTag = post.tags.some(
+          (tag) => tag[0] === "announcement" && tag[1] === "true"
+        );
         return hasAnnouncementTag;
-      });
-    }
-
-    // Hide moderator announcements from pinned posts if requested (owner toggle)
-    if (hideModeratorsAnnouncements) {
-      filteredPinnedPosts = filteredPinnedPosts.filter((post) => {
-        // Check if it's an announcement from a moderator (not the owner)
-        const hasAnnouncementTag = post.tags.some(tag => tag[0] === "announcement" && tag[1] === "true");
-        const isFromModerator = moderators.includes(post.pubkey) && post.pubkey !== groupOwnerPubkey;
-        
-        // If it's an announcement from a moderator, hide it
-        if (hasAnnouncementTag && isFromModerator) {
-          return false;
-        }
-        return true;
       });
     }
 
@@ -564,7 +536,6 @@ export function PostList({
     pendingOnly,
     showOnlyOwnerAndModerators,
     showOnlyAnnouncements,
-    hideModeratorsAnnouncements,
     groupOwnerPubkey,
     filteredPosts,
     pinnedPostIds,
