@@ -108,10 +108,11 @@ function ArtistDashboardContent({
   const moderationNotificationCount = openReportsCount + pendingRequestsCount;
 
   // Get recent community activity
-  const { data: recentActivity = [], isLoading: isLoadingActivity } = useCommunityActivity(
-    selectedCommunityId,
-    10 // Limit to 10 most recent activities
-  );
+  const { data: recentActivity = [], isLoading: isLoadingActivity } =
+    useCommunityActivity(
+      selectedCommunityId,
+      10 // Limit to 10 most recent activities
+    );
 
   // Define dashboard tabs with notification count
   const dashboardTabs: TabItem[] = useMemo(
@@ -236,15 +237,6 @@ function ArtistDashboardContent({
                 >
                   <Plus className="mr-2 h-5 w-5" />
                   Create Your Artist Page
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => handleTabChange("music")}
-                  className="text-lg px-8 py-3"
-                >
-                  <Upload className="mr-2 h-5 w-5" />
-                  Upload Music
                 </Button>
               </div>
             </CardContent>
@@ -384,7 +376,8 @@ function ArtistDashboardContent({
                     </div>
                     <p className="text-sm">No recent activity</p>
                     <p className="text-xs mt-1">
-                      Activity will appear here when your community becomes active
+                      Activity will appear here when your community becomes
+                      active
                     </p>
                   </div>
                 )}
@@ -397,16 +390,16 @@ function ArtistDashboardContent({
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                className="w-full justify-start text-left" 
+              <Button
+                className="w-full justify-start text-left"
                 variant="outline"
                 onClick={() => handleTabChange("music")}
               >
                 <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
                 <span className="truncate">Upload Music</span>
               </Button>
-              <Button 
-                className="w-full justify-start text-left" 
+              <Button
+                className="w-full justify-start text-left"
                 variant="outline"
                 onClick={() => handleTabChange("updates")}
                 disabled={!selectedCommunity}
@@ -414,8 +407,8 @@ function ArtistDashboardContent({
                 <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
                 <span className="truncate">Create Announcement</span>
               </Button>
-              <Button 
-                className="w-full justify-start text-left" 
+              <Button
+                className="w-full justify-start text-left"
                 variant="outline"
                 onClick={() => handleTabChange("community")}
                 disabled={!selectedCommunity}
@@ -424,8 +417,8 @@ function ArtistDashboardContent({
                 <span className="truncate">Manage Community</span>
               </Button>
               {isOwnerOrModerator && moderationNotificationCount > 0 && (
-                <Button 
-                  className="w-full justify-between" 
+                <Button
+                  className="w-full justify-between"
                   variant="outline"
                   onClick={() => handleTabChange("moderation")}
                 >
@@ -434,20 +427,22 @@ function ArtistDashboardContent({
                     <span className="truncate">Review Reports</span>
                   </div>
                   <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 hover:bg-red-600 flex-shrink-0">
-                    {moderationNotificationCount > 99 ? "99+" : moderationNotificationCount}
+                    {moderationNotificationCount > 99
+                      ? "99+"
+                      : moderationNotificationCount}
                   </Badge>
                 </Button>
               )}
-              <Button 
-                className="w-full justify-start text-left" 
+              <Button
+                className="w-full justify-start text-left"
                 variant="outline"
                 onClick={() => handleTabChange("settings")}
               >
                 <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
                 <span className="truncate">Settings</span>
               </Button>
-              <Button 
-                className="w-full justify-start text-left" 
+              <Button
+                className="w-full justify-start text-left"
                 variant="outline"
                 onClick={() => handleTabChange("wallet")}
               >

@@ -20,17 +20,12 @@ import type { UserRole } from "@/hooks/useUserRole";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
+import { hasWavlakeClientTag } from "@/lib/group-utils";
 
 // Helper function to get community ID
 const getCommunityId = (community: NostrEvent) => {
   const dTag = community.tags.find((tag) => tag[0] === "d");
   return `${KINDS.GROUP}:${community.pubkey}:${dTag ? dTag[1] : ""}`;
-};
-
-const hasWavlakeClientTag = (event: NostrEvent) => {
-  return event.tags.some(
-    ([tag, client]) => tag === "client" && client === "wavlake"
-  );
 };
 
 export default function Groups() {

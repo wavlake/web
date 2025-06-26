@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
+import { hasWavlakeClientTag } from "@/lib/group-utils";
 
 interface CommonGroup {
   id: string;
@@ -165,7 +166,7 @@ export function CommonGroupsListImproved({ profileUserPubkey }: CommonGroupsList
       ]);
 
       // Get communities owned/moderated by both users
-      const [currentUserCommunities, profileUserCommunities] = await Promise.all([
+      const [currentUserCommunitiesRaw, profileUserCommunitiesRaw] = await Promise.all([
         nostr.query([
           { kinds: [KINDS.GROUP], authors: [user.pubkey] },
           { kinds: [KINDS.GROUP], "#p": [user.pubkey] }
@@ -175,6 +176,10 @@ export function CommonGroupsListImproved({ profileUserPubkey }: CommonGroupsList
           { kinds: [KINDS.GROUP], "#p": [profileUserPubkey] }
         ], { signal })
       ]);
+
+      // Filter to only include Wavlake client groups
+      const currentUserCommunities = currentUserCommunitiesRaw.filter(hasWavlakeClientTag);
+      const profileUserCommunities = profileUserCommunitiesRaw.filter(hasWavlakeClientTag);
 
       // Extract community IDs for current user
       const currentUserCommunityIds = new Set<string>();
@@ -232,7 +237,10 @@ export function CommonGroupsListImproved({ profileUserPubkey }: CommonGroupsList
         return [];
       }
 
-      const communityEvents = await nostr.query(communityFilters, { signal });
+      const communityEventsRaw = await nostr.query(communityFilters, { signal });
+      
+      // Filter to only include Wavlake client groups
+      const communityEvents = communityEventsRaw.filter(hasWavlakeClientTag);
 
       // Build common groups with role information
       const commonGroups: CommonGroup[] = [];

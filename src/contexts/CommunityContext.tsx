@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -45,9 +45,9 @@ export interface CommunityContextValue {
   getCommunityId: (community: Community) => string;
 }
 
-export const CommunityContext = createContext<CommunityContextValue | undefined>(
-  undefined
-);
+export const CommunityContext = createContext<
+  CommunityContextValue | undefined
+>(undefined);
 
 interface CommunityProviderProps {
   children: ReactNode;
@@ -75,7 +75,7 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
     if (!community) return "Personal";
 
     // First try to get name from tags (most common)
-    const nameTag = community.tags.find(tag => tag[0] === "name");
+    const nameTag = community.tags.find((tag) => tag[0] === "name");
     if (nameTag && nameTag[1]) {
       return nameTag[1];
     }
@@ -94,9 +94,11 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
     }
 
     // Final fallback to identifier from d tag
-    const dTag = community.tags.find(tag => tag[0] === "d");
+    const dTag = community.tags.find((tag) => tag[0] === "d");
     if (dTag && dTag[1]) {
-      return dTag[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return dTag[1]
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase());
     }
 
     return "Unnamed Community";

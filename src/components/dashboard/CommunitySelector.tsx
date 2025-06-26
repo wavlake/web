@@ -129,7 +129,7 @@ export function CommunitySelector({
     <div className={`${showFullWidth ? "w-full" : "w-64"} ${className}`}>
       <Select value={getDisplayValue()} onValueChange={handleValueChange}>
         <SelectTrigger className="h-9">
-          <SelectValue placeholder="Select context">
+          <SelectValue placeholder="Select Artist Page">
             {getSelectedCommunityDisplay()}
           </SelectValue>
         </SelectTrigger>
