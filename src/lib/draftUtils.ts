@@ -1,13 +1,13 @@
 import { NostrEvent } from "@nostrify/nostrify";
-import { 
-  DraftTrack, 
-  DraftAlbum, 
-  CreateDraftTrackData, 
+import {
+  DraftTrack,
+  DraftAlbum,
+  CreateDraftTrackData,
   CreateDraftAlbumData,
   DRAFT_TRACK_KIND,
   DRAFT_ALBUM_KIND,
   TRACK_KIND,
-  ALBUM_KIND
+  ALBUM_KIND,
 } from "@/types/drafts";
 
 // Encrypt draft content using NIP-44
@@ -19,7 +19,7 @@ export async function encryptDraftContent(
   if (!signer.nip44) {
     throw new Error("NIP-44 encryption not supported by signer");
   }
-  
+
   return await signer.nip44.encrypt(userPubkey, JSON.stringify(content));
 }
 
@@ -32,14 +32,17 @@ export async function decryptDraftContent(
   if (!signer.nip44) {
     throw new Error("NIP-44 decryption not supported by signer");
   }
-  
+
   const decrypted = await signer.nip44.decrypt(userPubkey, encryptedContent);
   return JSON.parse(decrypted);
 }
 
 // Create future track event structure from draft data
-export function createFutureTrackEvent(data: CreateDraftTrackData): Omit<NostrEvent, 'created_at'> & { created_at?: number } {
-  const identifier = data.draftId?.replace('draft-', 'track-') || 
+export function createFutureTrackEvent(
+  data: CreateDraftTrackData
+): Omit<NostrEvent, "created_at"> & { created_at?: number } {
+  const identifier =
+    data.draftId?.replace("draft-", "track-") ||
     `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const tags: string[][] = [
@@ -84,8 +87,11 @@ export function createFutureTrackEvent(data: CreateDraftTrackData): Omit<NostrEv
 }
 
 // Create future album event structure from draft data
-export function createFutureAlbumEvent(data: CreateDraftAlbumData): Omit<NostrEvent, 'created_at'> & { created_at?: number } {
-  const identifier = data.draftId?.replace('draft-', 'album-') || 
+export function createFutureAlbumEvent(
+  data: CreateDraftAlbumData
+): Omit<NostrEvent, "created_at"> & { created_at?: number } {
+  const identifier =
+    data.draftId?.replace("draft-", "album-") ||
     `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   const tags: string[][] = [
@@ -110,10 +116,7 @@ export function createFutureAlbumEvent(data: CreateDraftAlbumData): Omit<NostrEv
   }
 
   if (data.releaseDate) {
-    tags.push([
-      "released_at",
-      new Date(data.releaseDate).getTime().toString(),
-    ]);
+    tags.push(["released_at", new Date(data.releaseDate).getTime().toString()]);
   }
 
   if (data.upc) {
@@ -159,9 +162,11 @@ export async function parseDraftTrack(
   userPubkey: string
 ): Promise<DraftTrack | null> {
   try {
-    const draftId = draftEvent.tags.find(tag => tag[0] === "d")?.[1];
-    const title = draftEvent.tags.find(tag => tag[0] === "title")?.[1] || "Untitled Draft";
-    
+    const draftId = draftEvent.tags.find((tag) => tag[0] === "d")?.[1];
+    const title =
+      draftEvent.tags.find((tag) => tag[0] === "title")?.[1] ||
+      "Untitled Draft";
+
     if (!draftId) {
       console.error("Draft event missing 'd' tag");
       return null;
@@ -169,24 +174,38 @@ export async function parseDraftTrack(
 
     // Check if content is empty (deleted draft)
     if (!draftEvent.content || draftEvent.content.trim() === "") {
-      console.log("Skipping deleted draft track:", draftId);
       return null;
     }
 
     // Decrypt the future event
-    const futureEvent = await decryptDraftContent(signer, userPubkey, draftEvent.content);
-    
+    const futureEvent = await decryptDraftContent(
+      signer,
+      userPubkey,
+      draftEvent.content
+    );
+
     // Extract metadata from future event tags
     const metadata = {
-      title: futureEvent.tags.find((tag: string[]) => tag[0] === "title")?.[1] || "",
+      title:
+        futureEvent.tags.find((tag: string[]) => tag[0] === "title")?.[1] || "",
       genre: futureEvent.tags.find((tag: string[]) => tag[0] === "genre")?.[1],
       audioUrl: futureEvent.tags.find((tag: string[]) => tag[0] === "url")?.[1],
-      coverUrl: futureEvent.tags.find((tag: string[]) => tag[0] === "image")?.[1],
+      coverUrl: futureEvent.tags.find(
+        (tag: string[]) => tag[0] === "image"
+      )?.[1],
       description: futureEvent.content,
-      explicit: futureEvent.tags.find((tag: string[]) => tag[0] === "explicit")?.[1] === "true",
-      price: futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] ? 
-        parseInt(futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] || "0") : 0,
-      tags: futureEvent.tags.filter((tag: string[]) => tag[0] === "t").map((tag: string[]) => tag[1]),
+      explicit:
+        futureEvent.tags.find((tag: string[]) => tag[0] === "explicit")?.[1] ===
+        "true",
+      price: futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1]
+        ? parseInt(
+            futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] ||
+              "0"
+          )
+        : 0,
+      tags: futureEvent.tags
+        .filter((tag: string[]) => tag[0] === "t")
+        .map((tag: string[]) => tag[1]),
     };
 
     return {
@@ -211,9 +230,11 @@ export async function parseDraftAlbum(
   userPubkey: string
 ): Promise<DraftAlbum | null> {
   try {
-    const draftId = draftEvent.tags.find(tag => tag[0] === "d")?.[1];
-    const title = draftEvent.tags.find(tag => tag[0] === "title")?.[1] || "Untitled Draft";
-    
+    const draftId = draftEvent.tags.find((tag) => tag[0] === "d")?.[1];
+    const title =
+      draftEvent.tags.find((tag) => tag[0] === "title")?.[1] ||
+      "Untitled Draft";
+
     if (!draftId) {
       console.error("Draft event missing 'd' tag");
       return null;
@@ -221,36 +242,63 @@ export async function parseDraftAlbum(
 
     // Check if content is empty (deleted draft)
     if (!draftEvent.content || draftEvent.content.trim() === "") {
-      console.log("Skipping deleted draft album:", draftId);
       return null;
     }
 
     // Decrypt the future event
-    const futureEvent = await decryptDraftContent(signer, userPubkey, draftEvent.content);
-    
+    const futureEvent = await decryptDraftContent(
+      signer,
+      userPubkey,
+      draftEvent.content
+    );
+
     // Extract track references
     const trackRefs = futureEvent.tags
       .filter((tag: string[]) => tag[0] === "track" && tag.length >= 3)
       .map((tag: string[]) => ({
         trackNumber: parseInt(tag[1]),
         eventId: tag[2],
-        title: futureEvent.tags.find((eTag: string[]) => 
-          eTag[0] === "e" && eTag[1] === tag[2])?.[3] || ""
+        title:
+          futureEvent.tags.find(
+            (eTag: string[]) => eTag[0] === "e" && eTag[1] === tag[2]
+          )?.[3] || "",
       }));
 
     // Extract metadata from future event tags
     const metadata = {
-      title: futureEvent.tags.find((tag: string[]) => tag[0] === "title")?.[1] || "",
-      artist: futureEvent.tags.find((tag: string[]) => tag[0] === "artist")?.[1] || "",
+      title:
+        futureEvent.tags.find((tag: string[]) => tag[0] === "title")?.[1] || "",
+      artist:
+        futureEvent.tags.find((tag: string[]) => tag[0] === "artist")?.[1] ||
+        "",
       genre: futureEvent.tags.find((tag: string[]) => tag[0] === "genre")?.[1],
       description: futureEvent.content,
-      coverUrl: futureEvent.tags.find((tag: string[]) => tag[0] === "image")?.[1],
-      explicit: futureEvent.tags.find((tag: string[]) => tag[0] === "explicit")?.[1] === "true",
-      price: futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] ? 
-        parseInt(futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] || "0") : 0,
-      tags: futureEvent.tags.filter((tag: string[]) => tag[0] === "t").map((tag: string[]) => tag[1]),
-      releaseDate: futureEvent.tags.find((tag: string[]) => tag[0] === "released_at")?.[1] ? 
-        new Date(parseInt(futureEvent.tags.find((tag: string[]) => tag[0] === "released_at")?.[1] || "0")).toISOString() : undefined,
+      coverUrl: futureEvent.tags.find(
+        (tag: string[]) => tag[0] === "image"
+      )?.[1],
+      explicit:
+        futureEvent.tags.find((tag: string[]) => tag[0] === "explicit")?.[1] ===
+        "true",
+      price: futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1]
+        ? parseInt(
+            futureEvent.tags.find((tag: string[]) => tag[0] === "price")?.[1] ||
+              "0"
+          )
+        : 0,
+      tags: futureEvent.tags
+        .filter((tag: string[]) => tag[0] === "t")
+        .map((tag: string[]) => tag[1]),
+      releaseDate: futureEvent.tags.find(
+        (tag: string[]) => tag[0] === "released_at"
+      )?.[1]
+        ? new Date(
+            parseInt(
+              futureEvent.tags.find(
+                (tag: string[]) => tag[0] === "released_at"
+              )?.[1] || "0"
+            )
+          ).toISOString()
+        : undefined,
       upc: futureEvent.tags.find((tag: string[]) => tag[0] === "upc")?.[1],
       label: futureEvent.tags.find((tag: string[]) => tag[0] === "label")?.[1],
       tracks: trackRefs,

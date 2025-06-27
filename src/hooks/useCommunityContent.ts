@@ -139,15 +139,6 @@ export function useCommunityContent(communityId: string | null = null) {
         commentFilter.since = lastFetch;
         reactionFilter.since = lastFetch;
         zapFilter.since = lastFetch;
-        console.log(
-          `[useCommunityContent] Using incremental fetch since: ${lastFetch} (${new Date(
-            lastFetch * 1000
-          ).toISOString()})`
-        );
-      } else {
-        console.log(
-          `[useCommunityContent] First-time fetch for community: ${targetCommunityId}`
-        );
       }
 
       try {
@@ -186,15 +177,6 @@ export function useCommunityContent(communityId: string | null = null) {
           ...zapEvents,
         ];
         updateLastFetchTimestamp(cacheKey, allEvents);
-
-        console.log(
-          `[useCommunityContent] Fetched ${trackEvents.length} tracks, ${albumEvents.length} albums, ${commentEvents.length} comments, ${reactionEvents.length} reactions, ${zapEvents.length} zaps for community: ${targetCommunityId}`
-        );
-        if (lastFetch && allEvents.length === 0) {
-          console.log(
-            `[useCommunityContent] No new events since last fetch - data is up to date`
-          );
-        }
 
         return {
           tracks,
