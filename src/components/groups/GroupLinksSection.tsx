@@ -145,12 +145,15 @@ export function GroupLinksSection({ group }: GroupLinksSectionProps) {
 
       <div className="grid gap-4">
         {links.map((link) => (
-          <Card key={link.id} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent 
-              className="p-4"
-              onClick={() => window.open(link.url, "_blank")}
-            >
-              <div className="flex items-center justify-between">
+          <Card key={link.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between w-full no-underline text-inherit hover:text-inherit"
+                aria-label={`${link.title} - ${link.description}`}
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
                     {getIcon(link.icon)}
@@ -163,7 +166,7 @@ export function GroupLinksSection({ group }: GroupLinksSectionProps) {
                 <div className="text-muted-foreground">
                   <ExternalLink className="h-4 w-4" />
                 </div>
-              </div>
+              </a>
             </CardContent>
           </Card>
         ))}
