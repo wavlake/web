@@ -218,40 +218,64 @@ Sent from Wavlake Group Contact Form`;
                   <h4 className="font-medium mb-3">Social Media</h4>
                   <div className="flex gap-2">
                     {contact.socialLinks.twitter && (
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => openExternalLink(`https://twitter.com/${contact.socialLinks!.twitter}`)}
+                      <a
+                        href={contact.socialLinks.twitter.startsWith("http") ? contact.socialLinks.twitter : `https://${contact.socialLinks.twitter}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Twitter"
                       >
-                        <Twitter className="h-4 w-4" />
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </Button>
+                      </a>
                     )}
                     {contact.socialLinks.instagram && (
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => openExternalLink(`https://instagram.com/${contact.socialLinks!.instagram}`)}
+                      <a
+                        href={contact.socialLinks.instagram.startsWith("http") ? contact.socialLinks.instagram : `https://${contact.socialLinks.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Follow us on Instagram"
                       >
-                        <Instagram className="h-4 w-4" />
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                        >
+                          <Instagram className="h-4 w-4" />
+                        </Button>
+                      </a>
                     )}
                     {contact.socialLinks.youtube && (
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => openExternalLink(`https://youtube.com/${contact.socialLinks!.youtube}`)}
+                      <a
+                        href={contact.socialLinks.youtube.startsWith("http") ? contact.socialLinks.youtube : `https://${contact.socialLinks.youtube}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Subscribe to our YouTube channel"
                       >
-                        <Youtube className="h-4 w-4" />
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                        >
+                          <Youtube className="h-4 w-4" />
+                        </Button>
+                      </a>
                     )}
                     {contact.socialLinks.facebook && (
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => openExternalLink(`https://facebook.com/${contact.socialLinks!.facebook}`)}
+                      <a
+                        href={contact.socialLinks.facebook.startsWith("http") ? contact.socialLinks.facebook : `https://${contact.socialLinks.facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Like us on Facebook"
                       >
-                        <Facebook className="h-4 w-4" />
-                      </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                        >
+                          <Facebook className="h-4 w-4" />
+                        </Button>
+                      </a>
                     )}
                   </div>
                 </div>
