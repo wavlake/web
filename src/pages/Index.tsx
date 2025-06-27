@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LoginDialog from "@/components/auth/LoginDialog";
@@ -41,13 +41,19 @@ const Index = () => {
   const [tokenProcessed, setTokenProcessed] = useState(false);
   const { isRunningAsPwa } = usePWA();
 
+  // Memoize store values to prevent unnecessary re-renders
+  const storeValues = useMemo(() => ({
+    pendingToken: cashuStore.pendingOnboardingToken,
+    isTokenClaimed: onboardingStore.isTokenClaimed(),
+  }), [cashuStore.pendingOnboardingToken, onboardingStore.tokenClaimed, onboardingStore]);
+
   // Check for token in URL on mount
   useEffect(() => {
     // Don't process if already processed
     if (tokenProcessed) return;
 
     // Check if user has already claimed an onboarding token
-    if (onboardingStore.isTokenClaimed()) {
+    if (storeValues.isTokenClaimed) {
       setTokenProcessed(true);
       // Clean up the URL
       window.history.replaceState(null, "", window.location.pathname);
@@ -100,39 +106,33 @@ const Index = () => {
       }
     }
   }, [
-    cashuStore,
-    onboardingStore,
+    storeValues.isTokenClaimed,
     showSats,
     btcPrice,
     btcPriceLoading,
     tokenProcessed,
+    cashuStore,
   ]);
 
-  // Redirect to /groups after user is logged in
+  // Redirect to /groups after user is logged in - separate from token processing
   useEffect(() => {
-    if (currentUser && !newUser) {
-      // Query the wallet when user logs in
-      if (wallet) {
-        console.log("User wallet found:", wallet);
-        // Wallet exists, redirect to groups
-        navigate("/groups", { replace: true });
-      } else if (isLoading) {
-        // Wait for wallet query to complete
-        console.log("Fetching wallet data...");
-      } else {
-        // Wallet query completed but no wallet found
-        console.log("No wallet found for user");
-        createCashuWallet()
-          .then(() => {
-            navigate("/groups", { replace: true });
-          })
-          .catch((error) => {
-            console.error("Failed to create wallet:", error);
-            navigate("/groups", { replace: true });
-          });
-      }
+    if (!currentUser || newUser) return;
+
+    if (wallet) {
+      console.log("User wallet found:", wallet);
+      navigate("/groups", { replace: true });
+    } else if (isLoading) {
+      console.log("Fetching wallet data...");
+    } else {
+      console.log("No wallet found for user");
+      createCashuWallet()
+        .then(() => navigate("/groups", { replace: true }))
+        .catch((error) => {
+          console.error("Failed to create wallet:", error);
+          navigate("/groups", { replace: true });
+        });
     }
-  }, [newUser, currentUser, navigate, wallet, isLoading, createCashuWallet]);
+  }, [currentUser, newUser, wallet, isLoading, navigate, createCashuWallet]);
 
   // Handle account creation inline
   const handleCreateAccount = async () => {

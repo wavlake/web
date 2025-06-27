@@ -84,27 +84,27 @@ export function useReceivedNutzaps() {
   const nutzapInfoQuery = useNutzapInfo(user?.pubkey);
 
   return useQuery({
-    queryKey: ['nutzap', 'received', user?.pubkey],
+    queryKey: ['nutzap', 'received', user?.pubkey, nutzapInfoQuery.data?.mints],
     queryFn: async ({ signal }) => {
-      if (!user) throw new Error('User not logged in');
+      if (!user || !nutzapInfoQuery.data) throw new Error('User not logged in or nutzap info not available');
 
-      // Get the nutzap info for the user
-      const nutzapInfo = await nutzapInfoQuery.refetch();
-      if (!nutzapInfo.data) {
+      // Use the nutzap info directly from the query
+      const nutzapInfoData = nutzapInfoQuery.data;
+      if (!nutzapInfoData) {
         return [];
       }
 
       // Get trusted mints from nutzap info
-      const trustedMints = nutzapInfo.data.mints.map(mint => mint.url);
+      const trustedMints = nutzapInfoData.mints.map(mint => mint.url);
       if (trustedMints.length === 0) {
         return [];
       }
 
       // Get relays where the user reads nutzap events
-      const relays = nutzapInfo.data.relays;
+      const relays = nutzapInfoData.relays;
 
       // Get p2pk pubkey that the tokens should be locked to
-      const p2pkPubkey = nutzapInfo.data.p2pkPubkey;
+      const p2pkPubkey = nutzapInfoData.p2pkPubkey;
 
       // Get the last timestamp of redemption events
       const lastRedemptionTimestamp = getLastEventTimestamp(

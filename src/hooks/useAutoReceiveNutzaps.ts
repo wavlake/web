@@ -19,7 +19,7 @@ export function useAutoReceiveNutzaps() {
   const { user } = useCurrentUser();
   const { nostr } = useNostr();
   const nutzapInfoQuery = useNutzapInfo(user?.pubkey);
-  const { data: fetchedNutzaps, refetch: refetchNutzaps } = useReceivedNutzaps();
+  const { data: fetchedNutzaps } = useReceivedNutzaps();
   const { mutateAsync: redeemNutzap } = useRedeemNutzap();
   const walletUiStore = useWalletUiStore();
   const { showSats } = useCurrencyDisplayStore();
@@ -28,16 +28,7 @@ export function useAutoReceiveNutzaps() {
   // Keep track of processed event IDs to avoid duplicates
   const processedEventIds = useRef<Set<string>>(new Set());
   const subscriptionController = useRef<AbortController | null>(null);
-
-  // Format amount based on user preference
-  const formatAmount = useCallback((sats: number) => {
-    if (showSats) {
-      return formatBalance(sats);
-    } else if (btcPrice) {
-      return formatUSD(satsToUSD(sats, btcPrice.USD));
-    }
-    return formatBalance(sats);
-  }, [showSats, btcPrice]);
+  const processNutzapRef = useRef<(nutzap: ReceivedNutzap) => Promise<void>>();
 
   // Process and auto-redeem a nutzap
   const processNutzap = useCallback(async (nutzap: ReceivedNutzap) => {
@@ -46,6 +37,16 @@ export function useAutoReceiveNutzaps() {
     }
 
     processedEventIds.current.add(nutzap.id);
+    
+    // Format amount based on user preference (moved inside to avoid dependency issues)
+    const formatAmount = (sats: number) => {
+      if (showSats) {
+        return formatBalance(sats);
+      } else if (btcPrice) {
+        return formatUSD(satsToUSD(sats, btcPrice.USD));
+      }
+      return formatBalance(sats);
+    };
 
     try {
       await redeemNutzap(nutzap);
@@ -77,7 +78,10 @@ export function useAutoReceiveNutzaps() {
         duration: 5000,
       });
     }
-  }, [redeemNutzap, formatAmount, walletUiStore]);
+  }, [redeemNutzap, walletUiStore, showSats, btcPrice]); // Stable dependencies only
+
+  // Update the ref whenever processNutzap changes
+  processNutzapRef.current = processNutzap;
 
   // Process initial nutzaps on load
   useEffect(() => {
@@ -131,7 +135,7 @@ export function useAutoReceiveNutzaps() {
     // Start real-time subscription
     const subscribeToNutzaps = async () => {
       try {
-        // Initial query to catch any recent events
+        // 1. Initial query to catch any recent events
         const events = await nostr.query([filter], { signal });
         
         for (const event of events) {
@@ -182,26 +186,93 @@ export function useAutoReceiveNutzaps() {
               redeemed: false,
             };
 
-            // Process the nutzap
-            await processNutzap(nutzap);
+            // Process the nutzap using ref to avoid dependency issues
+            if (processNutzapRef.current) {
+              await processNutzapRef.current(nutzap);
+            }
             
-            // Refresh the nutzaps list
-            refetchNutzaps();
+            // No need to refetch - using real-time subscriptions
             
           } catch (error) {
             console.error("Error processing nutzap event:", error);
           }
         }
 
-        // Set up polling interval for continuous updates
-        if (!signal.aborted) {
-          setTimeout(subscribeToNutzaps, 5000); // Poll every 5 seconds
+        // 2. Set up persistent subscription for real-time updates
+        const subscriptionStartTime = Math.floor(Date.now() / 1000);
+        const subscriptionFilter = {
+          ...filter,
+          since: subscriptionStartTime // Only new events from now
+        };
+
+        for await (const msg of nostr.req([subscriptionFilter], { signal })) {
+          if (signal.aborted) break;
+          
+          if (msg[0] === 'EVENT') {
+            const event = msg[2];
+            
+            if (processedEventIds.current.has(event.id)) continue;
+            
+            try {
+              // Get the mint URL from tags
+              const mintTag = event.tags.find((tag) => tag[0] === "u");
+              if (!mintTag) continue;
+              const mintUrl = mintTag[1];
+
+              // Verify the mint is in the trusted list
+              if (!trustedMints.includes(mintUrl)) continue;
+
+              // Get proofs from tags
+              const proofTags = event.tags.filter((tag) => tag[0] === "proof");
+              if (proofTags.length === 0) continue;
+
+              const proofs = proofTags
+                .map((tag) => {
+                  try {
+                    return JSON.parse(tag[1]);
+                  } catch (e) {
+                    console.error("Failed to parse proof:", e);
+                    return null;
+                  }
+                })
+                .filter(Boolean);
+
+              if (proofs.length === 0) continue;
+
+              // Get the zapped event if any
+              let zappedEvent: string | undefined;
+              const eventTag = event.tags.find((tag) => tag[0] === "e");
+              if (eventTag) {
+                zappedEvent = eventTag[1];
+              }
+
+              // Create nutzap object
+              const nutzap: ReceivedNutzap = {
+                id: event.id,
+                pubkey: event.pubkey,
+                createdAt: event.created_at,
+                content: event.content,
+                proofs,
+                mintUrl,
+                zappedEvent,
+                redeemed: false,
+              };
+
+              // Process the nutzap using ref to avoid dependency issues
+              if (processNutzapRef.current) {
+                await processNutzapRef.current(nutzap);
+              }
+              
+              // No need to refetch - using real-time subscriptions
+              
+            } catch (error) {
+              console.error("Error processing nutzap event:", error);
+            }
+          }
         }
       } catch (error) {
         if (!signal.aborted) {
           console.error("Error in nutzap subscription:", error);
-          // Retry after delay
-          setTimeout(subscribeToNutzaps, 10000);
         }
       }
     };
@@ -216,10 +287,10 @@ export function useAutoReceiveNutzaps() {
         subscriptionController.current = null;
       }
     };
-  }, [user, nutzapInfoQuery.data, nostr, processNutzap, refetchNutzaps]);
+  }, [user, nutzapInfoQuery.data, nostr]); // Removed processNutzap to prevent subscription restarts from changing dependencies
 
   return {
-    // Expose refetch in case manual refresh is needed
-    refetchNutzaps,
+    // Auto-receive functionality is handled internally
+    // No need to expose refetch with real-time subscriptions
   };
 }

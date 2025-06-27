@@ -6,6 +6,7 @@ import { usePinnedGroups } from "./usePinnedGroups";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useGroupDeletionRequests } from "./useGroupDeletionRequests";
 import { hasWavlakeClientTag } from "@/lib/group-utils";
+import { useMemo } from "react";
 
 // Helper function to get a unique community ID
 function getCommunityId(community: NostrEvent): string {
@@ -18,9 +19,28 @@ export function useUserGroups() {
   const { user } = useCurrentUser();
   const { pinnedGroups, isLoading: isPinnedGroupsLoading } = usePinnedGroups();
 
+  // Create a stable representation of pinnedGroups for the query key
+  const stablePinnedGroupsKey = useMemo(() => 
+    pinnedGroups.map(g => g.communityId).sort().join(','),
+    [pinnedGroups]
+  );
+
+  console.log(`[useUserGroups] Hook called with:`, {
+    userPubkey: user?.pubkey,
+    nostrAvailable: !!nostr,
+    pinnedGroupsCount: pinnedGroups.length,
+    isPinnedGroupsLoading,
+    timestamp: new Date().toISOString()
+  });
+
   return useQuery({
-    queryKey: ["user-groups", user?.pubkey, pinnedGroups],
+    queryKey: ["user-groups", user?.pubkey, stablePinnedGroupsKey],
     queryFn: async (c) => {
+      console.log(`[useUserGroups] QueryFn starting:`, {
+        userPubkey: user?.pubkey,
+        signalAborted: c.signal.aborted,
+        timestamp: new Date().toISOString()
+      });
       if (!user || !nostr)
         return {
           pinned: [] as NostrEvent[],
@@ -34,6 +54,11 @@ export function useUserGroups() {
 
       // Step 1: Directly fetch communities where the user is listed as a member
       // This query fetches approved members lists where the user is explicitly listed
+      console.log(`[useUserGroups] Step 1: Fetching membership lists for user:`, {
+        userPubkey: user.pubkey,
+        timestamp: new Date().toISOString()
+      });
+      
       const membershipLists = await nostr.query(
         [
           {
@@ -45,6 +70,11 @@ export function useUserGroups() {
         { signal }
       );
 
+      console.log(`[useUserGroups] Step 1 completed:`, {
+        membershipListsCount: membershipLists.length,
+        timestamp: new Date().toISOString()
+      });
+
       // Extract community IDs from the membership lists
       const communityIds = new Set<string>();
       for (const list of membershipLists) {
@@ -55,6 +85,11 @@ export function useUserGroups() {
       }
 
       // Step 2: Fetch all communities the user owns or is moderating
+      console.log(`[useUserGroups] Step 2: Fetching owned/moderated communities:`, {
+        userPubkey: user.pubkey,
+        timestamp: new Date().toISOString()
+      });
+      
       const ownedModeratedCommunitiesRaw = await nostr.query(
         [
           { kinds: [KINDS.GROUP], authors: [user.pubkey] }, // Owned
@@ -65,6 +100,12 @@ export function useUserGroups() {
       
       // Filter to only include Wavlake client groups
       const ownedModeratedCommunities = ownedModeratedCommunitiesRaw.filter(hasWavlakeClientTag);
+      
+      console.log(`[useUserGroups] Step 2 completed:`, {
+        ownedModeratedCommunitiesRawCount: ownedModeratedCommunitiesRaw.length,
+        ownedModeratedCommunitiesFilteredCount: ownedModeratedCommunities.length,
+        timestamp: new Date().toISOString()
+      });
 
       // Add these communities to our ID set as well
       for (const community of ownedModeratedCommunities) {
@@ -258,6 +299,6 @@ export function useUserGroups() {
         allGroups, // Include all unique groups
       };
     },
-    enabled: !!nostr && !!user,
+    enabled: !!nostr && !!user && !isPinnedGroupsLoading,
   });
 }

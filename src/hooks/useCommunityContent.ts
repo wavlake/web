@@ -65,9 +65,22 @@ export function useCommunityContent(communityId: string | null = null) {
   const targetCommunityId = communityId || selectedCommunityId;
   const targetCommunity = communityId ? null : selectedCommunity; // Only use selectedCommunity if no specific ID provided
 
+  console.log(`[useCommunityContent] Hook called with:`, {
+    communityId,
+    selectedCommunityId,
+    targetCommunityId,
+    nostrAvailable: !!nostr,
+    timestamp: new Date().toISOString()
+  });
+
   return useQuery({
     queryKey: ["community-content", targetCommunityId],
     queryFn: async ({ signal }) => {
+      console.log(`[useCommunityContent] QueryFn starting for:`, {
+        targetCommunityId,
+        signalAborted: signal.aborted,
+        timestamp: new Date().toISOString()
+      });
       if (!nostr || !targetCommunityId) {
         return {
           tracks: [] as NostrTrack[],
@@ -151,6 +164,18 @@ export function useCommunityContent(communityId: string | null = null) {
       }
 
       try {
+        console.log(`[useCommunityContent] Starting 5 parallel nostr.query calls:`, {
+          targetCommunityId,
+          filters: {
+            tracks: trackFilter,
+            albums: albumFilter,
+            comments: commentFilter,
+            reactions: reactionFilter,
+            zaps: zapFilter
+          },
+          timestamp: new Date().toISOString()
+        });
+
         // Fetch all event types in parallel
         const [
           trackEvents,
@@ -165,6 +190,18 @@ export function useCommunityContent(communityId: string | null = null) {
           nostr.query([reactionFilter], { signal }),
           nostr.query([zapFilter], { signal }),
         ]);
+
+        console.log(`[useCommunityContent] All nostr.query calls completed:`, {
+          targetCommunityId,
+          results: {
+            trackEvents: trackEvents.length,
+            albumEvents: albumEvents.length,
+            commentEvents: commentEvents.length,
+            reactionEvents: reactionEvents.length,
+            zapEvents: zapEvents.length
+          },
+          timestamp: new Date().toISOString()
+        });
 
         // Parse events into domain objects
         const tracks = trackEvents

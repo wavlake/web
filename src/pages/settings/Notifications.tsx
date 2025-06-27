@@ -33,7 +33,7 @@ import { GroupReference } from "@/components/groups/GroupReference";
 
 export default function Notifications() {
   const { user } = useCurrentUser();
-  const { data: notifications = [], isLoading, refetch } = useNotifications();
+  const { data: notifications = [], isLoading } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
 
   // Mark all notifications as read when the page is viewed
@@ -43,14 +43,8 @@ export default function Notifications() {
         markAsRead(notification.id);
       }
     }
-
-    // Refetch after marking as read to update the UI
-    const timer = setTimeout(() => {
-      refetch();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [markAsRead, notifications, refetch]);
+    // Note: No need to refetch since we're using real-time subscriptions
+  }, [markAsRead, notifications]);
 
   const NotificationItem = ({
     notification,

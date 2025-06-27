@@ -61,6 +61,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { NostrConnectionMonitor } from "@/components/debug/NostrConnectionMonitor";
+import { ReactQueryMonitor } from "@/components/debug/ReactQueryMonitor";
 
 interface ArtistDashboardProps {
   artistName?: string;
@@ -160,6 +162,11 @@ function ArtistDashboardContent({
         label: "Support",
         value: "support",
         icon: HelpCircle,
+      },
+      {
+        label: "Debug",
+        value: "debug",
+        icon: Settings,
       },
     ],
     [moderationNotificationCount]
@@ -996,6 +1003,19 @@ function ArtistDashboardContent({
         return renderSettings();
       case "wallet":
         return renderWallet();
+      case "debug":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold">Debug Tools</h2>
+              <p className="text-muted-foreground">
+                Monitor Nostr websocket connections and React Query cache patterns
+              </p>
+            </div>
+            <ReactQueryMonitor />
+            <NostrConnectionMonitor />
+          </div>
+        );
       default:
         return renderPlaceholder(activeSection);
     }

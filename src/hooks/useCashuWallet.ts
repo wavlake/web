@@ -91,8 +91,6 @@ export function useCashuWallet() {
       // log wallet data
       console.log('walletData', walletData);
 
-      // call getNip60TokensQuery
-      await getNip60TokensQuery.refetch();
       return {
         id: event.id,
         wallet: walletData,
@@ -163,7 +161,7 @@ export function useCashuWallet() {
 
   // Fetch token events (kind 7375)
   const getNip60TokensQuery = useQuery({
-    queryKey: ['cashu', 'tokens', user?.pubkey],
+    queryKey: ['cashu', 'tokens', user?.pubkey, walletQuery.data?.id],
     queryFn: async ({ signal }) => {
       if (!user) throw new Error('User not logged in');
 
@@ -214,7 +212,7 @@ export function useCashuWallet() {
 
       return nip60TokenEvents;
     },
-    enabled: !!user
+    enabled: !!user && !!walletQuery.data
   });
 
   const updateProofsMutation = useMutation({
