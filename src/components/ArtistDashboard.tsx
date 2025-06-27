@@ -53,6 +53,7 @@ import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { useCommunityActivity } from "@/hooks/useCommunityContent";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { SupportTab } from "@/components/dashboard/SupportTab";
+import { GroupLinksContactForm } from "@/components/groups/GroupLinksContactForm";
 import {
   Select,
   SelectContent,
@@ -644,6 +645,26 @@ function ArtistDashboardContent({
         <TabsContent value="community" className="space-y-4">
           {/* Community Privileges Component */}
           <CommunityPrivileges showUpdateCommunityFeatures={true} />
+
+          {/* Group Links & Contact Form - Owner Only */}
+          {selectedCommunity && canUpdateCommunity && (
+            <GroupLinksContactForm 
+              group={selectedCommunity}
+              communityId={selectedCommunityId!}
+            />
+          )}
+
+          {/* Show message for non-owners */}
+          {selectedCommunity && !canUpdateCommunity && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  <Crown className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Only the community owner can update links and contact information.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

@@ -46,7 +46,7 @@ import {
   useCommunityAlbums,
 } from "@/hooks/useCommunityContent";
 import { ContactSection } from "@/components/groups/ContactSection";
-import { LinksSection } from "@/components/groups/LinksSection";
+import { GroupLinksSection } from "@/components/groups/GroupLinksSection";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -396,65 +396,16 @@ export default function GroupDetail({
               </TabsContent>
 
               <TabsContent value="links">
-                <LinksSection 
-                  links={[
-                    {
-                      id: "1",
-                      title: "Official Website",
-                      url: "https://example.com",
-                      description: "Visit our official website for the latest updates",
-                      icon: "globe"
-                    },
-                    {
-                      id: "2", 
-                      title: "Music Streaming",
-                      url: "https://spotify.com/artist/example",
-                      description: "Listen to our music on Spotify",
-                      icon: "music"
-                    },
-                    {
-                      id: "3",
-                      title: "YouTube Channel", 
-                      url: "https://youtube.com/@example",
-                      description: "Watch our latest videos and performances",
-                      icon: "video"
-                    },
-                    {
-                      id: "4",
-                      title: "Twitter",
-                      url: "https://twitter.com/example",
-                      description: "Follow us for daily updates and news",
-                      icon: "twitter"
-                    },
-                    {
-                      id: "5",
-                      title: "Photo Gallery",
-                      url: "https://instagram.com/example", 
-                      description: "Check out our latest photos and behind the scenes",
-                      icon: "camera"
-                    }
-                  ]}
-                />
+                {community && (
+                  <GroupLinksSection group={community} />
+                )}
               </TabsContent>
 
               <TabsContent value="contact">
                 {community && (
                   <ContactSection
                     group={community}
-                    contactInfo={{
-                      //mock data
-                      email: "user@email.com",
-                      phone: "123-456-7890",
-                      website: "https://example.com",
-                      address: "123 Example St, City, Country",
-                      socialLinks: {
-                        twitter: "https://twitter.com/example",
-                        instagram: "https://instagram.com/example",
-                        facebook: "https://facebook.com/example",
-                      },
-                      businessHours: "Mon-Fri 9am-5pm",
-                    }}
-                    // ContactSection will extract contact info from group metadata if not provided
+                    // ContactSection will extract contact info from group event tags
                   />
                 )}
               </TabsContent>

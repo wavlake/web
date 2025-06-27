@@ -38,32 +38,29 @@ export function ContactSection({ group, contactInfo }: ContactSectionProps) {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Extract contact info from group metadata if not provided
-  const groupMetadata = (() => {
-    try {
-      return group.content ? JSON.parse(group.content) : {};
-    } catch {
-      return {};
-    }
-  })();
+  // Extract contact info from group event tags
+  const getTagValue = (tagName: string) => {
+    const tag = group.tags.find(tag => tag[0] === tagName);
+    return tag ? tag[1] : "";
+  };
 
   // Get group name from tags
-  const groupName = group.tags.find(tag => tag[0] === "name")?.[1] || 
-                   group.tags.find(tag => tag[0] === "d")?.[1] || 
+  const groupName = getTagValue("name") || 
+                   getTagValue("d") || 
                    "this group";
 
-  // Use provided contactInfo or extract from metadata
-  const contact: ContactInfo = contactInfo || {
-    email: groupMetadata.email,
-    phone: groupMetadata.phone,
-    address: groupMetadata.location || groupMetadata.address,
-    businessHours: groupMetadata.businessHours || "Usually responds within 24-48 hours",
-    website: groupMetadata.website,
+  // Extract contact info from group tags (prioritize tags over contactInfo prop)
+  const contact: ContactInfo = {
+    email: getTagValue("email") || contactInfo?.email || "",
+    phone: getTagValue("phone") || contactInfo?.phone || "",
+    address: getTagValue("address") || contactInfo?.address || "",
+    businessHours: getTagValue("business_hours") || contactInfo?.businessHours || "Usually responds within 24-48 hours",
+    website: getTagValue("website") || contactInfo?.website || "",
     socialLinks: {
-      twitter: groupMetadata.twitter,
-      instagram: groupMetadata.instagram,
-      youtube: groupMetadata.youtube,
-      facebook: groupMetadata.facebook,
+      twitter: getTagValue("twitter") || contactInfo?.socialLinks?.twitter || "",
+      instagram: getTagValue("instagram") || contactInfo?.socialLinks?.instagram || "",
+      youtube: getTagValue("youtube") || contactInfo?.socialLinks?.youtube || "",
+      facebook: getTagValue("facebook") || contactInfo?.socialLinks?.facebook || "",
     }
   };
 
