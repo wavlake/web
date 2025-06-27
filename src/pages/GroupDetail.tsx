@@ -45,6 +45,7 @@ import {
   useCommunityTracks,
   useCommunityAlbums,
 } from "@/hooks/useCommunityContent";
+import { ContactSection } from "@/components/groups/ContactSection";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -401,12 +402,25 @@ export default function GroupDetail({
               </TabsContent>
 
               <TabsContent value="contact">
-                <div className="bg-background p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-bold mb-4">Contact</h2>
-                  <p className="text-muted-foreground">
-                    Contact information coming soon...
-                  </p>
-                </div>
+                {community && (
+                  <ContactSection
+                    group={community}
+                    contactInfo={{
+                      //mock data
+                      email: "user@email.com",
+                      phone: "123-456-7890",
+                      website: "https://example.com",
+                      address: "123 Example St, City, Country",
+                      socialLinks: {
+                        twitter: "https://twitter.com/example",
+                        instagram: "https://instagram.com/example",
+                        facebook: "https://facebook.com/example",
+                      },
+                      businessHours: "Mon-Fri 9am-5pm",
+                    }}
+                    // ContactSection will extract contact info from group metadata if not provided
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </div>
