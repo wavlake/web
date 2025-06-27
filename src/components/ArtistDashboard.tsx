@@ -52,6 +52,7 @@ import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
 import { usePendingJoinRequests } from "@/hooks/usePendingJoinRequests";
 import { useCommunityActivity } from "@/hooks/useCommunityContent";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
+import { SupportTab } from "@/components/dashboard/SupportTab";
 import {
   Select,
   SelectContent,
@@ -996,6 +997,8 @@ function ArtistDashboardContent({
         return renderSettings();
       case "wallet":
         return renderWallet();
+      case "support":
+        return <SupportTab />;
       default:
         return renderPlaceholder(activeSection);
     }
