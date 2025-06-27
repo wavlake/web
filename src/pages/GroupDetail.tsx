@@ -46,6 +46,7 @@ import {
   useCommunityAlbums,
 } from "@/hooks/useCommunityContent";
 import { ContactSection } from "@/components/groups/ContactSection";
+import { LinksSection } from "@/components/groups/LinksSection";
 
 // Dashboard navigation items for the tabs
 const groupTabs: TabItem[] = [
@@ -395,10 +396,45 @@ export default function GroupDetail({
               </TabsContent>
 
               <TabsContent value="links">
-                <div className="bg-background p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-bold mb-4">Links</h2>
-                  <p className="text-muted-foreground">Links coming soon...</p>
-                </div>
+                <LinksSection 
+                  links={[
+                    {
+                      id: "1",
+                      title: "Official Website",
+                      url: "https://example.com",
+                      description: "Visit our official website for the latest updates",
+                      icon: "globe"
+                    },
+                    {
+                      id: "2", 
+                      title: "Music Streaming",
+                      url: "https://spotify.com/artist/example",
+                      description: "Listen to our music on Spotify",
+                      icon: "music"
+                    },
+                    {
+                      id: "3",
+                      title: "YouTube Channel", 
+                      url: "https://youtube.com/@example",
+                      description: "Watch our latest videos and performances",
+                      icon: "video"
+                    },
+                    {
+                      id: "4",
+                      title: "Twitter",
+                      url: "https://twitter.com/example",
+                      description: "Follow us for daily updates and news",
+                      icon: "twitter"
+                    },
+                    {
+                      id: "5",
+                      title: "Photo Gallery",
+                      url: "https://instagram.com/example", 
+                      description: "Check out our latest photos and behind the scenes",
+                      icon: "camera"
+                    }
+                  ]}
+                />
               </TabsContent>
 
               <TabsContent value="contact">
