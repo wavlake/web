@@ -170,11 +170,13 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
         const singleCommunity = communities.manageable[0];
         const communityId = getCommunityId(singleCommunity);
         setSelectedCommunityId(communityId);
-        
+
         // Update URL to include the auto-selected community
         const newUrlParams = new URLSearchParams(window.location.search);
         newUrlParams.set("communityId", communityId);
-        const newUrl = `${window.location.pathname}?${newUrlParams.toString()}${window.location.hash}`;
+        const newUrl = `${window.location.pathname}?${newUrlParams.toString()}${
+          window.location.hash
+        }`;
         window.history.replaceState(null, "", newUrl);
       }
     }
@@ -183,7 +185,7 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
   // URL synchronization - update URL when community changes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-
+    console.log("Updating URL with communityId:", selectedCommunityId);
     if (selectedCommunityId) {
       urlParams.set("communityId", selectedCommunityId);
     } else {

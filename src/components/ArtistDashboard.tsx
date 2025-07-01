@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
@@ -41,11 +41,7 @@ import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementFo
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
 import { useUserGroups } from "@/hooks/useUserGroups";
-import {
-  CommunityProvider,
-  useCommunityContext,
-} from "@/contexts/CommunityContext";
-import { CommunitySelector } from "@/components/dashboard/CommunitySelector";
+import { useCommunityContext } from "@/contexts/CommunityContext";
 import { CommunityPrivileges } from "@/components/dashboard/CommunityPrivileges";
 import { useNavigate } from "react-router-dom";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";
@@ -54,6 +50,7 @@ import { useCommunityActivity } from "@/hooks/useCommunityContent";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { SupportTab } from "@/components/dashboard/SupportTab";
 import { GroupLinksContactForm } from "@/components/groups/GroupLinksContactForm";
+import { FirebaseOwnerGuard } from "@/components/auth/FirebaseOwnerGuard";
 import {
   Select,
   SelectContent,
@@ -80,19 +77,15 @@ function ArtistDashboardContent({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
-  const { data: userGroups } = useUserGroups();
 
   // Use community context instead of local state
   const {
     selectedCommunity,
     selectedCommunityId,
-    setSelectedCommunityId,
     communities,
     userRole,
-    canManageCommunity,
     canUpdateCommunity,
     getCommunityName,
-    getCommunityId,
   } = useCommunityContext();
 
   // Check if user is owner or moderator for notification badges
@@ -213,87 +206,6 @@ function ArtistDashboardContent({
   ];
 
   const renderOverview = () => {
-    // Show Create Artist Page CTA for users with no manageable communities
-    if (communities.manageable.length === 0) {
-      return (
-        <div className="space-y-6">
-          {/* Welcome Message for New Users */}
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center text-center py-16">
-              <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-10 w-10 text-primary" />
-              </div>
-              <h2 className="text-3xl font-bold mb-4">
-                Welcome to Your Artist Dashboard
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8 max-w-2xl">
-                Start building your music community by creating your artist
-                page. Connect with fans, share your music, and grow your
-                audience on the decentralized web.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  onClick={() => navigate("/create-group")}
-                  className="text-lg px-8 py-3"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Create Your Artist Page
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Benefits of Creating Artist Page */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Users className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold">Build Community</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Create a dedicated space for your fans to discover your music
-                  and connect with each other.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                    <Crown className="h-4 w-4 text-green-600" />
-                  </div>
-                  <h3 className="font-semibold">Full Control</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Own your content and community on the decentralized web
-                  without platform restrictions.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Music className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold">Share Music</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Upload and distribute your music directly to your community
-                  and the Nostr network.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
-    }
-
-    // Regular overview for users with communities
     return (
       <div className="space-y-6">
         {/* Artist Info */}
@@ -312,35 +224,6 @@ function ArtistDashboardContent({
             </div>
           </CardHeader>
         </Card>
-
-        {/* Stats Grid */}
-        {/* <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                <span
-                  className={
-                    stat.change.includes("+")
-                      ? "text-green-600"
-                      : "text-gray-600"
-                  }
-                >
-                  {stat.change}
-                </span>{" "}
-                from last month
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div> */}
 
         {/* Quick Actions */}
         <div className="grid gap-6 lg:grid-cols-3">
@@ -648,7 +531,7 @@ function ArtistDashboardContent({
 
           {/* Group Links & Contact Form - Owner Only */}
           {selectedCommunity && canUpdateCommunity && (
-            <GroupLinksContactForm 
+            <GroupLinksContactForm
               group={selectedCommunity}
               communityId={selectedCommunityId!}
             />
@@ -660,7 +543,10 @@ function ArtistDashboardContent({
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
                   <Crown className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Only the community owner can update links and contact information.</p>
+                  <p className="text-sm">
+                    Only the community owner can update links and contact
+                    information.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -830,7 +716,6 @@ function ArtistDashboardContent({
     }
 
     const communityName = getCommunityName(selectedCommunity);
-    const isOwner = userRole === "owner";
 
     return (
       <div className="space-y-6">
@@ -1025,6 +910,7 @@ function ArtistDashboardContent({
     }
   };
 
+  // Regular dashboard with navigation for selected community
   return (
     <div className="flex flex-col md:flex-row">
       {/* Navigation */}
@@ -1037,8 +923,8 @@ function ArtistDashboardContent({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Dashboard Header with Community Selector - Only show if user has manageable communities */}
-        {communities.manageable.length > 0 && (
+        {/* Dashboard Header */}
+        {
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="p-6 pb-4">
               <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
@@ -1050,24 +936,31 @@ function ArtistDashboardContent({
                     Manage your content and community
                   </p>
                 </div>
-                <CommunitySelector />
+                <div className="flex items-center gap-3">
+                  {/* Return to Dashboard List button */}
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/dashboard")}
+                    className="gap-2"
+                  >
+                    Return to Dashboard List
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        )}
+        }
 
         {/* Tab Content */}
-        <div className="p-6">{renderContent()}</div>
+        <div className="p-6">
+          <FirebaseOwnerGuard>{renderContent()}</FirebaseOwnerGuard>
+        </div>
       </div>
     </div>
   );
 }
 
-// Main export component with CommunityProvider
+// Main export component - CommunityProvider is already provided by Dashboard page
 export function ArtistDashboard(props: ArtistDashboardProps) {
-  return (
-    <CommunityProvider>
-      <ArtistDashboardContent {...props} />
-    </CommunityProvider>
-  );
+  return <ArtistDashboardContent {...props} />;
 }

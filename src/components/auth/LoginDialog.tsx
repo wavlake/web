@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/tabs.tsx";
 import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
-import { FirebaseLegacyLogin } from "./firebase-legacy";
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -36,8 +35,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
-  const [showLegacyLogin, setShowLegacyLogin] = useState(false);
-  const [isInPubkeySelection, setIsInPubkeySelection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const login = useLoginActions();
   const { syncProfile } = useProfileSync();
@@ -114,50 +111,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
     reader.readAsText(file);
   };
 
-  // Show legacy login flow
-  if (showLegacyLogin) {
-    return (
-      <Dialog
-        open={isOpen}
-        onOpenChange={(open) => {
-          // Only allow closing if not in pubkey selection
-          if (!open) {
-            onClose();
-          }
-        }}
-      >
-        <DialogContent
-          className={
-            isInPubkeySelection
-              ? "max-w-5xl h-[95vh] p-0 overflow-hidden rounded-2xl top-[50%]"
-              : "sm:max-w-md p-0 overflow-hidden rounded-2xl"
-          }
-          onEscapeKeyDown={(e) => {
-            // Prevent closing with escape key if in pubkey selection
-            if (isInPubkeySelection) {
-              e.preventDefault();
-            }
-          }}
-        >
-          <FirebaseLegacyLogin
-            onBack={() => {
-              setShowLegacyLogin(false);
-              setIsInPubkeySelection(false);
-            }}
-            onComplete={() => {
-              onLogin();
-              onClose();
-              setShowLegacyLogin(false);
-              setIsInPubkeySelection(false);
-            }}
-            onStepChange={(step) => {
-              setIsInPubkeySelection(step === "pubkey-selection");
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -167,7 +120,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
             Log in
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground mt-2">
-            Access your account securely with your preferred method
+            Access your account securely with Nostr
           </DialogDescription>
         </DialogHeader>
 
@@ -282,23 +235,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
               </Button>
             </TabsContent>
           </Tabs>
-
-          {/* Legacy login option */}
-          <div className="border-t pt-4">
-            <div className="text-center">
-              <p className="text-sm mb-2">
-                Already have a Wavlake account? Click below to login and update
-                your account to the new system
-              </p>
-              <Button
-                variant="ghost"
-                onClick={() => setShowLegacyLogin(true)}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Sign in with Wavlake
-              </Button>
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

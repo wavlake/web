@@ -1,14 +1,13 @@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
-import { ArtistDashboard } from "@/components/ArtistDashboard";
+import { DashboardList } from "@/components/DashboardList";
 import { Layout } from "@/components/Layout";
-import { CommunityProvider, useCommunityContext } from "@/contexts/CommunityContext";
+import { CommunityProvider } from "@/contexts/CommunityContext";
 
 // Internal component that uses community context
 function DashboardContent() {
   const { user } = useCurrentUser();
-  const { selectedCommunity, getCommunityName } = useCommunityContext();
 
   if (!user) {
     return (
@@ -30,19 +29,7 @@ function DashboardContent() {
     );
   }
 
-  // Get the artist name from the selected community, fallback to "Artist"
-  const artistName = selectedCommunity ? getCommunityName(selectedCommunity) : "Artist";
-
-  return (
-    <Layout className="container mx-auto py-1 px-3 sm:px-4">
-      <div className="my-6">
-        <ArtistDashboard 
-          artistName={artistName}
-          artistImage=""
-        />
-      </div>
-    </Layout>
-  );
+  return <DashboardList />;
 }
 
 // Main export with CommunityProvider wrapper
