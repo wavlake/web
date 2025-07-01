@@ -14,7 +14,7 @@ export function useLikes(eventId: string) {
   const { mutateAsync: publishEvent } = useNostrPublish();
 
   // Query to get all likes for this event
-  const { data: likes, isLoading, refetch } = useQuery({
+  const { data: likes, isLoading } = useQuery({
     queryKey: ["likes", eventId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(3000)]);
@@ -58,9 +58,7 @@ export function useLikes(eventId: string) {
         content: "+", // "+" means like
       });
       
-      // Refetch likes to update the UI
-      refetch();
-      
+      // React Query will automatically invalidate via useNostrPublish onSuccess
       toast.success("Post liked!");
     } catch (error) {
       console.error("Error liking post:", error);
@@ -93,9 +91,7 @@ export function useLikes(eventId: string) {
         content: "Deleted like",
       });
       
-      // Refetch likes to update the UI
-      refetch();
-      
+      // React Query will automatically invalidate via useNostrPublish onSuccess
       toast.success("Post unliked!");
     } catch (error) {
       console.error("Error unliking post:", error);
