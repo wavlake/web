@@ -12,24 +12,28 @@ export function useApprovedMembers(communityId: string) {
   const { nostr } = useNostr();
   const { data: group } = useGroup(communityId);
 
-  const groupModsKey = group?.tags
-    .filter(tag => tag[0] === "p" && tag[3] === "moderator")
-    .map(([, value]) => value).join(",") || "";
+  // Parse community ID to get owner pubkey directly (avoid dependency waterfall)
+  const ownerPubkey = communityId ? communityId.split(':')[1] : null;
 
-  // Query for approved members list
+  // Query for approved members list (optimized to run independently of group data)
   const { data: approvedMembersEvents, isLoading } = useQuery({
-    queryKey: ["approved-members-list", communityId, groupModsKey],
+    queryKey: ["approved-members-list", communityId],
     queryFn: async (c) => {
-      if (!group) {
-        throw new Error("Group not found");
+      if (!ownerPubkey) {
+        throw new Error("Invalid community ID format");
       }
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      const moderators = new Set<string>([group.pubkey]);
+      
+      // Start with owner as primary moderator
+      const moderators = new Set<string>([ownerPubkey]);
 
-      for (const tag of group.tags) {
-        if (tag[0] === "p" && tag[3] === "moderator") {
-          moderators.add(tag[1]);
+      // Add additional moderators if group data is available
+      if (group?.tags) {
+        for (const tag of group.tags) {
+          if (tag[0] === "p" && tag[3] === "moderator") {
+            moderators.add(tag[1]);
+          }
         }
       }
       
@@ -41,7 +45,10 @@ export function useApprovedMembers(communityId: string) {
       
       return events;
     },
-    enabled: !!group && !!communityId,
+    enabled: !!ownerPubkey && !!communityId,
+    // Add caching to prevent unnecessary re-queries
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Query for community details to get moderators
