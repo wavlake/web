@@ -91,6 +91,23 @@ function ArtistDashboardContent({
   // Check if user is owner or moderator for notification badges
   const isOwnerOrModerator = userRole === "owner" || userRole === "moderator";
 
+  // Debug logging for moderation permissions
+  console.log("ArtistDashboard Debug:", {
+    userRole,
+    selectedCommunityId,
+    selectedCommunity: selectedCommunity
+      ? {
+          id: selectedCommunity.id,
+          pubkey: selectedCommunity.pubkey,
+          moderatorTags: selectedCommunity.tags?.filter(
+            (tag) => tag[0] === "p" && tag[3] === "moderator"
+          ),
+        }
+      : null,
+    isOwnerOrModerator,
+    userPubkey: user?.pubkey,
+  });
+
   // Get pending reports and join requests counts for owners/moderators
   const { data: openReportsCount = 0 } = useOpenReportsCount(
     isOwnerOrModerator && selectedCommunityId ? selectedCommunityId : ""
@@ -594,7 +611,7 @@ function ArtistDashboardContent({
   const renderWallet = () => (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Wallet</h2>
+        <h2 className="text-2xl font-bold">Wallet (UNDER CONSTRUCTION)</h2>
         <p className="text-muted-foreground">
           Manage your earnings and payments
         </p>
@@ -764,7 +781,18 @@ function ArtistDashboardContent({
       );
     }
 
-    if (!isOwnerOrModerator) {
+    // Additional fallback check for moderation permissions
+    const hasModeratorAccess =
+      isOwnerOrModerator ||
+      (selectedCommunity &&
+        user &&
+        (selectedCommunity.pubkey === user.pubkey || // Owner
+          selectedCommunity.tags.some(
+            (tag) =>
+              tag[0] === "p" && tag[1] === user.pubkey && tag[3] === "moderator"
+          ))); // Moderator
+
+    if (!hasModeratorAccess) {
       return (
         <div className="space-y-6">
           <div>
@@ -783,6 +811,9 @@ function ArtistDashboardContent({
                 <p className="text-muted-foreground mt-2">
                   You must be a moderator or the community owner to access
                   moderation tools
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Debug: Role={userRole}, HasAccess={hasModeratorAccess}
                 </p>
               </div>
             </CardContent>
@@ -828,7 +859,7 @@ function ArtistDashboardContent({
           <TabsContent value="members" className="mt-6">
             <MemberManagement
               communityId={selectedCommunityId}
-              isModerator={isOwnerOrModerator}
+              isModerator={hasModeratorAccess}
             />
           </TabsContent>
 

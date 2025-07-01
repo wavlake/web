@@ -57,25 +57,7 @@ export function WelcomeRedirect({ children }: WelcomeRedirectProps) {
       return;
     }
 
-    // Handle dashboard routing for users with associations
-    if (location.pathname === "/dashboard") {
-      // Count owned/moderated groups (assuming these are distinguished in allGroups)
-      // You may need to adjust this filter based on your data structure
-      const ownedOrModeratedGroups = allGroups.filter(
-        (group) =>
-          group.pubkey === user.pubkey ||
-          group.tags.some((tag) => tag[0] === "p" && tag[1] === user.pubkey)
-      );
-
-      if (ownedOrModeratedGroups.length === 1) {
-        // Auto-add group ID as URL param for single group
-        const groupId = ownedOrModeratedGroups[0].id;
-        navigate(`/dashboard?communityId=${groupId}`, { replace: true });
-        return;
-      }
-      // For multiple groups, stay on dashboard (will show group list)
-      return;
-    }
+    // No auto-redirects for dashboard - let users navigate manually
 
     // For users with associations landing on root or other pages,
     // let them proceed normally (no redirect needed)

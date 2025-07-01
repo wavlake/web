@@ -85,17 +85,24 @@ export function useApprovedMembers(communityId: string) {
     .filter(tag => tag[0] === "p" && tag[3] === "moderator")
     .map(tag => tag[1]) || [];
 
+  // Always include the community owner in the member list
+  const allMembers = [...new Set([
+    ownerPubkey, // Always include owner
+    ...moderators, // Include moderators
+    ...approvedMembers // Include regular approved members
+  ])].filter(Boolean) as string[];
+
   /**
-   * Check if a user is an approved member or moderator
+   * Check if a user is an approved member, moderator, or owner
    * @param pubkey The pubkey to check
    * @returns boolean indicating if the user is approved
    */
   const isApprovedMember = (pubkey: string): boolean => {
-    return approvedMembers.includes(pubkey) || moderators.includes(pubkey);
+    return allMembers.includes(pubkey);
   };
 
   return {
-    approvedMembers,
+    approvedMembers: allMembers, // Return all members including owner and moderators
     moderators,
     isApprovedMember,
     isLoading

@@ -4,81 +4,165 @@ import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useBannedUsers } from "@/hooks/useBannedUsers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
 import { toast } from "sonner";
-import { UserPlus, Users, CheckCircle, XCircle, UserX, Ban } from "lucide-react";
+import {
+  UserPlus,
+  Users,
+  CheckCircle,
+  XCircle,
+  UserX,
+  Ban,
+  Crown,
+  Shield,
+} from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
 import { Link, useLocation } from "react-router-dom";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
+import { useGroupModeration } from "@/hooks/useGroupModeration";
+import { useCommunityContext } from "@/contexts/CommunityContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MemberManagementProps {
   communityId: string;
   isModerator: boolean;
 }
 
-export function MemberManagement({ communityId, isModerator }: MemberManagementProps) {
+export function MemberManagement({
+  communityId,
+  isModerator,
+}: MemberManagementProps) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const location = useLocation();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const queryClient = useQueryClient();
-  const { 
-    bannedUsers: uniqueBannedUsers, 
-    isLoading: isLoadingBanned, 
-    banUser, 
-    unbanUser 
+  const { selectedCommunity } = useCommunityContext();
+  const {
+    bannedUsers: uniqueBannedUsers,
+    isLoading: isLoadingBanned,
+    banUser,
+    unbanUser,
   } = useBannedUsers(communityId);
+  const {
+    promoteToModerator,
+    demoteFromModerator,
+    isPromoting,
+    isDemoting,
+    isOwner,
+  } = useGroupModeration({ communityId, selectedCommunity });
   const [activeTab, setActiveTab] = useState("requests");
-  
+
+  // Helper function to get user role in the community
+  const getUserRole = (pubkey: string) => {
+    if (!selectedCommunity) return "member";
+
+    // Check if owner
+    if (selectedCommunity.pubkey === pubkey) {
+      return "owner";
+    }
+
+    // Check if moderator
+    const isModerator = selectedCommunity.tags.some(
+      (tag) => tag[0] === "p" && tag[1] === pubkey && tag[3] === "moderator"
+    );
+
+    return isModerator ? "moderator" : "member";
+  };
+
   // Check URL parameters for tab selection
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const membersTab = searchParams.get('membersTab');
-    
-    if (membersTab && ['requests', 'members', 'declined', 'banned'].includes(membersTab)) {
+    const membersTab = searchParams.get("membersTab");
+
+    if (
+      membersTab &&
+      ["requests", "members", "declined", "banned"].includes(membersTab)
+    ) {
       setActiveTab(membersTab);
     }
   }, [location.search]);
 
   // Query for join requests
-  const { data: joinRequests, isLoading: isLoadingRequests, refetch: refetchRequests } = useQuery({
+  const {
+    data: joinRequests,
+    isLoading: isLoadingRequests,
+    refetch: refetchRequests,
+  } = useQuery({
     queryKey: ["join-requests", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [KINDS.GROUP_JOIN_REQUEST],
-        "#a": [communityId],
-        limit: 50,
-      }], { signal });
-      
+
+      const events = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_JOIN_REQUEST],
+            "#a": [communityId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
+
       return events;
     },
     enabled: !!nostr && !!communityId,
   });
 
   // Get approved members using the centralized hook
-  const { approvedMembers, isLoading: isLoadingMembers } = useApprovedMembers(communityId);
+  const { approvedMembers, isLoading: isLoadingMembers } =
+    useApprovedMembers(communityId);
 
   // Query for declined users
-  const { data: declinedUsersEvents, isLoading: isLoadingDeclined, refetch: refetchDeclined } = useQuery({
+  const {
+    data: declinedUsersEvents,
+    isLoading: isLoadingDeclined,
+    refetch: refetchDeclined,
+  } = useQuery({
     queryKey: ["declined-users", communityId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      const events = await nostr.query([{ 
-        kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
-        "#d": [communityId],
-        limit: 50,
-      }], { signal });
-      
+
+      const events = await nostr.query(
+        [
+          {
+            kinds: [KINDS.GROUP_DECLINED_MEMBERS_LIST],
+            "#d": [communityId],
+            limit: 50,
+          },
+        ],
+        { signal }
+      );
+
       return events;
     },
     enabled: !!nostr && !!communityId,
@@ -88,19 +172,22 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
   const uniqueApprovedMembers = [...new Set(approvedMembers)];
 
   // Extract all declined user pubkeys from the events
-  const declinedUsers = declinedUsersEvents?.flatMap(event => 
-    event.tags.filter(tag => tag[0] === "p").map(tag => tag[1])
-  ) || [];
+  const declinedUsers =
+    declinedUsersEvents?.flatMap((event) =>
+      event.tags.filter((tag) => tag[0] === "p").map((tag) => tag[1])
+    ) || [];
 
   // Remove duplicates
   const uniqueDeclinedUsers = [...new Set(declinedUsers)];
 
   // Filter out join requests from users who are already approved, declined, or banned
-  const pendingRequests = joinRequests?.filter(request => 
-    !uniqueApprovedMembers.includes(request.pubkey) && 
-    !uniqueDeclinedUsers.includes(request.pubkey) &&
-    !uniqueBannedUsers.includes(request.pubkey)
-  ) || [];
+  const pendingRequests =
+    joinRequests?.filter(
+      (request) =>
+        !uniqueApprovedMembers.includes(request.pubkey) &&
+        !uniqueDeclinedUsers.includes(request.pubkey) &&
+        !uniqueBannedUsers.includes(request.pubkey)
+    ) || [];
 
   const handleApproveUser = async (pubkey: string) => {
     if (!user || !isModerator) {
@@ -111,12 +198,12 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
     try {
       // Check if the user is in the declined list
       const isDeclined = uniqueDeclinedUsers.includes(pubkey);
-      
+
       // Create a new list or update the existing one for approved members
       const tags = [
         ["d", communityId],
-        ...uniqueApprovedMembers.map(pk => ["p", pk]),
-        ["p", pubkey] // Add the new member
+        ...uniqueApprovedMembers.map((pk) => ["p", pk]),
+        ["p", pubkey], // Add the new member
       ];
 
       // Create approved members event
@@ -125,21 +212,22 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         tags,
         content: "",
       });
-      
+
       // If the user was in the declined list, remove them by creating a new kind 4551 event
       // that excludes this pubkey
       if (isDeclined) {
         // Find all declined events that include this pubkey
-        const declinedEventsForUser = declinedUsersEvents?.filter(event => 
-          event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
-        ) || [];
-        
+        const declinedEventsForUser =
+          declinedUsersEvents?.filter((event) =>
+            event.tags.some((tag) => tag[0] === "p" && tag[1] === pubkey)
+          ) || [];
+
         // For each declined event, create a new event that removes this user
         for (const declinedEvent of declinedEventsForUser) {
           // Get the original request event ID and kind from the declined event
-          const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
-          const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
-          
+          const eventIdTag = declinedEvent.tags.find((tag) => tag[0] === "e");
+          const kindTag = declinedEvent.tags.find((tag) => tag[0] === "k");
+
           if (eventIdTag && kindTag) {
             // Create a new declined event that doesn't include this pubkey
             // This effectively "removes" the user from the declined list
@@ -149,26 +237,34 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                 ["d", communityId],
                 ["e", eventIdTag[1]],
                 // Deliberately omitting the pubkey tag to remove the user
-                ["k", kindTag[1]]
+                ["k", kindTag[1]],
               ],
               content: "", // Empty content to indicate removal
             });
           }
         }
       }
-      
+
       toast.success("User approved successfully!");
-      
+
       // Refetch data
       refetchRequests();
       refetchDeclined();
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["join-requests-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["declined-users-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-list", communityId],
+      });
+
       // Switch to members tab
       setActiveTab("members");
     } catch (error) {
@@ -185,12 +281,14 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
 
     try {
       // Filter out the member to remove
-      const updatedMembers = uniqueApprovedMembers.filter(pk => pk !== pubkey);
-      
+      const updatedMembers = uniqueApprovedMembers.filter(
+        (pk) => pk !== pubkey
+      );
+
       // Create a new list with the member removed
       const tags = [
         ["d", communityId],
-        ...updatedMembers.map(pk => ["p", pk])
+        ...updatedMembers.map((pk) => ["p", pk]),
       ];
 
       // Create updated approved members event
@@ -199,40 +297,46 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         tags,
         content: "",
       });
-      
-      // Add the removed user to the declined list 
+
+      // Add the removed user to the declined list
       // We'll create a generic event ID since we don't have a specific request event
       const removalEventId = `removal:${pubkey}:${Date.now()}`;
-      
+
       await publishEvent({
         kind: KINDS.GROUP_DECLINED_MEMBERS_LIST,
         tags: [
           ["d", communityId],
           ["e", removalEventId], // Using a generated event ID
           ["p", pubkey], // The pubkey of the removed user
-          ["k", String(KINDS.GROUP_APPROVED_MEMBERS_LIST)] // Indicating this was a removal from the approved list
+          ["k", String(KINDS.GROUP_APPROVED_MEMBERS_LIST)], // Indicating this was a removal from the approved list
         ],
         content: JSON.stringify({
           reason: "Removed from group by moderator",
-          timestamp: Date.now()
+          timestamp: Date.now(),
         }),
       });
-      
+
       toast.success("Member removed successfully!");
-      
+
       // Refetch data
       refetchDeclined();
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["declined-users-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-list", communityId],
+      });
     } catch (error) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member. Please try again.");
     }
   };
-  
+
   const handleBanUser = async (pubkey: string) => {
     if (!user || !isModerator) {
       toast.error("You must be a moderator to ban users");
@@ -244,17 +348,23 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       if (uniqueApprovedMembers.includes(pubkey)) {
         await handleRemoveMember(pubkey);
       }
-      
+
       // Then ban the user
       await banUser(pubkey);
-      
+
       toast.success("User banned successfully!");
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["banned-users-count", communityId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["join-requests-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["banned-users-count", communityId],
+      });
+
       // Switch to banned tab
       setActiveTab("banned");
     } catch (error) {
@@ -277,20 +387,24 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
           ["d", communityId],
           ["e", request.id],
           ["p", request.pubkey],
-          ["k", String(KINDS.GROUP_JOIN_REQUEST)] // The kind of the request event
+          ["k", String(KINDS.GROUP_JOIN_REQUEST)], // The kind of the request event
         ],
         content: JSON.stringify(request), // Store the full request event
       });
-      
+
       toast.success("User declined successfully!");
-      
+
       // Refetch data
       refetchRequests();
       refetchDeclined();
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
+      queryClient.invalidateQueries({
+        queryKey: ["join-requests-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["declined-users-count", communityId],
+      });
     } catch (error) {
       console.error("Error declining user:", error);
       toast.error("Failed to decline user. Please try again.");
@@ -305,16 +419,17 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
 
     try {
       // 1. Find all declined events that include this pubkey
-      const declinedEventsForUser = declinedUsersEvents?.filter(event => 
-        event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
-      ) || [];
-      
+      const declinedEventsForUser =
+        declinedUsersEvents?.filter((event) =>
+          event.tags.some((tag) => tag[0] === "p" && tag[1] === pubkey)
+        ) || [];
+
       // 2. For each declined event, create a new event that removes this user
       for (const declinedEvent of declinedEventsForUser) {
         // Get the original request event ID and kind from the declined event
-        const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
-        const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
-        
+        const eventIdTag = declinedEvent.tags.find((tag) => tag[0] === "e");
+        const kindTag = declinedEvent.tags.find((tag) => tag[0] === "k");
+
         if (eventIdTag && kindTag) {
           // Create a new declined event that doesn't include this pubkey
           // This effectively "removes" the user from the declined list
@@ -324,7 +439,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               ["d", communityId],
               ["e", eventIdTag[1]],
               // Deliberately omitting the pubkey tag to remove the user
-              ["k", kindTag[1]]
+              ["k", kindTag[1]],
             ],
             content: "", // Empty content to indicate removal
           });
@@ -334,8 +449,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       // 3. Add to approved members list
       const tags = [
         ["d", communityId],
-        ...uniqueApprovedMembers.map(pk => ["p", pk]),
-        ["p", pubkey] // Add the new member
+        ...uniqueApprovedMembers.map((pk) => ["p", pk]),
+        ["p", pubkey], // Add the new member
       ];
 
       // Create approved members event
@@ -344,17 +459,23 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         tags,
         content: "",
       });
-      
+
       toast.success("User approved successfully!");
-      
+
       // Refetch data
       refetchDeclined();
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["declined-users-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-list", communityId],
+      });
+
       // Switch to members tab
       setActiveTab("members");
     } catch (error) {
@@ -373,16 +494,16 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
       toast.info("No pending requests to approve");
       return;
     }
-    
+
     try {
       // Get all the pubkeys from pending requests
-      const pendingPubkeys = pendingRequests.map(request => request.pubkey);
-      
+      const pendingPubkeys = pendingRequests.map((request) => request.pubkey);
+
       // Create a new list of all existing approved members plus all pending requests
       const tags = [
         ["d", communityId],
-        ...uniqueApprovedMembers.map(pk => ["p", pk]),
-        ...pendingPubkeys.map(pk => ["p", pk]) // Add all pending members
+        ...uniqueApprovedMembers.map((pk) => ["p", pk]),
+        ...pendingPubkeys.map((pk) => ["p", pk]), // Add all pending members
       ];
 
       // Create approved members event
@@ -391,24 +512,25 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
         tags,
         content: "",
       });
-      
+
       // Handle any declined users in the pending list
-      const declinedPubkeysInPendingList = pendingPubkeys.filter(pk => 
+      const declinedPubkeysInPendingList = pendingPubkeys.filter((pk) =>
         uniqueDeclinedUsers.includes(pk)
       );
-      
+
       if (declinedPubkeysInPendingList.length > 0) {
         // For each previously declined user, find their events and remove them from declined list
         for (const pubkey of declinedPubkeysInPendingList) {
-          const declinedEventsForUser = declinedUsersEvents?.filter(event => 
-            event.tags.some(tag => tag[0] === "p" && tag[1] === pubkey)
-          ) || [];
-          
+          const declinedEventsForUser =
+            declinedUsersEvents?.filter((event) =>
+              event.tags.some((tag) => tag[0] === "p" && tag[1] === pubkey)
+            ) || [];
+
           for (const declinedEvent of declinedEventsForUser) {
             // Get the original request event ID and kind from the declined event
-            const eventIdTag = declinedEvent.tags.find(tag => tag[0] === "e");
-            const kindTag = declinedEvent.tags.find(tag => tag[0] === "k");
-            
+            const eventIdTag = declinedEvent.tags.find((tag) => tag[0] === "e");
+            const kindTag = declinedEvent.tags.find((tag) => tag[0] === "k");
+
             if (eventIdTag && kindTag) {
               // Create a new declined event that doesn't include this pubkey
               await publishEvent({
@@ -417,7 +539,7 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                   ["d", communityId],
                   ["e", eventIdTag[1]],
                   // Deliberately omitting the pubkey tag to remove the user
-                  ["k", kindTag[1]]
+                  ["k", kindTag[1]],
                 ],
                 content: "", // Empty content to indicate removal
               });
@@ -425,19 +547,31 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
           }
         }
       }
-      
+
       const approvedCount = pendingRequests.length;
-      toast.success(`${approvedCount} ${approvedCount === 1 ? 'user' : 'users'} approved successfully!`);
-      
+      toast.success(
+        `${approvedCount} ${
+          approvedCount === 1 ? "user" : "users"
+        } approved successfully!`
+      );
+
       // Refetch data
       refetchRequests();
       refetchDeclined();
-      
+
       // Invalidate pending requests count cache
-      queryClient.invalidateQueries({ queryKey: ["join-requests-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["declined-users-count", communityId] });
-      queryClient.invalidateQueries({ queryKey: ["approved-members-list", communityId] });
+      queryClient.invalidateQueries({
+        queryKey: ["join-requests-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["declined-users-count", communityId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["approved-members-list", communityId],
+      });
     } catch (error) {
       console.error("Error approving all users:", error);
       toast.error("Failed to approve all users. Please try again.");
@@ -466,7 +600,9 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                     <span>Requests</span>
                     {pendingRequests.length > 0 && (
                       <span className="bg-primary text-primary-foreground rounded-full min-w-5 h-5 px-1 flex items-center justify-center text-xs ml-auto">
-                        {pendingRequests.length > 99 ? '99' : pendingRequests.length}
+                        {pendingRequests.length > 99
+                          ? "99"
+                          : pendingRequests.length}
                       </span>
                     )}
                   </div>
@@ -492,12 +628,15 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               </SelectContent>
             </Select>
           </div>
-          
+
           <TabsContent value="requests">
             {isLoadingRequests ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2 border rounded-md"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div>
@@ -521,8 +660,8 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               <div className="space-y-4">
                 {pendingRequests.length > 1 && (
                   <div className="flex justify-end mb-4">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={handleApproveAllRequests}
                       className="gap-2"
                     >
@@ -532,9 +671,9 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
                   </div>
                 )}
                 {pendingRequests.map((request) => (
-                  <JoinRequestItem 
-                    key={request.id} 
-                    request={request} 
+                  <JoinRequestItem
+                    key={request.id}
+                    request={request}
                     onApprove={() => handleApproveUser(request.pubkey)}
                     onDecline={() => handleDeclineUser(request)}
                   />
@@ -542,12 +681,15 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="members">
             {isLoadingMembers ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2 border rounded-md"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div>
@@ -566,22 +708,31 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
             ) : (
               <div className="space-y-4">
                 {uniqueApprovedMembers.map((pubkey) => (
-                  <MemberItem 
-                    key={pubkey} 
-                    pubkey={pubkey} 
+                  <MemberItem
+                    key={pubkey}
+                    pubkey={pubkey}
+                    userRole={getUserRole(pubkey)}
                     onRemove={() => handleRemoveMember(pubkey)}
                     onBan={() => handleBanUser(pubkey)}
+                    onPromote={() => promoteToModerator(pubkey)}
+                    onDemote={() => demoteFromModerator(pubkey)}
+                    isOwner={isOwner || false}
+                    isPromoting={isPromoting}
+                    isDemoting={isDemoting}
                   />
                 ))}
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="declined">
             {isLoadingDeclined ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2 border rounded-md"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div>
@@ -600,21 +751,24 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
             ) : (
               <div className="space-y-4">
                 {uniqueDeclinedUsers.map((pubkey) => (
-                  <DeclinedUserItem 
-                    key={pubkey} 
-                    pubkey={pubkey} 
-                    onApprove={() => handleApproveDeclinedUser(pubkey)} 
+                  <DeclinedUserItem
+                    key={pubkey}
+                    pubkey={pubkey}
+                    onApprove={() => handleApproveDeclinedUser(pubkey)}
                   />
                 ))}
               </div>
             )}
           </TabsContent>
-          
+
           <TabsContent value="banned">
             {isLoadingBanned ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-2 border rounded-md">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2 border rounded-md"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div>
@@ -633,11 +787,13 @@ export function MemberManagement({ communityId, isModerator }: MemberManagementP
             ) : (
               <div className="space-y-4">
                 {uniqueBannedUsers.map((pubkey) => (
-                  <MemberItem 
-                    key={pubkey} 
-                    pubkey={pubkey} 
+                  <MemberItem
+                    key={pubkey}
+                    pubkey={pubkey}
+                    userRole={getUserRole(pubkey)}
                     onRemove={() => unbanUser(pubkey)}
                     isBanned={true}
+                    isOwner={isOwner || false}
                   />
                 ))}
               </div>
@@ -655,45 +811,57 @@ interface JoinRequestItemProps {
   onDecline?: () => void;
 }
 
-function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps) {
+function JoinRequestItem({
+  request,
+  onApprove,
+  onDecline,
+}: JoinRequestItemProps) {
   const author = useAuthor(request.pubkey);
   const metadata = author.data?.metadata;
-  
+
   const displayName = metadata?.name || request.pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
   const joinReason = request.content;
-  
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${request.pubkey}`} className="flex-shrink-0">
           <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {displayName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/profile/${request.pubkey}`} className="font-medium hover:underline block truncate">
+          <Link
+            to={`/profile/${request.pubkey}`}
+            className="font-medium hover:underline block truncate"
+          >
             {displayName}
           </Link>
           <p className="text-xs text-muted-foreground">
             Requested {new Date(request.created_at * 1000).toLocaleDateString()}
           </p>
           {joinReason && (
-            <p className="text-sm mt-1 break-words overflow-hidden" style={{ 
-              display: '-webkit-box', 
-              WebkitLineClamp: 2, 
-              WebkitBoxOrient: 'vertical' 
-            }}>
+            <p
+              className="text-sm mt-1 break-words overflow-hidden"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              }}
+            >
               "{joinReason}"
             </p>
           )}
         </div>
       </div>
       <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="text-red-600 flex-1 sm:flex-none"
           onClick={onDecline}
         >
@@ -711,37 +879,78 @@ function JoinRequestItem({ request, onApprove, onDecline }: JoinRequestItemProps
 
 interface MemberItemProps {
   pubkey: string;
+  userRole: "owner" | "moderator" | "member";
   onRemove: () => void;
   onBan?: () => void;
+  onPromote?: () => void;
+  onDemote?: () => void;
   isBanned?: boolean;
+  isOwner?: boolean;
+  isPromoting?: boolean;
+  isDemoting?: boolean;
 }
 
-function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemProps) {
+function MemberItem({
+  pubkey,
+  userRole,
+  onRemove,
+  onBan,
+  onPromote,
+  onDemote,
+  isBanned = false,
+  isOwner = false,
+  isPromoting = false,
+  isDemoting = false,
+}: MemberItemProps) {
   const author = useAuthor(pubkey);
   const { user } = useCurrentUser();
   const metadata = author.data?.metadata;
-  
+
   const displayName = metadata?.name || pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
   const isCurrentUser = user?.pubkey === pubkey;
-  
+  const isCommunityOwner = userRole === "owner";
+
+  // Only show promote/demote buttons for group owners
+  const canPromoteDemote = isOwner && !isCurrentUser && !isBanned;
+
+  // Disable ban/remove for community owners (they can't be removed from their own community)
+  const canBanOrRemove = !isCommunityOwner && !isCurrentUser;
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
           <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {displayName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline block truncate">
+          <Link
+            to={`/profile/${pubkey}`}
+            className="font-medium hover:underline block truncate"
+          >
             {displayName}
           </Link>
           <div className="flex flex-wrap gap-1 mt-1">
             {isCurrentUser && (
               <span className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5">
                 You
+              </span>
+            )}
+            {userRole === "owner" && (
+              <span className="text-xs bg-yellow-100 text-yellow-700 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Crown className="h-3 w-3" />
+                Owner
+              </span>
+            )}
+            {userRole === "moderator" && (
+              <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Moderator
               </span>
             )}
             {isBanned && (
@@ -753,28 +962,93 @@ function MemberItem({ pubkey, onRemove, onBan, isBanned = false }: MemberItemPro
         </div>
       </div>
       <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
-        {onBan && !isBanned && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+        {/* Role Management Buttons - Only for owners */}
+        {canPromoteDemote && userRole === "member" && onPromote && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-blue-600 flex-1 sm:flex-none"
+                disabled={isPromoting}
+              >
+                <Shield className="h-4 w-4 mr-1" />
+                <span>{isPromoting ? "Promoting..." : "Promote"}</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Promote to Moderator</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to promote {displayName} to moderator?
+                  They will be able to manage members, approve/decline requests,
+                  and moderate content.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onPromote}>
+                  Promote to Moderator
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {canPromoteDemote && userRole === "moderator" && onDemote && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-orange-600 flex-1 sm:flex-none"
+                disabled={isDemoting}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                <span>{isDemoting ? "Demoting..." : "Demote"}</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Demote from Moderator</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to demote {displayName} from moderator
+                  to regular member? They will lose all moderation privileges.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDemote}>
+                  Demote to Member
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Standard Moderation Buttons */}
+        {onBan && !isBanned && canBanOrRemove && (
+          <Button
+            variant="outline"
+            size="sm"
             className="text-red-600 flex-1 sm:flex-none"
             onClick={onBan}
-            disabled={isCurrentUser}
           >
             <Ban className="h-4 w-4 mr-1" />
             <span>Ban</span>
           </Button>
         )}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-red-600 flex-1 sm:flex-none"
-          onClick={onRemove}
-          disabled={isCurrentUser}
-        >
-          <XCircle className="h-4 w-4 mr-1" />
-          <span>{isBanned ? "Unban" : "Remove"}</span>
-        </Button>
+        {canBanOrRemove && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-600 flex-1 sm:flex-none"
+            onClick={onRemove}
+          >
+            <XCircle className="h-4 w-4 mr-1" />
+            <span>{isBanned ? "Unban" : "Remove"}</span>
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -788,21 +1062,26 @@ interface DeclinedUserItemProps {
 function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
-  
+
   const displayName = metadata?.name || pubkey.slice(0, 8);
   const profileImage = metadata?.picture;
-  
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link to={`/profile/${pubkey}`} className="flex-shrink-0">
           <Avatar className="rounded-md">
             <AvatarImage src={profileImage} />
-            <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {displayName.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/profile/${pubkey}`} className="font-medium hover:underline block truncate">
+          <Link
+            to={`/profile/${pubkey}`}
+            className="font-medium hover:underline block truncate"
+          >
             {displayName}
           </Link>
           <span className="inline-block mt-1 text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
@@ -810,7 +1089,7 @@ function DeclinedUserItem({ pubkey, onApprove }: DeclinedUserItemProps) {
           </span>
         </div>
       </div>
-      <Button 
+      <Button
         size="sm"
         onClick={onApprove}
         className="w-full sm:w-auto flex-shrink-0"

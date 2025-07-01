@@ -145,7 +145,7 @@ export default function GroupDetail({
   const isModerator = userRole === "moderator" || userRole === "owner";
 
   // Get approved members
-  const { approvedMembers } = useApprovedMembers(groupId || "");
+  const { approvedMembers, isApprovedMember } = useApprovedMembers(groupId || "");
 
   // Get community content using the community ID (not just pubkey)
   const { data: albums = [], isLoading: isLoadingAlbums } = useCommunityAlbums(
@@ -292,18 +292,18 @@ export default function GroupDetail({
                     </h2>
                     <p className="text-muted-foreground mb-4">{artist.bio}</p>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <p>
-                        <span className="font-medium text-foreground">
-                          Your membership:
-                        </span>{" "}
-                        {user
-                          ? isOwner
+                      {(user && (isOwner || isModerator || isApprovedMember(user.pubkey))) && (
+                        <p>
+                          <span className="font-medium text-foreground">
+                            Your membership:
+                          </span>{" "}
+                          {isOwner
                             ? "Owner"
                             : isModerator
                             ? "Moderator"
-                            : "Member"
-                          : "Not logged in"}
-                      </p>
+                            : "Member"}
+                        </p>
+                      )}
                     </div>
                   </div>
 

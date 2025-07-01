@@ -1,24 +1,25 @@
 import { useParams } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
 import { Layout } from "@/components/Layout";
-import { CommunityProvider, useCommunityContext } from "@/contexts/CommunityContext";
-import { useEffect } from "react";
+import {
+  CommunityProvider,
+  useCommunityContext,
+} from "@/contexts/CommunityContext";
 
 // Internal component that uses community context
 function DashboardDetailContent() {
   const { user } = useCurrentUser();
   const { communityId } = useParams<{ communityId: string }>();
-  const { setSelectedCommunityId, selectedCommunity, getCommunityName } = useCommunityContext();
-
-  // Set the community ID from the URL parameter when component mounts
-  useEffect(() => {
-    if (communityId) {
-      setSelectedCommunityId(decodeURIComponent(communityId));
-    }
-  }, [communityId, setSelectedCommunityId]);
+  const { selectedCommunity, getCommunityName } = useCommunityContext();
 
   if (!user) {
     return (
@@ -41,12 +42,14 @@ function DashboardDetailContent() {
   }
 
   // Get the artist name from the selected community, fallback to "Artist"
-  const artistName = selectedCommunity ? getCommunityName(selectedCommunity) : "Artist";
+  const artistName = selectedCommunity
+    ? getCommunityName(selectedCommunity)
+    : "Artist";
 
   return (
     <Layout className="container mx-auto py-1 px-3 sm:px-4">
       <div className="my-6">
-        <ArtistDashboard 
+        <ArtistDashboard
           artistName={artistName}
           artistImage=""
           communityId={communityId}

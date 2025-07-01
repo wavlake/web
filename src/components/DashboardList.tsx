@@ -122,6 +122,8 @@ export function DashboardList() {
                     const name = getCommunityName(community);
                     const image = community.tags.find(tag => tag[0] === "image")?.[1];
                     
+                    console.log("DashboardList Debug:", { communityId, name, community });
+                    
                     return (
                       <Card key={communityId} className="cursor-pointer hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
