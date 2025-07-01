@@ -381,7 +381,7 @@ Your task is not considered finished until this test passes without errors.
 
 # Wavlake Project
 
-Wavlake is a music-focused community platform built on the Nostr protocol using NIP-72 for moderated communities. This section provides specific information about the Wavlake implementation.
+Wavlake is a Bitcoin-powered music platform where artists earn sats and fans discover amazing music. Built on the Nostr protocol, it implements NIP-72 for moderated communities (artist pages/groups) and provides a comprehensive dashboard for artists to manage their content and communities.
 
 ## NIP-72 Implementation
 
@@ -395,8 +395,12 @@ Wavlake implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/7
 
 ## Key Features
 
-- **Community Creation**: Users can create communities with custom names, descriptions, and images
-- **Community Browsing**: Users can discover and join existing communities
+- **Artist Dashboard**: Comprehensive dashboard for artists to manage their music, communities, and earnings
+- **Music Publishing**: Artists can upload and distribute music with Bitcoin/Lightning monetization
+- **Community Management**: Create and manage artist pages with moderation tools
+- **Welcome Flow**: Smart onboarding that directs new users based on their role (Artist vs Listener)
+- **Firebase Integration**: Secure account linking for artist/owner features
+- **Multi-Group Support**: Artists can manage multiple artist pages from a single dashboard
 - **Post Creation**: Users can create text and image posts within communities
 - **Post Moderation**: Community moderators can approve or reject posts
 - **Approved Users**: Communities can maintain lists of approved users whose posts are automatically approved
@@ -407,15 +411,25 @@ Wavlake implements [NIP-72](https://github.com/nostr-protocol/nips/blob/master/7
 ### Pages
 
 - **Index.tsx**: Landing page with introduction to the platform
+- **WelcomePage.tsx**: Welcome page for new users without group associations, with role selection
+- **Dashboard.tsx**: Artist dashboard wrapper that displays ArtistDashboard component
 - **Groups.tsx**: Main page listing all available communities
 - **GroupDetail.tsx**: Detailed view of a specific community with posts and member information
 - **CreateGroup.tsx**: Form for creating new communities
+- **CreateArtist.tsx**: Placeholder page for future artist creation walkthrough
+- **LinkFirebase.tsx**: Dedicated page for Firebase account linking for group owners
 
 ### Custom Components
 
+- **ArtistDashboard.tsx**: Comprehensive dashboard component with tabbed interface for artists
 - **CreatePostForm.tsx**: Component for creating posts within a community
 - **PostList.tsx**: Component for displaying posts with approval status
 - **ApprovedUsersList.tsx**: Component for managing approved users in a community
+- **WelcomeRedirect.tsx**: Automatic redirect logic for users based on group associations
+- **FirebaseOwnerGuard.tsx**: Guards dashboard features requiring Firebase linking for owners
+- **MusicPublisher.tsx**: Component for uploading and publishing music content
+- **LoginDialog.tsx**: Simplified Nostr-only authentication dialog (no Firebase legacy)
+- **CommunityContext.tsx**: Context provider for managing selected community and URL parameters
 
 ## Post Approval Flow
 
@@ -435,10 +449,15 @@ Posts from approved users are automatically displayed in the community without r
 
 ## UI Features
 
+- **Artist Dashboard**: Comprehensive tabbed interface with Overview, Music, Updates, Community, Moderation, Wallet, Settings, and Support sections
+- **Smart Navigation**: URL parameter-based routing with automatic redirects for single-group users
+- **Dashboard List View**: Clean list view for users with multiple artist pages
+- **Welcome Flow**: Role-based onboarding for new users (Artist vs Listener paths)
 - **Toggle for Approved Posts**: Users can toggle between seeing all posts or only approved posts
 - **Visual Indicators**: Clear visual indicators for approved, auto-approved, and pending posts
 - **Moderation Tools**: Moderators have access to tools for approving posts and managing approved users
 - **Responsive Design**: Works on both desktop and mobile devices
+- **Firebase Integration**: Separate flow for owners to link Firebase accounts
 
 ## Group Event Tagging Patterns
 
@@ -542,6 +561,193 @@ await publishEvent({
 });
 ```
 
+## Authentication & User Flow
+
+### Authentication
+- **Nostr-Only Login**: Simplified authentication supporting Extension, Nsec, and Bunker methods only
+- **No Firebase in Login**: Firebase legacy authentication has been removed from the main login flow
+- **Account Switching**: Built-in account switcher for managing multiple Nostr identities
+
+### User Flow Logic
+1. **New Users (No Group Associations)**:
+   - Automatically redirected to `/welcome` page
+   - Choose between Artist path (→ `/dashboard`) or Listener path (→ `/`)
+   - No localStorage needed - based purely on group associations
+
+2. **Users with One Group**:
+   - Dashboard automatically redirects to `/dashboard?communityId=[ID]`
+   - Shows full dashboard with navigation sidebar
+   - "Add another Artist" button available
+
+3. **Users with Multiple Groups**:
+   - Dashboard shows group list at `/dashboard` (no params)
+   - Select a group to navigate to `/dashboard?communityId=[ID]`
+   - "Return to Dashboard List" button available when viewing specific group
+
+4. **Firebase Linking (Owners Only)**:
+   - Required for group owners before accessing dashboard features
+   - Redirects to `/link-firebase` when needed
+   - Moderators and listeners don't require Firebase linking
+
+## Authentication Architecture
+
+Wavlake implements a hybrid authentication system combining **Nostr** for identity and **Firebase** for legacy business operations. This dual approach provides:
+
+- **Nostr**: Primary identity layer supporting Extension (NIP-07), Nsec, and Bunker (NIP-46) authentication
+- **Firebase**: Legacy integration for group ownership features and business operations
+
+### Nostr Authentication System
+
+#### Core Implementation Components
+
+**NostrLoginProvider** (`@/components/auth/NostrLoginProvider.tsx`):
+- Manages Nostr session state and persistence
+- Handles automatic reconnection and session recovery
+- Provides context for authentication status throughout the app
+- Integrates with TanStack Query for efficient state management
+
+**Authentication Methods**:
+
+1. **Extension/NIP-07**: Browser extension-based authentication
+   - Uses `window.nostr` interface for signing operations
+   - Most secure method as private keys never leave the extension
+   - Supports Alby, nos2x, and other NIP-07 compatible extensions
+
+2. **Nsec**: Direct private key authentication
+   - Allows users to input nsec (private key) directly
+   - Private key is stored securely in browser storage
+   - Provides fallback when extensions aren't available
+
+3. **Bunker/NIP-46**: Remote signer authentication
+   - Connects to remote signing services
+   - Enables signing from different devices/services
+   - Uses nostr-tools bunker functionality for communication
+
+**Session Management**:
+- **Automatic Persistence**: User sessions persist across browser sessions
+- **Multi-Account Support**: Built-in account switcher for managing multiple identities
+- **Profile Synchronization**: Automatically syncs and caches user profile metadata (kind 0 events)
+- **Secure Storage**: Uses browser localStorage with proper encryption for sensitive data
+
+#### Technical Implementation
+
+**NIP-98 Authentication** (`@/lib/nip98Auth.ts`):
+- Creates HTTP authorization headers using Nostr event signing
+- Enables authenticated API requests to backend services
+- Integrates with the user's signer for secure request signing
+- Handles both object and string payloads automatically
+
+**Hook Integration**:
+- `useCurrentUser()`: Access current authenticated user and signer
+- `useNostrPublish()`: Publish events with automatic authentication
+- `useAuthor()`: Fetch and cache user profile information
+
+### Firebase Authentication System
+
+#### Purpose and Scope
+
+Firebase authentication is **only required for group owners** who need access to business features like:
+- Revenue analytics and reporting
+- Advanced community management tools
+- Integration with payment systems
+- Legacy user data management
+
+**Important**: Moderators and regular users do not require Firebase authentication.
+
+#### Implementation Components
+
+**FirebaseOwnerGuard** (`@/components/auth/FirebaseOwnerGuard.tsx`):
+- Protects owner-specific features and routes
+- **Redirect-based approach**: Automatically redirects to `/link-firebase` when linking is needed
+- Non-blocking: Doesn't prevent basic functionality for unlinked accounts
+- Role-aware: Only enforces linking for users with owner privileges
+
+**Account Linking System**:
+- **Dedicated Flow**: Separate `/link-firebase` page for account linking
+- **One-time Process**: Once linked, the association persists
+- **Secure Integration**: Links Nostr pubkey with Firebase UID securely
+- **Fallback UI**: Clear messaging and guidance for users who need to link accounts
+
+#### Firebase Legacy Components
+
+The project maintains Firebase legacy authentication components for potential migration scenarios:
+
+- **Migration Types** (`@/components/auth/firebase-legacy/types.ts`): Type definitions for legacy migration flows
+- **Legacy Login Components**: Complete multi-step authentication flow (currently unused)
+- **Account Linking Logic**: Handles linking multiple Nostr pubkeys to Firebase accounts
+
+### Authentication Flow Integration
+
+#### User Journey Flow
+
+1. **Initial Authentication**: User logs in via Nostr (Extension/Nsec/Bunker)
+2. **Identity Establishment**: Profile metadata synced and cached
+3. **Role Detection**: System determines user role (listener/moderator/owner)
+4. **Conditional Firebase**: Only owners are prompted for Firebase linking when accessing protected features
+5. **Feature Access**: Full platform functionality based on authentication state
+
+#### Technical Integration Points
+
+**Routing Integration** (`@/components/auth/WelcomeRedirect.tsx`):
+- Welcome flow based on group associations, not authentication state
+- Automatic redirection for new users without group memberships
+- Smart routing that adapts to user's role and associations
+
+**Context Providers**:
+- **NostrLoginProvider**: Primary authentication context
+- **CommunityContext**: Manages community-specific state and permissions
+- Integration between both contexts for role-based access control
+
+#### API Authentication
+
+**Hybrid Request Pattern**:
+```typescript
+// Nostr-authenticated requests use NIP-98
+const authHeader = await createNip98AuthHeader(url, method, body, user.signer);
+
+// Firebase-authenticated requests use traditional tokens
+const firebaseToken = await user.getIdToken();
+```
+
+**Permission Layers**:
+- **Nostr Layer**: Identity verification and basic permissions
+- **Firebase Layer**: Business operations and legacy system integration
+- **Role Layer**: Community-specific permissions (owner/moderator/member)
+
+### Security Considerations
+
+**Nostr Security**:
+- Private keys never exposed in application code
+- Extension-based signing provides maximum security
+- NIP-98 authentication prevents request tampering
+- Automatic session timeout and re-authentication
+
+**Firebase Security**:
+- Minimal scope: Only used for necessary business operations
+- Secure account linking with proper validation
+- Token-based authentication with automatic refresh
+- Separated from main authentication flow to reduce attack surface
+
+**Integration Security**:
+- No shared secrets between authentication systems
+- Principle of least privilege for each system
+- Clear separation of concerns between identity and business operations
+
+### Development Guidelines
+
+**When Working with Authentication**:
+1. Always use `useCurrentUser()` for Nostr authentication state
+2. Wrap owner-only features with `FirebaseOwnerGuard`
+3. Never bypass authentication guards in production code
+4. Use NIP-98 for authenticated API requests
+5. Handle authentication failures gracefully with proper error states
+
+**Testing Authentication Flows**:
+1. Test with users having different roles (owner/moderator/listener)
+2. Verify Firebase linking redirect behavior for owners
+3. Test authentication persistence across browser sessions
+4. Validate proper error handling for network failures
+
 ## Development Guidelines
 
 When extending the Wavlake platform:
@@ -557,3 +763,6 @@ When extending the Wavlake platform:
 9. **Follow the correct tagging patterns for addressable vs regular events as documented above**
 10. **When adding new event kinds or modifying existing ones, update `NIP.md` to reflect the changes**
 11. **Reference `NIP.md` for the complete specification of all custom event kinds used in this project**
+12. **Follow authentication patterns: use Nostr for identity, Firebase only for owner business features**
+13. **Always wrap owner-specific features with FirebaseOwnerGuard**
+14. **Use NIP-98 authentication for authenticated API requests**
