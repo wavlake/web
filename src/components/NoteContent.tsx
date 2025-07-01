@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -28,12 +28,16 @@ export function NoteContent({
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const { getFirstUrl } = useExtractUrls();
 
+  // Memoize regex patterns to prevent recreation on every render
+  const regexPatterns = useMemo(() => ({
+    url: /(https?:\/\/[^\s]+)/g,
+    nostr: /nostr:(npub1|note1|nprofile1|nevent1)([a-z0-9]+)/g,
+    hashtag: /#(\w+)/g
+  }), []);
+
   // Process text content with links, mentions, etc. - memoized with useCallback
   const processTextContent = useCallback((text: string, currentImageUrls: string[], currentVideoUrls: string[], currentAudioUrls: string[], currentLinkUrl: string | null) => {
-    // Regular expressions for different patterns
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const nostrRegex = /nostr:(npub1|note1|nprofile1|nevent1)([a-z0-9]+)/g;
-    const hashtagRegex = /#(\w+)/g;
+    const { url: urlRegex, nostr: nostrRegex, hashtag: hashtagRegex } = regexPatterns;
 
     let lastIndex = 0;
     const parts: React.ReactNode[] = [];
@@ -189,7 +193,7 @@ export function NoteContent({
     }
 
     return parts;
-  }, []);
+  }, [regexPatterns]);
 
   // Process the content to extract text, images, videos, and links
   useEffect(() => {
