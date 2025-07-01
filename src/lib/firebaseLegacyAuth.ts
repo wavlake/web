@@ -1,10 +1,5 @@
 import { useState, useCallback } from "react";
-import { nip19, finalizeEvent } from "nostr-tools";
-import { NLogin, NUser } from "@nostrify/react/login";
-import { useNostr } from "@nostrify/react";
-import type { NostrEvent } from "@nostrify/nostrify";
 import { handleFirebaseError } from "@/lib/firebase-auth-errors";
-import type { LinkedPubkeysResponse } from "./types";
 
 // Helper to get API URLs
 const getApiUrls = () => {
@@ -19,7 +14,7 @@ const getApiUrls = () => {
   };
 };
 
-// Helper to create NIP-98 auth header
+// Helper to create NIP-98 auth headers
 const createAuthHeaders = async (
   firebaseToken: string,
   pubkey: string,
@@ -49,7 +44,6 @@ const createAuthHeaders = async (
 };
 
 export function useFirebaseLegacyAuth() {
-  const { nostr } = useNostr();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,108 +131,6 @@ export function useFirebaseLegacyAuth() {
     return response.json();
   }, []);
 
-  const getLinkedPubkeys = useCallback(
-    async (firebaseToken: string): Promise<LinkedPubkeysResponse> => {
-      const authApiUrl = import.meta.env.VITE_NEW_API_URL;
-      const response = await fetch(`${authApiUrl}/auth/get-linked-pubkeys`, {
-        headers: {
-          Authorization: `Bearer ${firebaseToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to check linked pubkeys");
-      }
-
-      return response.json();
-    },
-    []
-  );
-
-  const createAuthHandler = useCallback(
-    (
-      handler: () => Promise<{
-        login: any;
-        pubkey: string;
-        signer: { signEvent: (event: NostrEvent) => Promise<NostrEvent> };
-      }>,
-      isForAuthentication = false
-    ) => {
-      return async () => {
-        setError(null);
-        setIsLoading(true);
-
-        try {
-          const { login, pubkey, signer } = await handler();
-
-          if (isForAuthentication) {
-            // For authentication, we're verifying an existing linked pubkey
-            return { login, pubkey };
-          } else {
-            // For new links, we need to link the pubkey to Firebase
-            await linkPubkey(pubkey, signer);
-            return { login, pubkey };
-          }
-        } catch (error: any) {
-          handleError(
-            error,
-            isForAuthentication
-              ? "Authentication failed"
-              : "Failed to link Nostr identity"
-          );
-          throw error;
-        } finally {
-          setIsLoading(false);
-        }
-      };
-    },
-    [linkPubkey, handleError]
-  );
-
-  const handleExtensionLogin = createAuthHandler(async () => {
-    const login = await NLogin.fromExtension();
-    const user = NUser.fromExtensionLogin(login);
-
-    return {
-      login,
-      pubkey: login.pubkey,
-      signer: user.signer,
-    };
-  });
-
-  const handleNsecLogin = useCallback(async (nsec: string) => {
-    if (!nsec.trim()) throw new Error("Please enter an nsec");
-    const login = NLogin.fromNsec(nsec);
-    const { type, data: sk } = nip19.decode(nsec);
-    if (type !== "nsec") throw new Error("Invalid nsec format");
-
-    const signerFunction = async (event: NostrEvent) => {
-      return finalizeEvent(event, sk as Uint8Array);
-    };
-
-    return {
-      login,
-      pubkey: login.pubkey,
-      signer: { signEvent: signerFunction },
-    };
-  }, []);
-
-  const handleBunkerLogin = useCallback(
-    async (bunkerUri: string) => {
-      if (!bunkerUri.trim()) throw new Error("Please enter a bunker URI");
-      const login = await NLogin.fromBunker(bunkerUri, nostr);
-      const user = NUser.fromBunkerLogin(login, nostr);
-
-      return {
-        login,
-        pubkey: login.pubkey,
-        signer: user.signer,
-      };
-    },
-    [nostr]
-  );
-
   return {
     isLoading,
     error,
@@ -247,10 +139,5 @@ export function useFirebaseLegacyAuth() {
     handleFirebaseEmailLogin,
     handleFirebaseEmailSignup,
     linkPubkey,
-    getLinkedPubkeys,
-    handleExtensionLogin,
-    handleNsecLogin,
-    handleBunkerLogin,
-    createAuthHandler,
   };
 }

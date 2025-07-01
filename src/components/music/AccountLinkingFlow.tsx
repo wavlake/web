@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { useFirebaseLegacyAuth } from "@/components/auth/firebase-legacy/useFirebaseLegacyAuth";
+import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
 import {
   Dialog,
   DialogContent,
