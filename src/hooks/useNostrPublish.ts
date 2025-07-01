@@ -80,30 +80,39 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
         options.onSuccessCallback();
       }
       
-      // Auto-invalidate queries based on event kind
+      // Auto-invalidate queries based on event kind (debounced to prevent cascade re-renders)
       if (event) {
         // Get community ID from tags if present
         const communityTag = event.tags?.find(tag => tag[0] === (NKinds.addressable(event.kind) ? "d" : "a"));
         const communityId = communityTag ? communityTag[1] : undefined;
         
-        // Invalidate relevant queries based on event kind
+        // Batch invalidations to prevent excessive re-renders
+        const invalidationBatch: { queryKey: unknown[] }[] = [];
+        
+        // Collect invalidations based on event kind
         switch (event.kind) {
           case 0: // Profile metadata
-            queryClient.invalidateQueries({ queryKey: ['author', event.pubkey] });
-            queryClient.invalidateQueries({ queryKey: ['follower-count', event.pubkey] });
-            queryClient.invalidateQueries({ queryKey: ['following-count', event.pubkey] });
-            queryClient.invalidateQueries({ queryKey: ['logins'] });
+            invalidationBatch.push(
+              { queryKey: ['author', event.pubkey] },
+              { queryKey: ['follower-count', event.pubkey] },
+              { queryKey: ['following-count', event.pubkey] },
+              { queryKey: ['logins'] }
+            );
             break;
             
           case 3: // Contacts (follow list)
-            queryClient.invalidateQueries({ queryKey: ['follow-list', event.pubkey] });
-            queryClient.invalidateQueries({ queryKey: ['follower-count'] });
-            queryClient.invalidateQueries({ queryKey: ['following-count'] });
+            invalidationBatch.push(
+              { queryKey: ['follow-list', event.pubkey] },
+              { queryKey: ['follower-count'] },
+              { queryKey: ['following-count'] }
+            );
             break;
             
           case KINDS.GROUP: // Community definition (group creation/update)
-            queryClient.invalidateQueries({ queryKey: ['communities'] });
-            queryClient.invalidateQueries({ queryKey: ['user-groups', event.pubkey] });
+            invalidationBatch.push(
+              { queryKey: ['communities'] },
+              { queryKey: ['user-groups', event.pubkey] }
+            );
             break;
             
           case KINDS.GROUP_POST_APPROVAL: // Approve post
@@ -159,8 +168,10 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             // Find the event being reacted to
             const reactedEventId = event.tags.find(tag => tag[0] === "e")?.[1];
             if (reactedEventId) {
-              queryClient.invalidateQueries({ queryKey: ["reactions", reactedEventId] });
-              queryClient.invalidateQueries({ queryKey: ["likes", reactedEventId] });
+              invalidationBatch.push(
+                { queryKey: ["reactions", reactedEventId] },
+                { queryKey: ["likes", reactedEventId] }
+              );
             }
             break;
           }
@@ -233,6 +244,16 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
             }
             break;
           }
+        }
+        
+        // Execute batch invalidations to prevent cascade re-renders
+        if (invalidationBatch.length > 0) {
+          // Use Promise.all to batch invalidations but don't await to prevent blocking
+          Promise.all(
+            invalidationBatch.map(query => 
+              queryClient.invalidateQueries(query)
+            )
+          ).catch(console.error);
         }
       }
     },
