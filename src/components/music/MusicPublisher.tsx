@@ -97,6 +97,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
     selectedCommunityId,
     userRole,
     canUpdateCommunity,
+    isLoading,
   } = useCommunityContext();
 
   // Permission checks
@@ -337,6 +338,34 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
           </p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Show loading state while community context is loading
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
+            <div className="h-4 w-96 bg-muted animate-pulse rounded mt-2"></div>
+          </div>
+          <div className="h-10 w-40 bg-muted animate-pulse rounded"></div>
+        </div>
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-muted animate-pulse rounded"></div>
+            <div className="h-4 w-64 bg-muted animate-pulse rounded"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-muted animate-pulse rounded"></div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

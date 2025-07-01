@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   Card,
@@ -19,7 +20,14 @@ import {
 function DashboardDetailContent() {
   const { user } = useCurrentUser();
   const { communityId } = useParams<{ communityId: string }>();
-  const { selectedCommunity, getCommunityName } = useCommunityContext();
+  const { selectedCommunity, getCommunityName, setSelectedCommunityId } = useCommunityContext();
+
+  // Set the community ID from URL parameter when component mounts
+  useEffect(() => {
+    if (communityId) {
+      setSelectedCommunityId(decodeURIComponent(communityId));
+    }
+  }, [communityId, setSelectedCommunityId]);
 
   if (!user) {
     return (
