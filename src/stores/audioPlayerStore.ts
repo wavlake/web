@@ -208,19 +208,24 @@ export const useAudioPlayerStore = create<AudioPlayerStore>()(
       },
 
       updateCurrentTime: (time: number) => {
-        set({ currentTime: time });
+        // Throttle updates to prevent excessive re-renders
+        const state = get();
+        if (Math.abs(time - state.currentTime) > 0.5) {
+          set({ currentTime: time });
+        }
       },
     }),
     {
       name: 'audio-player-storage',
       partialize: (state) => ({
-        // Only persist these properties
+        // Only persist these properties - exclude audioPlayer to prevent memory leaks
         volume: state.volume,
         isMuted: state.isMuted,
         showPlayer: state.showPlayer,
         currentTrackId: state.currentTrackId,
         playlist: state.playlist,
         currentIndex: state.currentIndex,
+        // Exclude: audioPlayer, currentTime (transient state)
       }),
     }
   )
