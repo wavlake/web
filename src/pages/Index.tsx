@@ -149,7 +149,7 @@ const Index = () => {
         onError: (error) => {
           console.error("Account creation failed:", error);
           setNewUser(false);
-        }
+        },
       });
     } catch (error) {
       console.error("Account creation failed:", error);

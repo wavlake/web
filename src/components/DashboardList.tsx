@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Crown, Shield, Users } from "lucide-react";
 import { useCommunityContext } from "@/contexts/CommunityContext";
 import { FirebaseOwnerGuard } from "@/components/auth/FirebaseOwnerGuard";
@@ -9,7 +10,43 @@ import { Layout } from "@/components/Layout";
 
 export function DashboardList() {
   const navigate = useNavigate();
-  const { communities, getCommunityId, getCommunityName } = useCommunityContext();
+  const { communities, getCommunityId, getCommunityName, isLoading } = useCommunityContext();
+
+  // Show loading state while communities are being fetched
+  if (isLoading) {
+    return (
+      <Layout className="container mx-auto py-1 px-3 sm:px-4">
+        <div className="my-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-96" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3">
+                {[...Array(2)].map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-12 w-12 rounded-full" />
+                          <div>
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   // Show welcome page for users with no manageable communities
   if (communities.manageable.length === 0) {
