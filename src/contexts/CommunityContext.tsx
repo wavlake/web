@@ -157,33 +157,37 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
     setSelectedCommunity(community || null);
   }, [selectedCommunityId, communities.manageable]);
 
-  // Auto-select first manageable community on initial load (optional)
-  // Comment this out if you want to default to Personal mode
-  useEffect(() => {
-    if (communities.manageable.length > 0 && selectedCommunityId === null) {
-      const firstCommunity = communities.manageable[0];
-      setSelectedCommunityId(getCommunityId(firstCommunity));
-    }
-  }, [communities.manageable, selectedCommunityId]);
-
-  // URL synchronization - read from URL params
+  // URL synchronization - read from URL params on initial load
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const communityParam = urlParams.get("community");
+    const communityParam = urlParams.get("communityId");
 
     if (communityParam) {
       setSelectedCommunityId(communityParam);
+    } else {
+      // Auto-select single manageable community if user has only one
+      if (communities.manageable.length === 1 && selectedCommunityId === null) {
+        const singleCommunity = communities.manageable[0];
+        const communityId = getCommunityId(singleCommunity);
+        setSelectedCommunityId(communityId);
+        
+        // Update URL to include the auto-selected community
+        const newUrlParams = new URLSearchParams(window.location.search);
+        newUrlParams.set("communityId", communityId);
+        const newUrl = `${window.location.pathname}?${newUrlParams.toString()}${window.location.hash}`;
+        window.history.replaceState(null, "", newUrl);
+      }
     }
-  }, []);
+  }, [communities.manageable, selectedCommunityId]);
 
   // URL synchronization - update URL when community changes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
 
     if (selectedCommunityId) {
-      urlParams.set("community", selectedCommunityId);
+      urlParams.set("communityId", selectedCommunityId);
     } else {
-      urlParams.delete("community");
+      urlParams.delete("communityId");
     }
 
     const newUrl = `${window.location.pathname}${
