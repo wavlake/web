@@ -12,7 +12,7 @@ import type {
 
 // Base API URL for the new API
 const API_BASE_URL =
-  import.meta.env.VITE_AUTH_API_URL || "http://localhost:8082/v1";
+  import.meta.env.VITE_NEW_API_URL || "http://localhost:8082/v1";
 
 /**
  * Helper function to make authenticated requests to legacy API using NIP-98

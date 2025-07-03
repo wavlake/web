@@ -4,7 +4,8 @@ import { createNip98AuthHeader } from "@/lib/nip98Auth";
 import { getAuth } from "firebase/auth";
 
 // Base API URL for the new API
-const API_BASE_URL = import.meta.env.VITE_AUTH_API_URL || "http://localhost:8082/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_NEW_API_URL || "http://localhost:8082/v1";
 
 /**
  * Hook to link the current user's Nostr pubkey to a Firebase account
@@ -27,19 +28,24 @@ export function useLinkFirebaseAccount() {
       }
 
       const firebaseToken = await firebaseUser.getIdToken();
-      
+
       const url = `${API_BASE_URL}/auth/link-pubkey`;
       const method = "POST";
       const body = { pubkey: user.pubkey };
 
       // Create NIP-98 auth header
-      const nip98AuthHeader = await createNip98AuthHeader(url, method, body, user.signer);
+      const nip98AuthHeader = await createNip98AuthHeader(
+        url,
+        method,
+        body,
+        user.signer
+      );
 
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": nip98AuthHeader,
+          Authorization: nip98AuthHeader,
           "X-Firebase-Token": firebaseToken,
         },
         body: JSON.stringify(body),
@@ -47,7 +53,9 @@ export function useLinkFirebaseAccount() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to link account: ${response.statusText}`);
+        throw new Error(
+          errorData.error || `Failed to link account: ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -90,14 +98,16 @@ export function useUnlinkFirebaseAccount() {
         method,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${firebaseToken}`,
+          Authorization: `Bearer ${firebaseToken}`,
         },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to unlink account: ${response.statusText}`);
+        throw new Error(
+          errorData.error || `Failed to unlink account: ${response.statusText}`
+        );
       }
 
       const data = await response.json();
