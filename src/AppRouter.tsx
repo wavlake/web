@@ -28,6 +28,8 @@ const CashuWallet = lazy(() => import("./pages/CashuWallet"));
 const LinkPreviewTest = lazy(() => import("./pages/LinkPreviewTest"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const FaqPage = lazy(() => import("@/pages/FaqPage"));
+const LegacyApiTestPage = lazy(() => import("./pages/LegacyApiTestPage"));
+const AccountLinking = lazy(() => import("./pages/AccountLinking"));
 
 // Loading component
 function PageLoader() {
@@ -110,6 +112,16 @@ export function AppRouter() {
           <Route path="/faq" element={
             <Suspense fallback={<PageLoader />}>
               <FaqPage />
+            </Suspense>
+          } />
+          <Route path="/legacy-api-test" element={
+            <Suspense fallback={<PageLoader />}>
+              <LegacyApiTestPage />
+            </Suspense>
+          } />
+          <Route path="/account-linking" element={
+            <Suspense fallback={<PageLoader />}>
+              <AccountLinking />
             </Suspense>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

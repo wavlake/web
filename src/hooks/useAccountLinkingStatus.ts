@@ -5,6 +5,7 @@ import { createNip98AuthHeader } from "@/lib/nip98Auth";
 export interface AccountLinkingStatus {
   isLinked: boolean;
   firebaseUid: string | null;
+  email: string | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -18,9 +19,9 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
 
   const query = useQuery({
     queryKey: ["account-linking-status", user?.pubkey],
-    queryFn: async (): Promise<{ isLinked: boolean; firebaseUid: string | null }> => {
+    queryFn: async (): Promise<{ isLinked: boolean; firebaseUid: string | null; email: string | null }> => {
       if (!user?.pubkey || !user?.signer) {
-        return { isLinked: false, firebaseUid: null };
+        return { isLinked: false, firebaseUid: null, email: null };
       }
 
       try {
@@ -52,6 +53,7 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
         return {
           isLinked: data.success && data.is_linked,
           firebaseUid: data.firebase_uid || null,
+          email: data.email || null,
         };
       } catch (error) {
         console.error("Failed to check account linking status:", error);
@@ -67,6 +69,7 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
   return {
     isLinked: query.data?.isLinked ?? false, // Default to false for security - block uploads if check fails
     firebaseUid: query.data?.firebaseUid ?? null,
+    email: query.data?.email ?? null,
     isLoading: query.isLoading,
     error: query.error,
   };

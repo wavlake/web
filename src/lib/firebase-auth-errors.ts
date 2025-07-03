@@ -19,8 +19,14 @@ export const FIREBASE_AUTH_ERROR_MESSAGES: Record<string, string> = {
   "auth/operation-not-allowed": "This operation is not allowed.",
   "auth/weak-password": "Password is too weak. Please choose a stronger password.",
   "auth/email-already-in-use": "An account with this email already exists.",
-  "auth/invalid-credential": "Invalid credentials provided.",
+  "auth/invalid-credential": "Invalid email or password. Please check your credentials.",
   "auth/account-exists-with-different-credential": "An account already exists with a different sign-in method.",
+  "auth/network-request-failed": "Network error. Please check your internet connection.",
+  "auth/popup-closed-by-user": "Authentication popup was closed before completion.",
+  "auth/requires-recent-login": "This operation requires recent authentication. Please sign in again.",
+  "auth/invalid-login-credentials": "Invalid email or password. Please check your credentials.",
+  "auth/missing-password": "Please enter your password.",
+  "auth/missing-email": "Please enter your email address.",
 };
 
 /**

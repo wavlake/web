@@ -15,6 +15,8 @@ import {
   Info,
   Download,
   BarChart3,
+  Database,
+  Link as LinkIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,6 +37,7 @@ import { useCashuStore } from "@/stores/cashuStore";
 import { useState } from "react";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import { usePWA } from "@/hooks/usePWA";
+import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
 }
@@ -48,6 +51,7 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const cashuStore = useCashuStore();
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
   const { isInstallable, isRunningAsPwa, promptInstall } = usePWA();
+  const { isLinked } = useAccountLinkingStatus();
 
   const handleInstallClick = async () => {
     if (isInstallable) {
@@ -162,6 +166,26 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
               <span>Settings</span>
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem
+            asChild
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
+          >
+            <Link to="/account-linking">
+              <LinkIcon className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
+              <span>Account Linking</span>
+            </Link>
+          </DropdownMenuItem>
+          {isLinked && (
+            <DropdownMenuItem
+              asChild
+              className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
+            >
+              <Link to="/legacy-api-test">
+                <Database className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
+                <span>Legacy API Test</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator className="my-1" />
 
           <DropdownMenuItem
@@ -186,9 +210,25 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           )}
           <DropdownMenuSeparator className="my-1" />
           <DropdownMenuItem
-            onClick={() => {
+            onClick={async () => {
+              // Remove Nostr login
               removeLogin(currentUser.id);
               cashuStore.clearStore();
+              
+              // Sign out from Firebase if authenticated
+              try {
+                const { getAuth } = await import("firebase/auth");
+                const auth = getAuth();
+                if (auth.currentUser) {
+                  await auth.signOut();
+                  console.log("Successfully signed out from Firebase");
+                }
+              } catch (error) {
+                console.error("Error signing out from Firebase:", error);
+                // Continue with logout even if Firebase sign out fails
+              }
+              
+              // Clear localStorage but preserve onboarding
               const wavlakeOnboardingStored =
                 localStorage.getItem("wavlake-onboarding");
               localStorage.clear();
