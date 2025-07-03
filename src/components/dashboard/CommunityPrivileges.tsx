@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCommunityContext } from '@/contexts/CommunityContext';
 import { Crown, Shield, Users, Settings, Edit, AlertTriangle } from 'lucide-react';
+import { RoleBadge } from '@/components/groups/RoleBadge';
 
 interface CommunityPrivilegesProps {
   showUpdateCommunityFeatures?: boolean;
@@ -56,9 +56,7 @@ export function CommunityPrivileges({ showUpdateCommunityFeatures = false }: Com
         {/* Role Badge */}
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Your role in {communityName}:</span>
-          <Badge variant={userRole === 'owner' ? 'default' : 'secondary'}>
-            {userRole === 'owner' ? 'Owner' : 'Moderator'}
-          </Badge>
+          <RoleBadge role={userRole} />
         </div>
 
         {/* Permissions List */}

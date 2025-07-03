@@ -40,6 +40,7 @@ import { KINDS } from "@/lib/nostr-kinds";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { useGroupModeration } from "@/hooks/useGroupModeration";
 import { useCommunityContext } from "@/contexts/CommunityContext";
+import { RoleBadge } from "@/components/groups/RoleBadge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -941,17 +942,8 @@ function MemberItem({
                 You
               </span>
             )}
-            {userRole === "owner" && (
-              <span className="text-xs bg-yellow-100 text-yellow-700 rounded-full px-2 py-0.5 flex items-center gap-1">
-                <Crown className="h-3 w-3" />
-                Owner
-              </span>
-            )}
-            {userRole === "moderator" && (
-              <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Moderator
-              </span>
+            {(userRole === "owner" || userRole === "moderator") && (
+              <RoleBadge role={userRole} className="text-xs" />
             )}
             {isBanned && (
               <span className="text-xs bg-red-100 text-red-600 rounded-full px-2 py-0.5">
