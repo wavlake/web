@@ -38,6 +38,24 @@ interface CommunityProfileHeaderProps {
   verified?: boolean;
 }
 
+// Helper function to validate and sanitize image URLs
+function safeImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  
+  try {
+    const parsed = new URL(url);
+    // Only allow http(s) protocols for images
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      console.warn(`Invalid image protocol: ${parsed.protocol}`);
+      return undefined;
+    }
+    return url;
+  } catch (e) {
+    console.warn(`Invalid image URL: ${url}`);
+    return undefined;
+  }
+}
+
 export function CommunityProfileHeader({
   communityId,
   name,
@@ -53,6 +71,10 @@ export function CommunityProfileHeader({
 }: CommunityProfileHeaderProps) {
   const [showQR, setShowQR] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  // Sanitize image URLs
+  const safeProfileImage = safeImageUrl(profileImage);
+  const safeBannerImage = safeImageUrl(bannerImage);
   
   // Get approved members data
   const { approvedMembers, isLoading: membersLoading } = useApprovedMembers(communityId);
@@ -109,9 +131,9 @@ export function CommunityProfileHeader({
     <div className="relative">
       {/* Banner Image */}
       <div className="relative w-full h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80">
-        {bannerImage ? (
+        {safeBannerImage ? (
           <img
-            src={bannerImage}
+            src={safeBannerImage}
             alt={`${name}'s banner`}
             className="w-full h-full object-cover object-center"
           />
@@ -127,12 +149,15 @@ export function CommunityProfileHeader({
         <div className="flex flex-col md:flex-row gap-6">
           {/* Profile Image - Positioned to overlap the banner */}
           <div className="relative z-10 flex-shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg -mt-16 md:-mt-20">
-            {profileImage && profileImage !== "/placeholder.svg" && !imageError ? (
+            {safeProfileImage && safeProfileImage !== "/placeholder.svg" && !imageError ? (
               <img
-                src={profileImage}
+                src={safeProfileImage}
                 alt={name}
                 className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
+                onError={(e) => {
+                  console.error(`Failed to load profile image for ${name}:`, e);
+                  setImageError(true);
+                }}
               />
             ) : (
               <div className="w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center">

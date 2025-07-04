@@ -9,6 +9,24 @@ import { ArrowLeft, FileText, Edit } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { KINDS } from "@/lib/nostr-kinds";
 
+// Helper function to validate and sanitize image URLs
+function safeImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  
+  try {
+    const parsed = new URL(url);
+    // Only allow http(s) protocols for images
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      console.warn(`Invalid image protocol: ${parsed.protocol}`);
+      return undefined;
+    }
+    return url;
+  } catch (e) {
+    console.warn(`Invalid image URL: ${url}`);
+    return undefined;
+  }
+}
+
 export default function GroupGuidelines() {
   const { groupId } = useParams<{ groupId: string }>();
   const { nostr } = useNostr();
@@ -50,7 +68,7 @@ export default function GroupGuidelines() {
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : undefined;
+  const image = safeImageUrl(imageTag ? imageTag[1] : undefined);
   const guidelines = guidelinesTag ? guidelinesTag[1] : "";
 
   const isOwner = user && community && user.pubkey === community.pubkey;
@@ -107,7 +125,10 @@ export default function GroupGuidelines() {
                   src={image}
                   alt={name}
                   className="w-full h-full object-cover object-center"
-                  onError={() => setImageError(true)}
+                  onError={(e) => {
+                    console.error(`Failed to load group image for ${name}:`, e);
+                    setImageError(true);
+                  }}
                 />
               ) : (
                 <div className="w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center">
