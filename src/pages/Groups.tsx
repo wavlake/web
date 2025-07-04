@@ -20,6 +20,7 @@ import { KINDS } from "@/lib/nostr-kinds";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
 import { useGroupDeletionRequests } from "@/hooks/useGroupDeletionRequests";
 import { hasWavlakeClientTag } from "@/lib/group-utils";
+import { filterSpamGroups } from "@/lib/spam-filter";
 
 // Helper function to get community ID
 const getCommunityId = (community: NostrEvent) => {
@@ -70,7 +71,9 @@ export default function Groups() {
         );
 
         // Ensure we always return an array, even if the query fails
-        return Array.isArray(events) ? events.filter(hasWavlakeClientTag) : [];
+        const filteredEvents = Array.isArray(events) ? events.filter(hasWavlakeClientTag) : [];
+        // Filter out spam groups
+        return filterSpamGroups(filteredEvents);
       } catch (error) {
         console.error("Error fetching communities:", error);
         // Return empty array on error instead of throwing
