@@ -126,11 +126,23 @@ export function CommunityProfileHeader({
         <div className="flex flex-col md:flex-row gap-6">
           {/* Profile Image - Positioned to overlap the banner */}
           <div className="relative z-10 flex-shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg -mt-16 md:-mt-20">
-            <img
-              src={profileImage || "/placeholder.svg"}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
+            {profileImage && profileImage !== "/placeholder.svg" ? (
+              <img
+                src={profileImage}
+                alt={name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div 
+              className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${profileImage && profileImage !== "/placeholder.svg" ? 'hidden' : 'flex'}`}
+            >
+              {name.charAt(0).toUpperCase()}
+            </div>
           </div>
 
           {/* Profile Details */}

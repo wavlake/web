@@ -101,7 +101,7 @@ export default function GroupGuidelines() {
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              {image ? (
+              {image && image !== "/placeholder.svg" ? (
                 <img
                   src={image}
                   alt={name}
@@ -114,7 +114,7 @@ export default function GroupGuidelines() {
                 />
               ) : null}
               <div 
-                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image ? 'hidden' : 'flex'}`}
+                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image && image !== "/placeholder.svg" ? 'hidden' : 'flex'}`}
               >
                 {name.charAt(0).toUpperCase()}
               </div>
