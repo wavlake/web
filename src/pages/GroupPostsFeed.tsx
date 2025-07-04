@@ -3,7 +3,6 @@ import { useNostr } from "@/hooks/useNostr";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserGroups } from "@/hooks/useUserGroups";
 import { useQuery } from "@tanstack/react-query";
-import Header from "@/components/ui/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
@@ -283,8 +282,7 @@ export default function GroupPostsFeed() {
   // Show a loading state when fetching posts
   if (isPostsLoading) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <div className="my-6 space-y-6">
         
         <Tabs defaultValue="approved" className="w-full mt-2">
           <div className="flex justify-between items-center mb-4">
@@ -352,8 +350,7 @@ export default function GroupPostsFeed() {
   // Check if user is a member of any groups
   if (!groupIds.length) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <div className="my-6 space-y-6">
         
         <div className="mt-6">
           <Card>
@@ -381,8 +378,7 @@ export default function GroupPostsFeed() {
   // Show empty state if no posts found
   if (!sortedPosts.length) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <div className="my-6 space-y-6">
         
         <Tabs 
           value={activeTab} 
@@ -434,8 +430,7 @@ export default function GroupPostsFeed() {
   }
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <div className="my-6 space-y-6">
       
       <Tabs 
         value={activeTab} 

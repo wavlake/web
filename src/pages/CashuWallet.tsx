@@ -6,7 +6,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CashuWalletLightningCard } from "@/components/cashu/CashuWalletLightningCard";
 import { CashuWalletCard } from "@/components/cashu/CashuWalletCard";
 import { NutzapCard } from "@/components/cashu/NutzapCard";
-import Header from "@/components/ui/Header";
 import { Separator } from "@/components/ui/separator";
 import { useCashuToken } from "@/hooks/useCashuToken";
 import { useCashuWallet } from "@/hooks/useCashuWallet";
@@ -184,8 +183,7 @@ export function CashuWallet() {
   }, [user, wallet, isProcessingToken, receiveToken, toast, formatAmount]); // Depend on all necessary values
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <div className="my-6 space-y-6">
       <Separator className="my-2" />
 
       {/* Wallet Info Modal - Upper Left */}

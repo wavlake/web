@@ -1,7 +1,6 @@
 import { useMarkdownWithoutFirstHeading } from "@/hooks/useMarkdownWithoutFirstHeading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import Header from "@/components/ui/Header";
 
 export default function FaqPage() {
   const html = useMarkdownWithoutFirstHeading("/faq.md");
@@ -23,10 +22,8 @@ export default function FaqPage() {
   });
 
   return (
-    <div className="container mx-auto py-4 px-6">
-      <Header />
-      
-      <div className="max-w-3xl mx-auto mt-3">
+    <div className="my-6 space-y-6">
+      <div className="max-w-3xl mx-auto">
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-3xl font-bold">FAQ</CardTitle>

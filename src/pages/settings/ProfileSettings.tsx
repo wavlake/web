@@ -1,5 +1,4 @@
 import { EditProfileForm } from "@/components/EditProfileForm";
-import Header from "@/components/ui/Header";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Button } from "@/components/ui/button";
@@ -15,9 +14,8 @@ export default function ProfileSettings() {
   }
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-      <div className="my-6">
+    <div className="my-6 space-y-6">
+      <div>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Edit Profile</h1>
           <Button

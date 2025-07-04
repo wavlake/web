@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Header from "@/components/ui/Header";
 import {
   Bell,
   AlertTriangle,
@@ -345,9 +344,8 @@ export default function Notifications() {
   };
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-      <div className="space-y-6 my-6">
+    <div className="my-6 space-y-6">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Your Notifications</CardTitle>

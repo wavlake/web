@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, FileText, Edit } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
-import Header from "@/components/ui/Header";
 import { KINDS } from "@/lib/nostr-kinds";
 
 export default function GroupGuidelines() {
@@ -68,8 +67,7 @@ export default function GroupGuidelines() {
 
   if (isLoadingCommunity || !parsedId) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <div className="my-6 space-y-6">
         <h1 className="text-2xl font-bold mb-4">Loading guidelines...</h1>
       </div>
     );
@@ -77,8 +75,7 @@ export default function GroupGuidelines() {
 
   if (!community) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
+      <div className="my-6 space-y-6">
         <h1 className="text-2xl font-bold mb-4">Group not found</h1>
         <p>The group you're looking for doesn't exist or has been deleted.</p>
         <Button asChild className="mt-2">
@@ -89,8 +86,7 @@ export default function GroupGuidelines() {
   }
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <div className="my-6 space-y-6">
 
       <div className="flex mb-6">
         <Button variant="ghost" asChild className="p-0 text-2xl">
