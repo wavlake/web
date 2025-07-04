@@ -31,7 +31,6 @@ import {
   XCircle,
   UserX,
   Ban,
-  Crown,
   Shield,
 } from "lucide-react";
 import { NostrEvent } from "@nostrify/nostrify";
