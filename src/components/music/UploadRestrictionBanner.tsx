@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { AccountLinkingFlow } from "./AccountLinkingFlow";
 
 interface UploadRestrictionBannerProps {
   className?: string;
@@ -17,10 +17,10 @@ interface UploadRestrictionBannerProps {
 export function UploadRestrictionBanner({
   className,
 }: UploadRestrictionBannerProps) {
+  const navigate = useNavigate();
   const { user } = useCurrentUser();
   const { isLinked, isLoading, error } = useAccountLinkingStatus();
   const [showDetails, setShowDetails] = useState(false);
-  const [showLinkingFlow, setShowLinkingFlow] = useState(false);
 
   // Don't show banner if:
   // - User is not logged in
@@ -32,15 +32,9 @@ export function UploadRestrictionBanner({
 
   // Check if there's an API error vs account not linked
   const hasApiError = !!error;
-  const isAccountNotLinked = !hasApiError && !isLinked;
 
   const handleLinkAccounts = () => {
-    setShowLinkingFlow(true);
-  };
-
-  const handleLinkingSuccess = () => {
-    setShowLinkingFlow(false);
-    // The AccountLinkingFlow will reload the page, so no need for additional action
+    navigate("/account-linking");
   };
 
   return (
@@ -141,12 +135,6 @@ export function UploadRestrictionBanner({
           </div>
         </AlertDescription>
       </Alert>
-
-      <AccountLinkingFlow
-        isOpen={showLinkingFlow}
-        onClose={() => setShowLinkingFlow(false)}
-        onSuccess={handleLinkingSuccess}
-      />
     </>
   );
 }
@@ -157,9 +145,9 @@ export function UploadRestrictionBanner({
 export function UploadRestrictionBannerCompact({
   className,
 }: UploadRestrictionBannerProps) {
+  const navigate = useNavigate();
   const { user } = useCurrentUser();
   const { isLinked, isLoading, error } = useAccountLinkingStatus();
-  const [showLinkingFlow, setShowLinkingFlow] = useState(false);
 
   if (!user || isLoading || isLinked) {
     return null;
@@ -168,11 +156,7 @@ export function UploadRestrictionBannerCompact({
   const hasApiError = !!error;
 
   const handleLinkAccounts = () => {
-    setShowLinkingFlow(true);
-  };
-
-  const handleLinkingSuccess = () => {
-    setShowLinkingFlow(false);
+    navigate("/account-linking");
   };
 
   return (
@@ -224,12 +208,6 @@ export function UploadRestrictionBannerCompact({
           </Button>
         </div>
       </div>
-
-      <AccountLinkingFlow
-        isOpen={showLinkingFlow}
-        onClose={() => setShowLinkingFlow(false)}
-        onSuccess={handleLinkingSuccess}
-      />
     </>
   );
 }
