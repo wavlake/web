@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { WelcomeRedirect } from "@/components/auth/WelcomeRedirect";
+import { GlobalLayout } from "@/components/GlobalLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Eagerly load the main pages
@@ -33,13 +34,11 @@ const AccountLinking = lazy(() => import("./pages/AccountLinking"));
 // Loading component
 function PageLoader() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-full max-w-2xl" />
-        <Skeleton className="h-4 w-full max-w-2xl" />
-        <Skeleton className="h-4 w-3/4 max-w-2xl" />
-      </div>
+    <div className="my-6 space-y-4">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-4 w-full max-w-2xl" />
+      <Skeleton className="h-4 w-full max-w-2xl" />
+      <Skeleton className="h-4 w-3/4 max-w-2xl" />
     </div>
   );
 }
@@ -53,7 +52,8 @@ export function AppRouter() {
       }}
     >
       <WelcomeRedirect>
-        <Routes>
+        <GlobalLayout>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -128,7 +128,8 @@ export function AppRouter() {
               <NotFound />
             </Suspense>
           } />
-        </Routes>
+          </Routes>
+        </GlobalLayout>
       </WelcomeRedirect>
     </BrowserRouter>
   );
