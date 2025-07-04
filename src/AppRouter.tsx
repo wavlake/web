@@ -14,7 +14,6 @@ import GroupPostsFeed from "./pages/GroupPostsFeed";
 import Dashboard from "./pages/Dashboard";
 import DashboardDetail from "./pages/DashboardDetail";
 import WelcomePage from "./pages/WelcomePage";
-import LinkFirebase from "./pages/LinkFirebase";
 import CreateArtist from "./pages/CreateArtist";
 
 // Lazy load less frequently used pages
@@ -59,7 +58,6 @@ export function AppRouter() {
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/:communityId" element={<DashboardDetail />} />
-          <Route path="/link-firebase" element={<LinkFirebase />} />
           <Route path="/create-artist" element={<CreateArtist />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/group/:groupId" element={<GroupDetail />} />
