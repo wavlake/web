@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import Header from "@/components/ui/Header";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NoteContent } from "@/components/NoteContent";
@@ -128,9 +127,8 @@ export default function Hashtag() {
 
   if (!hashtag) {
     return (
-      <div className="container mx-auto py-4 px-4">
-        <Header />
-        <div className="text-center py-8">
+      <div className="container mx-auto px-4">
+        <div className="text-center py-8 my-6">
           <h1 className="text-2xl font-bold text-red-500">Invalid hashtag</h1>
           <p className="text-muted-foreground mt-2">The hashtag parameter is missing.</p>
         </div>
@@ -139,11 +137,9 @@ export default function Hashtag() {
   }
 
   return (
-    <div className="container mx-auto py-4 px-4">
-      <Header />
-      
+    <div className="container mx-auto px-4">
       {/* Header Section - Removed duplicate hashtag icon */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 mt-2">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 mt-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"

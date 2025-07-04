@@ -1,7 +1,6 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Layout } from "@/components/Layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -289,7 +288,7 @@ export default function Groups() {
   );
 
   return (
-    <Layout className="container mx-auto py-1 px-3 sm:px-4">
+    <>
       <div className="flex flex-col mt-2">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
           <div className="w-full md:w-64 lg:w-72">
@@ -394,6 +393,6 @@ export default function Groups() {
         isOpen={showPWAInstructions}
         onClose={() => setShowPWAInstructions(false)}
       />
-    </Layout>
+    </>
   );
 }

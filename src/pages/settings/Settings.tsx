@@ -1,5 +1,4 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/components/ui/Header";
 import { Eye, EyeOff, Copy, Check, Smartphone } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Navigate } from "react-router-dom";
@@ -119,8 +118,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
+    <div className="container mx-auto px-3 sm:px-4">
       <div className="space-y-6 my-6">
         {/* Push Notifications Section */}
         <PushNotificationSettings />

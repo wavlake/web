@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
-import { Layout } from "@/components/Layout";
 import {
   CommunityProvider,
   useCommunityContext,
@@ -31,8 +30,7 @@ function DashboardDetailContent() {
 
   if (!user) {
     return (
-      <Layout className="container mx-auto py-1 px-3 sm:px-4">
-        <div className="space-y-6 my-6">
+      <div className="space-y-6 my-6">
           <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle>Dashboard Access</CardTitle>
@@ -45,7 +43,6 @@ function DashboardDetailContent() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 
@@ -55,13 +52,11 @@ function DashboardDetailContent() {
     : "Artist";
 
   return (
-    <Layout className="container mx-auto py-1 px-3 sm:px-4">
-      <div className="my-6">
+    <div className="my-6">
         <ArtistDashboard
           artistName={artistName}
         />
       </div>
-    </Layout>
   );
 }
 

@@ -33,7 +33,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { parseNostrAddress } from "@/lib/nostr-utils";
-import { Layout } from "@/components/Layout";
 import { useAuthor } from "@/hooks/useAuthor";
 import { RichText } from "@/components/ui/RichText";
 import { useIsGroupDeleted } from "@/hooks/useGroupDeletionRequests";
@@ -254,7 +253,7 @@ export default function GroupDetail({
   }
 
   return (
-    <Layout className="flex flex-col w-full">
+    <>
       <CommunityProfileHeader
         communityId={groupId || ""}
         name={artist.name}
@@ -420,6 +419,6 @@ export default function GroupDetail({
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

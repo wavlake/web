@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,8 +124,7 @@ export default function AccountLinking() {
 
   if (!user) {
     return (
-      <Layout className="container mx-auto py-1 px-3 sm:px-4">
-        <div className="my-6 space-y-6">
+      <div className="my-6 space-y-6">
           <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle>Account Linking</CardTitle>
@@ -139,12 +137,11 @@ export default function AccountLinking() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 
   return (
-    <Layout className="container mx-auto py-1 px-3 sm:px-4">
+    <>
       <div className="my-6 space-y-6">
         {/* Header */}
         <Card>
@@ -411,6 +408,6 @@ export default function AccountLinking() {
         linkedFirebaseUid={firebaseUid || undefined}
         currentFirebaseUid={firebaseUser?.uid}
       />
-    </Layout>
+    </>
   );
 }

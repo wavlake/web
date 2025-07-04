@@ -1,7 +1,6 @@
 import { useMarkdownWithoutFirstHeading } from "@/hooks/useMarkdownWithoutFirstHeading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Header from "@/components/ui/Header";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { Smartphone, Wifi, WifiOff, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -27,10 +26,8 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-      
-      <div className="max-w-3xl mx-auto mt-3 space-y-6">
+    <div className="container mx-auto px-3 sm:px-4">
+      <div className="max-w-3xl mx-auto space-y-6 my-6">
         {/* About Content */}
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">

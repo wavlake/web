@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Crown, Shield, Users } from "lucide-react";
 import { useCommunityContext } from "@/contexts/CommunityContext";
-import { Layout } from "@/components/Layout";
 
 export function DashboardList() {
   const navigate = useNavigate();
@@ -21,8 +20,7 @@ export function DashboardList() {
   // Show loading state while communities are being fetched
   if (isLoading) {
     return (
-      <Layout className="container mx-auto py-1 px-3 sm:px-4">
-        <div className="my-6 space-y-6">
+      <div className="my-6 space-y-6">
           <Card>
             <CardHeader>
               <Skeleton className="h-8 w-48" />
@@ -50,15 +48,13 @@ export function DashboardList() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 
   // Show welcome page for users with no manageable communities
   if (communities.manageable.length === 0) {
     return (
-      <Layout className="container mx-auto py-1 px-3 sm:px-4">
-        <div className="my-6">
+      <div className="my-6">
           <div className="space-y-6">
             {/* Welcome Message for New Users */}
             <Card>
@@ -134,14 +130,12 @@ export function DashboardList() {
             </div>
           </div>
         </div>
-      </Layout>
     );
   }
 
   // Show Dashboard List for users with manageable communities
   return (
-    <Layout className="container mx-auto py-1 px-3 sm:px-4">
-      <div className="my-6 space-y-6">
+    <div className="my-6 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Your Artist Pages</CardTitle>
@@ -286,6 +280,5 @@ export function DashboardList() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 }

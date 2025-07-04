@@ -2,7 +2,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { DashboardList } from "@/components/DashboardList";
-import { Layout } from "@/components/Layout";
 import { CommunityProvider } from "@/contexts/CommunityContext";
 
 // Internal component that uses community context
@@ -11,8 +10,7 @@ function DashboardContent() {
 
   if (!user) {
     return (
-      <Layout className="container mx-auto py-1 px-3 sm:px-4">
-        <div className="space-y-6 my-6">
+      <div className="space-y-6 my-6">
           <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle>Dashboard Access</CardTitle>
@@ -25,7 +23,6 @@ function DashboardContent() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
     );
   }
 

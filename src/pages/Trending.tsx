@@ -1,4 +1,3 @@
-import Header from "@/components/ui/Header";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -45,10 +44,8 @@ export default function Trending() {
   };
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-
-      <div className="max-w-3xl mx-auto mt-6">
+    <div className="container mx-auto px-3 sm:px-4">
+      <div className="max-w-3xl mx-auto my-6">
         {/* Mobile-optimized header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">

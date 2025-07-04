@@ -40,7 +40,6 @@ import {
 import { toast } from "sonner";
 import type { NostrEvent } from "@nostrify/nostrify";
 import { parseNostrAddress } from "@/lib/nostr-utils";
-import Header from "@/components/ui/Header";
 import { VerifiedNip05 } from "@/components/VerifiedNip05";
 import { useNip05Verification } from "@/hooks/useNip05Verification";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -1092,9 +1091,7 @@ export default function Profile() {
 
   if (author.isLoading) {
     return (
-      <div className="container mx-auto py-1 px-3 sm:px-4">
-        <Header />
-        <div className="space-y-6 my-6">
+      <div className="space-y-6 my-6">
           {/* Profile info skeleton - matches new layout */}
           <div className="max-w-3xl mx-auto relative mb-6 mt-4">
             {/* Top row: Avatar and name/username side by side */}
@@ -1167,15 +1164,12 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-
-      <div className="max-w-3xl mx-auto relative mb-6 mt-4">
+    <>
+      <div className="max-w-3xl mx-auto relative my-6">
         {/* Top row: Avatar and name/username side by side */}
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="h-20 w-20 rounded-full border-4 border-background shadow-md">
@@ -1344,6 +1338,6 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </>
   );
 }

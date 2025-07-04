@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/useToast";
-import Header from "@/components/ui/Header";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -145,9 +144,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="container mx-auto py-1 px-3 sm:px-4">
-      <Header />
-      <div className="my-6 max-w-2xl mx-auto">
+    <div className="my-6 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Create a Group</h1>
         
         <Form {...form}>
@@ -286,7 +283,6 @@ export default function CreateGroup() {
             </div>
           </form>
         </Form>
-      </div>
     </div>
   );
 }
