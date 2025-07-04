@@ -92,8 +92,11 @@ export function usePendingPostsCount(communityId: string) {
       // 5. Posted by moderators (auto-approved)
       // 6. Replies (kind 1111)
       const pendingPosts = posts.filter(post => {
-        // Skip if post is a reply
-        if (post.kind === KINDS.GROUP_POST_REPLY) {
+        // Skip if post is a reply (check for reply tags)
+        const hasReplyTags = post.tags.some(
+          tag => tag[0] === "e" && (tag[3] === "reply" || tag[3] === "root")
+        );
+        if (hasReplyTags) {
           return false;
         }
 
