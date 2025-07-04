@@ -3,14 +3,18 @@
  * 
  * This module provides functions to detect and filter spam content
  * based on hardcoded keywords and patterns.
+ * 
+ * Note: In a production environment, these keywords should be stored in a
+ * secure configuration store or database to prevent circumvention.
  */
 
-// Hardcoded spam keywords - these can be easily modified as needed
+// Spam keywords based on commonly observed spam patterns in Nostr groups
+// These keywords were selected based on repetitive spam messages that
+// have been flooding the network with identical content
 const SPAM_KEYWORDS = [
-  "Has nostr figured out spam yet?",
-  // Add more spam keywords here as needed
-  // "another spam phrase",
-  // "yet another spam phrase",
+  "Has nostr figured out spam yet?", // Common spam phrase flooding groups
+  // Add more spam keywords here as needed based on observed patterns
+  // Format: "exact spam phrase to match",
 ];
 
 /**

@@ -7,6 +7,7 @@ export const KINDS = {
   ZAP: 9735,
   REPORT: 1984,
   // NIP-22 Comment system for groups - ALL group discussion uses kind 1111
+  // Specification: https://github.com/nostr-protocol/nips/blob/master/22.md
   GROUP_POST: 1111,
   GROUP_POST_REPLY: 1111,
   GROUP_POST_APPROVAL: 4550,

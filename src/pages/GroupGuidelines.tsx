@@ -14,6 +14,7 @@ export default function GroupGuidelines() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (groupId) {
@@ -101,23 +102,18 @@ export default function GroupGuidelines() {
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              {image && image !== "/placeholder.svg" ? (
+              {image && image !== "/placeholder.svg" && !imageError ? (
                 <img
                   src={image}
                   alt={name}
                   className="w-full h-full object-cover object-center"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = "flex";
-                  }}
+                  onError={() => setImageError(true)}
                 />
-              ) : null}
-              <div 
-                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image && image !== "/placeholder.svg" ? 'hidden' : 'flex'}`}
-              >
-                {name.charAt(0).toUpperCase()}
-              </div>
+              ) : (
+                <div className="w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
