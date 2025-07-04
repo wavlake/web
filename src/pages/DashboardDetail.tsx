@@ -59,8 +59,6 @@ function DashboardDetailContent() {
       <div className="my-6">
         <ArtistDashboard
           artistName={artistName}
-          artistImage=""
-          communityId={communityId}
         />
       </div>
     </Layout>

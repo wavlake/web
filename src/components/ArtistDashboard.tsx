@@ -13,12 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
   Calendar,
-  DollarSign,
   Home,
   Music,
   Plus,
   Settings,
-  TrendingUp,
   Upload,
   Users,
   Wallet,
@@ -40,7 +38,6 @@ import { MusicPublisher } from "@/components/music/MusicPublisher";
 import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementForm";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
-import { useUserGroups } from "@/hooks/useUserGroups";
 import { useCommunityContext } from "@/contexts/CommunityContext";
 import { CommunityPrivileges } from "@/components/dashboard/CommunityPrivileges";
 import { useNavigate } from "react-router-dom";
@@ -50,28 +47,15 @@ import { useCommunityActivity } from "@/hooks/useCommunityContent";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { SupportTab } from "@/components/dashboard/SupportTab";
 import { GroupLinksContactForm } from "@/components/groups/GroupLinksContactForm";
-import { FirebaseOwnerGuard } from "@/components/auth/FirebaseOwnerGuard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { FirebaseActionGuard } from "@/components/auth/FirebaseActionGuard";
 
 interface ArtistDashboardProps {
   artistName?: string;
-  artistImage?: string;
-  communityId?: string;
 }
 
 // Internal component that uses CommunityContext
 function ArtistDashboardContent({
   artistName = "Artist",
-  artistImage,
-  communityId = "placeholder-community",
 }: ArtistDashboardProps) {
   const [activeSection, setActiveSection] = useState("overview");
   const navigate = useNavigate();
@@ -193,34 +177,6 @@ function ArtistDashboardContent({
   };
 
   // Note: Community auto-selection is now handled by CommunityContext
-
-  // Stats placeholder data
-  const stats = [
-    {
-      title: "Total Streams",
-      value: "12,345",
-      change: "+12%",
-      icon: TrendingUp,
-    },
-    {
-      title: "Total Revenue",
-      value: "2,847 sats",
-      change: "+8%",
-      icon: DollarSign,
-    },
-    {
-      title: "Followers",
-      value: "1,234",
-      change: "+24%",
-      icon: Users,
-    },
-    {
-      title: "Wallet Balance",
-      value: "15,432 sats",
-      change: "0%",
-      icon: Wallet,
-    },
-  ];
 
   const renderOverview = () => {
     return (
@@ -543,15 +499,32 @@ function ArtistDashboardContent({
         </TabsContent>
 
         <TabsContent value="community" className="space-y-4">
-          {/* Community Privileges Component */}
-          <CommunityPrivileges showUpdateCommunityFeatures={true} />
-
-          {/* Group Links & Contact Form - Owner Only */}
+          {/* Single Firebase Guard for all community editing features */}
           {selectedCommunity && canUpdateCommunity && (
-            <GroupLinksContactForm
-              group={selectedCommunity}
-              communityId={selectedCommunityId!}
-            />
+            <FirebaseActionGuard action="edit-group">
+              <div className="space-y-4">
+                {/* Community Privileges Component */}
+                <CommunityPrivileges showUpdateCommunityFeatures={true} />
+
+                {/* Group Links & Contact Form */}
+                <GroupLinksContactForm
+                  group={selectedCommunity}
+                  communityId={selectedCommunityId!}
+                />
+              </div>
+            </FirebaseActionGuard>
+          )}
+
+          {/* Show Community Privileges without update features for non-Firebase users */}
+          {selectedCommunity && canUpdateCommunity && (
+            <div className="sr-only">
+              {/* This is just for the case where Firebase guard shows banner instead */}
+            </div>
+          )}
+
+          {/* Show basic privileges for non-owners or when Firebase guard is blocking */}
+          {selectedCommunity && !canUpdateCommunity && (
+            <CommunityPrivileges showUpdateCommunityFeatures={false} />
           )}
 
           {/* Show message for non-owners */}
@@ -984,7 +957,7 @@ function ArtistDashboardContent({
 
         {/* Tab Content */}
         <div className="p-6">
-          <FirebaseOwnerGuard>{renderContent()}</FirebaseOwnerGuard>
+          {renderContent()}
         </div>
       </div>
     </div>
