@@ -93,7 +93,14 @@ export function usePendingPostsCount(communityId: string) {
       // 6. Replies (kind 1111)
       const pendingPosts = posts.filter(post => {
         // Skip if post is a reply
-        if (post.kind === KINDS.GROUP_POST_REPLY) {
+        // Check both for reply tags and for posts that reference other posts
+        const hasReplyTags = post.tags.some(
+          tag => tag[0] === "e" && (tag[3] === "reply" || tag[3] === "root")
+        );
+        // Also check if post has any event references without explicitly being marked
+        const hasEventReference = post.tags.some(tag => tag[0] === "e");
+        
+        if (hasReplyTags || (post.kind === KINDS.GROUP_POST_REPLY && hasEventReference)) {
           return false;
         }
 

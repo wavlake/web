@@ -44,6 +44,7 @@ import { ReplyList } from "./ReplyList";
 import { ReportDialog } from "./ReportDialog";
 import { shareContent } from "@/lib/share";
 import { KINDS } from "@/lib/nostr-kinds";
+import { filterSpamPosts } from "@/lib/spam-filter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -353,7 +354,10 @@ export function PostList({
       !removedPostIds.includes(post.id) && !bannedUsers.includes(post.pubkey)
   );
 
-  const processedPosts = postsWithoutRemoved.map((post) => {
+  // Filter out spam posts
+  const postsWithoutSpam = filterSpamPosts(postsWithoutRemoved);
+
+  const processedPosts = postsWithoutSpam.map((post) => {
     // If post already has approval info, return it as is
     if ("approval" in post) return post;
 
@@ -437,12 +441,17 @@ export function PostList({
   // Memoize the sorted posts to avoid unnecessary re-renders
   const sortedPosts = useMemo(() => {
     // Process pinned posts through the same approval logic
-    const pinnedPostsProcessed = (pinnedPosts || [])
+    const pinnedPostsFiltered = (pinnedPosts || [])
       .filter(
         (post) =>
           !removedPostIds.includes(post.id) &&
           !bannedUsers.includes(post.pubkey)
-      )
+      );
+    
+    // Filter out spam from pinned posts
+    const pinnedPostsWithoutSpam = filterSpamPosts(pinnedPostsFiltered);
+    
+    const pinnedPostsProcessed = pinnedPostsWithoutSpam
       .map((post) => {
         // Check if this pinned post is already in the approved posts
         const existingApproval = (approvedPosts || []).find(

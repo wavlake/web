@@ -9,11 +9,30 @@ import { ArrowLeft, FileText, Edit } from "lucide-react";
 import { parseNostrAddress } from "@/lib/nostr-utils";
 import { KINDS } from "@/lib/nostr-kinds";
 
+// Helper function to validate and sanitize image URLs
+function safeImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  
+  try {
+    const parsed = new URL(url);
+    // Only allow http(s) protocols for images
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      console.warn(`Invalid image protocol: ${parsed.protocol}`);
+      return undefined;
+    }
+    return url;
+  } catch (e) {
+    console.warn(`Invalid image URL: ${url}`);
+    return undefined;
+  }
+}
+
 export default function GroupGuidelines() {
   const { groupId } = useParams<{ groupId: string }>();
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const [parsedId, setParsedId] = useState<{ kind: number; pubkey: string; identifier: string } | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (groupId) {
@@ -49,7 +68,7 @@ export default function GroupGuidelines() {
 
   const name = nameTag ? nameTag[1] : (parsedId?.identifier || "Unnamed Group");
   const description = descriptionTag ? descriptionTag[1] : "No description available";
-  const image = imageTag ? imageTag[1] : undefined;
+  const image = safeImageUrl(imageTag ? imageTag[1] : undefined);
   const guidelines = guidelinesTag ? guidelinesTag[1] : "";
 
   const isOwner = user && community && user.pubkey === community.pubkey;
@@ -101,23 +120,21 @@ export default function GroupGuidelines() {
         <div className="flex gap-4">
           <div className="flex-1">
             <div className="h-36 rounded-lg overflow-hidden mb-2 relative">
-              {image ? (
+              {image && image !== "/placeholder.svg" && !imageError ? (
                 <img
                   src={image}
                   alt={name}
                   className="w-full h-full object-cover object-center"
                   onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = "flex";
+                    console.error(`Failed to load group image for ${name}:`, e);
+                    setImageError(true);
                   }}
                 />
-              ) : null}
-              <div 
-                className={`w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center ${image ? 'hidden' : 'flex'}`}
-              >
-                {name.charAt(0).toUpperCase()}
-              </div>
+              ) : (
+                <div className="w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-row items-start justify-between gap-4 mb-2">
