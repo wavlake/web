@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Music, Users, Mic, Construction } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { FirebaseActionGuard } from "@/components/auth/FirebaseActionGuard";
 
 export default function CreateArtist() {
   const navigate = useNavigate();
@@ -28,17 +29,18 @@ export default function CreateArtist() {
           </Button>
         </div>
 
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Construction className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-            </div>
-            <CardTitle className="text-2xl">Create Artist Page</CardTitle>
-            <CardDescription className="text-base">
-              Artist creation walkthrough coming soon!
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <FirebaseActionGuard action="create-group" className="mb-6">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Construction className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              </div>
+              <CardTitle className="text-2xl">Create Artist Page</CardTitle>
+              <CardDescription className="text-base">
+                Artist creation walkthrough coming soon!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
             <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
               <div className="text-center space-y-4">
                 <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200">
@@ -100,8 +102,9 @@ export default function CreateArtist() {
                 The dedicated artist creation wizard will be available soon!
               </p>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </FirebaseActionGuard>
       </div>
     </div>
   );
