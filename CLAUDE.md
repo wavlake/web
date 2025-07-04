@@ -364,6 +364,95 @@ This command will typecheck the code and attempt to build it.
 
 Your task is not considered finished until this test passes without errors.
 
+## Layout System
+
+### GlobalLayout Implementation
+
+Wavlake uses a smart GlobalLayout system that automatically manages headers, footers, and page layouts based on the current route. This eliminates the need for manual header/footer imports in individual pages.
+
+#### How It Works
+
+The `GlobalLayout` component wraps all routes and applies appropriate layouts:
+
+```typescript
+// Route behavior:
+"/" -> No Layout (custom landing page)
+"/welcome" -> No Layout (custom onboarding)  
+"/dashboard*" -> Standard layout with header/footer
+"/profile/*" -> Standard layout with header/footer
+"/group/*" -> Full-width layout with header/footer
+// All other routes -> Standard layout with header/footer
+```
+
+#### Page Development Guidelines
+
+When creating new pages:
+
+1. **DO NOT** manually import or render `Header` or `Footer` components
+2. **DO NOT** wrap pages in `Layout` components
+3. **DO** use consistent spacing classes: `my-6 space-y-6`
+4. **DO** let GlobalLayout handle all layout concerns automatically
+
+```typescript
+// ✅ Correct: Simple page component
+export default function MyPage() {
+  return (
+    <div className="my-6 space-y-6">
+      <h1>My Page Content</h1>
+      {/* Page content */}
+    </div>
+  );
+}
+
+// ❌ Wrong: Manual header/layout management
+export default function MyPage() {
+  return (
+    <div className="container mx-auto py-1 px-3 sm:px-4">
+      <Header /> {/* Don't do this */}
+      <main>
+        <h1>My Page Content</h1>
+      </main>
+      <Footer /> {/* Don't do this */}
+    </div>
+  );
+}
+```
+
+#### Excluding Pages from Layout
+
+If a new page needs custom layout (like landing or onboarding pages):
+
+1. Add the route to `EXCLUDED_ROUTES` in `GlobalLayout.tsx`
+2. Implement custom layout within the page component
+3. Document the reasoning in code comments
+
+#### Layout Configuration Files
+
+- `src/components/GlobalLayout.tsx` - Smart layout wrapper with route-based logic
+- `src/components/Layout.tsx` - Base layout component with header/footer
+- `src/components/ui/Header.tsx` - Main navigation header
+- `src/components/Footer.tsx` - Application footer
+
+#### GlobalLayout Technical Details
+
+**Implementation Files:**
+- `src/components/GlobalLayout.tsx` - Route-aware wrapper with exclusion logic
+- `src/AppRouter.tsx` - Router integration with GlobalLayout wrapper
+
+**Route Exclusion Logic:**
+```typescript
+// Simple exact matching prevents issues with startsWith()
+const isExcluded = EXCLUDED_ROUTES.some(route => 
+  location.pathname === route
+);
+```
+
+**Recent Fixes:**
+- Fixed route exclusion bug that incorrectly excluded `/dashboard` 
+- Removed manual headers from 6 pages to prevent double headers
+- Standardized spacing classes across all pages
+- All pages now get consistent header/footer automatically
+
 ## Authentication Architecture
 
 Wavlake implements a hybrid authentication system combining **Nostr** for identity and **Firebase** for legacy business operations. This dual approach provides:

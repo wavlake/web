@@ -107,6 +107,7 @@ This project was forked from [Chorus](https://github.com/andotherstuff/chorus), 
 - **UI Components**: shadcn/ui (Radix UI + Tailwind)
 - **State Management**: TanStack Query
 - **Routing**: React Router
+- **Layout System**: Smart GlobalLayout with route-based header/footer management
 
 ### Decentralized Protocols
 
