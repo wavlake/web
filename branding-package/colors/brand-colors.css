@@ -1,0 +1,176 @@
+/* Wavlake Brand Colors */
+
+:root {
+  /* Primary Brand Colors */
+  --brand-pink: #f3aef2;
+  --brand-pink-light: #ffeeff;
+  --brand-pink-dark: #b36eb2;
+  --brand-purple: #ba9bf9;
+  --brand-orange: #ffb848;
+  --brand-mint: #96f9d4;
+
+  /* Supporting Colors */
+  --brand-black: #171817;
+  --brand-black-light: #7d7e7d;
+  --brand-beige: #fff6f1;
+  --brand-beige-dark: #ccc3be;
+  --brand-highlight: #fffff2;
+  --brand-down: #ff4949;
+  --brand-up: #5bdeb1;
+
+  /* Background */
+  --brand-background: #000000;
+}
+
+/* Color Classes */
+.brand-pink {
+  color: var(--brand-pink);
+}
+.brand-pink-light {
+  color: var(--brand-pink-light);
+}
+.brand-pink-dark {
+  color: var(--brand-pink-dark);
+}
+.brand-purple {
+  color: var(--brand-purple);
+}
+.brand-orange {
+  color: var(--brand-orange);
+}
+.brand-mint {
+  color: var(--brand-mint);
+}
+.brand-black {
+  color: var(--brand-black);
+}
+.brand-black-light {
+  color: var(--brand-black-light);
+}
+.brand-beige {
+  color: var(--brand-beige);
+}
+.brand-beige-dark {
+  color: var(--brand-beige-dark);
+}
+.brand-highlight {
+  color: var(--brand-highlight);
+}
+.brand-down {
+  color: var(--brand-down);
+}
+.brand-up {
+  color: var(--brand-up);
+}
+
+/* Background Color Classes */
+.bg-brand-pink {
+  background-color: var(--brand-pink);
+}
+.bg-brand-pink-light {
+  background-color: var(--brand-pink-light);
+}
+.bg-brand-pink-dark {
+  background-color: var(--brand-pink-dark);
+}
+.bg-brand-purple {
+  background-color: var(--brand-purple);
+}
+.bg-brand-orange {
+  background-color: var(--brand-orange);
+}
+.bg-brand-mint {
+  background-color: var(--brand-mint);
+}
+.bg-brand-black {
+  background-color: var(--brand-black);
+}
+.bg-brand-black-light {
+  background-color: var(--brand-black-light);
+}
+.bg-brand-beige {
+  background-color: var(--brand-beige);
+}
+.bg-brand-beige-dark {
+  background-color: var(--brand-beige-dark);
+}
+.bg-brand-highlight {
+  background-color: var(--brand-highlight);
+}
+.bg-brand-down {
+  background-color: var(--brand-down);
+}
+.bg-brand-up {
+  background-color: var(--brand-up);
+}
+
+/* Border Color Classes */
+.border-brand-pink {
+  border-color: var(--brand-pink);
+}
+.border-brand-purple {
+  border-color: var(--brand-purple);
+}
+.border-brand-orange {
+  border-color: var(--brand-orange);
+}
+.border-brand-mint {
+  border-color: var(--brand-mint);
+}
+.border-brand-black {
+  border-color: var(--brand-black);
+}
+.border-brand-beige {
+  border-color: var(--brand-beige);
+}
+
+/* Common Brand Combinations */
+.brand-primary {
+  background-color: var(--brand-pink);
+  color: var(--brand-black);
+}
+
+.brand-secondary {
+  background-color: var(--brand-purple);
+  color: var(--brand-black);
+}
+
+.brand-accent {
+  background-color: var(--brand-orange);
+  color: var(--brand-black);
+}
+
+.brand-success {
+  background-color: var(--brand-mint);
+  color: var(--brand-black);
+}
+
+.brand-error {
+  background-color: var(--brand-down);
+  color: white;
+}
+
+.brand-dark {
+  background-color: var(--brand-black);
+  color: var(--brand-pink);
+}
+
+.brand-light {
+  background-color: var(--brand-beige);
+  color: var(--brand-black);
+}
+
+/* Hover States */
+.brand-primary:hover {
+  background-color: var(--brand-pink-dark);
+}
+
+.brand-secondary:hover {
+  background-color: var(--brand-purple);
+  opacity: 0.9;
+}
+
+.brand-accent:hover {
+  background-color: var(--brand-orange);
+  opacity: 0.9;
+}
