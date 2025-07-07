@@ -5,7 +5,7 @@
       "command": "npx",
       "args": ["-y", "xjsr", "@nostrbook/mcp"]
     },
-    "puppeteer": {
+    "puppeteer-server": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
     }
