@@ -6,7 +6,6 @@
       "args": ["-y", "xjsr", "@nostrbook/mcp"]
     },
     "puppeteer": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
     }
