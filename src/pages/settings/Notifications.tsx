@@ -26,6 +26,7 @@ import {
 } from "@/hooks/useNotifications";
 import type { Notification } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthor } from "@/hooks/useAuthor";
 import { formatDistanceToNow } from "date-fns";
 import { GroupReference } from "@/components/groups/GroupReference";
@@ -343,6 +344,29 @@ export default function Notifications() {
     );
   };
 
+  // Loading skeleton component that matches the notification structure
+  const NotificationSkeleton = () => (
+    <Card className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          {/* Avatar skeleton */}
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="flex-1 space-y-2">
+            {/* Message skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            {/* Timestamp skeleton */}
+            <Skeleton className="h-3 w-20" />
+            {/* Link skeleton */}
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="my-6 space-y-6">
       <div>
@@ -355,7 +379,12 @@ export default function Notifications() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">Loading notifications...</div>
+              <div className="space-y-0">
+                {/* Show multiple skeleton notifications */}
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <NotificationSkeleton key={`skeleton-${index}`} />
+                ))}
+              </div>
             ) : notifications.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 You don't have any notifications yet
