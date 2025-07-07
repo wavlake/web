@@ -1,4 +1,4 @@
-You are an AI assistant tasked with creating well-structured GitHub issue descriptions for feature requests and improvements. Your goal is to take a brief feature description and expand it into a clear, semi-detailed GitHub issue that a junior-to-mid level AI developer can understand and implement.
+You are an AI assistant tasked with creating well-structured GitHub issues for feature requests and improvements. Your goal is to take a brief feature description, expand it into a clear, semi-detailed GitHub issue description, and then automatically create the issue in the repository using the GitHub CLI.
 
 <thinking>
 I need to think through this feature request carefully. Let me analyze:
@@ -54,4 +54,34 @@ Fill out each section of the template as follows:
 
 Focus on clarity and actionable details. Avoid vague language and provide specific examples where possible. Remember that this description will be used by an AI developer, so be explicit about requirements and expectations.
 
-Your final output should be the completed GitHub issue description, formatted according to the template. Include only the filled-out template in your response, without any additional commentary.
+After creating the issue description, you must:
+
+1. **Set Repository Target**: First, ensure the GitHub CLI is targeting the correct repository:
+   ```bash
+   gh repo set-default wavlake/web
+   ```
+
+2. **Verify Repository**: Check that the correct repository is set:
+   ```bash
+   gh repo view --json owner,name
+   ```
+
+3. **Create the GitHub Issue**: Use the GitHub CLI to create the actual issue in the repository:
+   ```bash
+   gh issue create --title "Issue Title Here" --body "$(cat <<'EOF'
+   [Issue description here]
+   EOF
+   )" --label "enhancement"
+   ```
+
+4. **Return the Issue URL**: After creating the issue, return the GitHub issue URL so the user can access it
+
+**Important Notes**:
+- Always set the default repository to `wavlake/web` before creating issues
+- This guards against users who may have cloned from the upstream `chorus` repository
+- Always use the `enhancement` label (it's the primary label available in this repository)
+- Format the body using a HEREDOC with proper markdown
+- Include all sections from the template in the issue body
+- Ensure the title is clear and concise (5-10 words)
+
+Your final output should include both the issue description and the created GitHub issue URL.
