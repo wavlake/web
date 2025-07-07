@@ -600,14 +600,18 @@ export function PostList({
     return (
       <div className="p-8 text-center border border-border/30 rounded-md bg-card">
         <p className="text-muted-foreground mb-2">
-          {showOnlyApproved
+          {showOnlyApproved && showOnlyOwnerAndModerators && showOnlyAnnouncements
+            ? "Nothing new yet."
+            : showOnlyApproved
             ? "No approved posts in this group yet"
             : pendingOnly
             ? "No pending posts in this group"
             : "No posts in this group yet"}
         </p>
         <p className="text-sm">
-          {showOnlyApproved && pendingCount > 0
+          {showOnlyApproved && showOnlyOwnerAndModerators && showOnlyAnnouncements
+            ? ""
+            : showOnlyApproved && pendingCount > 0
             ? `There are ${pendingCount} pending posts waiting for approval.`
             : pendingOnly
             ? "All posts have been approved or removed."
