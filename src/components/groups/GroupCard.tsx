@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pin, PinOff, MessageSquare, Activity, MoreVertical, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/groups/RoleBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RichText } from "@/components/ui/RichText";
@@ -50,7 +49,6 @@ export function GroupCard({
   isLoadingStats,
 }: GroupCardProps) {
   const { user } = useCurrentUser();
-  const navigate = useNavigate();
   const [preventNavigation, setPreventNavigation] = useState(false);
 
   // Extract community data from tags
@@ -98,20 +96,20 @@ export function GroupCard({
     hasPendingRequest && !isUserMember && "bg-gray-50/50" // Different background for pending requests
   );
   
-  // Handle card click to navigate
-  const handleCardClick = (e: React.MouseEvent) => {
-    if (preventNavigation) {
-      setPreventNavigation(false);
-      return;
-    }
-    
-    e.preventDefault();
-    navigate(`/group/${encodeURIComponent(communityId)}`);
-  };
 
   return (
-    <Card className={cardStyle} onClick={handleCardClick}>
-      <CardHeader className="flex flex-row items-start space-y-0 gap-3 pt-4 pb-2 px-3">
+    <Link 
+      to={`/group/${encodeURIComponent(communityId)}`}
+      className="block no-underline"
+      onClick={(e) => {
+        if (preventNavigation) {
+          e.preventDefault();
+          setPreventNavigation(false);
+        }
+      }}
+    >
+      <Card className={cardStyle}>
+        <CardHeader className="flex flex-row items-start space-y-0 gap-3 pt-4 pb-2 px-3">
         <div className="flex-shrink-0">
           <Avatar className="h-12 w-12 rounded-md">
             <AvatarImage src={image} alt={name} />
@@ -235,6 +233,7 @@ export function GroupCard({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-    </Card>
+      </Card>
+    </Link>
   );
 }
