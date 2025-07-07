@@ -147,13 +147,13 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
 
   return (
     <div className="flex items-center justify-between p-1.5 rounded-md hover:bg-muted transition-colors">
-      <Link to={`/profile/${pubkey}`} className="flex items-center gap-3">
-        <Avatar className="rounded-md h-9 w-9">
+      <Link to={`/profile/${pubkey}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="rounded-md h-9 w-9 flex-shrink-0">
           <AvatarImage src={profileImage} />
           <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div>
-          <p className="font-medium leading-tight">{displayName}</p>
+        <div className="min-w-0">
+          <p className="font-medium leading-tight truncate">{displayName}</p>
           {isCreator ? (
             <span className="text-xs bg-purple-100 text-purple-600 rounded-full px-2 py-0.5">
               Group Owner
@@ -169,7 +169,7 @@ function ModeratorItem({ pubkey, isCreator = false }: { pubkey: string; isCreato
       <Button 
         variant="outline" 
         size="sm" 
-        className="text-xs py-1 px-2 h-auto"
+        className="text-xs py-1 px-2 h-auto flex-shrink-0"
         onClick={(e) => {
           e.stopPropagation();
           setNutzapOpen(true);
@@ -202,18 +202,18 @@ function MemberItem({ pubkey }: MemberItemProps) {
   
   return (
     <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors">
-      <Link to={`/profile/${pubkey}`} className="flex items-center gap-3">
-        <Avatar className="rounded-md h-9 w-9">
+      <Link to={`/profile/${pubkey}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="rounded-md h-9 w-9 flex-shrink-0">
           <AvatarImage src={profileImage} />
           <AvatarFallback>{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className="font-medium">{displayName}</span>
+        <span className="font-medium truncate">{displayName}</span>
       </Link>
       
       <Button 
         variant="outline" 
         size="sm" 
-        className="text-xs py-1 px-2 h-auto"
+        className="text-xs py-1 px-2 h-auto flex-shrink-0"
         onClick={(e) => {
           e.stopPropagation();
           setNutzapOpen(true);

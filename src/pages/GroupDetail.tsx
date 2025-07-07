@@ -323,6 +323,12 @@ export default function GroupDetail({
 
               <TabsContent value="community">
                 <div className="space-y-6">
+                  {/* Community Info section for smaller screens */}
+                  <div className="xl:hidden bg-background p-6 rounded-lg shadow-sm border">
+                    <h3 className="text-lg font-semibold mb-4">Community Info</h3>
+                    <SimpleMembersList communityId={groupId || ""} />
+                  </div>
+                  
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Community Posts</h2>
                     <div className="flex items-center gap-2">
