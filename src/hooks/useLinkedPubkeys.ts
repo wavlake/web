@@ -22,7 +22,11 @@ export function useLinkedPubkeys(email: string) {
       if (!email) return [];
 
       try {
-        // TODO: Backend implementation needed
+        // TODO: Backend implementation needed for production
+        // This endpoint requires backend implementation to:
+        // 1. Validate Firebase auth token
+        // 2. Query database for pubkeys linked to the email
+        // 3. Return array of linked pubkeys with security controls
         // API endpoint: POST /auth/get-linked-pubkeys
         // Request body: { email: string }
         // Response: { success: boolean, pubkeys: string[], error?: string }
@@ -31,7 +35,9 @@ export function useLinkedPubkeys(email: string) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // TODO: Add Firebase auth token: Authorization: `Bearer ${firebaseToken}`
+            // TODO: Add Firebase auth token for security
+            // This requires implementing getAuth().currentUser?.getIdToken()
+            // Authorization: `Bearer ${firebaseToken}`
           },
           body: JSON.stringify({ email })
         });
@@ -51,11 +57,15 @@ export function useLinkedPubkeys(email: string) {
         const pubkeysWithProfiles: LinkedPubkey[] = await Promise.all(
           (data.pubkeys || []).map(async (pubkey: string) => {
             try {
-              // TODO: Use actual profile fetching here
-              // Currently returns null profile to avoid React Hook rules violation
+              // TODO: Implement proper profile fetching
+              // This requires refactoring to avoid React Hook rules violation
+              // Options:
+              // 1. Fetch profiles in the component using separate useAuthor calls
+              // 2. Create a server-side profile resolution endpoint
+              // 3. Use a different pattern that doesn't violate hook rules
               return { 
                 pubkey, 
-                profile: null // Profile fetching needs proper implementation
+                profile: null // Profile data will be fetched by components as needed
               };
             } catch (profileError) {
               console.warn(`Failed to fetch profile for pubkey ${pubkey.slice(0, 8)}...`, profileError);
@@ -77,6 +87,14 @@ export function useLinkedPubkeys(email: string) {
   });
 }
 
-// Note: This hook was causing React Hook rules violation
-// For now, profile fetching should be done separately in components that need it
-// TODO: Implement proper profile fetching pattern that follows React Hook rules
+/**
+ * Note: Profile fetching was separated to avoid React Hook rules violation
+ * Components that need profile data should use useAuthor hooks separately
+ * 
+ * TODO: Consider implementing one of these patterns for integrated profile fetching:
+ * 1. Server-side profile resolution in the backend endpoint
+ * 2. Separate useLinkedPubkeysWithProfiles hook that takes an array of pubkeys
+ * 3. Composite hook pattern that manages multiple useAuthor calls safely
+ * 
+ * Current approach keeps this hook simple and follows React Hook rules
+ */

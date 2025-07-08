@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import LoginDialog from "./LoginDialog";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
+import { logAuthError, logAuthInfo } from "@/lib/authLogger";
+import { truncatePubkey, getDisplayName } from "@/lib/pubkeyUtils";
 
 interface FirebaseUser {
   uid: string;
@@ -36,10 +38,17 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const handleNostrLoginSuccess = async () => {
+    // Log the authentication attempt
+    logAuthInfo('nostr-auth-step-start', firebaseUser, selectedPubkey || undefined, linkedPubkeys.length);
+    
     try {
       // Attempt auto-linking if Firebase user is present
       if (firebaseUser) {
-        await autoLink(firebaseUser, selectedPubkey || undefined);
+        const linkResult = await autoLink(firebaseUser, selectedPubkey || undefined);
+        if (linkResult.success) {
+          logAuthInfo('nostr-auth-step-link-success', firebaseUser, selectedPubkey || undefined);
+        }
+        // Note: Linking failures are handled within autoLink and shouldn't block login
       }
       
       // Note: LoginDialog handles the actual Nostr login internally
@@ -53,21 +62,14 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         data: null
       };
       
+      logAuthInfo('nostr-auth-step-success', firebaseUser, selectedPubkey || undefined);
       onSuccess(placeholderLogin);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      // Enhanced error logging with context
-      console.error('Authentication or linking error:', {
-        operation: 'nostr-auth-step',
-        hasFirebaseUser: !!firebaseUser,
-        firebaseUid: firebaseUser?.uid,
-        selectedPubkey: selectedPubkey ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}` : null,
-        linkedPubkeysCount: linkedPubkeys.length,
-        error: errorMessage
-      });
+      // Log the error with proper context
+      logAuthError('nostr-auth-step', error, firebaseUser, selectedPubkey || undefined, linkedPubkeys.length);
       
       // Continue with sign-in even if linking fails
+      // This ensures user can still authenticate even if account linking has issues
       const placeholderLogin: NLoginType = {
         id: 'placeholder-' + Date.now(),
         type: 'extension' as const,
@@ -79,17 +81,29 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     }
   };
 
-  const handleCreateNewAccount = useCallback(async () => {
-    // This would implement account generation in a future iteration
-    // For now, just redirect to the normal Nostr login
+  /**
+   * Handles the "Generate New Account" flow for new users
+   * Future implementation will guide users through generating a new Nostr keypair
+   * For now, directs users to the standard Nostr login where they can use extensions
+   * or manually generate keys through other means
+   */
+  const handleCreateNewAccount = async () => {
+    // TODO: Implement guided account generation
+    // This should guide users through:
+    // 1. Explanation of Nostr keypairs
+    // 2. Options: browser extension, manual generation, or recommended tools
+    // 3. Security best practices
+    // 4. Backup instructions
     setShowLoginDialog(true);
-  }, []);
+  };
 
-  const handleShowLoginDialog = useCallback(() => setShowLoginDialog(true), []);
-  const handleCloseLoginDialog = useCallback(() => setShowLoginDialog(false), []);
+  // Simple event handlers - no need for useCallback optimization here
+  // These are lightweight functions with minimal re-render impact
+  const handleShowLoginDialog = () => setShowLoginDialog(true);
+  const handleCloseLoginDialog = () => setShowLoginDialog(false);
+  const handleSelectMode = () => setMode('select');
   
-  const handleSelectMode = useCallback(() => setMode('select'), []);
-  
+  // This callback is justified as it depends on external props that may change
   const handleBackFromLogin = useCallback(() => {
     setShowLoginDialog(false);
     if (linkedPubkeys.length > 0) {
@@ -99,6 +113,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     }
   }, [linkedPubkeys.length, onBack]);
 
+  // This callback factory is justified as it prevents recreation of click handlers
   const createAccountClickHandler = useCallback((pubkey: string) => () => {
     setSelectedPubkey(pubkey);
     setShowLoginDialog(true);
@@ -124,14 +139,14 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
             >
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                  {account.profile?.name?.[0] || account.pubkey.slice(0, 2)}
+                  {getDisplayName(account.profile)?.[0] || account.pubkey.slice(0, 2)}
                 </div>
                 <div className="flex-1 space-y-1">
                   <p className="font-medium">
-                    {account.profile?.name || 'Unnamed Account'}
+                    {getDisplayName(account.profile)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {account.pubkey.slice(0, 8)}...{account.pubkey.slice(-8)}
+                    {truncatePubkey(account.pubkey)}
                   </p>
                 </div>
                 <div className="text-muted-foreground">→</div>

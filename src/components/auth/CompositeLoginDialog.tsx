@@ -34,17 +34,13 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
 
   const handleChoice = (choice: AuthChoice) => {
     // Map auth choices to appropriate steps
-    switch (choice) {
-      case 'firebase':
-        setStep('firebase');
-        break;
-      case 'nostr':
-      case 'new-user':
-        // Both existing Nostr users and new users go to Nostr auth
-        setStep('nostr');
-        break;
-      default:
-        setStep('nostr');
+    // Firebase users go to Firebase auth, all others go to Nostr auth
+    if (choice === 'firebase') {
+      setStep('firebase');
+    } else {
+      // Both 'nostr' and 'new-user' choices lead to Nostr authentication
+      // New users will be guided through account creation within the Nostr flow
+      setStep('nostr');
     }
   };
 

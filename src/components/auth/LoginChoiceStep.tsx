@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   DialogContent,
@@ -16,9 +16,10 @@ interface LoginChoiceStepProps {
 export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({ 
   onSelect 
 }) => {
-  const handleNewUserSelect = useCallback(() => onSelect('new-user'), [onSelect]);
-  const handleFirebaseSelect = useCallback(() => onSelect('firebase'), [onSelect]);
-  const handleNostrSelect = useCallback(() => onSelect('nostr'), [onSelect]);
+  // Simple event handlers - useCallback not needed for basic function calls
+  const handleNewUserSelect = () => onSelect('new-user');
+  const handleFirebaseSelect = () => onSelect('firebase');
+  const handleNostrSelect = () => onSelect('nostr');
 
   return (
     <DialogContent className="sm:max-w-md">
