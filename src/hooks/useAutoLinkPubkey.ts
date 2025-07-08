@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
 import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
@@ -84,21 +84,43 @@ const DEFAULT_OPTIONS: Required<AutoLinkOptions> = {
 };
 
 /**
- * Enhanced hook for automatically linking Firebase accounts with Nostr pubkeys
+ * Cache key for recent attempts to prevent duplicates
+ */
+const createAttemptKey = (firebaseUserId: string, pubkey?: string): string => {
+  return `${firebaseUserId}:${pubkey || 'current'}`;
+};
+
+/**
+ * Enhanced hook for automatically linking Firebase accounts with Nostr pubkeys.
  * 
- * Features:
- * - Comprehensive state management with idle, linking, success, error states
- * - Retry logic with exponential backoff for transient failures
- * - Intelligent error categorization and handling
- * - Performance optimizations to prevent unnecessary API calls
- * - Configurable timeout and retry behavior
- * - Non-blocking design that doesn't interfere with authentication flows
+ * This hook provides a comprehensive solution for linking Firebase authenticated users
+ * with their Nostr public keys, including robust error handling, retry logic, and
+ * performance optimizations.
+ * 
+ * @example
+ * ```typescript
+ * const { autoLink, isLinking, state, lastError } = useAutoLinkPubkey({
+ *   maxRetries: 3,
+ *   timeout: 15000,
+ *   showNotifications: true
+ * });
+ * 
+ * // Link account automatically
+ * const result = await autoLink(firebaseUser, pubkey);
+ * ```
  * 
  * @param options - Configuration options for auto-linking behavior
+ * @param options.maxRetries - Maximum number of retry attempts (default: 3)
+ * @param options.initialRetryDelay - Initial retry delay in milliseconds (default: 1000)
+ * @param options.maxRetryDelay - Maximum retry delay in milliseconds (default: 10000)
+ * @param options.showNotifications - Whether to show toast notifications (default: true)
+ * @param options.timeout - Custom timeout for linking operations in milliseconds (default: 15000)
  * @returns Hook interface with linking function and state management
  */
 export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
-  const config = { ...DEFAULT_OPTIONS, ...options };
+  // Memoize configuration to prevent unnecessary re-renders
+  const config = useMemo(() => ({ ...DEFAULT_OPTIONS, ...options }), [options]);
+  
   const { linkPubkey } = useFirebaseLegacyAuth();
   const { mutateAsync: linkAccount } = useLinkFirebaseAccount();
   
@@ -114,7 +136,10 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   /**
-   * Clears the linking timeout if it exists
+   * Clears the linking timeout if it exists.
+   * 
+   * This function safely cancels any pending timeout to prevent memory leaks
+   * and unwanted timeout callbacks.
    */
   const clearLinkingTimeout = useCallback(() => {
     if (timeoutRef.current) {
@@ -123,38 +148,49 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     }
   }, []);
 
+  // Memoize error patterns for performance optimization
+  const errorPatterns = useMemo(() => ({
+    'rate_limit': ['rate limit', '429', 'too many requests'],
+    'network': ['network', 'fetch', 'connection', 'offline'],
+    'timeout': ['timeout', 'aborted', 'request timeout'],
+    'validation': ['invalid', 'validation', 'bad request', '400'],
+    'duplicate': ['duplicate', 'already linked', 'already exists'],
+    'permission': ['permission', 'unauthorized', 'forbidden', '401', '403'],
+    'unknown': []
+  } as Record<AutoLinkErrorType, string[]>), []);
+
   /**
-   * Categorizes errors into specific types for appropriate handling
+   * Categorizes errors into specific types for appropriate handling.
+   * 
+   * This function analyzes error messages to determine the appropriate error type,
+   * which is used for retry logic and user-friendly error messages.
+   * 
+   * @param error - The error to categorize
+   * @returns The categorized error type
    */
   const categorizeError = useCallback((error: unknown): AutoLinkErrorType => {
     if (!(error instanceof Error)) return 'unknown';
     
     const message = error.message.toLowerCase();
     
-    if (message.includes('rate limit') || message.includes('429')) {
-      return 'rate_limit';
-    }
-    if (message.includes('network') || message.includes('fetch') || message.includes('connection')) {
-      return 'network';
-    }
-    if (message.includes('timeout') || message.includes('aborted')) {
-      return 'timeout';
-    }
-    if (message.includes('invalid') || message.includes('validation')) {
-      return 'validation';
-    }
-    if (message.includes('duplicate') || message.includes('already linked')) {
-      return 'duplicate';
-    }
-    if (message.includes('permission') || message.includes('unauthorized') || message.includes('forbidden')) {
-      return 'permission';
+    // Find matching error type using memoized patterns
+    for (const [errorType, patterns] of Object.entries(errorPatterns)) {
+      if (errorType !== 'unknown' && patterns.some(pattern => message.includes(pattern))) {
+        return errorType as AutoLinkErrorType;
+      }
     }
     
     return 'unknown';
-  }, []);
+  }, [errorPatterns]);
 
   /**
-   * Determines if an error type is retryable
+   * Determines if an error type is retryable.
+   * 
+   * Certain error types like network failures, timeouts, and rate limits are considered
+   * temporary and worth retrying, while validation and permission errors are not.
+   * 
+   * @param errorType - The error type to check
+   * @returns true if the error type is retryable, false otherwise
    */
   const isRetryableError = useCallback((errorType: AutoLinkErrorType): boolean => {
     return ['network', 'timeout', 'rate_limit', 'unknown'].includes(errorType);
@@ -210,31 +246,37 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
    * to prevent unnecessary duplicate calls
    */
   const hasRecentAttempt = useCallback((firebaseUser: FirebaseUser, pubkey?: string): boolean => {
-    const key = `${firebaseUser.uid}:${pubkey || 'current'}`;
+    const key = createAttemptKey(firebaseUser.uid, pubkey);
     const lastAttempt = recentAttempts.current.get(key);
     
     if (!lastAttempt) return false;
     
-    // Consider attempts within the last 5 minutes as recent
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    return lastAttempt > fiveMinutesAgo;
+    // Consider attempts within the last 2 minutes as recent (reduced from 5 minutes)
+    const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
+    return lastAttempt > twoMinutesAgo;
   }, []);
 
   /**
-   * Records a linking attempt to prevent duplicates
+   * Records a linking attempt to prevent duplicates with optimized cleanup
    */
   const recordAttempt = useCallback((firebaseUser: FirebaseUser, pubkey?: string) => {
-    const key = `${firebaseUser.uid}:${pubkey || 'current'}`;
+    const key = createAttemptKey(firebaseUser.uid, pubkey);
     recentAttempts.current.set(key, Date.now());
     
-    // Clean up old entries to prevent memory leaks
-    if (recentAttempts.current.size > 100) {
-      const cutoff = Date.now() - (60 * 60 * 1000); // 1 hour ago
+    // Optimized cleanup strategy - batch deletion for better performance
+    if (recentAttempts.current.size > 50) {
+      const cutoff = Date.now() - (30 * 60 * 1000); // 30 minutes ago
+      const keysToDelete: string[] = [];
+      
+      // Collect keys to delete first
       for (const [k, timestamp] of recentAttempts.current.entries()) {
         if (timestamp < cutoff) {
-          recentAttempts.current.delete(k);
+          keysToDelete.push(k);
         }
       }
+      
+      // Batch delete for better performance
+      keysToDelete.forEach(k => recentAttempts.current.delete(k));
     }
   }, []);
 
@@ -260,7 +302,7 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
         lastSuccessTime: Date.now(),
       }));
 
-      // Log successful linking
+      // Log successful linking with structured context
       logAuthSuccess('account-linking', firebaseUser, pubkey);
       
       // Show success notification if enabled
@@ -276,7 +318,7 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
       const isRetryable = isRetryableError(errorType);
       const shouldRetry = isRetryable && attempt < config.maxRetries;
 
-      // Log the error with appropriate context
+      // Log the error with structured context including retry attempt
       logAuthError('account-linking', error, firebaseUser, pubkey);
 
       if (shouldRetry) {
@@ -329,12 +371,11 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     categorizeError, 
     isRetryableError, 
     calculateRetryDelay, 
-    config.maxRetries, 
-    config.showNotifications
+    config
   ]);
 
   /**
-   * Main auto-linking function with comprehensive validation and optimization
+   * Main auto-linking function with comprehensive validation and security
    * 
    * @param firebaseUser - The authenticated Firebase user (required)
    * @param pubkey - The Nostr pubkey to link (optional, will use current user's pubkey if not provided)
@@ -346,33 +387,85 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     pubkey?: string,
     signer?: NostrSigner
   ): Promise<AutoLinkResult> => {
-    // Validation
+    // Input sanitization for security
+    const sanitizedPubkey = pubkey?.trim();
+    
+    // Additional security validation
+    if (sanitizedPubkey && sanitizedPubkey.length > 64) {
+      const error = new Error("Pubkey exceeds maximum allowed length");
+      logAuthError('account-linking-security', error, firebaseUser, sanitizedPubkey);
+      throw error;
+    }
+    // Enhanced Firebase user validation
     if (!firebaseUser) {
-      const error = new Error("Firebase user is required for linking");
+      const error = new Error("Firebase user is required for linking - user must be authenticated");
+      logAuthError('account-linking-validation', error);
       setHookState(prev => ({
         ...prev,
         state: 'error',
         lastError: error,
         lastErrorType: 'validation',
       }));
+      
+      // Show user-friendly error for authentication failures
+      if (config.showNotifications) {
+        toast.error("Authentication Required", {
+          description: "Please sign in to your Wavlake account before linking.",
+        });
+      }
+      
       throw error;
     }
 
-    // Validate pubkey if provided
-    if (pubkey && !isValidPubkey(pubkey)) {
-      const error = new Error("Invalid pubkey format provided for linking");
-      logAuthError('account-linking-validation', error, firebaseUser, pubkey);
+    // Validate Firebase user has required properties
+    if (!firebaseUser.uid || !firebaseUser.getIdToken) {
+      const error = new Error("Invalid Firebase user - missing required authentication properties");
+      logAuthError('account-linking-validation', error, firebaseUser);
       setHookState(prev => ({
         ...prev,
         state: 'error',
         lastError: error,
         lastErrorType: 'validation',
       }));
+      
+      if (config.showNotifications) {
+        toast.error("Authentication Error", {
+          description: "Authentication session is invalid. Please sign in again.",
+        });
+      }
+      
+      throw error;
+    }
+
+    // Enhanced pubkey validation with detailed error handling
+    if (sanitizedPubkey && !isValidPubkey(sanitizedPubkey)) {
+      const displayPubkey = sanitizedPubkey.length > 8 ? `${sanitizedPubkey.slice(0, 8)}...` : sanitizedPubkey;
+      const error = new Error(`Invalid pubkey format provided for linking: ${displayPubkey}. Expected 64-character hex string.`);
+      
+      // Log validation error with context
+      logAuthError('account-linking-validation', error, firebaseUser, sanitizedPubkey);
+      
+      // Update state with detailed error information
+      setHookState(prev => ({
+        ...prev,
+        state: 'error',
+        lastError: error,
+        lastErrorType: 'validation',
+      }));
+      
+      // Show user-friendly error for validation failures with actionable guidance
+      if (config.showNotifications) {
+        toast.error("Invalid Account", {
+          description: "The provided account identifier is not valid. Please check the format and try again.",
+        });
+      }
+      
+      // Throw error to prevent silent failure
       throw error;
     }
 
     // Performance optimization: check for recent attempts to prevent duplicates
-    if (hasRecentAttempt(firebaseUser, pubkey)) {
+    if (hasRecentAttempt(firebaseUser, sanitizedPubkey)) {
       return { 
         success: false, 
         error: new Error("Recent linking attempt detected, skipping duplicate call"),
@@ -382,7 +475,7 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     }
 
     // Record this attempt
-    recordAttempt(firebaseUser, pubkey);
+    recordAttempt(firebaseUser, sanitizedPubkey);
 
     // Update state to linking
     setHookState(prev => ({
@@ -394,8 +487,8 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
       lastErrorType: undefined,
     }));
 
-    // Perform linking with retry logic
-    return autoLinkWithRetry(firebaseUser, pubkey, signer);
+    // Perform linking with retry logic using sanitized pubkey
+    return autoLinkWithRetry(firebaseUser, sanitizedPubkey, signer);
   }, [hasRecentAttempt, recordAttempt, autoLinkWithRetry]);
 
   /**
