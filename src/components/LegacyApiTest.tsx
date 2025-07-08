@@ -42,14 +42,14 @@ export function LegacyApiTest() {
   const artistTracksQuery = useLegacyArtistTracks(testArtistId || undefined);
   const albumTracksQuery = useLegacyAlbumTracks(testAlbumId || undefined);
 
-  const getStatusIcon = (isLoading: boolean, error: any, data: any) => {
+  const getStatusIcon = (isLoading: boolean, error: Error | null, data: unknown) => {
     if (isLoading) return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
     if (error) return <XCircle className="h-4 w-4 text-red-500" />;
     if (data) return <CheckCircle className="h-4 w-4 text-green-500" />;
     return <div className="h-4 w-4 rounded-full border-2 border-gray-300" />;
   };
 
-  const getStatusText = (isLoading: boolean, error: any, data: any) => {
+  const getStatusText = (isLoading: boolean, error: Error | null, data: unknown) => {
     if (isLoading) return "Loading...";
     if (error) return `Error: ${error.message}`;
     if (data) return "Success";
