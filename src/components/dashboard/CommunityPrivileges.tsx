@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useCommunityContext } from '@/contexts/CommunityContext';
+import { useCommunityContext } from '@/hooks/useCommunityHooks';
 import { Crown, Shield, Users, Settings, Edit, AlertTriangle } from 'lucide-react';
 import { RoleBadge } from '@/components/groups/RoleBadge';
 

@@ -38,7 +38,7 @@ import { MusicPublisher } from "@/components/music/MusicPublisher";
 import { CreateAnnouncementForm } from "@/components/groups/CreateAnnouncementForm";
 import { MemberManagement } from "@/components/groups/MemberManagement";
 import { ReportsList } from "@/components/groups/ReportsList";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 import { CommunityPrivileges } from "@/components/dashboard/CommunityPrivileges";
 import { useNavigate } from "react-router-dom";
 import { useOpenReportsCount } from "@/hooks/useOpenReportsCount";

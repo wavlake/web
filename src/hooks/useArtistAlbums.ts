@@ -3,7 +3,7 @@ import { useNostr } from "@nostrify/react";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
 import { NostrTrack, parseTrackFromEvent } from "@/types/music";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 
 export interface NostrAlbum {
   id: string;

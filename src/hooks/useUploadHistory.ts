@@ -1,7 +1,7 @@
 import { useNostr } from "@/hooks/useNostr";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 import { KINDS } from "@/lib/nostr-kinds";
 import { NostrEvent } from "@nostrify/nostrify";
 

@@ -82,7 +82,7 @@ import {
 import { toast } from "sonner";
 import { nip19 } from "nostr-tools";
 import { KINDS } from "@/lib/nostr-kinds";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 
 interface MusicPublisherProps {
   artistId?: string;

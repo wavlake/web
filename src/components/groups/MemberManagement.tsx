@@ -38,7 +38,7 @@ import { Link, useLocation } from "react-router-dom";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useApprovedMembers } from "@/hooks/useApprovedMembers";
 import { useGroupModeration } from "@/hooks/useGroupModeration";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 import { RoleBadge } from "@/components/groups/RoleBadge";
 import {
   AlertDialog,

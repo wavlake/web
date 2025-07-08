@@ -10,10 +10,8 @@ import {
 } from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
-import {
-  CommunityProvider,
-  useCommunityContext,
-} from "@/contexts/CommunityContext";
+import { CommunityProvider } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 
 // Internal component that uses community context
 function DashboardDetailContent() {

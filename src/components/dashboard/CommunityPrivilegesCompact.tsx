@@ -1,5 +1,5 @@
 import { Crown, Shield } from "lucide-react";
-import { useCommunityContext } from "@/contexts/CommunityContext";
+import { useCommunityContext } from "@/hooks/useCommunityHooks";
 
 // Compact version for sidebars or smaller spaces
 export function CommunityPrivilegesCompact() {
