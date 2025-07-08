@@ -4,10 +4,14 @@
 
 This master todo list tracks the complete implementation of the enhanced authentication UX for Wavlake, including:
 
-- Firebase passwordless authentication (magic links)
 - Enhanced multi-path login flows for legacy and new users
+- Email/password Firebase authentication (passwordless deferred to future phase)
 - Automatic pubkey linking with legacy profile population
 - Three-option landing page (Get Started, Wavlake Account, Nostr Account)
+
+## ⚠️ Implementation Note
+
+**Passwordless authentication (magic links) will be implemented in a future phase.** The current implementation focuses on email/password authentication to unblock immediate user needs. Complete passwordless implementation details are preserved in `FIREBASE_PASSWORDLESS_AUTH_DESIGN.md` for future reference.
 
 ## 📋 Implementation Status
 
@@ -15,35 +19,49 @@ This master todo list tracks the complete implementation of the enhanced authent
 
 ---
 
-## 🔧 **Phase 1: Firebase Passwordless Authentication**
+## 🔧 **Phase 1: Enhanced Login Flow Foundation**
 
-### **Firebase Console Setup**
+### **Firebase Authentication Setup**
 
-- [ ] **Enable Email/Password provider** in Firebase Console
-- [ ] **Enable "Email link (passwordless sign-in)"** option
-- [ ] **Configure authorized domains** (localhost, wavlake.com)
-- [ ] **Test email delivery** in development environment
-- [ ] **Optional: Set up Dynamic Links** for prettier email URLs
+- [x] **Enable Email/Password provider** in Firebase Console (already configured)
+- [x] **Configure authorized domains** (localhost, wavlake.com)
+- [x] **Verify existing FirebaseAuthDialog.tsx** works correctly
 
-### **Core Passwordless Components**
+### **Enhanced Login Components**
 
-- [ ] **Update FirebaseAuthDialog.tsx** - Add tabbed interface (Password/Passwordless)
-- [ ] **Create EmailLinkInputForm.tsx** - Email input for magic links
+- [ ] **Create CompositeLoginDialog.tsx** - Main orchestrator for login flows  
+- [ ] **Create LoginChoiceStep.tsx** - Three-option landing page
+- [ ] **Create NostrAuthStep.tsx** - Enhanced Nostr authentication with auto-linking
+- [ ] **Create ProfileSelectionStep.tsx** - Display and select linked pubkeys
+- [ ] **Create useAutoLinkPubkey.ts hook** - Handle automatic pubkey linking
+- [ ] **Create useLinkedPubkeys.ts hook** - Fetch and manage linked pubkeys
+
+### **Integration & Testing**
+
+- [ ] **Test email/password authentication** with existing dialog
+- [ ] **Test three-option landing page** flow
+- [ ] **Test pubkey auto-linking** functionality
+- [ ] **Test profile selection** for multiple linked accounts
+- [ ] **Verify all existing functionality** remains intact
+
+**Phase 1 Estimated Time: 1 week**
+
+---
+
+## 🌟 **FUTURE PHASE: Firebase Passwordless Authentication** 
+
+### **Deferred Implementation** 
+*(Complete implementation details available in `FIREBASE_PASSWORDLESS_AUTH_DESIGN.md`)*
+
+- [ ] **Enable "Email link (passwordless sign-in)"** option in Firebase Console
+- [ ] **Create EmailLinkInputForm.tsx** - Email input for magic links  
 - [ ] **Create EmailLinkSentView.tsx** - "Check your email" screen with resend
 - [ ] **Create useEmailLinkAuth.ts hook** - Handle email link sending/completion
 - [ ] **Create AuthComplete.tsx page** - Handle magic link completion
 - [ ] **Add /auth/complete route** - Routing for link completion
+- [ ] **Update FirebaseAuthDialog.tsx** - Add tabbed interface (Password/Passwordless)
 
-### **Integration & Testing**
-
-- [ ] **Test email link delivery** across different email providers
-- [ ] **Test magic link completion flow**
-- [ ] **Test cross-device scenarios** (send on mobile, click on desktop)
-- [ ] **Implement rate limiting** for email link requests
-- [ ] **Add comprehensive error handling** for expired/invalid links
-- [ ] **Test mobile deep linking** for iOS/Android apps
-
-**Phase 1 Estimated Time: 1 week**
+**Future Phase Estimated Time: 1 week**
 
 ---
 

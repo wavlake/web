@@ -6,6 +6,10 @@
 
 This plan implements an enhanced authentication UX that allows legacy Wavlake users to sign in with their email addresses, discover linked Nostr accounts, and seamlessly authenticate while maintaining all existing functionality.
 
+## ⚠️ Implementation Note
+
+**Passwordless authentication will be skipped for initial implementation.** We'll focus on email/password authentication first, then add passwordless magic links in a future phase. The complete passwordless implementation details are documented in `FIREBASE_PASSWORDLESS_AUTH_DESIGN.md` for future reference.
+
 ## 📊 Current State Analysis
 
 ### ✅ Already Implemented (70% of functionality):
@@ -57,16 +61,16 @@ Use existing FirebaseAuthDialog → Auto-link → Continue upload
 
 ### **Phase 1: Core Components (Week 1)**
 
-#### **Firebase Enhancement: Add Passwordless Auth** - ENHANCED
-**Purpose**: Update existing FirebaseAuthDialog to support both password and passwordless authentication
-**Reference**: See `FIREBASE_PASSWORDLESS_AUTH_DESIGN.md` for complete implementation details
+#### **Firebase Enhancement: Email/Password Focus** - ENHANCED
+**Purpose**: Use existing FirebaseAuthDialog for email/password authentication 
+**Note**: Passwordless authentication (magic links) will be added in a future phase - see `FIREBASE_PASSWORDLESS_AUTH_DESIGN.md` for future implementation
 
 ```typescript
-// Enhanced FirebaseAuthDialog will support:
-// - Tab interface: "Password" and "Passwordless"
-// - Magic link email authentication
-// - Auto-completion via /auth/complete route
-```
+// Current FirebaseAuthDialog supports:
+// - Email/password authentication
+// - Sign-in and sign-up functionality
+// - Error handling and validation
+// Future: Passwordless magic links (deferred)
 
 #### **1. Create `CompositeLoginDialog.tsx`** - NEW
 **Purpose**: Orchestrates the enhanced login flow
@@ -722,11 +726,11 @@ src/
 │   │   ├── NostrAuthStep.tsx                # NEW - Enhanced Nostr auth
 │   │   ├── ProfileSelectionStep.tsx         # NEW - Linked pubkey selection
 │   │   ├── UploadRequiredDialog.tsx         # NEW - Upload linking prompt
-│   │   ├── FirebaseAuthDialog.tsx           # ENHANCED - Add passwordless tabs
-│   │   ├── EmailLinkInputForm.tsx           # NEW - Passwordless email input
-│   │   ├── EmailLinkSentView.tsx            # NEW - Magic link sent view
+│   │   ├── FirebaseAuthDialog.tsx           # EXISTING - Email/password auth (no changes needed)
 │   │   ├── LoginDialog.tsx                  # EXISTING - Reused
 │   │   └── AccountLinking.tsx               # EXISTING - Unchanged
+│   │   # FUTURE: EmailLinkInputForm.tsx     # DEFERRED - Passwordless email input
+│   │   # FUTURE: EmailLinkSentView.tsx      # DEFERRED - Magic link sent view
 │   └── ui/
 │       └── LoginArea.tsx                    # MODIFIED - Add enhanced option
 ├── hooks/
@@ -737,8 +741,8 @@ src/
 │   └── useAccountLinkingStatus.ts           # EXISTING - Reused
 └── pages/
     ├── Index.tsx                            # MODIFIED - Use enhanced flow
-    ├── AuthComplete.tsx                     # NEW - Passwordless completion
     └── AccountLinking.tsx                   # EXISTING - Unchanged
+    # FUTURE: AuthComplete.tsx               # DEFERRED - Passwordless completion
 ```
 
 ## 🎯 Success Metrics

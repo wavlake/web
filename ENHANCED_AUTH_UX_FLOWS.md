@@ -4,6 +4,10 @@
 
 This document details the complete user experience for each authentication path in the enhanced authentication system. Each flow shows the exact screens, decisions, and outcomes users will encounter.
 
+## ⚠️ Implementation Note
+
+**Passwordless authentication (magic links) has been deferred to a future phase.** The current implementation focuses on email/password authentication. Where "tabs" are referenced in the UI flows below, only the email/password option will be implemented initially. Complete passwordless UX flows are preserved for future implementation.
+
 ---
 
 ## 🚀 **Flow 1: New User - "Get Started"**
@@ -80,7 +84,7 @@ This document details the complete user experience for each authentication path 
    ┌─────────────────────────────────┐
    │  Sign in to Wavlake             │
    │                                 │
-   │  [Password] [Passwordless] ← TABS │
+   │  Email/Password Authentication   │
    │                                 │
    │  Email: [user@example.com]      │
    │  Password: [••••••••]           │
@@ -180,7 +184,7 @@ This document details the complete user experience for each authentication path 
    ┌─────────────────────────────────┐
    │  Sign in to Wavlake             │
    │                                 │
-   │  [Password] [Passwordless] ← TABS │
+   │  Email/Password Authentication   │
    │                                 │
    │  Email: [user@example.com]      │
    │  Password: [••••••••]           │
@@ -328,7 +332,7 @@ This document details the complete user experience for each authentication path 
    ┌─────────────────────────────────┐
    │  Link Account to Upload         │
    │                                 │
-   │  [Password] [Passwordless] ← TABS │
+   │  Email/Password Authentication   │
    │                                 │
    │  Email: [user@example.com]      │
    │  Password: [••••••••]           │
@@ -362,7 +366,7 @@ This document details the complete user experience for each authentication path 
 - **Clear value proposition**: Explains benefits of linking
 - **Non-blocking**: User can cancel and continue exploring
 - **Seamless return**: Takes user back to upload after linking
-- **Educational**: Explains why email linking is required
+- **Educational**: Explains why account linking is required
 
 ---
 
