@@ -22,12 +22,24 @@ export interface FirebaseUser {
   getIdToken: () => Promise<string>;
 }
 
-/** Nostr user profile metadata structure */
+/** 
+ * Nostr user profile metadata structure following NIP-01 event kind 0 specification.
+ * 
+ * Reference: https://github.com/nostr-protocol/nips/blob/master/01.md
+ * 
+ * This interface defines the standard metadata fields for Nostr user profiles,
+ * ensuring compatibility with the broader Nostr ecosystem.
+ */
 export interface NostrProfile {
+  /** Display name for the user */
   name?: string;
+  /** Alternative display name (legacy support) */
   display_name?: string;
+  /** Avatar image URL */
   picture?: string;
+  /** User biography or description */
   about?: string;
+  /** NIP-05 identifier for verification */
   nip05?: string;
 }
 
@@ -63,7 +75,14 @@ export interface NostrAuthStepProps {
   linkedPubkeys?: LinkedPubkey[];
   /** Specific pubkey expected for authentication (optional constraint) */
   expectedPubkey?: string;
-  /** Callback fired on successful authentication */
+  /** 
+   * Callback fired on successful authentication.
+   * 
+   * @param login - The authentication result containing pubkey, type, and signer information
+   * @param login.pubkey - The authenticated user's public key
+   * @param login.type - The authentication method used (extension, nsec, bunker)
+   * @param login.signer - The Nostr signer instance for future operations
+   */
   onSuccess: (login: NLoginType) => void;
   /** Callback for back navigation */
   onBack: () => void;

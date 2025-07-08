@@ -61,9 +61,26 @@ export function useLinkFirebaseAccount() {
       const data = await response.json();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       // Invalidate account linking status to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
+      
+      // Invalidate linked pubkeys cache to refresh linked accounts data
+      const firebaseUser = getAuth().currentUser;
+      if (firebaseUser) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["linked-pubkeys", firebaseUser.uid] 
+        });
+      }
+      
+      // Emit event for other components to react to account linking
+      window.dispatchEvent(new CustomEvent('account-linked', { 
+        detail: { 
+          pubkey: user?.pubkey,
+          firebaseUid: firebaseUser?.uid,
+          success: true 
+        } 
+      }));
     },
   });
 }
@@ -113,9 +130,26 @@ export function useUnlinkFirebaseAccount() {
       const data = await response.json();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       // Invalidate account linking status to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
+      
+      // Invalidate linked pubkeys cache to refresh linked accounts data
+      const firebaseUser = getAuth().currentUser;
+      if (firebaseUser) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["linked-pubkeys", firebaseUser.uid] 
+        });
+      }
+      
+      // Emit event for other components to react to account unlinking
+      window.dispatchEvent(new CustomEvent('account-unlinked', { 
+        detail: { 
+          pubkey: user?.pubkey,
+          firebaseUid: firebaseUser?.uid,
+          success: true 
+        } 
+      }));
     },
   });
 }
