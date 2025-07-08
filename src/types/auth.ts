@@ -36,12 +36,18 @@ export interface LinkedPubkey {
 }
 
 /** 
- * Result type for auto-linking operations with detailed success/error information.
- * Success cases return { success: true }, failure cases include error details
- * for proper error handling and user feedback.
+ * Result type for auto-linking operations providing detailed success/error information.
+ * 
+ * Success pattern: { success: true } - auto-linking completed successfully
+ * Failure pattern: { success: false, error: Error } - auto-linking failed with detailed error
+ * 
+ * This design ensures consistent error handling while providing actionable error information
+ * for user feedback and debugging purposes.
  */
 export interface AutoLinkResult {
+  /** Indicates whether the auto-linking operation completed successfully */
   success: boolean;
+  /** Detailed error information when success is false, undefined when success is true */
   error?: Error;
 }
 

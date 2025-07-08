@@ -164,6 +164,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       setLinkingStatus(result.success ? 'success' : 'failed');
     } catch (error) {
       setLinkingStatus('failed');
+      // Log error without sensitive details for debugging
       console.warn("Auto-linking failed");
     }
   };
@@ -207,8 +208,15 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       }
 
       const loginInfo = await login.extension();
+      
+      // Additional validation of returned pubkey
+      if (!validatePubkey(loginInfo.pubkey)) {
+        throw new Error("Invalid pubkey received from extension authentication");
+      }
+      
       await handleLoginSuccess(loginInfo);
     } catch (error) {
+      // Log error without sensitive details for debugging
       console.warn("Extension authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
@@ -224,14 +232,21 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     setError(null);
 
     try {
-      // Validate nsec format
+      // Validate nsec format before processing
       if (!validateNsec(nsec)) {
         throw new Error("Invalid private key format. Must be a valid 63-character nsec1 key.");
       }
 
       const loginInfo = login.nsec(nsec);
+      
+      // Additional validation of returned pubkey
+      if (!validatePubkey(loginInfo.pubkey)) {
+        throw new Error("Invalid pubkey received from nsec authentication");
+      }
+      
       await handleLoginSuccess(loginInfo);
     } catch (error) {
+      // Log error without sensitive details for debugging
       console.warn("Private key authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
@@ -247,14 +262,21 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     setError(null);
 
     try {
-      // Validate bunker URI format
+      // Validate bunker URI format before processing
       if (!validateBunkerUri(bunkerUri)) {
         throw new Error("Invalid bunker URI format. Must be a valid bunker:// URL.");
       }
 
       const loginInfo = await login.bunker(bunkerUri);
+      
+      // Additional validation of returned pubkey
+      if (!validatePubkey(loginInfo.pubkey)) {
+        throw new Error("Invalid pubkey received from bunker authentication");
+      }
+      
       await handleLoginSuccess(loginInfo);
     } catch (error) {
+      // Log error without sensitive details for debugging
       console.warn("Bunker authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);

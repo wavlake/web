@@ -25,15 +25,18 @@ interface NostrAuthStepDemoProps {
   onClose: () => void;
   /** Callback fired on successful Nostr authentication */
   onSuccess: (login: NLoginType) => void;
-  /** Optional Firebase user for demonstrating auto-linking (when provided, enables auto-link) */
+  /** Optional Firebase user for demonstrating auto-linking functionality */
   mockFirebaseUser?: FirebaseUser;
+  /** Optional specific pubkey to demonstrate expected pubkey authentication */
+  expectedPubkey?: string;
 }
 
 export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  mockFirebaseUser
+  mockFirebaseUser,
+  expectedPubkey
 }) => {
   // In production, this would come from a Firebase authentication context/hook
   const [firebaseUser] = useState<FirebaseUser | undefined>(mockFirebaseUser);
@@ -46,7 +49,7 @@ export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   };
 
   const handleSuccess = (login: NLoginType) => {
-    console.log("NostrAuthStep authentication successful");
+    // Authentication successful - notify parent component
     onSuccess(login);
     onClose();
   };
@@ -56,6 +59,7 @@ export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
       <NostrAuthStep
         firebaseUser={firebaseUser}
         linkedPubkeys={linkedPubkeys}
+        expectedPubkey={expectedPubkey}
         onSuccess={handleSuccess}
         onBack={handleBack}
         enableAutoLink={true}

@@ -36,6 +36,7 @@ export function useAutoLinkPubkey() {
         variant: "destructive",
       });
       
+      // Log error without sensitive details for debugging
       console.warn("Auto-linking failed");
       return { 
         success: false, 
