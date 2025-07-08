@@ -215,20 +215,3 @@ export function CommunitySelector({
   );
 }
 
-// Compact version for mobile or constrained spaces
-export function CommunitySelector_Compact({
-  className = "",
-}: {
-  className?: string;
-}) {
-  return <CommunitySelector showFullWidth={false} className={className} />;
-}
-
-// Full width version for headers or wide layouts
-export function CommunitySelector_FullWidth({
-  className = "",
-}: {
-  className?: string;
-}) {
-  return <CommunitySelector showFullWidth={true} className={className} />;
-}
