@@ -1,14 +1,26 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Eye, EyeOff, Copy, Check, Smartphone } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Navigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
-import { nip19 } from 'nostr-tools';
-import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
+import { nip19 } from "nostr-tools";
+import { useUnreadNotificationsCount } from "@/hooks/useNotifications";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
 
@@ -24,7 +36,7 @@ export default function Settings() {
   const unreadCount = useUnreadNotificationsCount();
 
   // Get pubkey in npub format
-  const npub = user ? nip19.npubEncode(user.pubkey) : '';
+  const npub = user ? nip19.npubEncode(user.pubkey) : "";
 
   // Load settings and private key from localStorage on component mount
   useEffect(() => {
@@ -50,7 +62,12 @@ export default function Settings() {
           if (Array.isArray(loginArray) && loginArray.length > 0) {
             const firstItem = loginArray[0];
             // Check if the first item has type "nsec"
-            if (firstItem && firstItem.type === "nsec" && firstItem.data && firstItem.data.nsec) {
+            if (
+              firstItem &&
+              firstItem.type === "nsec" &&
+              firstItem.data &&
+              firstItem.data.nsec
+            ) {
               setPrivateKey(firstItem.data.nsec);
             }
           }
@@ -72,7 +89,7 @@ export default function Settings() {
           setCopyPrivateSuccess(false);
         }, 2000);
       } catch (err) {
-        console.error('Failed to copy text: ', err);
+        console.error("Failed to copy text: ", err);
       }
     }
   };
@@ -87,14 +104,14 @@ export default function Settings() {
         setCopyPublicSuccess(false);
       }, 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      console.error("Failed to copy text: ", err);
     }
   };
 
   // Save settings to localStorage when they change
   useEffect(() => {
     const settings = {
-      postExpiration
+      postExpiration,
     };
     localStorage.setItem("settings", JSON.stringify(settings));
   }, [postExpiration]);
@@ -108,7 +125,9 @@ export default function Settings() {
   const handleDeleteAll = async () => {
     // This would normally implement actual event deletion logic
     // For Nostr, you would typically publish delete events for all your previous events
-    alert("Deletion functionality would be implemented here in a real application");
+    alert(
+      "Deletion functionality would be implemented here in a real application"
+    );
 
     // In a real implementation, you would:
     // 1. Query all events from this user
@@ -123,27 +142,42 @@ export default function Settings() {
         {/* Push Notifications Section */}
         <PushNotificationSettings />
 
-
         {/* Keys Section */}
         <Card>
           <CardHeader>
             <CardTitle>Your Keys</CardTitle>
             <CardDescription>
-              Your Nostr identity consists of a public key (npub) and private key (nsec). Your public key is like your username - share it freely so others can find and follow you. Your private key is your password - never share it with anyone. With your private key, you can log into any Nostr app and access your identity, followers, and content.
+              Your Nostr identity consists of a public key (npub) and private
+              key (nsec). Your public key is like your username - share it
+              freely so others can find and follow you. Your private key is your
+              password - never share it with anyone. With your private key, you
+              can log into any Nostr app and access your identity, followers,
+              and content.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label htmlFor="public-key" className="text-sm font-medium">Public Key (npub)</label>
+              <label htmlFor="public-key" className="text-sm font-medium">
+                Public Key (npub)
+              </label>
               <div className="flex mt-1">
-                <Input id="public-key" value={npub} readOnly className="rounded-r-none" />
+                <Input
+                  id="public-key"
+                  value={npub}
+                  readOnly
+                  className="rounded-r-none"
+                />
                 <Button
                   type="button"
                   variant="outline"
                   className="rounded-l-none"
                   onClick={copyPublicKey}
                 >
-                  {copyPublicSuccess ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  {copyPublicSuccess ? (
+                    <Check size={16} className="text-green-500" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -152,7 +186,9 @@ export default function Settings() {
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <label htmlFor="private-key" className="text-sm font-medium">Private Key (nsec)</label>
+                <label htmlFor="private-key" className="text-sm font-medium">
+                  Private Key (nsec)
+                </label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -176,14 +212,17 @@ export default function Settings() {
                   onClick={copyPrivateKey}
                   disabled={!privateKey}
                 >
-                  {copyPrivateSuccess ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  {copyPrivateSuccess ? (
+                    <Check size={16} className="text-green-500" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {!privateKey ?
-                  "This app cannot access your private key directly if using an extension. This is for your security." :
-                  "Your private key is stored locally. Keep it secure and never share it with anyone."
-                }
+                {!privateKey
+                  ? "This app cannot access your private key directly if using an extension. This is for your security."
+                  : "Your private key is stored locally. Keep it secure and never share it with anyone."}
               </p>
             </div>
           </CardContent>
@@ -193,10 +232,16 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle>Disappearing posts</CardTitle>
-            <CardDescription>Set how long your posts should remain before expiring and not being served by relays</CardDescription>
+            <CardDescription>
+              Set how long your posts should remain before expiring and not
+              being served by relays
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={postExpiration} onValueChange={(value) => setPostExpiration(value)}>
+            <Select
+              value={postExpiration}
+              onValueChange={(value) => setPostExpiration(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select expiration period" />
               </SelectTrigger>
@@ -218,7 +263,9 @@ export default function Settings() {
               <Smartphone className="w-5 h-5" />
               Install App
             </CardTitle>
-            <CardDescription>Get the full app experience by installing Wavlake on your device</CardDescription>
+            <CardDescription>
+              Get the full app experience by installing Wavlake on your device
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -231,7 +278,10 @@ export default function Settings() {
                 <li>• Quick access from your home screen</li>
                 <li>• Push notifications (when available)</li>
               </ul>
-              <PWAInstallButton variant="default" className="w-full sm:w-auto" />
+              <PWAInstallButton
+                variant="default"
+                className="w-full sm:w-auto"
+              />
             </div>
           </CardContent>
         </Card>
