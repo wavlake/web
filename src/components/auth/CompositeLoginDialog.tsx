@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { LoginChoiceStep, LoginChoice } from './LoginChoiceStep';
 import LoginDialog from './LoginDialog';
 import { FirebaseAuthDialog } from './FirebaseAuthDialog';
@@ -129,25 +131,65 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
     onClose();
   };
 
-  // For now, we'll use conditional rendering since LoginDialog and FirebaseAuthDialog
-  // include their own Dialog wrappers. Future enhancement could extract content components.
+  /**
+   * Enhanced close handler that provides back navigation context
+   */
+  const handleCloseWithBackNavigation = () => {
+    if (step !== 'choice') {
+      // If user is not on choice step, go back instead of closing
+      handleBack();
+    } else {
+      handleClose();
+    }
+  };
+
+  /**
+   * BackButton component for navigation between authentication steps
+   */
+  const BackButton: React.FC = () => (
+    <div 
+      className="fixed top-4 left-4 z-[60]"
+      style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 60 }}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleBack}
+        className="flex items-center gap-1 text-muted-foreground hover:text-foreground bg-background/90 backdrop-blur-sm border border-border/50 shadow-sm"
+        aria-label="Go back to authentication options"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Button>
+    </div>
+  );
+
+  // Render appropriate step content
   if (step === 'nostr') {
     return (
-      <LoginDialog
-        isOpen={isOpen}
-        onClose={handleClose}
-        onLogin={handleNostrLogin}
-      />
+      <>
+        <LoginDialog
+          isOpen={isOpen}
+          onClose={handleCloseWithBackNavigation}
+          onLogin={handleNostrLogin}
+        />
+        <BackButton />
+      </>
     );
   }
 
   if (step === 'firebase') {
     return (
-      <FirebaseAuthDialog
-        isOpen={isOpen}
-        onClose={handleClose}
-        onSuccess={handleFirebaseSuccess}
-      />
+      <>
+        <FirebaseAuthDialog
+          isOpen={isOpen}
+          onClose={handleCloseWithBackNavigation}
+          onSuccess={handleFirebaseSuccess}
+          title="Sign in to Wavlake"
+          description="Use your existing Wavlake account credentials"
+        />
+        <BackButton />
+      </>
     );
   }
 
