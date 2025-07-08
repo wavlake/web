@@ -89,6 +89,18 @@ interface MusicPublisherProps {
   communityId?: string;
 }
 
+// Type for combined upload history items
+type CombinedUploadHistoryItem = {
+  id: string;
+  date: string;
+  title: string;
+  type: "track" | "album";
+  status: string;
+  isDraft?: boolean;
+  draftData?: DraftTrack | DraftAlbum;
+  trackCount?: number;
+};
+
 export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
   const { user } = useCurrentUser();
   const canUpload = useCanUpload();
@@ -1298,7 +1310,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                         </TableCell>
                       </TableRow>
                     ) : combinedUploadHistory.length > 0 ? (
-                      combinedUploadHistory.map((upload) => (
+                      combinedUploadHistory.map((upload: CombinedUploadHistoryItem) => (
                         <TableRow key={upload.id}>
                           <TableCell>{upload.date}</TableCell>
                           <TableCell className="font-medium">
@@ -1307,8 +1319,8 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                           <TableCell>
                             {upload.type === "album"
                               ? `Album${
-                                  (upload as any).trackCount
-                                    ? ` (${(upload as any).trackCount} tracks)`
+                                  upload.trackCount
+                                    ? ` (${upload.trackCount} tracks)`
                                     : ""
                                 }`
                               : "Single Track"}
@@ -1316,7 +1328,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                           <TableCell>
                             <Badge
                               className={
-                                (upload as any).isDraft
+                                upload.isDraft
                                   ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
                                   : "bg-green-100 text-green-800 hover:bg-green-100"
                               }
@@ -1325,7 +1337,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {(upload as any).isDraft ? (
+                            {upload.isDraft ? (
                               <div className="flex items-center gap-2">
                                 <Button
                                   size="sm"
@@ -1333,11 +1345,11 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                                   onClick={() => {
                                     if (upload.type === "track") {
                                       setEditingDraftTrack(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftTrack
                                       );
                                     } else {
                                       setEditingDraftAlbum(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftAlbum
                                       );
                                     }
                                   }}
@@ -1350,11 +1362,11 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                                   onClick={() => {
                                     if (upload.type === "track") {
                                       publishDraftTrack.mutateAsync(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftTrack
                                       );
                                     } else {
                                       publishDraftAlbum.mutateAsync(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftAlbum
                                       );
                                     }
                                   }}
