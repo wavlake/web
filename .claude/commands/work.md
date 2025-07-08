@@ -35,21 +35,46 @@ I need to approach this systematically and think through:
    - Update any relevant documentation
    - Work under the correct repository `wavlake/web`
 
-4. After making the changes, evaluate your code artifacts to determine if they have addressed the original GitHub issue. Pay close attention to any acceptance criteria (AC) mentioned in the issue.
+4. After making the changes, check for any TypeScript or build errors:
+   - Run the TypeScript compiler to check for type errors
+   - Run the build process to ensure there are no build errors
+   - If any errors are found, address them before proceeding
 
-5. For any UI changes, fixes, or improvements, assume that you have access to a Puppeteer MCP server for validation. Describe how you would use this tool to validate your changes and ensure they work correctly.
+5. Once the code is passing without errors, commit your changes:
+   - Stage the modified files
+   - Create a commit with a descriptive message related to the issue
 
-6. If your code changes are not addressing the AC or if you need further clarification:
-   a. Iterate and do another pass on the code changes, or
-   b. Describe comments you would leave on the GitHub issue to track your changes and enable other developers and agents to assist you or pick up where you left off.
+6. Push the code changes to the remote branch:
+   - Use the appropriate git command to push your local branch to the remote repository
 
-7. Your final output should be structured as follows:
+7. Open a new Pull Request (PR):
+   - Use the GitHub CLI command: `gh pr create --repo wavlake/web`
+   - Ensure the PR is attached to the issue that was addressed
+   - Provide a clear title and description for the PR, referencing the original issue
+
+8. Evaluate your code artifacts to determine if they have addressed the original GitHub issue:
+   - Pay close attention to any acceptance criteria (AC) mentioned in the issue
+   - For any UI changes, fixes, or improvements, describe how you would use a Puppeteer MCP server to validate your changes and ensure they work correctly
+
+9. Your final output should be structured as follows:
    <output>
    <branch_name>[Your created branch name]</branch_name>
 
    <code_changes>
    [Summarize the code changes you made]
    </code_changes>
+
+   <error_check>
+   [Describe the results of your TypeScript and build error checks]
+   </error_check>
+
+   <commit_and_push>
+   [Summarize the commit and push actions you took]
+   </commit_and_push>
+
+   <pull_request>
+   [Provide details about the created Pull Request]
+   </pull_request>
 
    <evaluation>
    [Explain how your changes address the GitHub issue and meet the AC]
