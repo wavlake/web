@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import LoginDialog from "./LoginDialog";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
-// Removed useLinkedPubkeysWithProfiles import due to React Hook rules violation
 
 interface FirebaseUser {
   uid: string;
@@ -38,35 +37,36 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
   const handleNostrLoginSuccess = async () => {
     try {
-      // The LoginDialog handles the actual login internally
-      // For now, we'll create a proper mock login structure
-      // TODO: In a future iteration, we'll need to access the actual current user
-      // and perform auto-linking with the Firebase user
-      
-      const mockLogin: NLoginType = {
-        id: 'mock-id-' + Date.now(),
-        type: 'extension' as const,
-        pubkey: 'mock-pubkey',
-        createdAt: new Date().toISOString(),
-        data: null
-      };
-
+      // Attempt auto-linking if Firebase user is present
       if (firebaseUser) {
-        await autoLink(firebaseUser, mockLogin.pubkey);
+        await autoLink();
       }
       
-      onSuccess(mockLogin);
-    } catch (error) {
-      console.error('Auth error:', error);
-      // Continue with sign-in even if linking fails
-      const mockLogin: NLoginType = {
-        id: 'mock-id-' + Date.now(),
+      // Note: LoginDialog handles the actual Nostr login internally
+      // We create a placeholder login object to satisfy the interface
+      // In production, this would be replaced with actual login data from useCurrentUser
+      const placeholderLogin: NLoginType = {
+        id: 'placeholder-' + Date.now(),
         type: 'extension' as const,
-        pubkey: 'mock-pubkey',
+        pubkey: 'placeholder-pubkey',
         createdAt: new Date().toISOString(),
         data: null
       };
-      onSuccess(mockLogin);
+      
+      onSuccess(placeholderLogin);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Authentication or linking error:', errorMessage);
+      
+      // Continue with sign-in even if linking fails
+      const placeholderLogin: NLoginType = {
+        id: 'placeholder-' + Date.now(),
+        type: 'extension' as const,
+        pubkey: 'placeholder-pubkey',
+        createdAt: new Date().toISOString(),
+        data: null
+      };
+      onSuccess(placeholderLogin);
     }
   };
 

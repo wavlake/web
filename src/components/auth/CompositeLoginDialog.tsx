@@ -14,7 +14,7 @@ interface CompositeLoginDialogProps {
 }
 
 type AuthStep = 'choice' | 'firebase' | 'nostr';
-type AuthChoice = 'nostr' | 'firebase';
+type AuthChoice = 'nostr' | 'firebase' | 'new-user';
 
 interface FirebaseUser {
   uid: string;
@@ -33,7 +33,19 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   const { data: linkedPubkeys = [] } = useLinkedPubkeys(firebaseUser?.email || '');
 
   const handleChoice = (choice: AuthChoice) => {
-    setStep(choice);
+    // Map auth choices to appropriate steps
+    switch (choice) {
+      case 'firebase':
+        setStep('firebase');
+        break;
+      case 'nostr':
+      case 'new-user':
+        // Both existing Nostr users and new users go to Nostr auth
+        setStep('nostr');
+        break;
+      default:
+        setStep('nostr');
+    }
   };
 
   const handleFirebaseSuccess = async () => {

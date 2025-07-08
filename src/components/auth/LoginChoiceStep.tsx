@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type AuthChoice = 'nostr' | 'firebase';
+type AuthChoice = 'nostr' | 'firebase' | 'new-user';
 
 interface LoginChoiceStepProps {
   onSelect: (choice: AuthChoice) => void;
@@ -27,7 +27,7 @@ export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({
       
       <div className="space-y-4">
         <Button 
-          onClick={() => onSelect('nostr')}
+          onClick={() => onSelect('new-user')}
           className="w-full justify-start h-auto p-4 text-left"
           variant="outline"
           size="lg"

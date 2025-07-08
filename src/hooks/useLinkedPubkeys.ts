@@ -22,34 +22,43 @@ export function useLinkedPubkeys(email: string) {
       if (!email) return [];
 
       try {
-        // Note: This would need to be implemented in the backend
-        // For now, return empty array as this is foundational component
-        // The actual API endpoint would be GET /auth/get-linked-pubkeys
-        const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys?email=${encodeURIComponent(email)}`, {
-          method: 'GET',
+        // TODO: Backend implementation needed
+        // API endpoint: POST /auth/get-linked-pubkeys
+        // Request body: { email: string }
+        // Response: { success: boolean, pubkeys: string[], error?: string }
+        // Headers: Authorization: Bearer <firebase-token>
+        const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // Would need Firebase auth token here
-          }
+            // TODO: Add Firebase auth token: Authorization: `Bearer ${firebaseToken}`
+          },
+          body: JSON.stringify({ email })
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch linked pubkeys');
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch linked pubkeys: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
         
+        if (!data.success) {
+          throw new Error(`API error: ${data.error || 'Unknown error occurred'}`);
+        }
+
         // Transform the API response to include profile data
         const pubkeysWithProfiles: LinkedPubkey[] = await Promise.all(
           (data.pubkeys || []).map(async (pubkey: string) => {
             try {
-              // Use existing useAuthor hook pattern to fetch profile
-              // This would be done via React Query in the actual implementation
+              // TODO: Use actual profile fetching here
+              // Currently returns null profile to avoid React Hook rules violation
               return { 
                 pubkey, 
-                profile: null // For now - would fetch actual profile data
+                profile: null // Profile fetching needs proper implementation
               };
-            } catch {
+            } catch (profileError) {
+              console.warn(`Failed to fetch profile for pubkey ${pubkey.slice(0, 8)}...`, profileError);
               return { pubkey, profile: null };
             }
           })
@@ -57,9 +66,10 @@ export function useLinkedPubkeys(email: string) {
 
         return pubkeysWithProfiles;
       } catch (error) {
-        console.error('Failed to fetch linked pubkeys:', error);
-        // Return empty array for graceful degradation
-        return [];
+        console.error('Failed to fetch linked pubkeys for email:', email ? 'provided' : 'missing', error);
+        // Re-throw the error so React Query can handle it properly
+        // This allows UI components to show error states instead of silently failing
+        throw error;
       }
     },
     enabled: !!email,
