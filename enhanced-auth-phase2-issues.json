@@ -15,7 +15,7 @@
     {
       "id": 9,
       "title": "Update LoginArea.tsx component",
-      "description": "Update LoginArea.tsx - Support both enhanced and legacy authentication flows with proper feature flagging or user preference detection. This allows gradual rollout of the enhanced experience.",
+      "description": "Update LoginArea.tsx - Support both enhanced and legacy authentication experiences.",
       "labels": ["enhancement", "authentication", "frontend"],
       "priority": "high",
       "type": "update",
@@ -25,20 +25,18 @@
       "id": 10,
       "title": "Create useLegacyProfile hook",
       "description": "Create useLegacyProfile.ts hook - Fetch Wavlake profile data for legacy users to populate new Nostr accounts. This hook retrieves existing user data (name, bio, avatar, etc.) to provide continuity when linking accounts.",
-      "labels": ["enhancement", "authentication", "frontend", "hooks", "legacy"],
+      "labels": [
+        "enhancement",
+        "authentication",
+        "frontend",
+        "hooks",
+        "legacy"
+      ],
       "priority": "medium",
       "type": "hook",
       "deliverable": "useLegacyProfile.ts"
     },
-    {
-      "id": 11,
-      "title": "Create generateNostrAccountWithProfile utility",
-      "description": "Create generateNostrAccountWithProfile.ts - Account generation utility that creates new Nostr accounts pre-populated with legacy Wavlake profile data. Ensures seamless transition for existing users creating their first Nostr identity.",
-      "labels": ["enhancement", "authentication", "frontend", "nostr", "legacy"],
-      "priority": "medium",
-      "type": "utility",
-      "deliverable": "generateNostrAccountWithProfile.ts"
-    },
+
     {
       "id": 12,
       "title": "Implement auto-linking error handling",
@@ -52,7 +50,13 @@
       "id": 13,
       "title": "Add linking success/failure notifications",
       "description": "Add success/failure toast notifications - Provide clear user feedback when account linking succeeds or fails, with actionable next steps. Users should understand the status of their account linking without blocking their authentication flow.",
-      "labels": ["enhancement", "authentication", "frontend", "UX", "notifications"],
+      "labels": [
+        "enhancement",
+        "authentication",
+        "frontend",
+        "UX",
+        "notifications"
+      ],
       "priority": "medium",
       "type": "enhancement",
       "deliverable": "Notification system for linking"

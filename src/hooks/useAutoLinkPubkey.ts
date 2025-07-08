@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
 import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
@@ -111,6 +112,7 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
   
   const { linkPubkey } = useFirebaseLegacyAuth();
   const { mutateAsync: linkAccount } = useLinkFirebaseAccount();
+  const queryClient = useQueryClient();
   
   // Comprehensive state management
   const [hookState, setHookState] = useState<AutoLinkHookState>({
@@ -381,6 +383,21 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
       // Log successful linking with structured context
       logAuthSuccess('account-linking', firebaseUser, pubkey);
       
+      // Invalidate linked pubkeys cache to refresh data
+      queryClient.invalidateQueries({ 
+        queryKey: ["linked-pubkeys", firebaseUser.uid] 
+      });
+      
+      // Emit event for other components to react to auto-linking
+      window.dispatchEvent(new CustomEvent('account-linked', { 
+        detail: { 
+          pubkey: pubkey,
+          firebaseUid: firebaseUser.uid,
+          success: true,
+          isAutoLink: true
+        } 
+      }));
+      
       // Show success notification if enabled
       if (config.showNotifications) {
         toast.success("Account Linked", {
@@ -447,7 +464,8 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     categorizeError, 
     isRetryableError, 
     calculateRetryDelay, 
-    config
+    config,
+    queryClient
   ]);
 
   /**

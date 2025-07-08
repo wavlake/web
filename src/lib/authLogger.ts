@@ -6,13 +6,31 @@
 import { truncatePubkey } from './pubkeyUtils';
 import { FirebaseUser } from '@/types/auth';
 
+/**
+ * Context object for authentication logging operations.
+ * 
+ * This interface defines the structure for log context data, ensuring
+ * consistent logging across authentication operations while maintaining
+ * security through proper data sanitization.
+ */
 interface AuthLogContext {
+  /** The authentication operation being performed */
   operation: string;
+  /** Firebase user ID (sanitized) */
   firebaseUid?: string;
+  /** Firebase user email (will be sanitized to domain only) */
   firebaseEmail?: string | null;
+  /** Nostr pubkey (will be truncated for security) */
   pubkey?: string;
+  /** Number of linked pubkeys for context */
   linkedPubkeysCount?: number;
+  /** Error message if operation failed */
   error?: string;
+  /** ISO timestamp of the operation */
+  timestamp?: string;
+  /** Log level for categorization */
+  level?: string;
+  /** Additional context fields for extensibility */
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -111,7 +129,11 @@ function truncateStackTrace(stackTrace: string): string {
 }
 
 /**
- * Logger for authentication success events with structured context
+ * Logger for authentication success events with comprehensive context
+ * 
+ * @param operation - The authentication operation that succeeded
+ * @param firebaseUser - Firebase user context for the operation
+ * @param pubkey - Associated Nostr pubkey if applicable
  */
 export function logAuthSuccess(operation: string, firebaseUser?: FirebaseUser, pubkey?: string): void {
   const context = sanitizeLogContext({
@@ -125,13 +147,19 @@ export function logAuthSuccess(operation: string, firebaseUser?: FirebaseUser, p
   
   console.info(`Authentication success: ${operation}`, {
     ...context,
-    message: `Successfully completed ${operation}`,
+    message: `Successfully completed authentication operation: ${operation}`,
     category: 'authentication'
   });
 }
 
 /**
- * Logger for authentication errors with structured context and appropriate severity
+ * Logger for authentication errors with comprehensive error context
+ * 
+ * @param operation - The authentication operation that failed
+ * @param error - The error object or message
+ * @param firebaseUser - Firebase user context for the operation
+ * @param pubkey - Associated Nostr pubkey if applicable
+ * @param linkedPubkeysCount - Number of linked pubkeys for context
  */
 export function logAuthError(operation: string, error: unknown, firebaseUser?: FirebaseUser, pubkey?: string, linkedPubkeysCount?: number): void {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -150,7 +178,7 @@ export function logAuthError(operation: string, error: unknown, firebaseUser?: F
   
   const structuredLog = {
     ...context,
-    message: `Authentication ${operation} failed: ${errorMessage}`,
+    message: `Authentication operation failed: ${operation}`,
     category: 'authentication',
     errorDetails: {
       name: error instanceof Error ? error.name : 'UnknownError',
@@ -171,6 +199,11 @@ export function logAuthError(operation: string, error: unknown, firebaseUser?: F
 
 /**
  * Logger for authentication info events with structured context
+ * 
+ * @param operation - The authentication operation being logged
+ * @param firebaseUser - Firebase user context for the operation
+ * @param pubkey - Associated Nostr pubkey if applicable
+ * @param linkedPubkeysCount - Number of linked pubkeys for context
  */
 export function logAuthInfo(operation: string, firebaseUser?: FirebaseUser, pubkey?: string, linkedPubkeysCount?: number): void {
   const context = sanitizeLogContext({
@@ -185,7 +218,7 @@ export function logAuthInfo(operation: string, firebaseUser?: FirebaseUser, pubk
   
   console.info(`Authentication info: ${operation}`, {
     ...context,
-    message: `Authentication info for ${operation}`,
+    message: `Authentication information for operation: ${operation}`,
     category: 'authentication'
   });
 }
