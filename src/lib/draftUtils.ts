@@ -10,11 +10,21 @@ import {
   ALBUM_KIND,
 } from "@/types/drafts";
 
+// Type for Nostr signer with NIP-44 support
+interface NostrSigner {
+  getPublicKey: () => Promise<string>;
+  signEvent: (event: NostrEvent) => Promise<NostrEvent>;
+  nip44?: {
+    encrypt: (pubkey: string, plaintext: string) => Promise<string>;
+    decrypt: (pubkey: string, ciphertext: string) => Promise<string>;
+  };
+}
+
 // Encrypt draft content using NIP-44
 export async function encryptDraftContent(
-  signer: any,
+  signer: NostrSigner,
   userPubkey: string,
-  content: any
+  content: unknown
 ): Promise<string> {
   if (!signer.nip44) {
     throw new Error("NIP-44 encryption not supported by signer");
@@ -25,10 +35,10 @@ export async function encryptDraftContent(
 
 // Decrypt draft content using NIP-44
 export async function decryptDraftContent(
-  signer: any,
+  signer: NostrSigner,
   userPubkey: string,
   encryptedContent: string
-): Promise<any> {
+): Promise<unknown> {
   if (!signer.nip44) {
     throw new Error("NIP-44 decryption not supported by signer");
   }
@@ -158,7 +168,7 @@ export function createFutureAlbumEvent(
 // Parse draft event into DraftTrack
 export async function parseDraftTrack(
   draftEvent: NostrEvent,
-  signer: any,
+  signer: NostrSigner,
   userPubkey: string
 ): Promise<DraftTrack | null> {
   try {
@@ -226,7 +236,7 @@ export async function parseDraftTrack(
 // Parse draft event into DraftAlbum
 export async function parseDraftAlbum(
   draftEvent: NostrEvent,
-  signer: any,
+  signer: NostrSigner,
   userPubkey: string
 ): Promise<DraftAlbum | null> {
   try {
