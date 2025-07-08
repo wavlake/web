@@ -1,0 +1,62 @@
+{
+  "phase": "Future Phase: Firebase Passwordless Authentication (Deferred)",
+  "description": "Magic link authentication implementation - complete design in FIREBASE_PASSWORDLESS_AUTH_DESIGN.md",
+  "estimatedTime": "1 week",
+  "note": "This phase is deferred until the core enhanced authentication flows are stable. All implementation details are preserved in FIREBASE_PASSWORDLESS_AUTH_DESIGN.md",
+  "issues": [
+    {
+      "id": 24,
+      "title": "Enable Firebase passwordless authentication",
+      "description": "Enable \"Email link (passwordless sign-in)\" option in Firebase Console, configure email templates and authorized domains for production use. This implements the foundation for magic link authentication as documented in FIREBASE_PASSWORDLESS_AUTH_DESIGN.md.",
+      "labels": ["enhancement", "authentication", "firebase", "passwordless", "future"],
+      "priority": "medium",
+      "type": "configuration",
+      "deliverable": "Firebase Console configuration"
+    },
+    {
+      "id": 25,
+      "title": "Create EmailLinkInputForm component",
+      "description": "Create EmailLinkInputForm.tsx - Email input component for magic links with validation, loading states, and error handling. Part of the tabbed interface enhancement to FirebaseAuthDialog for passwordless authentication.",
+      "labels": ["enhancement", "authentication", "frontend", "passwordless", "future"],
+      "priority": "medium",
+      "type": "component",
+      "deliverable": "EmailLinkInputForm.tsx"
+    },
+    {
+      "id": 26,
+      "title": "Create EmailLinkSentView component",
+      "description": "Create EmailLinkSentView.tsx - \"Check your email\" screen with resend functionality, countdown timer, and clear instructions. Provides excellent UX for users waiting for magic link emails.",
+      "labels": ["enhancement", "authentication", "frontend", "passwordless", "UX", "future"],
+      "priority": "medium",
+      "type": "component",
+      "deliverable": "EmailLinkSentView.tsx"
+    },
+    {
+      "id": 27,
+      "title": "Create useEmailLinkAuth hook",
+      "description": "Create useEmailLinkAuth.ts hook - Handle email link sending and completion with comprehensive error handling, rate limiting, and cross-device support. Core logic for passwordless authentication flow.",
+      "labels": ["enhancement", "authentication", "frontend", "hooks", "passwordless", "future"],
+      "priority": "medium",
+      "type": "hook",
+      "deliverable": "useEmailLinkAuth.ts"
+    },
+    {
+      "id": 28,
+      "title": "Create AuthComplete page and routing",
+      "description": "Create AuthComplete.tsx page and add /auth/complete route - Handle magic link completion with loading states, error handling, and proper redirects. Supports cross-device authentication scenarios.",
+      "labels": ["enhancement", "authentication", "frontend", "routing", "passwordless", "future"],
+      "priority": "medium",
+      "type": "page",
+      "deliverable": "AuthComplete.tsx and routing"
+    },
+    {
+      "id": 29,
+      "title": "Update FirebaseAuthDialog for passwordless",
+      "description": "Update FirebaseAuthDialog.tsx - Add tabbed interface supporting both Password and Passwordless authentication methods. Maintains backward compatibility while adding modern authentication options.",
+      "labels": ["enhancement", "authentication", "frontend", "passwordless", "future"],
+      "priority": "medium",
+      "type": "update",
+      "deliverable": "Enhanced FirebaseAuthDialog.tsx"
+    }
+  ]
+}
