@@ -16,6 +16,8 @@ import {
   createFutureTrackEvent, 
   createFutureAlbumEvent 
 } from "@/lib/draftUtils";
+import { NostrTrack } from "@/types/music";
+import { NostrAlbum } from "@/hooks/useArtistAlbums";
 import { toast } from "sonner";
 
 export function useDraftPublish() {
@@ -258,7 +260,7 @@ export function useDraftPublish() {
 
   // Convert published track to draft (delete original and create draft)
   const convertTrackToDraft = useMutation({
-    mutationFn: async (track: any) => {
+    mutationFn: async (track: NostrTrack) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
@@ -336,7 +338,7 @@ export function useDraftPublish() {
 
   // Convert published album to draft (delete original and create draft)
   const convertAlbumToDraft = useMutation({
-    mutationFn: async (album: any) => {
+    mutationFn: async (album: NostrAlbum) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
@@ -359,10 +361,10 @@ export function useDraftPublish() {
           ...(album.label ? [["label", album.label]] : []),
           // Add track references
           ...album.tracks
-            .sort((a: any, b: any) => a.trackNumber - b.trackNumber)
-            .flatMap((track: any) => [
+            .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0))
+            .flatMap((track) => [
               ["e", track.id, "", track.title],
-              ["track", track.trackNumber.toString(), track.id]
+              ["track", (track.trackNumber || 0).toString(), track.id]
             ]),
           // Add custom tags
           ...(album.tags || []).map((tag: string) => ["t", tag]),
