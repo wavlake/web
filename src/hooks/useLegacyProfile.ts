@@ -6,16 +6,16 @@ import type { FirebaseUser } from "@/types/auth";
  * Maps Wavlake legacy profile fields to Nostr profile metadata standards
  */
 export interface LegacyProfile {
-  /** User's display name (from displayName or derived from email) */
-  name: string;
+  /** User's display name (from displayName or derived from email) - required, non-empty string */
+  readonly name: string;
   /** User's bio/about text (from bio field or empty string) */
-  about: string;
+  readonly about: string;
   /** URL to user's profile picture (from profileImageUrl or empty string) */
-  picture: string;
+  readonly picture: string;
   /** User's website URL (from website field or empty string) */
-  website: string;
-  /** NIP-05 identifier using user's email for verification */
-  nip05: string;
+  readonly website: string;
+  /** NIP-05 identifier using user's email for verification - required, non-empty string */
+  readonly nip05: string;
 }
 
 /**
@@ -69,9 +69,14 @@ const getApiBaseUrl = (): string => {
  */
 export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
   return useQuery({
-    queryKey: ['legacy-profile', firebaseUser?.uid],
+    queryKey: ['legacy-profile', firebaseUser?.uid, firebaseUser?.email],
     queryFn: async (): Promise<LegacyProfile | null> => {
       if (!firebaseUser) return null;
+      
+      // Validate Firebase user has required properties
+      if (!firebaseUser.uid || !firebaseUser.getIdToken) {
+        throw new Error('Invalid Firebase user: missing required properties');
+      }
       
       try {
         const API_BASE_URL = getApiBaseUrl();
@@ -85,20 +90,19 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         
         if (!response.ok) {
           const status = response.status;
-          let errorMessage = `Failed to fetch legacy profile (status: ${status})`;
           
           if (status === 401) {
-            errorMessage = 'Authentication expired. Please sign in again.';
+            throw new Error('Authentication expired. Please sign in again.');
           } else if (status === 403) {
-            errorMessage = 'Access denied. Please check your permissions.';
+            throw new Error('Access denied. Please check your permissions.');
           } else if (status === 404) {
             // User has no legacy profile data - this is not an error
             return null;
           } else if (status >= 500) {
-            errorMessage = 'Server error. Please try again later.';
+            throw new Error('Server error. Please try again later.');
           }
           
-          throw new Error(errorMessage);
+          throw new Error(`Failed to fetch legacy profile (status: ${status})`);
         }
         
         const data = await response.json();
@@ -117,18 +121,21 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         }
         
         // Extract and format profile data for Nostr compatibility
+        const baseName = data.displayName || data.email?.split('@')[0] || '';
+        const finalName = baseName.trim() || firebaseUser.email?.split('@')[0] || 'Anonymous';
+        const finalNip05 = data.email || '';
+        
         const profile: LegacyProfile = {
-          name: data.displayName || data.email?.split('@')[0] || 'Anonymous',
+          name: finalName,
           about: data.bio || '',
           picture: data.profileImageUrl || '',
           website: data.website || '',
-          nip05: data.email || ''
+          nip05: finalNip05
         };
         
-        // Validate that we have at least a name
-        if (!profile.name || profile.name.trim() === '') {
-          console.warn('Legacy profile missing display name, using fallback');
-          profile.name = firebaseUser.email?.split('@')[0] || 'Anonymous';
+        // Validate required fields are not empty
+        if (!profile.name.trim() || !profile.nip05.trim()) {
+          throw new Error('Invalid profile data: missing required fields');
         }
         
         return profile;
@@ -141,13 +148,15 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         });
         
         // Re-throw to let React Query handle retry logic
-        // This ensures authentication errors don't block the flow
+        // Authentication errors will be handled by the retry function
         throw error;
       }
     },
     enabled: !!firebaseUser,
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
     retry: (failureCount, error) => {
       // Don't retry authentication/authorization errors
       if (error instanceof Error) {
@@ -197,12 +206,6 @@ export function useLegacyProfileStatus(firebaseUser?: FirebaseUser | null) {
     /** Any error that occurred during fetching */
     error,
     /** Whether legacy profile data exists and has meaningful content */
-    hasRichProfile: !!(legacyProfile && (
-      legacyProfile.about || 
-      legacyProfile.picture || 
-      legacyProfile.website
-    ))
+    hasRichProfile: Boolean(legacyProfile?.about || legacyProfile?.picture || legacyProfile?.website)
   };
 }
-
-// LegacyProfile interface is already exported above
