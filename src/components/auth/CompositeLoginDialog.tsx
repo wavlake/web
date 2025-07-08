@@ -166,10 +166,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
    * Memoized to prevent unnecessary re-renders.
    */
   const BackButton = useMemo(() => (
-    <div 
-      className="fixed top-4 left-4 z-[60]"
-      style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 60 }}
-    >
+    <div className="fixed top-4 left-4 z-[60]">
       <Button
         variant="ghost"
         size="sm"
@@ -192,7 +189,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
           onClose={handleCloseWithBackNavigation}
           onLogin={handleNostrLogin}
         />
-        {BackButton}
+        {isOpen && BackButton}
       </>
     );
   }
@@ -207,7 +204,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
           title="Sign in to Wavlake"
           description="Use your existing Wavlake account credentials"
         />
-        {BackButton}
+        {isOpen && BackButton}
       </>
     );
   }
