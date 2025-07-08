@@ -3,6 +3,12 @@ import { useMemo } from "react";
 import { useAuthor } from "@/hooks/useAuthor";
 import { logAuthError } from "@/lib/authLogger";
 import { isValidPubkey } from "@/lib/pubkeyUtils";
+import { FirebaseUser } from "@/types/auth";
+
+// Cache duration constants
+const CACHE_STALE_TIME = 10 * 60 * 1000; // 10 minutes
+const CACHE_GC_TIME = 30 * 60 * 1000; // 30 minutes
+const MAX_RETRIES = 2;
 
 interface LinkedPubkey {
   pubkey: string;
@@ -12,12 +18,6 @@ interface LinkedPubkey {
     picture?: string;
     about?: string;
   };
-}
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
 }
 
 /**
@@ -32,7 +32,11 @@ interface FirebaseUser {
 const getApiBaseUrl = (): string => {
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
   if (!configuredUrl) {
-    console.error("VITE_NEW_API_URL environment variable is not configured");
+    console.error("Configuration Error: VITE_NEW_API_URL environment variable is not configured", {
+      error: "missing_env_var",
+      variable: "VITE_NEW_API_URL",
+      context: "useLinkedPubkeys"
+    });
     throw new Error("API URL not configured");
   }
   
@@ -40,7 +44,12 @@ const getApiBaseUrl = (): string => {
   // This validation is performed on every call to ensure consistency across
   // different execution contexts (testing, development, production)
   if (!configuredUrl.startsWith('https://')) {
-    console.error("API URL must use HTTPS protocol for security", { url: configuredUrl });
+    console.error("Configuration Error: API URL must use HTTPS protocol for security", {
+      error: "invalid_protocol",
+      configuredUrl,
+      expectedProtocol: "https://",
+      context: "useLinkedPubkeys"
+    });
     throw new Error("API URL must use HTTPS protocol");
   }
   
@@ -164,11 +173,17 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
     enabled: !!firebaseUser,
     ...cacheConfig,
     retry: (failureCount, error) => {
-      // Don't retry auth errors
-      if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
-        return false;
+      // Don't retry auth errors - check for specific status codes
+      if (error instanceof Error) {
+        const isAuthError = error.message.includes('Authentication expired') || 
+                           error.message.includes('Access denied') ||
+                           error.message.includes('status 401') ||
+                           error.message.includes('status 403');
+        if (isAuthError) {
+          return false;
+        }
       }
-      return failureCount < 2;
+      return failureCount < MAX_RETRIES;
     },
   });
 }
@@ -187,7 +202,6 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
       if (!email || !firebaseUser) return [];
 
       try {
-        
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // Force refresh ensures the token is valid for this specific request
         const firebaseToken = await firebaseUser.getIdToken();
@@ -260,13 +274,20 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
       }
     },
     enabled: !!email && !!firebaseUser,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: CACHE_STALE_TIME,
+    gcTime: CACHE_GC_TIME,
     retry: (failureCount, error) => {
-      // Don't retry auth errors
-      if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
-        return false;
+      // Don't retry auth errors - check for specific status codes
+      if (error instanceof Error) {
+        const isAuthError = error.message.includes('Authentication expired') || 
+                           error.message.includes('Access denied') ||
+                           error.message.includes('status 401') ||
+                           error.message.includes('status 403');
+        if (isAuthError) {
+          return false;
+        }
       }
-      return failureCount < 2;
+      return failureCount < MAX_RETRIES;
     },
   });
 }

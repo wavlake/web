@@ -5,10 +5,16 @@ import React, { useState } from 'react';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
 import LoginDialog from './LoginDialog';
+import CompositeLoginDialog from './CompositeLoginDialog';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { AccountSwitcher } from './AccountSwitcher';
 
-export function LoginArea() {
+interface LoginAreaProps {
+  /** Enable enhanced authentication flow with three-option choice */
+  enhanced?: boolean;
+}
+
+export function LoginArea({ enhanced = false }: LoginAreaProps) {
   const { currentUser } = useLoggedInAccounts();
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
@@ -30,11 +36,19 @@ export function LoginArea() {
         </Button>
       )}
 
-      <LoginDialog
-        isOpen={loginDialogOpen}
-        onClose={() => setLoginDialogOpen(false)}
-        onLogin={handleLogin}
-      />
+      {enhanced ? (
+        <CompositeLoginDialog
+          isOpen={loginDialogOpen}
+          onClose={() => setLoginDialogOpen(false)}
+          onLogin={handleLogin}
+        />
+      ) : (
+        <LoginDialog
+          isOpen={loginDialogOpen}
+          onClose={() => setLoginDialogOpen(false)}
+          onLogin={handleLogin}
+        />
+      )}
 
     </>
   );

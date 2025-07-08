@@ -25,6 +25,7 @@ export interface FirebaseUser {
 /** Nostr user profile metadata structure */
 export interface NostrProfile {
   name?: string;
+  display_name?: string;
   picture?: string;
   about?: string;
   nip05?: string;
@@ -48,8 +49,14 @@ export interface LinkedPubkey {
 export interface AutoLinkResult {
   /** Indicates whether the auto-linking operation completed successfully */
   success: boolean;
+  /** Success or error message */
+  message?: string;
   /** Detailed error information when success is false, undefined when success is true */
   error?: Error;
+  /** Error type for categorized error handling */
+  errorType?: 'network' | 'rate_limit' | 'validation' | 'duplicate' | 'permission' | 'timeout' | 'unknown';
+  /** Whether this error type is retryable */
+  retryable?: boolean;
 }
 
 /** Properties for the NostrAuthStep component */

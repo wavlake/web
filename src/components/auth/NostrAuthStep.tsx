@@ -49,12 +49,7 @@ import { NUser } from "@nostrify/react/login";
 import LoginDialog from "./LoginDialog";
 import { logAuthError, logAuthInfo } from "@/lib/authLogger";
 import { truncatePubkey, getDisplayName } from "@/lib/pubkeyUtils";
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
-}
+import { FirebaseUser } from "@/types/auth";
 
 interface NostrAuthStepProps {
   firebaseUser?: FirebaseUser;

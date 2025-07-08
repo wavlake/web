@@ -2,6 +2,8 @@
  * Utility functions for handling Nostr pubkey formatting and display
  */
 
+import type { NostrProfile } from "@/types/auth";
+
 /**
  * Truncates a pubkey for safe display in logs and UI
  * @param pubkey - The full pubkey string
@@ -18,21 +20,16 @@ export function truncatePubkey(pubkey: string | null | undefined, startChars: nu
 }
 
 /**
- * Validates if a string is a valid Nostr pubkey format (32-byte hex encoded as per NIP-01)
+ * Validates if a string is a valid Nostr pubkey format (32-byte hex encoded public key)
  * @param pubkey - The pubkey string to validate
- * @returns true if valid pubkey format (64-character hex string), false otherwise
+ * @returns true if valid pubkey format (64 character hex string), false otherwise
  */
 export function isValidPubkey(pubkey: string | null | undefined): boolean {
   if (!pubkey || typeof pubkey !== 'string') {
     return false;
   }
   
-  // Nostr pubkeys must be exactly 64 characters (32 bytes in hex) as per NIP-01 specification
-  if (pubkey.length !== 64) {
-    return false;
-  }
-  
-  // Validate hex characters only (0-9, a-f, A-F)
+  // Basic validation: should be 64 character hex string (32 bytes in hex)
   return /^[0-9a-fA-F]{64}$/.test(pubkey);
 }
 
@@ -61,10 +58,12 @@ export function validatePubkeyOrThrow(pubkey: string | null | undefined, context
 }
 
 /**
- * Safely extracts display name from profile data
- * @param profile - The profile object
- * @returns Display name or fallback
+ * Safely extracts display name from profile data, preferring 'name' over 'display_name'
+ * @param profile - The profile object containing optional name fields
+ * @returns name > display_name > 'Unnamed Account'
  */
-export function getDisplayName(profile?: { name?: string; display_name?: string } | null): string {
-  return profile?.name || profile?.display_name || 'Unnamed Account';
+export function getDisplayName(profile?: NostrProfile | null): string {
+  const name = profile?.name?.trim();
+  const displayName = profile?.display_name?.trim();
+  return name || displayName || 'Unnamed Account';
 }

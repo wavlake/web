@@ -4,33 +4,7 @@ import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
 import { logAuthSuccess, logAuthError } from "@/lib/authLogger";
 import { isValidPubkey, validatePubkeyOrThrow } from "@/lib/pubkeyUtils";
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
-}
-
-/**
- * Type-safe interface for Nostr signer functionality
- * Based on NIP-07 window.nostr interface specification
- */
-interface NostrSigner {
-  /** Get the user's public key */
-  getPublicKey?(): Promise<string>;
-  /** Sign an event */
-  signEvent?(event: { content: string; created_at: number; kind: number; tags: string[][]; pubkey?: string }): Promise<{ id: string; sig: string; [key: string]: unknown }>;
-  /** Encrypt content */
-  nip04?: {
-    encrypt(pubkey: string, plaintext: string): Promise<string>;
-    decrypt(pubkey: string, ciphertext: string): Promise<string>;
-  };
-  /** NIP-44 encryption methods */
-  nip44?: {
-    encrypt(pubkey: string, plaintext: string): Promise<string>;
-    decrypt(pubkey: string, ciphertext: string): Promise<string>;
-  };
-}
+import { FirebaseUser, NostrSigner, AutoLinkResult } from "@/types/auth";
 
 /**
  * Comprehensive state management for auto-linking operations
@@ -57,17 +31,6 @@ type AutoLinkErrorType =
   | 'permission' 
   | 'timeout'
   | 'unknown';
-
-/**
- * Comprehensive result interface for auto-linking operations
- */
-interface AutoLinkResult {
-  success: boolean;
-  message?: string;
-  error?: Error;
-  errorType?: AutoLinkErrorType;
-  retryable?: boolean;
-}
 
 /**
  * Configuration options for auto-linking behavior
