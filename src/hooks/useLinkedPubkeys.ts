@@ -4,8 +4,16 @@ import type { LinkedPubkey, FirebaseUser } from "@/types/auth";
 const getApiBaseUrl = (): string => {
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
   if (!configuredUrl) {
+    console.error("VITE_NEW_API_URL environment variable is not configured");
     throw new Error("API URL not configured");
   }
+  
+  // Enforce HTTPS for security
+  if (!configuredUrl.startsWith('https://')) {
+    console.error("API URL must use HTTPS protocol for security", { url: configuredUrl });
+    throw new Error("API URL must use HTTPS protocol");
+  }
+  
   return configuredUrl;
 };
 
@@ -41,16 +49,35 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
 
         const data = await response.json();
         
+        // Validate response data structure
+        if (typeof data !== 'object' || data === null) {
+          throw new Error('Invalid response format: expected object');
+        }
+        
         if (!data.success || !data.pubkeys) {
           return [];
         }
+        
+        if (!Array.isArray(data.pubkeys)) {
+          throw new Error('Invalid response format: pubkeys must be an array');
+        }
 
-        return data.pubkeys.map((pubkey: string) => ({
-          pubkey,
-          profile: null
-        }));
+        return data.pubkeys.map((pubkey: string) => {
+          if (typeof pubkey !== 'string' || pubkey.length !== 64) {
+            console.warn("Invalid pubkey format in response", { pubkey });
+            return null;
+          }
+          return {
+            pubkey,
+            profile: null
+          };
+        }).filter(Boolean) as LinkedPubkey[];
       } catch (error) {
-        console.warn('Failed to fetch linked pubkeys');
+        console.warn('Failed to fetch linked pubkeys', { 
+          userId: firebaseUser?.uid,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          hasAuth: !!firebaseUser
+        });
         throw error; // Re-throw to let React Query handle retry logic
       }
     },

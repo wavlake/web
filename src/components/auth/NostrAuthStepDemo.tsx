@@ -1,8 +1,14 @@
 /**
- * Demo integration showing how NostrAuthStep can be used in the enhanced authentication flow.
- * This demonstrates the component's integration capabilities as specified in the GitHub issue.
+ * Demo component showcasing NostrAuthStep integration patterns and auto-linking capabilities.
  * 
- * This file serves as documentation and can be removed once CompositeLoginDialog is implemented.
+ * This component demonstrates:
+ * - Proper integration with Firebase authentication state
+ * - Auto-linking configuration for seamless account connection
+ * - Error handling and user feedback patterns
+ * - Integration with existing authentication hooks
+ * 
+ * Production usage: This component should be replaced with CompositeLoginDialog
+ * for the full enhanced authentication flow implementation.
  */
 
 import React, { useState } from "react";
@@ -13,19 +19,26 @@ import type { NLoginType } from "@nostrify/react/login";
 import type { FirebaseUser } from "@/types/auth";
 
 interface NostrAuthStepDemoProps {
+  /** Controls dialog visibility */
   isOpen: boolean;
+  /** Callback for closing the dialog */
   onClose: () => void;
+  /** Callback fired on successful Nostr authentication */
   onSuccess: (login: NLoginType) => void;
+  /** Optional Firebase user for demonstrating auto-linking (when provided, enables auto-link) */
+  mockFirebaseUser?: FirebaseUser;
 }
 
 export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  mockFirebaseUser
 }) => {
-  const [firebaseUser] = useState<FirebaseUser | undefined>(undefined); // Mock Firebase user - in real implementation this would come from Firebase auth
+  // In production, this would come from a Firebase authentication context/hook
+  const [firebaseUser] = useState<FirebaseUser | undefined>(mockFirebaseUser);
   
-  // Get linked pubkeys for the Firebase user (if any)
+  // Fetch linked pubkeys for the authenticated Firebase user
   const { data: linkedPubkeys = [] } = useLinkedPubkeysWithProfiles(firebaseUser);
 
   const handleBack = () => {

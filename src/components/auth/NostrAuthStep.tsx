@@ -1,3 +1,26 @@
+/**
+ * NostrAuthStep - Multi-method Nostr authentication component with auto-linking capabilities
+ * 
+ * This component provides comprehensive Nostr authentication supporting:
+ * - Browser extension authentication (NIP-07) 
+ * - Direct private key input (nsec) with secure handling
+ * - NIP-46 bunker connections for remote signers and hardware wallets
+ * - Automatic linking of authenticated pubkeys to Firebase accounts
+ * - Comprehensive error handling and user feedback
+ * 
+ * Security features:
+ * - Private keys are never stored or persisted
+ * - Input validation for all authentication methods
+ * - Sanitized error messages to prevent information leakage
+ * - Proper Nostr cryptographic standards compliance
+ * 
+ * Integration:
+ * - Designed for use within CompositeLoginDialog architecture
+ * - Compatible with existing Firebase authentication system
+ * - Emits proper events for parent component handling
+ * - Supports conditional auto-linking based on Firebase user presence
+ */
+
 import React, { useRef, useState } from "react";
 import { Shield, Upload, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,25 +94,38 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     setRetryCount(0);
   };
 
+  /**
+   * Converts technical error messages into user-friendly, actionable feedback.
+   * 
+   * Pattern matching strategy:
+   * - Rate limiting: Detected by 'rate limit' keywords, suggests waiting
+   * - Network issues: Detected by 'network'/'fetch' keywords, suggests connectivity check
+   * - Timeouts: Detected by 'timeout' keyword, suggests retry
+   * - Input validation: Detected by 'invalid'/'format' keywords, suggests input review
+   * - Extension issues: Detected by 'extension'/'nostr' keywords, suggests extension check
+   * - Unknown errors: Fallback to generic message to avoid exposing technical details
+   * 
+   * All error messages are sanitized to prevent sensitive information exposure.
+   */
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
-      // Handle specific error types with sanitized messages
-      if (error.message.includes('rate limit')) {
+      const message = error.message.toLowerCase();
+      
+      if (message.includes('rate limit')) {
         return 'Too many attempts. Please wait a moment before trying again.';
       }
-      if (error.message.includes('network') || error.message.includes('fetch')) {
+      if (message.includes('network') || message.includes('fetch')) {
         return 'Network error. Please check your connection and try again.';
       }
-      if (error.message.includes('timeout')) {
+      if (message.includes('timeout')) {
         return 'Connection timeout. Please try again.';
       }
-      if (error.message.includes('invalid') || error.message.includes('format')) {
+      if (message.includes('invalid') || message.includes('format')) {
         return 'Invalid input format. Please check your credentials and try again.';
       }
-      if (error.message.includes('extension') || error.message.includes('nostr')) {
+      if (message.includes('extension') || message.includes('nostr')) {
         return 'Extension error. Please ensure your Nostr extension is installed and working.';
       }
-      // Return sanitized generic message for unknown errors
       return 'Authentication failed. Please try again.';
     }
     return 'An unexpected error occurred. Please try again.';
