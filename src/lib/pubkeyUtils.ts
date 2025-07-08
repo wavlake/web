@@ -5,6 +5,10 @@
 // Cached regex pattern for pubkey validation to improve performance
 const PUBKEY_REGEX = /^[0-9a-fA-F]{64}$/;
 
+// Constants for consistent string literals
+const INVALID_PUBKEY_DISPLAY = 'invalid-pubkey';
+const UNNAMED_ACCOUNT_DISPLAY = 'Unnamed Account';
+
 /**
  * Truncates a pubkey for safe display in logs and UI
  * @param pubkey - The full pubkey string
@@ -14,12 +18,12 @@ const PUBKEY_REGEX = /^[0-9a-fA-F]{64}$/;
  */
 export function truncatePubkey(pubkey: string | null | undefined, startChars: number = 8, endChars: number = 8): string {
   if (!pubkey || typeof pubkey !== 'string' || pubkey.length < startChars + endChars) {
-    return 'invalid-pubkey';
+    return INVALID_PUBKEY_DISPLAY;
   }
   
   // Validate pubkey format for security
   if (!isValidPubkey(pubkey)) {
-    return 'invalid-pubkey';
+    return INVALID_PUBKEY_DISPLAY;
   }
   
   return `${pubkey.slice(0, startChars)}...${pubkey.slice(-endChars)}`;
@@ -53,9 +57,10 @@ export interface ProfileWithName {
  * @returns Sanitized name string
  */
 function sanitizeName(name: string): string {
+  // Remove potentially dangerous characters without control character regex
   return name
     .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '') // Keep only printable ASCII and Unicode characters
     .trim()
     .substring(0, 100); // Limit length
 }
@@ -69,9 +74,9 @@ export function getDisplayName(profile?: ProfileWithName | null): string {
   const name = profile?.name || profile?.display_name;
   
   if (!name || typeof name !== 'string') {
-    return 'Unnamed Account';
+    return UNNAMED_ACCOUNT_DISPLAY;
   }
   
   const sanitizedName = sanitizeName(name);
-  return sanitizedName || 'Unnamed Account';
+  return sanitizedName || UNNAMED_ACCOUNT_DISPLAY;
 }
