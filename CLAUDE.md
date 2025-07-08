@@ -45,6 +45,29 @@ Detailed documentation is located in context-specific CLAUDE.md files:
   - Welcome flow and routing patterns
   - Wavlake-specific features
 
+## Enhanced Authentication System
+
+### Current Status (75% Complete)
+The enhanced authentication system is largely implemented with comprehensive documentation:
+
+- **Master Plan**: [`ENHANCED_AUTH_MASTER_TODO.md`](ENHANCED_AUTH_MASTER_TODO.md) - Overall project status and progress tracking
+- **Implementation Guide**: [`ENHANCED_AUTH_IMPLEMENTATION_PLAN.md`](ENHANCED_AUTH_IMPLEMENTATION_PLAN.md) - Technical implementation details
+- **UX Flows**: [`ENHANCED_AUTH_UX_FLOWS.md`](ENHANCED_AUTH_UX_FLOWS.md) - Complete user experience documentation
+
+### Working on Enhanced Auth Issues
+
+**Default Development Context:**
+- **Base Branch**: `auth-updates` (contains all completed enhanced auth components)
+- **Components**: CompositeLoginDialog, LoginChoiceStep, NostrAuthStep, ProfileSelectionStep all implemented
+- **Hooks**: useAutoLinkPubkey, useLinkedPubkeys, useLegacyProfile all implemented  
+- **Integration**: Index.tsx already uses CompositeLoginDialog
+- **Remaining Work**: Upload flow integration (Phase 3) and documentation updates
+
+**Key Files for Enhanced Auth Work:**
+- Core auth components in `src/components/auth/`
+- Auto-linking hooks in `src/hooks/`
+- Main integration in `src/pages/Index.tsx`
+
 ## Quick Start
 
 ### Development Practices
@@ -92,3 +115,8 @@ This runs typecheck and build validation.
 - Never create files unless absolutely necessary
 - Always prefer editing existing files
 - Don't create documentation unless explicitly requested
+
+### Enhanced Auth Work
+- **Always base branches off `auth-updates`** - contains all implemented components
+- **Check ENHANCED_AUTH_MASTER_TODO.md first** - shows current status and what's already done
+- **Most core components are complete** - focus on integration and remaining Phase 3 work
