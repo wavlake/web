@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { type NLoginType } from '@nostrify/react/login';
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     try {
       // Attempt auto-linking if Firebase user is present
       if (firebaseUser) {
-        await autoLink();
+        await autoLink(firebaseUser, selectedPubkey || undefined);
       }
       
       // Note: LoginDialog handles the actual Nostr login internally
@@ -48,7 +48,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       const placeholderLogin: NLoginType = {
         id: 'placeholder-' + Date.now(),
         type: 'extension' as const,
-        pubkey: 'placeholder-pubkey',
+        pubkey: selectedPubkey || 'placeholder-pubkey',
         createdAt: new Date().toISOString(),
         data: null
       };
@@ -56,13 +56,22 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       onSuccess(placeholderLogin);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('Authentication or linking error:', errorMessage);
+      
+      // Enhanced error logging with context
+      console.error('Authentication or linking error:', {
+        operation: 'nostr-auth-step',
+        hasFirebaseUser: !!firebaseUser,
+        firebaseUid: firebaseUser?.uid,
+        selectedPubkey: selectedPubkey ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}` : null,
+        linkedPubkeysCount: linkedPubkeys.length,
+        error: errorMessage
+      });
       
       // Continue with sign-in even if linking fails
       const placeholderLogin: NLoginType = {
         id: 'placeholder-' + Date.now(),
         type: 'extension' as const,
-        pubkey: 'placeholder-pubkey',
+        pubkey: selectedPubkey || 'placeholder-pubkey',
         createdAt: new Date().toISOString(),
         data: null
       };
@@ -70,11 +79,30 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     }
   };
 
-  const handleCreateNewAccount = async () => {
+  const handleCreateNewAccount = useCallback(async () => {
     // This would implement account generation in a future iteration
     // For now, just redirect to the normal Nostr login
     setShowLoginDialog(true);
-  };
+  }, []);
+
+  const handleShowLoginDialog = useCallback(() => setShowLoginDialog(true), []);
+  const handleCloseLoginDialog = useCallback(() => setShowLoginDialog(false), []);
+  
+  const handleSelectMode = useCallback(() => setMode('select'), []);
+  
+  const handleBackFromLogin = useCallback(() => {
+    setShowLoginDialog(false);
+    if (linkedPubkeys.length > 0) {
+      setMode('select');
+    } else {
+      onBack();
+    }
+  }, [linkedPubkeys.length, onBack]);
+
+  const createAccountClickHandler = useCallback((pubkey: string) => () => {
+    setSelectedPubkey(pubkey);
+    setShowLoginDialog(true);
+  }, []);
 
   // Show profile selection if we have linked pubkeys and haven't selected one yet
   if (mode === 'select' && linkedPubkeys.length > 0) {
@@ -92,10 +120,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
             <div
               key={account.pubkey}
               className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => {
-                setSelectedPubkey(account.pubkey);
-                setShowLoginDialog(true);
-              }}
+              onClick={createAccountClickHandler(account.pubkey)}
             >
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
@@ -117,7 +142,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         
         <div className="space-y-2">
           <Button 
-            onClick={() => setShowLoginDialog(true)} 
+            onClick={handleShowLoginDialog} 
             variant="outline" 
             className="w-full"
           >
@@ -146,20 +171,13 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       <div className="relative">
         <LoginDialog
           isOpen={true}
-          onClose={() => setShowLoginDialog(false)}
+          onClose={handleCloseLoginDialog}
           onLogin={handleNostrLoginSuccess}
         />
         {/* Back button overlay */}
         <div className="fixed bottom-4 left-4 z-50">
           <Button
-            onClick={() => {
-              setShowLoginDialog(false);
-              if (linkedPubkeys.length > 0) {
-                setMode('select');
-              } else {
-                onBack();
-              }
-            }}
+            onClick={handleBackFromLogin}
             variant="outline"
             size="sm"
           >
@@ -187,7 +205,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       
       <div className="space-y-4">
         <Button 
-          onClick={() => setShowLoginDialog(true)}
+          onClick={handleShowLoginDialog}
           className="w-full"
           size="lg"
         >
@@ -201,7 +219,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
           {linkedPubkeys.length > 0 && (
             <Button 
               variant="outline" 
-              onClick={() => setMode('select')}
+              onClick={handleSelectMode}
             >
               Choose Account
             </Button>

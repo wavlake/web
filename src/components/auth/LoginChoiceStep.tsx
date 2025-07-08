@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DialogContent,
@@ -16,6 +16,10 @@ interface LoginChoiceStepProps {
 export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({ 
   onSelect 
 }) => {
+  const handleNewUserSelect = useCallback(() => onSelect('new-user'), [onSelect]);
+  const handleFirebaseSelect = useCallback(() => onSelect('firebase'), [onSelect]);
+  const handleNostrSelect = useCallback(() => onSelect('nostr'), [onSelect]);
+
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
@@ -27,7 +31,7 @@ export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({
       
       <div className="space-y-4">
         <Button 
-          onClick={() => onSelect('new-user')}
+          onClick={handleNewUserSelect}
           className="w-full justify-start h-auto p-4 text-left"
           variant="outline"
           size="lg"
@@ -41,7 +45,7 @@ export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({
         </Button>
         
         <Button 
-          onClick={() => onSelect('firebase')}
+          onClick={handleFirebaseSelect}
           className="w-full justify-start h-auto p-4 text-left"
           variant="outline"
           size="lg"
@@ -55,7 +59,7 @@ export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({
         </Button>
         
         <Button 
-          onClick={() => onSelect('nostr')}
+          onClick={handleNostrSelect}
           className="w-full justify-start h-auto p-4 text-left"
           variant="ghost"
         >
