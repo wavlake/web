@@ -26,17 +26,16 @@ export class SentryErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Only log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
     
     // Send error to Sentry with additional context
     Sentry.withScope((scope) => {
       scope.setTag('errorBoundary', true);
       scope.setContext('componentStack', {
         componentStack: errorInfo.componentStack,
-      });
-      scope.setContext('errorInfo', {
-        componentStack: errorInfo.componentStack,
-        errorBoundary: true,
       });
       Sentry.captureException(error);
     });
@@ -105,7 +104,18 @@ export class SentryErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Higher-order component for easier usage
+/**
+ * Higher-order component for adding error boundary protection to any component
+ * 
+ * @example
+ * ```tsx
+ * const ProtectedComponent = withSentryErrorBoundary(MyComponent, <div>Custom fallback</div>);
+ * ```
+ * 
+ * @param Component The component to wrap with error boundary
+ * @param fallback Optional custom fallback UI (defaults to built-in error UI)
+ * @returns Component wrapped with SentryErrorBoundary
+ */
 export function withSentryErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   fallback?: ReactNode
@@ -119,5 +129,19 @@ export function withSentryErrorBoundary<P extends object>(
   };
 }
 
-// Hook version using Sentry's built-in error boundary
+/**
+ * Hook-based error boundary using Sentry's built-in implementation
+ * 
+ * Use this for simpler integration when you don't need custom error UI:
+ * 
+ * @example
+ * ```tsx
+ * const MyComponent = SentryErrorBoundaryHook(MyBaseComponent, {
+ *   fallback: ({ error }) => <div>Error: {error.message}</div>,
+ *   beforeCapture: (scope, error) => {
+ *     scope.setTag('section', 'user-profile');
+ *   }
+ * });
+ * ```
+ */
 export const SentryErrorBoundaryHook = Sentry.withErrorBoundary;

@@ -23,7 +23,8 @@ export default defineConfig(() => ({
         sourcemaps: {
           assets: "./dist/**",
           ignore: ["node_modules"],
-          filesToDeleteAfterUpload: ["./dist/**/*.map"],
+          // Only delete source maps in production to avoid debugging issues
+          filesToDeleteAfterUpload: process.env.NODE_ENV === "production" ? ["./dist/**/*.map"] : [],
         },
 
         // Set release name
@@ -38,7 +39,8 @@ export default defineConfig(() => ({
     },
   },
   build: {
-    sourcemap: true, // Enable source maps for better error tracking
+    // Only enable source maps in production if Sentry is configured
+    sourcemap: process.env.NODE_ENV === "production" ? !!process.env.SENTRY_AUTH_TOKEN : true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
