@@ -1,81 +1,175 @@
-You are an AI assistant tasked with processing a JSON list of GitHub issues and creating them one by one using the existing `/issues` command.
+You are an AI assistant tasked with creating GitHub issues. You can handle both individual feature requests AND batch JSON files containing multiple issues.
 
 <thinking>
-The user has provided me with a JSON structure containing multiple GitHub issues. I need to:
-1. Parse the JSON input
-2. Extract each issue's details (title, description, priority, labels, etc.)
-3. Format each issue appropriately for the `/issues` command
-4. Call the `/issues` command for each issue individually
-5. Ensure proper formatting and structure for each issue
-</thinking>
+I need to determine what type of input I'm dealing with:
+1. Is it a JSON file path? (ends with .json)
+2. Is it raw JSON content? (starts with [ or {)
+3. Is it a plain text feature description?
 
-## Instructions
+Based on the input type, I'll either:
 
-You will receive a JSON structure containing an array of GitHub issues. For each issue in the array, you must:
+- Process a batch of issues from JSON
+- Create a single issue from a feature description
+  </thinking>
 
-1. Extract the issue details (title, description, priority, labels, etc.)
-2. Format the description to include all relevant information
-3. Call the `/issues` command with the properly formatted title and description
-4. Process each issue sequentially
+## Input Detection and Processing
 
-## Input Format
+First, analyze the input to determine its type:
 
-The expected JSON structure is:
+<input>
+#$ARGUMENTS
+</input>
+
+### Step 1: Detect Input Type
+
+1. **JSON File**: If input ends with `.json`, read the file
+2. **Raw JSON**: If input starts with `[` or `{`, parse as JSON
+3. **Feature Description**: Otherwise, treat as single issue description
+
+### Step 2A: Batch Processing (JSON Input)
+
+If JSON input is detected, process multiple issues:
+
+**Expected JSON Formats:**
+
+**Format 1 (Array):**
+
+```json
+[
+  {
+    "title": "Issue title",
+    "body": "Complete issue description",
+    "labels": ["label1", "label2"]
+  }
+]
+```
+
+**Format 2 (Object with issues):**
+
 ```json
 {
   "issues": [
     {
       "title": "Issue title",
-      "priority": "Critical|High|Medium|Low",
-      "description": "Detailed description",
+      "priority": "High",
+      "description": "Description",
       "labels": ["label1", "label2"],
-      "files": ["file1.ts", "file2.tsx"],
-      "acceptance_criteria": ["criteria1", "criteria2"]
+      "files": ["file1.ts"],
+      "acceptance_criteria": ["AC1", "AC2"]
     }
   ]
 }
 ```
 
-## Processing Logic
+**Batch Processing Steps:**
 
-For each issue in the JSON array:
+1. **Set Repository**:
 
-1. **Format the description** by combining:
-   - Priority level
-   - Main description
-   - Files to update (if provided)
-   - Acceptance criteria (if provided)
-   - Labels (if provided)
+   ```bash
+   gh repo set-default wavlake/web
+   ```
 
-2. **Call the `/issues` command** with:
-   - First argument: The issue title
-   - Second argument: The formatted description
+2. **For each issue in JSON**:
 
-3. **Use this format** for the `/issues` call:
+   - Extract title, body/description, labels
+   - Format the body appropriately
+   - Create issue with GitHub CLI
+   - Add labels after creation
+
+3. **Track Progress**:
+   - Count total issues
+   - Report success/failure for each
+   - Summary at the end
+
+### Step 2B: Single Issue Processing (Text Input)
+
+If text input is detected, create a single well-structured issue:
+
+**Single Issue Template:**
+
+# Title
+
+## Current Situation
+
+## Proposed Solution
+
+## Implementation Details
+
+## Acceptance Criteria
+
+**Processing Steps:**
+
+1. Analyze the feature description
+2. Expand into structured issue format
+3. Create issue with GitHub CLI
+4. Extract and add any mentioned labels
+
+### Step 3: GitHub CLI Execution
+
+**For Batch Issues:**
+
+```bash
+# For each issue in the batch
+gh issue create \
+  --repo wavlake/web \
+  --title "$TITLE" \
+  --body "$BODY" \
+  --label "enhancement"
+
+# Add additional labels if they exist
+ISSUE_NUMBER=$(echo $ISSUE_URL | grep -o '[0-9]*$')
+gh issue edit $ISSUE_NUMBER --add-label "$LABELS" 2>/dev/null || true
 ```
-/issues "Issue Title Here" "**Priority**: [Priority Level]
 
-**Problem**: [Description]
+**For Single Issue:**
 
-**Files to Update**: [List of files]
-
-**Acceptance Criteria**:
-- [ ] [Criteria 1]
-- [ ] [Criteria 2]
-
-**Labels**: [Labels if provided]"
+```bash
+gh issue create \
+  --repo wavlake/web \
+  --title "Concise Title Here" \
+  --body "$(cat <<'EOF'
+[Structured issue description]
+EOF
+)" \
+  --label "enhancement"
 ```
 
-## Your Task
+### Important Notes
 
-Process the JSON input provided below and create individual `/issues` commands for each issue:
+- Always set repository to `wavlake/web` before creating issues
+- Start with "enhancement" label (guaranteed to exist)
+- Handle missing labels gracefully
+- For batch processing, continue even if some issues fail
+- Return issue URLs for all created issues
 
-<json_input>
-#$ARGUMENTS
-</json_input>
+### Output Format
 
-**Important**: 
-- Execute each `/issues` command immediately after formatting it
-- Wait for each command to complete before proceeding to the next
-- Maintain the original priority and structure of each issue
-- Ensure proper markdown formatting in descriptions
+**For Batch Processing:**
+
+```
+Setting repository to wavlake/web...
+Processing 5 issues from JSON...
+
+Creating issue 1/5: "Enable Firebase Authentication"
+✓ Created: https://github.com/wavlake/web/issues/23
+
+Creating issue 2/5: "Add Password Reset Flow"
+✓ Created: https://github.com/wavlake/web/issues/24
+
+...
+
+Summary:
+- Total issues: 5
+- Successfully created: 5
+- Failed: 0
+```
+
+**For Single Issue:**
+
+```
+Creating GitHub issue...
+✓ Created: https://github.com/wavlake/web/issues/25
+
+Title: [Issue Title]
+URL: https://github.com/wavlake/web/issues/25
+```
