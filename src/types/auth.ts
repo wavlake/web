@@ -48,6 +48,8 @@ export interface LinkedPubkey {
 export interface AutoLinkResult {
   /** Indicates whether the auto-linking operation completed successfully */
   success: boolean;
+  /** Success or error message */
+  message?: string;
   /** Detailed error information when success is false, undefined when success is true */
   error?: Error;
 }

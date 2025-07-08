@@ -12,6 +12,7 @@ import { useProfileSync } from '@/hooks/useProfileSync';
 import { useLinkedPubkeys } from '@/hooks/useLinkedPubkeys';
 import { toast } from '@/hooks/useToast';
 import { getAuth } from 'firebase/auth';
+import { FirebaseUser } from '@/types/auth';
 
 /**
  * Props for the CompositeLoginDialog component
@@ -29,12 +30,6 @@ interface CompositeLoginDialogProps {
  * Available authentication steps in the composite flow
  */
 type AuthStep = 'choice' | 'nostr' | 'firebase';
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
-}
 
 /**
  * CompositeLoginDialog orchestrates the enhanced authentication flow,

@@ -4,11 +4,7 @@
  */
 
 import { truncatePubkey } from './pubkeyUtils';
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-}
+import { FirebaseUser } from '@/types/auth';
 
 interface AuthLogContext {
   operation: string;
