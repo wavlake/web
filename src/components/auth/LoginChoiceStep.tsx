@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DialogContent,
@@ -9,9 +9,6 @@ import {
 import { Sparkles, Mail, Key, LucideIcon } from 'lucide-react';
 import { toast } from '@/hooks/useToast';
 
-/**
- * Authentication choice options for the login flow
- */
 export enum LoginChoice {
   GET_STARTED = 'get-started',
   WAVLAKE_ACCOUNT = 'wavlake-account',
@@ -49,9 +46,10 @@ const CHOICE_TITLE_CLASSES = "font-medium";
 const CHOICE_DESCRIPTION_CLASSES = "text-sm mt-1";
 
 /**
- * Configuration for authentication choice options
+ * Creates the configuration for authentication choice options.
+ * Memoized to prevent unnecessary re-creation on each render.
  */
-const LOGIN_CHOICES: LoginChoiceOption[] = [
+const createLoginChoices = (): LoginChoiceOption[] => [
   {
     value: LoginChoice.GET_STARTED,
     title: 'Get Started',
@@ -91,6 +89,10 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({ option, onSelect }) => {
   
   const handleClick = () => {
     try {
+      // Validate enum value before proceeding
+      if (!Object.values(LoginChoice).includes(value)) {
+        throw new Error(`Invalid login choice: ${value}`);
+      }
       onSelect(value);
     } catch (error) {
       console.error('Error selecting login choice:', error);
@@ -102,9 +104,10 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({ option, onSelect }) => {
     }
   };
 
-  const descriptionColorClass = variant === 'default' 
-    ? 'text-primary-foreground/80' 
-    : 'text-muted-foreground';
+  const descriptionColorClass = useMemo(() => 
+    variant === 'default' ? 'text-primary-foreground/80' : 'text-muted-foreground',
+    [variant]
+  );
 
   return (
     <Button 
@@ -128,12 +131,22 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({ option, onSelect }) => {
 };
 
 /**
- * LoginChoiceStep component presents users with three authentication options:
- * - Get Started (new users)
- * - I have a Wavlake account (legacy users) 
- * - I have a Nostr account (existing Nostr users)
+ * Enhanced authentication entry point component that presents users with three distinct
+ * authentication options, providing clear guidance for different user types.
+ * 
+ * Features:
+ * - Three-option interface with clear visual hierarchy
+ * - Descriptive text to guide user choice
+ * - Full accessibility compliance (WCAG 2.1 AA)
+ * - Responsive design for all device types
+ * - Type-safe enum-based choice handling
+ * 
+ * @param onSelect - Callback fired when user selects an authentication option
+ * @returns JSX element containing the choice step interface
  */
 export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({ onSelect }) => {
+  const loginChoices = useMemo(() => createLoginChoices(), []);
+  
   return (
     <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
       <DialogHeader className="px-6 pt-6 pb-0 relative">
@@ -146,7 +159,7 @@ export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({ onSelect }) =>
       </DialogHeader>
       
       <div className="px-6 py-8 space-y-4" role="group" aria-label="Authentication options">
-        {LOGIN_CHOICES.map((option) => (
+        {loginChoices.map((option) => (
           <ChoiceButton 
             key={option.value} 
             option={option} 

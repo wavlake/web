@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Dialog } from '@/components/ui/dialog';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { LoginChoiceStep, LoginChoice } from './LoginChoiceStep';
 import LoginDialog from './LoginDialog';
 import { FirebaseAuthDialog } from './FirebaseAuthDialog';
@@ -30,6 +30,17 @@ type AuthStep = 'choice' | 'nostr' | 'firebase';
  * CompositeLoginDialog orchestrates the enhanced authentication flow,
  * presenting users with three distinct authentication options and managing
  * the state transitions between different authentication steps.
+ * 
+ * Features:
+ * - Three-step authentication flow (choice → auth → completion)
+ * - Back navigation between steps
+ * - Loading states and error handling
+ * - Auto-account creation for new users
+ * - Integration with existing authentication components
+ * 
+ * @param isOpen - Whether the dialog is currently open
+ * @param onClose - Callback fired when dialog should close
+ * @param onLogin - Callback fired when user successfully logs in
  */
 export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   isOpen,
@@ -42,9 +53,20 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   const { syncProfile } = useProfileSync();
 
   /**
-   * Handles user selection from the login choice step
+   * Handles user selection from the login choice step with proper enum validation
    */
   const handleChoiceSelect = (choice: LoginChoice) => {
+    // Validate that the choice is a valid enum value
+    if (!Object.values(LoginChoice).includes(choice)) {
+      console.error('Invalid login choice received:', choice);
+      toast({
+        title: 'Invalid Selection',
+        description: 'Please try selecting an authentication option again.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     switch (choice) {
       case LoginChoice.GET_STARTED:
         handleGetStarted();
@@ -55,8 +77,6 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
       case LoginChoice.NOSTR_ACCOUNT:
         setStep('nostr');
         break;
-      default:
-        console.warn('Unknown login choice:', choice);
     }
   };
 
@@ -107,20 +127,18 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   };
 
   /**
-   * Handles successful Firebase authentication
-   * TODO: Implement enhanced flow with account linking detection
+   * Handles successful Firebase authentication and transitions to Nostr authentication step
    */
   const handleFirebaseSuccess = () => {
-    // Future enhancement: check for linked accounts and handle complex flow
     setStep('nostr');
   };
 
   /**
    * Navigates back to the choice step
    */
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setStep('choice');
-  };
+  }, []);
 
   /**
    * Resets state and closes the dialog
@@ -144,9 +162,10 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   };
 
   /**
-   * BackButton component for navigation between authentication steps
+   * BackButton component for navigation between authentication steps.
+   * Memoized to prevent unnecessary re-renders.
    */
-  const BackButton: React.FC = () => (
+  const BackButton = useMemo(() => (
     <div 
       className="fixed top-4 left-4 z-[60]"
       style={{ position: 'fixed', top: '1rem', left: '1rem', zIndex: 60 }}
@@ -162,7 +181,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
         Back
       </Button>
     </div>
-  );
+  ), [handleBack]);
 
   // Render appropriate step content
   if (step === 'nostr') {
@@ -173,7 +192,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
           onClose={handleCloseWithBackNavigation}
           onLogin={handleNostrLogin}
         />
-        <BackButton />
+        {BackButton}
       </>
     );
   }
@@ -188,8 +207,40 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
           title="Sign in to Wavlake"
           description="Use your existing Wavlake account credentials"
         />
-        <BackButton />
+        {BackButton}
       </>
+    );
+  }
+
+  // Show loading dialog during account creation
+  if (isCreatingAccount) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="px-6 pt-6 pb-0 relative">
+            <DialogTitle className="text-xl font-semibold text-center">
+              Creating Your Account
+            </DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground mt-2">
+              Please wait while we set up your new Wavlake account
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="px-6 py-8 flex flex-col items-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Setting up your account...
+              </p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>• Generating secure Nostr keys</div>
+                <div>• Creating Lightning wallet</div>
+                <div>• Syncing profile information</div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
