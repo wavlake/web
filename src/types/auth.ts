@@ -25,6 +25,7 @@ export interface FirebaseUser {
 /** Nostr user profile metadata structure */
 export interface NostrProfile {
   name?: string;
+  display_name?: string;
   picture?: string;
   about?: string;
   nip05?: string;
