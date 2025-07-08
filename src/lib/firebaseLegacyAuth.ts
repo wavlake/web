@@ -1,5 +1,16 @@
 import { useState, useCallback } from "react";
 import { handleFirebaseError } from "@/lib/firebase-auth-errors";
+import type { NostrEvent } from "@nostrify/nostrify";
+
+// Type for Nostr signer with NIP-44 support
+interface NostrSigner {
+  getPublicKey: () => Promise<string>;
+  signEvent: (event: NostrEvent) => Promise<NostrEvent>;
+  nip44?: {
+    encrypt: (pubkey: string, plaintext: string) => Promise<string>;
+    decrypt: (pubkey: string, ciphertext: string) => Promise<string>;
+  };
+}
 
 // Helper to get API URLs
 const getApiUrls = () => {
@@ -18,7 +29,7 @@ const getApiUrls = () => {
 const createAuthHeaders = async (
   firebaseToken: string,
   pubkey: string,
-  signer: any
+  signer: NostrSigner
 ) => {
   const { fetchUrl, nip98Url } = getApiUrls();
   const method = "POST";
@@ -107,7 +118,7 @@ export function useFirebaseLegacyAuth() {
     []
   );
 
-  const linkPubkey = useCallback(async (pubkey: string, signer: any) => {
+  const linkPubkey = useCallback(async (pubkey: string, signer: NostrSigner) => {
     const firebaseToken = sessionStorage.getItem("firebaseToken");
     if (!firebaseToken) throw new Error("No Firebase token found");
 
