@@ -22,15 +22,14 @@ import { useToast } from "@/hooks/useToast";
 import { useNostr } from "@nostrify/react";
 import { NUser } from "@nostrify/react/login";
 import type { NLoginType } from "@nostrify/react/login";
+import type { NostrAuthStepProps, NostrSigner } from "@/types/auth";
 
-interface NostrAuthStepProps {
-  firebaseUser?: { uid: string; getIdToken: () => Promise<string> };
-  linkedPubkeys?: Array<{ pubkey: string; profile?: { name?: string; picture?: string } }>;
-  expectedPubkey?: string;
-  onSuccess: (login: NLoginType) => void;
-  onBack: () => void;
-  enableAutoLink?: boolean;
-}
+// Comprehensive pubkey validation following Nostr standards
+const validatePubkey = (pubkey: string): boolean => {
+  if (!pubkey || typeof pubkey !== 'string') return false;
+  if (pubkey.length !== 64) return false;
+  return /^[a-f0-9]{64}$/i.test(pubkey);
+};
 
 export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   firebaseUser,
@@ -54,7 +53,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   const { autoLink, isLinking } = useAutoLinkPubkey();
   const { toast } = useToast();
 
-  const loginToUser = (loginInfo: NLoginType): { signer: { pubkey: string } } => {
+  const loginToUser = (loginInfo: NLoginType): { signer: NostrSigner } => {
     switch (loginInfo.type) {
       case 'nsec':
         return NUser.fromNsecLogin(loginInfo);
@@ -74,20 +73,24 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
-      // Handle specific error types
+      // Handle specific error types with sanitized messages
       if (error.message.includes('rate limit')) {
         return 'Too many attempts. Please wait a moment before trying again.';
       }
-      if (error.message.includes('network')) {
+      if (error.message.includes('network') || error.message.includes('fetch')) {
         return 'Network error. Please check your connection and try again.';
       }
       if (error.message.includes('timeout')) {
         return 'Connection timeout. Please try again.';
       }
-      if (error.message.includes('invalid')) {
-        return 'Invalid credentials. Please check your input and try again.';
+      if (error.message.includes('invalid') || error.message.includes('format')) {
+        return 'Invalid input format. Please check your credentials and try again.';
       }
-      return error.message;
+      if (error.message.includes('extension') || error.message.includes('nostr')) {
+        return 'Extension error. Please ensure your Nostr extension is installed and working.';
+      }
+      // Return sanitized generic message for unknown errors
+      return 'Authentication failed. Please try again.';
     }
     return 'An unexpected error occurred. Please try again.';
   };
@@ -112,7 +115,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     }
   };
 
-  const handleAutoLink = async (pubkey: string, signer: { pubkey: string }) => {
+  const handleAutoLink = async (pubkey: string, signer: NostrSigner) => {
     if (!enableAutoLink || !firebaseUser) return;
     
     // Check if pubkey is already linked
@@ -125,12 +128,17 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       setLinkingStatus(result.success ? 'success' : 'failed');
     } catch (error) {
       setLinkingStatus('failed');
-      console.error("Auto-linking failed:", error);
+      console.warn("Auto-linking failed");
     }
   };
 
   const handleLoginSuccess = async (loginInfo: NLoginType) => {
     try {
+      // Validate pubkey format
+      if (!validatePubkey(loginInfo.pubkey)) {
+        throw new Error("Invalid pubkey format received from authentication");
+      }
+
       // Validate expected pubkey if provided
       if (expectedPubkey && loginInfo.pubkey !== expectedPubkey) {
         throw new Error(`Please sign in with the account ending in ...${expectedPubkey.slice(-8)}`);
@@ -147,8 +155,9 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
       onSuccess(loginInfo);
     } catch (error) {
-      console.error("Login processing failed:", error);
-      setError(error instanceof Error ? error.message : "Login failed");
+      // Log minimal error information for debugging without exposing sensitive data
+      console.warn("Authentication processing failed");
+      setError(getErrorMessage(error));
     }
   };
 
@@ -164,7 +173,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       const loginInfo = await login.extension();
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      console.error("Extension login failed:", error);
+      console.warn("Extension authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
     } finally {
@@ -187,7 +196,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       const loginInfo = login.nsec(nsec);
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      console.error("Nsec login failed:", error);
+      console.warn("Private key authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
     } finally {
@@ -210,7 +219,7 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
       const loginInfo = await login.bunker(bunkerUri);
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      console.error("Bunker login failed:", error);
+      console.warn("Bunker authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
     } finally {

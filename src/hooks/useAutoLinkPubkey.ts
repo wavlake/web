@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
 import { useToast } from "@/hooks/useToast";
-
-export interface AutoLinkResult {
-  success: boolean;
-  error?: Error;
-}
+import type { AutoLinkResult, FirebaseUser, NostrSigner } from "@/types/auth";
 
 export function useAutoLinkPubkey() {
   const { linkPubkey } = useFirebaseLegacyAuth();
@@ -13,9 +9,9 @@ export function useAutoLinkPubkey() {
   const [isLinking, setIsLinking] = useState(false);
 
   const autoLink = async (
-    firebaseUser: { uid: string; getIdToken: () => Promise<string> },
+    firebaseUser: FirebaseUser,
     pubkey: string,
-    signer: { pubkey: string }
+    signer: NostrSigner
   ): Promise<AutoLinkResult> => {
     setIsLinking(true);
 
@@ -29,18 +25,21 @@ export function useAutoLinkPubkey() {
       
       return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      // Sanitize error message for user display
+      const sanitizedMessage = error instanceof Error && error.message.includes('network') 
+        ? "Network error" 
+        : "Linking error";
       
       toast({
         title: "Linking Notice",
-        description: `Unable to link accounts automatically: ${errorMessage}. You can manage this in Settings later.`,
+        description: `Unable to link accounts automatically: ${sanitizedMessage}. You can manage this in Settings later.`,
         variant: "destructive",
       });
       
-      console.error("Auto-linking failed:", error);
+      console.warn("Auto-linking failed");
       return { 
         success: false, 
-        error: error instanceof Error ? error : new Error(errorMessage)
+        error: error instanceof Error ? error : new Error("Auto-linking failed")
       };
     } finally {
       setIsLinking(false);

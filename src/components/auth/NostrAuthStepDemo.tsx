@@ -7,11 +7,10 @@
 
 import React, { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { NostrAuthStep } from "./NostrAuthStep";
 import { useLinkedPubkeysWithProfiles } from "@/hooks/useLinkedPubkeys";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NLoginType } from "@nostrify/react/login";
+import type { FirebaseUser } from "@/types/auth";
 
 interface NostrAuthStepDemoProps {
   isOpen: boolean;
@@ -24,8 +23,7 @@ export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [firebaseUser] = useState<{ uid: string; getIdToken: () => Promise<string> } | null>(null); // Mock Firebase user - in real implementation this would come from Firebase auth
-  const { user } = useCurrentUser();
+  const [firebaseUser] = useState<FirebaseUser | undefined>(undefined); // Mock Firebase user - in real implementation this would come from Firebase auth
   
   // Get linked pubkeys for the Firebase user (if any)
   const { data: linkedPubkeys = [] } = useLinkedPubkeysWithProfiles(firebaseUser);
@@ -35,7 +33,7 @@ export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   };
 
   const handleSuccess = (login: NLoginType) => {
-    console.log("NostrAuthStep success:", login);
+    console.log("NostrAuthStep authentication successful");
     onSuccess(login);
     onClose();
   };
