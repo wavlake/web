@@ -107,7 +107,7 @@ const createAttemptKey = (firebaseUserId: string, pubkey?: string): string => {
  * @returns Hook interface with linking function and state management
  */
 export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
-  // Memoize configuration to prevent unnecessary re-renders
+  // Memoize configuration to prevent unnecessary re-renders in useCallback dependencies
   const config = useMemo(() => ({ ...DEFAULT_OPTIONS, ...options }), [options]);
   
   const { linkPubkey } = useFirebaseLegacyAuth();
@@ -243,14 +243,18 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     strategy: ReturnType<typeof determineLinkingStrategy>
   ): Promise<{ message: string }> => {
     return new Promise((resolve, reject) => {
+      let isTimedOut = false;
+      
       // Set up timeout protection to prevent hanging operations
       timeoutRef.current = setTimeout(() => {
+        isTimedOut = true;
         reject(new Error(`Linking operation timed out after ${config.timeout}ms`));
       }, config.timeout);
 
       // Execute the determined linking strategy
       strategy.execute()
         .then((result) => {
+          if (isTimedOut) return; // Prevent race condition
           clearLinkingTimeout();
           // Ensure consistent return format regardless of strategy type
           const message = typeof result === 'object' && result?.message 
@@ -259,8 +263,13 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
           resolve({ message });
         })
         .catch((error) => {
+          if (isTimedOut) return; // Prevent race condition
           clearLinkingTimeout();
-          reject(error);
+          // Preserve error context by wrapping the original error
+          const enhancedError = error instanceof Error 
+            ? error 
+            : new Error(`Strategy execution failed: ${String(error)}`);
+          reject(enhancedError);
         });
     });
   }, [config.timeout, clearLinkingTimeout]);
@@ -469,21 +478,11 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
   ]);
 
   /**
-   * Main auto-linking function with comprehensive validation and security
-   * 
-   * @param firebaseUser - The authenticated Firebase user (required for all linking operations)
-   * @param pubkey - The Nostr pubkey to link (optional, if not provided will delegate to linkAccount hook which determines pubkey from current authentication context)
-   * @param signer - Optional Nostr signer for direct pubkey-based linking (requires pubkey parameter)
-   * @returns Promise resolving to AutoLinkResult indicating success/failure with detailed error context
+   * Validates Firebase user for auto-linking operations
+   * @param firebaseUser - The Firebase user to validate
+   * @throws {Error} If user is invalid or missing required properties
    */
-  const autoLink = useCallback(async (
-    firebaseUser: FirebaseUser,
-    pubkey?: string,
-    signer?: NostrSigner
-  ): Promise<AutoLinkResult> => {
-    // Input sanitization for security - remove whitespace that could bypass validation
-    const sanitizedPubkey = pubkey?.trim();
-    // Enhanced Firebase user validation
+  const validateFirebaseUser = useCallback((firebaseUser: FirebaseUser) => {
     if (!firebaseUser) {
       const error = new Error("Firebase user is required for linking - user must be authenticated");
       logAuthError('account-linking-validation', error);
@@ -494,7 +493,6 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
         lastErrorType: 'validation',
       }));
       
-      // Show user-friendly error for authentication failures
       if (config.showNotifications) {
         toast.error("Authentication Required", {
           description: "Please sign in to your Wavlake account before linking.",
@@ -504,7 +502,6 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
       throw error;
     }
 
-    // Validate Firebase user has required properties
     if (!firebaseUser.uid || !firebaseUser.getIdToken) {
       const error = new Error("Invalid Firebase user - missing required authentication properties");
       logAuthError('account-linking-validation', error, firebaseUser);
@@ -523,50 +520,51 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
       
       throw error;
     }
+  }, [config.showNotifications]);
 
-    // Comprehensive pubkey validation using centralized validation logic
-    // This prevents bypassing validation through different code paths
-    if (sanitizedPubkey) {
-      try {
-        // Use centralized validation function to ensure consistency
-        // and prevent validation logic duplication across the codebase
-        validatePubkeyOrThrow(sanitizedPubkey, 'account linking');
-      } catch (validationError) {
-        const error = validationError instanceof Error ? validationError : new Error("Invalid pubkey format");
-        
-        // Log validation error with enhanced context for debugging
-        logAuthError('account-linking-validation', error, firebaseUser, sanitizedPubkey);
-        
-        // Update hook state with detailed error information
-        setHookState(prev => ({
-          ...prev,
-          state: 'error',
-          lastError: error,
-          lastErrorType: 'validation',
-        }));
-        
-        // Show user-friendly error with actionable guidance
-        if (config.showNotifications) {
-          toast.error("Invalid Account", {
-            description: "The provided account identifier is not valid. Please check the format and try again.",
-          });
-        }
-        
-        // Re-throw to prevent silent failure and maintain error propagation
-        throw error;
+  /**
+   * Validates pubkey format for auto-linking operations
+   * @param pubkey - The pubkey to validate
+   * @param firebaseUser - Firebase user for error context
+   * @throws {Error} If pubkey format is invalid
+   */
+  const validatePubkeyFormat = useCallback((pubkey: string, firebaseUser: FirebaseUser) => {
+    try {
+      validatePubkeyOrThrow(pubkey, 'account linking');
+    } catch (validationError) {
+      const error = validationError instanceof Error ? validationError : new Error("Invalid pubkey format");
+      
+      logAuthError('account-linking-validation', error, firebaseUser, pubkey);
+      
+      setHookState(prev => ({
+        ...prev,
+        state: 'error',
+        lastError: error,
+        lastErrorType: 'validation',
+      }));
+      
+      if (config.showNotifications) {
+        toast.error("Invalid Account", {
+          description: "The provided account identifier is not valid. Please check the format and try again.",
+        });
       }
+      
+      throw error;
     }
+  }, [config.showNotifications]);
 
-    // Performance optimization: check for recent attempts to prevent duplicates
-    if (hasRecentAttempt(firebaseUser, sanitizedPubkey)) {
-      return { 
-        success: false, 
-        error: new Error("Recent linking attempt detected, skipping duplicate call"),
-        errorType: 'duplicate',
-        retryable: false,
-      };
-    }
-
+  /**
+   * Executes the main linking logic after validation
+   * @param firebaseUser - Validated Firebase user
+   * @param sanitizedPubkey - Validated and sanitized pubkey
+   * @param signer - Optional Nostr signer
+   * @returns Promise with AutoLinkResult
+   */
+  const executeLinking = useCallback(async (
+    firebaseUser: FirebaseUser,
+    sanitizedPubkey?: string,
+    signer?: NostrSigner
+  ): Promise<AutoLinkResult> => {
     // Record this attempt
     recordAttempt(firebaseUser, sanitizedPubkey);
 
@@ -582,7 +580,45 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
 
     // Perform linking with retry logic using sanitized pubkey
     return autoLinkWithRetry(firebaseUser, sanitizedPubkey, signer);
-  }, [hasRecentAttempt, recordAttempt, autoLinkWithRetry, config]);
+  }, [recordAttempt, autoLinkWithRetry]);
+
+  /**
+   * Main auto-linking function with comprehensive validation and security
+   * 
+   * @param firebaseUser - The authenticated Firebase user (required for all linking operations)
+   * @param pubkey - The Nostr pubkey to link (optional, if not provided will delegate to linkAccount hook which determines pubkey from current authentication context)
+   * @param signer - Optional Nostr signer for direct pubkey-based linking (requires pubkey parameter)
+   * @returns Promise resolving to AutoLinkResult indicating success/failure with detailed error context
+   */
+  const autoLink = useCallback(async (
+    firebaseUser: FirebaseUser,
+    pubkey?: string,
+    signer?: NostrSigner
+  ): Promise<AutoLinkResult> => {
+    // Input sanitization for security - remove whitespace that could bypass validation
+    const sanitizedPubkey = pubkey?.trim();
+    
+    // Step 1: Validate Firebase user
+    validateFirebaseUser(firebaseUser);
+    
+    // Step 2: Validate pubkey format if provided
+    if (sanitizedPubkey) {
+      validatePubkeyFormat(sanitizedPubkey, firebaseUser);
+    }
+    
+    // Step 3: Check for recent duplicate attempts
+    if (hasRecentAttempt(firebaseUser, sanitizedPubkey)) {
+      return { 
+        success: false, 
+        error: new Error("Recent linking attempt detected, skipping duplicate call"),
+        errorType: 'duplicate',
+        retryable: false,
+      };
+    }
+    
+    // Step 4: Execute the linking operation
+    return executeLinking(firebaseUser, sanitizedPubkey, signer);
+  }, [validateFirebaseUser, validatePubkeyFormat, hasRecentAttempt, executeLinking]);
 
   /**
    * Resets the hook state to idle

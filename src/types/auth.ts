@@ -52,8 +52,8 @@ export interface LinkedPubkey {
 /** 
  * Result type for auto-linking operations providing detailed success/error information.
  * 
- * Success pattern: { success: true } - auto-linking completed successfully
- * Failure pattern: { success: false, error: Error } - auto-linking failed with detailed error
+ * Success pattern: { success: true, message?: string } - auto-linking completed successfully
+ * Failure pattern: { success: false, error: Error, errorType: string, retryable: boolean } - auto-linking failed with detailed error
  * 
  * This design ensures consistent error handling while providing actionable error information
  * for user feedback and debugging purposes.
@@ -65,9 +65,17 @@ export interface AutoLinkResult {
   message?: string;
   /** Detailed error information when success is false, undefined when success is true */
   error?: Error;
-  /** Error type for categorized error handling */
+  /** 
+   * Error type for categorized error handling.
+   * Present when success is false, undefined when success is true.
+   * Used for determining retry behavior and user messaging.
+   */
   errorType?: 'network' | 'rate_limit' | 'validation' | 'duplicate' | 'permission' | 'timeout' | 'unknown';
-  /** Whether this error type is retryable */
+  /** 
+   * Whether this error type is retryable.
+   * Present when success is false, undefined when success is true.
+   * Used for automatic retry logic in the hook.
+   */
   retryable?: boolean;
 }
 

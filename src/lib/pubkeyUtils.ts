@@ -46,9 +46,9 @@ export function isValidPubkey(pubkey: string | null | undefined): boolean {
 }
 
 /**
- * Profile interface for display name extraction (legacy support)
+ * Profile interface for display name extraction
  */
-export interface ProfileWithName {
+interface ProfileWithName {
   name?: string;
   display_name?: string;
 }
@@ -74,20 +74,24 @@ function sanitizeName(name: string): string {
  * @throws {Error} If pubkey is null/undefined, not a string, not 64 characters, or contains non-hex characters
  */
 export function validatePubkeyOrThrow(pubkey: string | null | undefined, context?: string): asserts pubkey is string {
+  const contextSuffix = context ? ` for ${context}` : '';
+  
   if (!pubkey) {
-    throw new Error(`Pubkey is required${context ? ` for ${context}` : ''}`);
+    throw new Error(`Pubkey is required${contextSuffix}`);
   }
   
   if (typeof pubkey !== 'string') {
-    throw new Error(`Pubkey must be a string${context ? ` for ${context}` : ''}, received: ${typeof pubkey}`);
+    throw new Error(`Pubkey must be a string${contextSuffix}, received: ${typeof pubkey}`);
   }
   
-  // Reuse the centralized validation logic to avoid pattern duplication
-  if (!isValidPubkey(pubkey)) {
-    if (pubkey.length !== 64) {
-      throw new Error(`Invalid pubkey length${context ? ` for ${context}` : ''}: expected 64 characters, got ${pubkey.length}`);
-    }
-    throw new Error(`Invalid pubkey format${context ? ` for ${context}` : ''}: must contain only hexadecimal characters (0-9, a-f, A-F)`);
+  // Validate length first for better error messages
+  if (pubkey.length !== 64) {
+    throw new Error(`Invalid pubkey length${contextSuffix}: expected 64 characters, got ${pubkey.length}`);
+  }
+  
+  // Then validate format
+  if (!PUBKEY_REGEX.test(pubkey)) {
+    throw new Error(`Invalid pubkey format${contextSuffix}: must contain only hexadecimal characters (0-9, a-f, A-F)`);
   }
 }
 
@@ -96,7 +100,7 @@ export function validatePubkeyOrThrow(pubkey: string | null | undefined, context
  * @param profile - The profile object containing optional name fields
  * @returns name > display_name > 'Unnamed Account'
  */
-export function getDisplayName(profile?: NostrProfile | ProfileWithName | null): string {
+export function getDisplayName(profile?: NostrProfile | null): string {
   if (!profile) {
     return UNNAMED_ACCOUNT_DISPLAY;
   }
