@@ -18,6 +18,7 @@ import type { NLoginType } from "@nostrify/react/login";
 /** Firebase user representation for account linking operations */
 export interface FirebaseUser {
   uid: string;
+  email: string | null;
   getIdToken: () => Promise<string>;
 }
 

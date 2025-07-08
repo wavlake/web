@@ -7,6 +7,7 @@
  * - NIP-46 bunker connections for remote signers and hardware wallets
  * - Automatic linking of authenticated pubkeys to Firebase accounts
  * - Comprehensive error handling and user feedback
+ * - Profile selection for users with multiple linked accounts
  * 
  * Security features:
  * - Private keys are never stored or persisted
@@ -21,8 +22,9 @@
  * - Supports conditional auto-linking based on Firebase user presence
  */
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { Shield, Upload, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
+import { type NLoginType } from '@nostrify/react/login';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,8 +46,29 @@ import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
 import { useToast } from "@/hooks/useToast";
 import { useNostr } from "@nostrify/react";
 import { NUser } from "@nostrify/react/login";
-import type { NLoginType } from "@nostrify/react/login";
-import type { NostrAuthStepProps, NostrSigner } from "@/types/auth";
+import LoginDialog from "./LoginDialog";
+import { logAuthError, logAuthInfo } from "@/lib/authLogger";
+import { truncatePubkey, getDisplayName } from "@/lib/pubkeyUtils";
+
+interface FirebaseUser {
+  uid: string;
+  email: string | null;
+  getIdToken: () => Promise<string>;
+}
+
+interface NostrAuthStepProps {
+  firebaseUser?: FirebaseUser;
+  linkedPubkeys?: Array<{pubkey: string, profile?: {name?: string; display_name?: string; picture?: string; about?: string}}>;
+  expectedPubkey?: string;
+  onSuccess: (login: NLoginType) => void;
+  onBack: () => void;
+  enableAutoLink?: boolean;
+}
+
+type AuthMode = 'select' | 'auth' | 'manual';
+type NostrSigner = ReturnType<typeof NUser.fromNsecLogin>['signer'] | 
+                  ReturnType<typeof NUser.fromBunkerLogin>['signer'] | 
+                  ReturnType<typeof NUser.fromExtensionLogin>['signer'];
 
 // Comprehensive pubkey validation following Nostr standards
 const validatePubkey = (pubkey: string): boolean => {
@@ -68,6 +91,9 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [linkingStatus, setLinkingStatus] = useState<'idle' | 'linking' | 'success' | 'failed'>('idle');
   const [retryCount, setRetryCount] = useState(0);
+  const [selectedPubkey, setSelectedPubkey] = useState<string | null>(null);
+  const [mode, setMode] = useState<AuthMode>('select');
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { nostr } = useNostr();
@@ -96,16 +122,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
   /**
    * Converts technical error messages into user-friendly, actionable feedback.
-   * 
-   * Pattern matching strategy:
-   * - Rate limiting: Detected by 'rate limit' keywords, suggests waiting
-   * - Network issues: Detected by 'network'/'fetch' keywords, suggests connectivity check
-   * - Timeouts: Detected by 'timeout' keyword, suggests retry
-   * - Input validation: Detected by 'invalid'/'format' keywords, suggests input review
-   * - Extension issues: Detected by 'extension'/'nostr' keywords, suggests extension check
-   * - Unknown errors: Fallback to generic message to avoid exposing technical details
-   * 
-   * All error messages are sanitized to prevent sensitive information exposure.
    */
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
@@ -160,11 +176,10 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
     setLinkingStatus('linking');
     try {
-      const result = await autoLink(firebaseUser, pubkey, signer);
+      const result = await autoLink(firebaseUser, pubkey);
       setLinkingStatus(result.success ? 'success' : 'failed');
     } catch (error) {
       setLinkingStatus('failed');
-      // Log error without sensitive details for debugging
       console.warn("Auto-linking failed");
     }
   };
@@ -181,6 +196,9 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         throw new Error(`Please sign in with the account ending in ...${expectedPubkey.slice(-8)}`);
       }
 
+      // Log the authentication attempt
+      logAuthInfo('nostr-auth-step-start', firebaseUser, loginInfo.pubkey, linkedPubkeys.length);
+
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
 
@@ -190,11 +208,39 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         await handleAutoLink(loginInfo.pubkey, user.signer);
       }
 
+      logAuthInfo('nostr-auth-step-success', firebaseUser, loginInfo.pubkey);
       onSuccess(loginInfo);
     } catch (error) {
-      // Log minimal error information for debugging without exposing sensitive data
+      logAuthError('nostr-auth-step', error, firebaseUser, loginInfo.pubkey, linkedPubkeys.length);
       console.warn("Authentication processing failed");
       setError(getErrorMessage(error));
+    }
+  };
+
+  const handleNostrLoginSuccess = async () => {
+    try {
+      // Create a placeholder login object for the LoginDialog flow
+      const placeholderLogin: NLoginType = {
+        id: 'placeholder-' + Date.now(),
+        type: 'extension' as const,
+        pubkey: selectedPubkey || 'placeholder-pubkey',
+        createdAt: new Date().toISOString(),
+        data: null
+      };
+      
+      await handleLoginSuccess(placeholderLogin);
+    } catch (error) {
+      logAuthError('nostr-auth-step', error, firebaseUser, selectedPubkey || undefined, linkedPubkeys.length);
+      
+      // Continue with sign-in even if linking fails
+      const placeholderLogin: NLoginType = {
+        id: 'placeholder-' + Date.now(),
+        type: 'extension' as const,
+        pubkey: selectedPubkey || 'placeholder-pubkey',
+        createdAt: new Date().toISOString(),
+        data: null
+      };
+      onSuccess(placeholderLogin);
     }
   };
 
@@ -209,14 +255,12 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
 
       const loginInfo = await login.extension();
       
-      // Additional validation of returned pubkey
       if (!validatePubkey(loginInfo.pubkey)) {
         throw new Error("Invalid pubkey received from extension authentication");
       }
       
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      // Log error without sensitive details for debugging
       console.warn("Extension authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
@@ -232,21 +276,18 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     setError(null);
 
     try {
-      // Validate nsec format before processing
       if (!validateNsec(nsec)) {
         throw new Error("Invalid private key format. Must be a valid 63-character nsec1 key.");
       }
 
       const loginInfo = login.nsec(nsec);
       
-      // Additional validation of returned pubkey
       if (!validatePubkey(loginInfo.pubkey)) {
         throw new Error("Invalid pubkey received from nsec authentication");
       }
       
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      // Log error without sensitive details for debugging
       console.warn("Private key authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
@@ -262,21 +303,18 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     setError(null);
 
     try {
-      // Validate bunker URI format before processing
       if (!validateBunkerUri(bunkerUri)) {
         throw new Error("Invalid bunker URI format. Must be a valid bunker:// URL.");
       }
 
       const loginInfo = await login.bunker(bunkerUri);
       
-      // Additional validation of returned pubkey
       if (!validatePubkey(loginInfo.pubkey)) {
         throw new Error("Invalid pubkey received from bunker authentication");
       }
       
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      // Log error without sensitive details for debugging
       console.warn("Bunker authentication failed");
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
@@ -297,188 +335,342 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
     reader.readAsText(file);
   };
 
+  /**
+   * Handles the "Generate New Account" flow for new users
+   */
+  const handleCreateNewAccount = async () => {
+    setShowLoginDialog(true);
+  };
+
+  // Event handlers
+  const handleShowLoginDialog = () => setShowLoginDialog(true);
+  const handleCloseLoginDialog = () => setShowLoginDialog(false);
+  const handleSelectMode = () => setMode('select');
+  
+  const handleBackFromLogin = useCallback(() => {
+    setShowLoginDialog(false);
+    if (linkedPubkeys.length > 0) {
+      setMode('select');
+    } else {
+      onBack();
+    }
+  }, [linkedPubkeys.length, onBack]);
+
+  const createAccountClickHandler = useCallback((pubkey: string) => () => {
+    setSelectedPubkey(pubkey);
+    setShowLoginDialog(true);
+  }, []);
+
   const getDefaultTab = () => {
     if ("nostr" in window) return "extension";
     return "key";
   };
 
-  return (
-    <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
-      <DialogHeader className="px-6 pt-6 pb-0 relative">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="p-2 h-8 w-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <DialogTitle className="text-xl font-semibold">
-            Sign in with Nostr
-          </DialogTitle>
-          <div className="w-8" /> {/* Spacer for centering */}
-        </div>
-        <DialogDescription className="text-center text-muted-foreground mt-2">
-          {expectedPubkey ? (
-            <>Please sign in with your account ending in ...{expectedPubkey.slice(-8)}</>
-          ) : (
-            <>Access your account securely with Nostr{enableAutoLink && firebaseUser ? " (will be linked automatically)" : ""}</>
-          )}
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="px-6 py-6 space-y-6">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearError}
-                className="ml-2 h-6 px-2"
-              >
-                Dismiss
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {linkingStatus === 'success' && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              Account successfully linked to your Wavlake account!
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs defaultValue={getDefaultTab()} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-6">
-            <TabsTrigger value="extension">Extension</TabsTrigger>
-            <TabsTrigger value="key">Nsec</TabsTrigger>
-            <TabsTrigger value="bunker">Bunker</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="extension" className="space-y-4">
-            <div className="text-center p-4 rounded-lg bg-muted">
-              <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
-              <div className="text-sm text-muted-foreground mb-4">
-                One-click login using your browser extension
-              </div>
-              <Button
-                className="w-full rounded-full py-6"
-                onClick={handleExtensionLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? "Connecting..." : "Login with Extension"}
-              </Button>
-              <div className="text-xs text-muted-foreground mt-2">
-                Supports Alby, nos2x, and other NIP-07 extensions
+  // Show profile selection if we have linked pubkeys and haven't selected one yet
+  if (mode === 'select' && linkedPubkeys.length > 0) {
+    return (
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Choose Your Account</DialogTitle>
+          <DialogDescription>
+            We found {linkedPubkeys.length} Nostr account(s) linked to your email
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-3">
+          {linkedPubkeys.map((account) => (
+            <div
+              key={account.pubkey}
+              className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={createAccountClickHandler(account.pubkey)}
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                  {getDisplayName(account.profile)?.[0] || account.pubkey.slice(0, 2)}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="font-medium">
+                    {getDisplayName(account.profile)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {truncatePubkey(account.pubkey)}
+                  </p>
+                </div>
+                <div className="text-muted-foreground">→</div>
               </div>
             </div>
-          </TabsContent>
+          ))}
+        </div>
+        
+        <div className="space-y-2">
+          <Button 
+            onClick={() => setMode('manual')} 
+            variant="outline" 
+            className="w-full"
+          >
+            Use Different Nostr Account
+          </Button>
+          {firebaseUser && (
+            <Button 
+              onClick={handleCreateNewAccount} 
+              variant="outline" 
+              className="w-full"
+            >
+              Generate New Account
+            </Button>
+          )}
+          <Button onClick={onBack} variant="ghost" className="w-full">
+            Back
+          </Button>
+        </div>
+      </DialogContent>
+    );
+  }
 
-          <TabsContent value="key" className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label
-                  htmlFor="nsec"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Enter your private key (nsec)
-                </label>
-                <Input
-                  id="nsec"
-                  type="password"
-                  value={nsec}
-                  onChange={(e) => setNsec(e.target.value)}
-                  className="rounded-lg focus-visible:ring-primary"
-                  placeholder="nsec1..."
-                />
-                <div className="text-xs text-muted-foreground">
-                  Your private key is never stored and remains secure
-                </div>
-              </div>
+  // Show the standard Nostr login dialog for simple cases
+  if (showLoginDialog) {
+    return (
+      <div className="relative">
+        <LoginDialog
+          isOpen={true}
+          onClose={handleCloseLoginDialog}
+          onLogin={handleNostrLoginSuccess}
+        />
+        {/* Back button overlay */}
+        <div className="fixed bottom-4 left-4 z-50">
+          <Button
+            onClick={handleBackFromLogin}
+            variant="outline"
+            size="sm"
+          >
+            ← Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-              <div className="text-center">
-                <div className="text-sm mb-2 text-muted-foreground">
-                  Or upload a key file
-                </div>
-                <input
-                  type="file"
-                  accept=".txt,.key"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
+  // Manual authentication with full UI controls
+  if (mode === 'manual' || linkedPubkeys.length === 0) {
+    return (
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
+        <DialogHeader className="px-6 pt-6 pb-0 relative">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="p-2 h-8 w-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <DialogTitle className="text-xl font-semibold">
+              Sign in with Nostr
+            </DialogTitle>
+            <div className="w-8" /> {/* Spacer for centering */}
+          </div>
+          <DialogDescription className="text-center text-muted-foreground mt-2">
+            {expectedPubkey ? (
+              <>Please sign in with your account ending in ...{expectedPubkey.slice(-8)}</>
+            ) : (
+              <>Access your account securely with Nostr{enableAutoLink && firebaseUser ? " (will be linked automatically)" : ""}</>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="px-6 py-6 space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error}
                 <Button
                   variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
+                  size="sm"
+                  onClick={clearError}
+                  className="ml-2 h-6 px-2"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Private Key File
+                  Dismiss
                 </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {linkingStatus === 'success' && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Account successfully linked to your Wavlake account!
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Tabs defaultValue={getDefaultTab()} className="w-full">
+            <TabsList className="grid grid-cols-3 mb-6">
+              <TabsTrigger value="extension">Extension</TabsTrigger>
+              <TabsTrigger value="key">Nsec</TabsTrigger>
+              <TabsTrigger value="bunker">Bunker</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="extension" className="space-y-4">
+              <div className="text-center p-4 rounded-lg bg-muted">
+                <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
+                <div className="text-sm text-muted-foreground mb-4">
+                  One-click login using your browser extension
+                </div>
+                <Button
+                  className="w-full rounded-full py-6"
+                  onClick={handleExtensionLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Connecting..." : "Login with Extension"}
+                </Button>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Supports Alby, nos2x, and other NIP-07 extensions
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="key" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="nsec"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Enter your private key (nsec)
+                  </label>
+                  <Input
+                    id="nsec"
+                    type="password"
+                    value={nsec}
+                    onChange={(e) => setNsec(e.target.value)}
+                    className="rounded-lg focus-visible:ring-primary"
+                    placeholder="nsec1..."
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Your private key is never stored and remains secure
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-sm mb-2 text-muted-foreground">
+                    Or upload a key file
+                  </div>
+                  <input
+                    type="file"
+                    accept=".txt,.key"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Private Key File
+                  </Button>
+                </div>
+
+                <Button
+                  className="w-full rounded-full py-6 mt-4"
+                  onClick={handleKeyLogin}
+                  disabled={isLoading || !validateNsec(nsec)}
+                >
+                  {isLoading ? "Verifying..." : "Login with Private Key"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bunker" className="space-y-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="bunkerUri"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Bunker URI (NIP-46)
+                </label>
+                <Input
+                  id="bunkerUri"
+                  value={bunkerUri}
+                  onChange={(e) => setBunkerUri(e.target.value)}
+                  className="rounded-lg focus-visible:ring-primary"
+                  placeholder="bunker://..."
+                />
+                {bunkerUri && !validateBunkerUri(bunkerUri) && (
+                  <div className="text-destructive text-xs">
+                    Invalid bunker URI format. Must be a valid bunker:// URL.
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  Connect to remote signers and hardware wallets
+                </div>
               </div>
 
               <Button
-                className="w-full rounded-full py-6 mt-4"
-                onClick={handleKeyLogin}
-                disabled={isLoading || !validateNsec(nsec)}
+                className="w-full rounded-full py-6"
+                onClick={handleBunkerLogin}
+                disabled={
+                  isLoading ||
+                  !validateBunkerUri(bunkerUri)
+                }
               >
-                {isLoading ? "Verifying..." : "Login with Private Key"}
+                {isLoading ? "Connecting..." : "Connect with Bunker"}
               </Button>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          </Tabs>
 
-          <TabsContent value="bunker" className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="bunkerUri"
-                className="text-sm font-medium text-foreground"
-              >
-                Bunker URI (NIP-46)
-              </label>
-              <Input
-                id="bunkerUri"
-                value={bunkerUri}
-                onChange={(e) => setBunkerUri(e.target.value)}
-                className="rounded-lg focus-visible:ring-primary"
-                placeholder="bunker://..."
-              />
-              {bunkerUri && !validateBunkerUri(bunkerUri) && (
-                <div className="text-destructive text-xs">
-                  Invalid bunker URI format. Must be a valid bunker:// URL.
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground">
-                Connect to remote signers and hardware wallets
+          {(linkingStatus === 'linking' || isLinking) && (
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">
+                Linking your account...
               </div>
             </div>
+          )}
+        </div>
+      </DialogContent>
+    );
+  }
 
-            <Button
-              className="w-full rounded-full py-6"
-              onClick={handleBunkerLogin}
-              disabled={
-                isLoading ||
-                !validateBunkerUri(bunkerUri)
-              }
+  // Default state - show simple Nostr authentication options
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Sign in with Nostr</DialogTitle>
+        <DialogDescription>
+          {selectedPubkey ? 
+            `Please sign in with your account ending in ...${selectedPubkey.slice(-8)}` :
+            firebaseUser ? 
+              "Sign in with any Nostr account. This will be linked to your Wavlake account." :
+              "Choose how you'd like to authenticate with Nostr."
+          }
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="space-y-4">
+        <Button 
+          onClick={() => setMode('manual')}
+          className="w-full"
+          size="lg"
+        >
+          Continue with Nostr
+        </Button>
+        
+        <div className="flex justify-between">
+          <Button variant="ghost" onClick={onBack}>
+            Back
+          </Button>
+          {linkedPubkeys.length > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={handleSelectMode}
             >
-              {isLoading ? "Connecting..." : "Connect with Bunker"}
+              Choose Account
             </Button>
-          </TabsContent>
-        </Tabs>
-
-        {(linkingStatus === 'linking' || isLinking) && (
-          <div className="text-center">
-            <div className="text-sm text-muted-foreground">
-              Linking your account...
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </DialogContent>
   );
