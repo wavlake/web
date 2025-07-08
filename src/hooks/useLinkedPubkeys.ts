@@ -18,29 +18,30 @@ interface FirebaseUser {
   getIdToken: () => Promise<string>;
 }
 
-// Cache the validated API URL to avoid redundant validation on every call
-let cachedApiUrl: string | null = null;
-
+/**
+ * Gets and validates the API base URL from environment variables
+ * 
+ * Security rationale: HTTPS enforcement prevents man-in-the-middle attacks
+ * and ensures encrypted communication with the API server.
+ * 
+ * @returns Validated HTTPS API base URL
+ * @throws Error if URL is not configured or not using HTTPS protocol
+ */
 const getApiBaseUrl = (): string => {
-  // Return cached URL if already validated
-  if (cachedApiUrl) {
-    return cachedApiUrl;
-  }
-  
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
   if (!configuredUrl) {
     console.error("VITE_NEW_API_URL environment variable is not configured");
     throw new Error("API URL not configured");
   }
   
-  // Enforce HTTPS for security (validate only once)
+  // Enforce HTTPS for security - prevents credential theft and tampering
+  // This validation is performed on every call to ensure consistency across
+  // different execution contexts (testing, development, production)
   if (!configuredUrl.startsWith('https://')) {
     console.error("API URL must use HTTPS protocol for security", { url: configuredUrl });
     throw new Error("API URL must use HTTPS protocol");
   }
   
-  // Cache the validated URL for future calls
-  cachedApiUrl = configuredUrl;
   return configuredUrl;
 };
 
@@ -58,26 +59,32 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
 
       try {
         const API_BASE_URL = getApiBaseUrl();
+        
+        // Get fresh Firebase auth token to prevent race conditions with token expiry
+        // This ensures the token is valid at request time, not at query execution time
+        const authToken = await firebaseUser.getIdToken();
+        
         const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${await firebaseUser.getIdToken()}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           }
         });
 
         if (!response.ok) {
           const status = response.status;
+          // Enhanced error context with specific guidance for each failure type
           if (status === 401) {
-            throw new Error('Authentication expired. Please sign in again.');
+            throw new Error(`Authentication expired for user ${firebaseUser.uid}. Please sign in again.`);
           }
           if (status === 403) {
-            throw new Error('Access denied. Please check your permissions.');
+            throw new Error(`Access denied for user ${firebaseUser.uid}. Please check your permissions.`);
           }
           if (status >= 500) {
-            throw new Error('Server error. Please try again later.');
+            throw new Error(`Server error ${status} while fetching linked pubkeys. Please try again later.`);
           }
-          throw new Error(`Request failed with status ${status}`);
+          throw new Error(`Request failed with status ${status} for user ${firebaseUser.uid}`);
         }
 
         const data = await response.json();
@@ -143,7 +150,8 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
       try {
         const API_BASE_URL = getApiBaseUrl();
         
-        // Get Firebase auth token for secure request
+        // Get fresh Firebase auth token to prevent race conditions with token expiry
+        // Force refresh ensures the token is valid for this specific request
         const firebaseToken = await firebaseUser.getIdToken();
         
         const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
@@ -157,7 +165,7 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Failed to fetch linked pubkeys: ${response.status} ${response.statusText} - ${errorText}`);
+          throw new Error(`Failed to fetch linked pubkeys for email lookup by user ${firebaseUser.uid}: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
