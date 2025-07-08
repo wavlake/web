@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { ReactNode } from "react";
 import * as Sentry from "@sentry/react";
 import { SentryErrorBoundary } from "@/components/SentryErrorBoundary";
