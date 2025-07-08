@@ -81,26 +81,27 @@ function sanitizeLogContext(context: AuthLogContext): Record<string, string | nu
 
 /**
  * Intelligently truncates stack traces for logging while preserving useful information
+ * Uses line-based truncation instead of arbitrary character limits to maintain readability
  * @param stackTrace - The full stack trace string
  * @returns Truncated stack trace that preserves key information
  */
 function truncateStackTrace(stackTrace: string): string {
   const lines = stackTrace.split('\n');
   
-  // Always keep the first line (error message) and first few stack frames
-  const importantLines = lines.slice(0, 8);
+  // Keep the error message line and first 8 stack frames for context
+  const importantLines = lines.slice(0, 9);
   
-  // If stack trace is reasonably short, return as-is
-  if (stackTrace.length <= 800) {
+  // For short stack traces, return as-is (using line count instead of character count)
+  if (lines.length <= 10) {
     return stackTrace;
   }
   
-  // For long stack traces, keep important parts and add ellipsis
+  // Add informative truncation notice
   const truncated = importantLines.join('\n');
   const remainingLines = lines.length - importantLines.length;
   
   if (remainingLines > 0) {
-    return `${truncated}\n... (${remainingLines} more lines truncated for brevity)`;
+    return `${truncated}\n... (${remainingLines} more stack frames truncated - check full logs for complete trace)`;
   }
   
   return truncated;

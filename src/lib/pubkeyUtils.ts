@@ -18,21 +18,21 @@ export function truncatePubkey(pubkey: string | null | undefined, startChars: nu
 }
 
 /**
- * Validates if a string is a valid Nostr pubkey format
+ * Validates if a string is a valid Nostr pubkey format (32-byte hex encoded as per NIP-01)
  * @param pubkey - The pubkey string to validate
- * @returns true if valid pubkey format, false otherwise
+ * @returns true if valid pubkey format (64-character hex string), false otherwise
  */
 export function isValidPubkey(pubkey: string | null | undefined): boolean {
   if (!pubkey || typeof pubkey !== 'string') {
     return false;
   }
   
-  // Enhanced validation: should be exactly 64 character hex string
+  // Nostr pubkeys must be exactly 64 characters (32 bytes in hex) as per NIP-01 specification
   if (pubkey.length !== 64) {
     return false;
   }
   
-  // Validate hex characters only
+  // Validate hex characters only (0-9, a-f, A-F)
   return /^[0-9a-fA-F]{64}$/.test(pubkey);
 }
 
@@ -40,7 +40,7 @@ export function isValidPubkey(pubkey: string | null | undefined): boolean {
  * Validates a pubkey and throws a descriptive error if invalid
  * @param pubkey - The pubkey string to validate
  * @param context - Optional context for error message
- * @throws {Error} If pubkey format is invalid
+ * @throws {Error} If pubkey is null/undefined, not a string, not 64 characters, or contains non-hex characters
  */
 export function validatePubkeyOrThrow(pubkey: string | null | undefined, context?: string): asserts pubkey is string {
   if (!pubkey) {
@@ -51,11 +51,11 @@ export function validatePubkeyOrThrow(pubkey: string | null | undefined, context
     throw new Error(`Pubkey must be a string${context ? ` for ${context}` : ''}, received: ${typeof pubkey}`);
   }
   
-  if (pubkey.length !== 64) {
-    throw new Error(`Invalid pubkey length${context ? ` for ${context}` : ''}: expected 64 characters, got ${pubkey.length}`);
-  }
-  
-  if (!/^[0-9a-fA-F]+$/.test(pubkey)) {
+  // Reuse the centralized validation logic to avoid pattern duplication
+  if (!isValidPubkey(pubkey)) {
+    if (pubkey.length !== 64) {
+      throw new Error(`Invalid pubkey length${context ? ` for ${context}` : ''}: expected 64 characters, got ${pubkey.length}`);
+    }
     throw new Error(`Invalid pubkey format${context ? ` for ${context}` : ''}: must contain only hexadecimal characters (0-9, a-f, A-F)`);
   }
 }

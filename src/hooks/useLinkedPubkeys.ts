@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useAuthor } from "@/hooks/useAuthor";
 import { logAuthError } from "@/lib/authLogger";
+import { isValidPubkey } from "@/lib/pubkeyUtils";
 
 interface LinkedPubkey {
   pubkey: string;
@@ -45,6 +47,21 @@ const getApiBaseUrl = (): string => {
   return configuredUrl;
 };
 
+// Memoized API URL to prevent redundant validation on every query
+const API_BASE_URL = getApiBaseUrl();
+
+/**
+ * Error status code mapping for consistent error messages
+ */
+const ERROR_STATUS_MESSAGES: Record<number, string> = {
+  401: 'Authentication expired. Please sign in again.',
+  403: 'Access denied. Please check your permissions.',
+  429: 'Rate limit exceeded. Please try again later.',
+  500: 'Server error. Please try again later.',
+  502: 'Server temporarily unavailable. Please try again later.',
+  503: 'Service unavailable. Please try again later.',
+};
+
 /**
  * Hook to fetch linked pubkeys for a Firebase user
  * 
@@ -52,14 +69,20 @@ const getApiBaseUrl = (): string => {
  * @returns React Query result with linked pubkeys array
  */
 export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
+  // Memoize cache configuration based on user activity patterns
+  const cacheConfig = useMemo(() => {
+    // For now, use static cache times but structure is ready for adaptive caching
+    const staleTime = 10 * 60 * 1000; // 10 minutes
+    const gcTime = 30 * 60 * 1000; // 30 minutes
+    return { staleTime, gcTime };
+  }, []);
+
   return useQuery({
     queryKey: ['linked-pubkeys', firebaseUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
       if (!firebaseUser) return [];
 
       try {
-        const API_BASE_URL = getApiBaseUrl();
-        
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // This ensures the token is valid at request time, not at query execution time
         const authToken = await firebaseUser.getIdToken();
@@ -74,17 +97,9 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
 
         if (!response.ok) {
           const status = response.status;
-          // Enhanced error context with specific guidance for each failure type
-          if (status === 401) {
-            throw new Error(`Authentication expired for user ${firebaseUser.uid}. Please sign in again.`);
-          }
-          if (status === 403) {
-            throw new Error(`Access denied for user ${firebaseUser.uid}. Please check your permissions.`);
-          }
-          if (status >= 500) {
-            throw new Error(`Server error ${status} while fetching linked pubkeys. Please try again later.`);
-          }
-          throw new Error(`Request failed with status ${status} for user ${firebaseUser.uid}`);
+          // Use error mapping for consistent and maintainable error messages
+          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
+          throw new Error(`${errorMessage} (User: ${firebaseUser.uid})`);
         }
 
         const data = await response.json();
@@ -102,28 +117,52 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
           throw new Error('Invalid response format: pubkeys must be an array');
         }
 
-        return data.pubkeys.map((pubkey: string) => {
-          if (typeof pubkey !== 'string' || pubkey.length !== 64) {
-            console.warn("Invalid pubkey format in response", { pubkey });
-            return null;
+        // Enhanced pubkey validation with better error tracking
+        const validPubkeys: LinkedPubkey[] = [];
+        const invalidPubkeys: string[] = [];
+
+        data.pubkeys.forEach((pubkey: string) => {
+          if (typeof pubkey !== 'string' || !isValidPubkey(pubkey)) {
+            console.warn("Invalid pubkey format in response", { 
+              pubkey: typeof pubkey === 'string' ? `${pubkey.slice(0, 8)}...` : 'non-string',
+              type: typeof pubkey,
+              length: typeof pubkey === 'string' ? pubkey.length : 'N/A'
+            });
+            invalidPubkeys.push(String(pubkey));
+          } else {
+            validPubkeys.push({ pubkey, profile: undefined });
           }
-          return {
-            pubkey,
-            profile: null
-          };
-        }).filter(Boolean) as LinkedPubkey[];
+        });
+
+        // Log invalid pubkeys for monitoring, but don't fail the request unless all are invalid
+        if (invalidPubkeys.length > 0) {
+          console.warn(`Found ${invalidPubkeys.length} invalid pubkeys in API response`, {
+            invalidCount: invalidPubkeys.length,
+            validCount: validPubkeys.length,
+            userId: firebaseUser.uid
+          });
+          
+          // Only throw if ALL pubkeys are invalid (likely a systematic issue)
+          if (validPubkeys.length === 0 && data.pubkeys.length > 0) {
+            throw new Error(`All ${invalidPubkeys.length} pubkeys in response are invalid`);
+          }
+        }
+
+        return validPubkeys;
       } catch (error) {
-        console.warn('Failed to fetch linked pubkeys', { 
+        // Enhanced structured logging with more context
+        console.error('Failed to fetch linked pubkeys', { 
           userId: firebaseUser?.uid,
           errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          hasAuth: !!firebaseUser
+          errorMessage: error instanceof Error ? error.message : String(error),
+          hasAuth: !!firebaseUser,
+          timestamp: new Date().toISOString()
         });
         throw error; // Re-throw to let React Query handle retry logic
       }
     },
     enabled: !!firebaseUser,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    ...cacheConfig,
     retry: (failureCount, error) => {
       // Don't retry auth errors
       if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
@@ -148,7 +187,6 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
       if (!email || !firebaseUser) return [];
 
       try {
-        const API_BASE_URL = getApiBaseUrl();
         
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // Force refresh ensures the token is valid for this specific request
@@ -164,8 +202,10 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
         });
 
         if (!response.ok) {
+          const status = response.status;
           const errorText = await response.text();
-          throw new Error(`Failed to fetch linked pubkeys for email lookup by user ${firebaseUser.uid}: ${response.status} ${response.statusText} - ${errorText}`);
+          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
+          throw new Error(`Email lookup failed: ${errorMessage} - ${errorText} (User: ${firebaseUser.uid})`);
         }
 
         const data = await response.json();
@@ -186,19 +226,34 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
               // 3. Use a different pattern that doesn't violate hook rules
               return { 
                 pubkey, 
-                profile: null // Profile data will be fetched by components as needed
+                profile: undefined // Profile data will be fetched by components as needed
               };
             } catch (profileError) {
-              // Use structured logging for profile fetch errors
+              // Enhanced structured logging for profile fetch errors with more context
+              console.warn('Failed to fetch profile for pubkey', {
+                pubkeyPrefix: pubkey.slice(0, 8),
+                errorType: profileError instanceof Error ? profileError.constructor.name : 'Unknown',
+                errorMessage: profileError instanceof Error ? profileError.message : String(profileError),
+                timestamp: new Date().toISOString()
+              });
               logAuthError('profile-fetch', profileError, undefined, pubkey);
-              return { pubkey, profile: null };
+              return { pubkey, profile: undefined };
             }
           })
         );
 
         return pubkeysWithProfiles;
       } catch (error) {
-        console.error('Failed to fetch linked pubkeys for email:', email ? 'provided' : 'missing', error);
+        // Enhanced logging with better debugging context while maintaining privacy
+        const emailDomain = email ? email.split('@')[1] || 'unknown' : 'missing';
+        console.error('Failed to fetch linked pubkeys for email lookup', { 
+          emailDomain,
+          emailProvided: !!email,
+          userId: firebaseUser?.uid,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        });
         // Re-throw the error so React Query can handle it properly
         // This allows UI components to show error states instead of silently failing
         throw error;
@@ -217,15 +272,12 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
 }
 
 /**
- * Hook to get linked pubkeys (alias for useLinkedPubkeys with consistent interface)
+ * Hook to get linked pubkeys with profiles interface (compatibility layer)
  * 
- * Note: Despite the historical name, this hook does NOT automatically load profiles.
- * Profile loading should be implemented in the consuming component using separate
- * useAuthor hooks to avoid React Hook rules violations.
- * 
- * @param firebaseUser - Firebase user for authentication
- * @returns React Query result with linked pubkeys array (without profiles)
- * @deprecated Use useLinkedPubkeys directly for clarity
+ * @param firebaseUser - Firebase user object with getIdToken method
+ * @returns React Query result with linked pubkeys array
+ * @remarks Despite the name, profiles are not loaded automatically. Use separate useAuthor hooks in components.
+ * @deprecated Use useLinkedPubkeys directly for clarity - this hook is misleading as it doesn't load profiles
  */
 export function useLinkedPubkeysWithProfiles(firebaseUser?: FirebaseUser) {
   const { data: linkedPubkeys = [], ...query } = useLinkedPubkeys(firebaseUser);
