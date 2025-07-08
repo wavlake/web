@@ -1,7 +1,11 @@
 import { createRoot } from 'react-dom/client'
+import { initializeSentry } from './lib/sentry'
 
 import App from './App.tsx'
 import './index.css'
+
+// Initialize Sentry error monitoring
+initializeSentry();
 
 // Enhanced service worker registration for PWA and push notifications
 if ('serviceWorker' in navigator) {

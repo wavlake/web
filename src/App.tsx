@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { JoinDialogProvider } from "@/components/groups/JoinDialogProvider";
 import { WalletLoader } from "@/components/WalletLoader";
 import { GlobalAudioPlayer } from "@/components/audio/GlobalAudioPlayer";
+import { SentryErrorBoundary } from "@/components/SentryErrorBoundary";
 
 // DO NOT MODIFY THIS LIST UNLESS YOU ARE ABSOLUTELY CERTAIN EACH RELAY URL YOU ARE ADDING IS VALID AND THE RELAY IS CURRENTLY ONLINE AND CONFIRMED TO BE FULLY FUNCTIONAL AND WORKING.
 const defaultRelays = [
@@ -31,23 +32,25 @@ const queryClient = new QueryClient({
 
 export function App() {
   return (
-    <ThemeProvider>
-      <NostrLoginProvider storageKey="nostr:login">
-        <NostrProvider relays={defaultRelays}>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <JoinDialogProvider>
-                <WalletLoader />
-                <GlobalAudioPlayer />
-                <Toaster />
-                <Sonner />
-                <AppRouter />
-              </JoinDialogProvider>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </NostrProvider>
-      </NostrLoginProvider>
-    </ThemeProvider>
+    <SentryErrorBoundary>
+      <ThemeProvider>
+        <NostrLoginProvider storageKey="nostr:login">
+          <NostrProvider relays={defaultRelays}>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <JoinDialogProvider>
+                  <WalletLoader />
+                  <GlobalAudioPlayer />
+                  <Toaster />
+                  <Sonner />
+                  <AppRouter />
+                </JoinDialogProvider>
+              </TooltipProvider>
+            </QueryClientProvider>
+          </NostrProvider>
+        </NostrLoginProvider>
+      </ThemeProvider>
+    </SentryErrorBoundary>
   );
 }
 
