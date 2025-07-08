@@ -2,6 +2,9 @@
  * Utility functions for handling Nostr pubkey formatting and display
  */
 
+// Cached regex pattern for pubkey validation to improve performance
+const PUBKEY_REGEX = /^[0-9a-fA-F]{64}$/;
+
 /**
  * Truncates a pubkey for safe display in logs and UI
  * @param pubkey - The full pubkey string
@@ -11,6 +14,11 @@
  */
 export function truncatePubkey(pubkey: string | null | undefined, startChars: number = 8, endChars: number = 8): string {
   if (!pubkey || typeof pubkey !== 'string' || pubkey.length < startChars + endChars) {
+    return 'invalid-pubkey';
+  }
+  
+  // Validate pubkey format for security
+  if (!isValidPubkey(pubkey)) {
     return 'invalid-pubkey';
   }
   
@@ -28,14 +36,42 @@ export function isValidPubkey(pubkey: string | null | undefined): boolean {
   }
   
   // Basic validation: should be 64 character hex string
-  return /^[0-9a-fA-F]{64}$/.test(pubkey);
+  return PUBKEY_REGEX.test(pubkey);
 }
 
 /**
- * Safely extracts display name from profile data
- * @param profile - The profile object
+ * Profile interface for display name extraction
+ */
+export interface ProfileWithName {
+  name?: string;
+  display_name?: string;
+}
+
+/**
+ * Sanitizes a name field for safe display, removing potentially dangerous characters
+ * @param name - The name string to sanitize
+ * @returns Sanitized name string
+ */
+function sanitizeName(name: string): string {
+  return name
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .trim()
+    .substring(0, 100); // Limit length
+}
+
+/**
+ * Safely extracts display name from profile data with sanitization
+ * @param profile - The profile object with name fields
  * @returns Display name or fallback
  */
-export function getDisplayName(profile?: { name?: string; display_name?: string } | null): string {
-  return profile?.name || profile?.display_name || 'Unnamed Account';
+export function getDisplayName(profile?: ProfileWithName | null): string {
+  const name = profile?.name || profile?.display_name;
+  
+  if (!name || typeof name !== 'string') {
+    return 'Unnamed Account';
+  }
+  
+  const sanitizedName = sanitizeName(name);
+  return sanitizedName || 'Unnamed Account';
 }
