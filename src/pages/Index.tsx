@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import LoginDialog from "@/components/auth/LoginDialog";
+import CompositeLoginDialog from "@/components/auth/CompositeLoginDialog";
 import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { generateFakeName } from "@/lib/utils";
@@ -222,7 +222,7 @@ const Index = () => {
             </div>
           )}
         </div>
-        <LoginDialog
+        <CompositeLoginDialog
           isOpen={loginOpen}
           onClose={() => setLoginOpen(false)}
           onLogin={handleLogin}

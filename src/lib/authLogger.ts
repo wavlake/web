@@ -4,11 +4,7 @@
  */
 
 import { truncatePubkey } from './pubkeyUtils';
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-}
+import { FirebaseUser } from '@/types/auth';
 
 /**
  * Context object for authentication logging operations.
@@ -40,6 +36,13 @@ interface AuthLogContext {
 
 /**
  * Sanitizes log context to prevent sensitive data exposure
+ * 
+ * Security considerations:
+ * - Truncates pubkeys to prevent full key exposure in logs
+ * - Sanitizes email addresses to show only domain
+ * - Filters out functions and complex objects
+ * - Prevents sensitive data from reaching external log services
+ * 
  * @param context - The raw context object
  * @returns Sanitized context safe for logging
  */

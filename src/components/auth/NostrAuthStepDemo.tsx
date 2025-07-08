@@ -7,8 +7,8 @@
  * - Error handling and user feedback patterns
  * - Integration with existing authentication hooks
  * 
- * Production usage: This component should be replaced with CompositeLoginDialog
- * for the full enhanced authentication flow implementation.
+ * Production usage: This is a demo component. Use CompositeLoginDialog directly
+ * for the full enhanced authentication flow in production applications.
  */
 
 import React, { useState } from "react";
@@ -38,30 +38,20 @@ export const NostrAuthStepDemo: React.FC<NostrAuthStepDemoProps> = ({
   mockFirebaseUser,
   expectedPubkey
 }) => {
-  // In production, this would come from a Firebase authentication context/hook
-  const [firebaseUser] = useState<FirebaseUser | undefined>(mockFirebaseUser);
-  
   // Fetch linked pubkeys for the authenticated Firebase user
-  const { data: linkedPubkeys = [] } = useLinkedPubkeysWithProfiles(firebaseUser);
-
-  const handleBack = () => {
-    onClose();
-  };
-
-  const handleSuccess = (login: NLoginType) => {
-    // Authentication successful - notify parent component
-    onSuccess(login);
-    onClose();
-  };
+  const { data: linkedPubkeys = [] } = useLinkedPubkeysWithProfiles(mockFirebaseUser);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <NostrAuthStep
-        firebaseUser={firebaseUser}
+        firebaseUser={mockFirebaseUser}
         linkedPubkeys={linkedPubkeys}
         expectedPubkey={expectedPubkey}
-        onSuccess={handleSuccess}
-        onBack={handleBack}
+        onSuccess={(login) => {
+          onSuccess(login);
+          onClose();
+        }}
+        onBack={onClose}
         enableAutoLink={true}
       />
     </Dialog>

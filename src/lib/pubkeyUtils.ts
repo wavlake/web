@@ -2,6 +2,8 @@
  * Utility functions for handling Nostr pubkey formatting and display
  */
 
+import type { NostrProfile } from "@/types/auth";
+
 // Cached regex pattern for pubkey validation to improve performance
 const PUBKEY_REGEX = /^[0-9a-fA-F]{64}$/;
 
@@ -30,21 +32,21 @@ export function truncatePubkey(pubkey: string | null | undefined, startChars: nu
 }
 
 /**
- * Validates if a string is a valid Nostr pubkey format
+ * Validates if a string is a valid Nostr pubkey format (32-byte hex encoded public key)
  * @param pubkey - The pubkey string to validate
- * @returns true if valid pubkey format, false otherwise
+ * @returns true if valid pubkey format (64 character hex string), false otherwise
  */
 export function isValidPubkey(pubkey: string | null | undefined): boolean {
   if (!pubkey || typeof pubkey !== 'string') {
     return false;
   }
   
-  // Basic validation: should be 64 character hex string
+  // Basic validation: should be 64 character hex string (32 bytes in hex)
   return PUBKEY_REGEX.test(pubkey);
 }
 
 /**
- * Profile interface for display name extraction
+ * Profile interface for display name extraction (legacy support)
  */
 export interface ProfileWithName {
   name?: string;
@@ -66,17 +68,28 @@ function sanitizeName(name: string): string {
 }
 
 /**
- * Safely extracts display name from profile data with sanitization
- * @param profile - The profile object with name fields
- * @returns Display name or fallback
+ * Safely extracts display name from profile data, preferring 'name' over 'display_name'
+ * @param profile - The profile object containing optional name fields
+ * @returns name > display_name > 'Unnamed Account'
  */
-export function getDisplayName(profile?: ProfileWithName | null): string {
-  const name = profile?.name || profile?.display_name;
-  
-  if (!name || typeof name !== 'string') {
+export function getDisplayName(profile?: NostrProfile | ProfileWithName | null): string {
+  if (!profile) {
     return UNNAMED_ACCOUNT_DISPLAY;
   }
+
+  // Get name with trimming for NostrProfile types
+  const name = profile.name?.trim?.() || profile.name;
+  const displayName = profile.display_name?.trim?.() || profile.display_name;
   
-  const sanitizedName = sanitizeName(name);
-  return sanitizedName || UNNAMED_ACCOUNT_DISPLAY;
+  if (name && typeof name === 'string') {
+    const sanitizedName = sanitizeName(name);
+    if (sanitizedName) return sanitizedName;
+  }
+  
+  if (displayName && typeof displayName === 'string') {
+    const sanitizedDisplayName = sanitizeName(displayName);
+    if (sanitizedDisplayName) return sanitizedDisplayName;
+  }
+  
+  return UNNAMED_ACCOUNT_DISPLAY;
 }
