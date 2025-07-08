@@ -156,6 +156,36 @@ const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
  * - Optional profile data fetching with efficient batching
  * - Comprehensive error handling with categorized error types
  * 
+ * @example
+ * ```tsx
+ * // Basic usage
+ * const { data: linkedPubkeys, isLoading, error } = useLinkedPubkeys(firebaseUser);
+ * 
+ * if (isLoading) return <div>Loading linked accounts...</div>;
+ * if (error) return <div>Error: {error.message}</div>;
+ * 
+ * return (
+ *   <div>
+ *     <h3>Linked Accounts ({linkedPubkeys.length})</h3>
+ *     {linkedPubkeys.map(pubkey => (
+ *       <div key={pubkey.pubkey}>
+ *         {pubkey.pubkey.slice(0, 8)}... {pubkey.isPrimary && '(Primary)'}
+ *       </div>
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom configuration
+ * const { data, invalidate, primaryPubkey } = useLinkedPubkeys(firebaseUser, {
+ *   staleTime: 5 * 60 * 1000, // 5 minutes
+ *   enableBackgroundRefetch: false,
+ *   retryConfig: { maxRetries: 1, retryDelay: 500 }
+ * });
+ * ```
+ * 
  * @param firebaseUser - Firebase user object with getIdToken method
  * @param options - Configuration options for hook behavior
  * @returns Enhanced hook result with comprehensive state management
@@ -326,6 +356,10 @@ export function useLinkedPubkeys(
 
 /**
  * Hook to fetch linked pubkeys by email (legacy support)
+ * 
+ * @deprecated This function is incomplete and should not be used in production.
+ * Use useLinkedPubkeys() with a Firebase user instead for secure authentication.
+ * 
  * @param email - Email address to fetch linked pubkeys for
  * @returns React Query result with linked pubkeys array
  */
@@ -435,6 +469,28 @@ export function useLinkedPubkeysWithProfiles(
  * 
  * This hook provides a convenient interface for components that need to
  * check linking status and perform linking operations.
+ * 
+ * @example
+ * ```tsx
+ * const { 
+ *   hasLinkedPubkeys, 
+ *   linkedCount, 
+ *   hasMultipleAccounts,
+ *   primaryPubkey 
+ * } = useAccountLinkingStatus(firebaseUser);
+ * 
+ * if (!hasLinkedPubkeys) {
+ *   return <div>No linked Nostr accounts found. <LinkAccountButton /></div>;
+ * }
+ * 
+ * return (
+ *   <div>
+ *     <p>You have {linkedCount} linked account{linkedCount > 1 ? 's' : ''}</p>
+ *     {hasMultipleAccounts && <AccountSelector />}
+ *     {primaryPubkey && <p>Primary: {primaryPubkey.pubkey.slice(0, 8)}...</p>}
+ *   </div>
+ * );
+ * ```
  * 
  * @param firebaseUser - Firebase user to check linking status for
  * @returns Object with linking status and utility functions
