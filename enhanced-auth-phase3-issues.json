@@ -1,0 +1,43 @@
+{
+  "phase": "Phase 3: Upload Flow Integration",
+  "description": "Just-in-time linking prompts for upload and group creation flows",
+  "estimatedTime": "0.5 weeks",
+  "issues": [
+    {
+      "id": 14,
+      "title": "Create UploadRequiredDialog component",
+      "description": "Create UploadRequiredDialog.tsx - Lightweight dialog that prompts users to link their accounts when attempting to upload content. This provides just-in-time linking with clear value proposition and easy cancellation.",
+      "labels": ["enhancement", "authentication", "frontend", "upload"],
+      "priority": "high",
+      "type": "component",
+      "deliverable": "UploadRequiredDialog.tsx"
+    },
+    {
+      "id": 15,
+      "title": "Update upload components for linking detection",
+      "description": "Update upload components - Add linking detection before uploads and integrate with UploadRequiredDialog to ensure only linked accounts can upload content. Maintain smooth user experience with clear guidance.",
+      "labels": ["enhancement", "authentication", "frontend", "upload"],
+      "priority": "high",
+      "type": "update",
+      "deliverable": "Updated upload components"
+    },
+    {
+      "id": 16,
+      "title": "Create useUploadWithLinking hook",
+      "description": "Create useUploadWithLinking.ts hook - Upload flow integration that checks account linking status and guides users through linking process when needed. Handles the coordination between upload attempts and account requirements.",
+      "labels": ["enhancement", "authentication", "frontend", "hooks", "upload"],
+      "priority": "medium",
+      "type": "hook",
+      "deliverable": "useUploadWithLinking.ts"
+    },
+    {
+      "id": 17,
+      "title": "Add group creation linking detection",
+      "description": "Add linking detection to group creation flows - Ensure group creation requires linked accounts and prompt users for linking when needed. Integrate with existing group creation components smoothly.",
+      "labels": ["enhancement", "authentication", "frontend", "groups"],
+      "priority": "medium",
+      "type": "enhancement",
+      "deliverable": "Enhanced group creation flow"
+    }
+  ]
+}
