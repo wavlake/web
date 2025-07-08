@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthor } from "@/hooks/useAuthor";
+import { FirebaseUser } from "@/types/auth";
+
+// Cache duration constants
+const CACHE_STALE_TIME = 10 * 60 * 1000; // 10 minutes
+const CACHE_GC_TIME = 30 * 60 * 1000; // 30 minutes
+const MAX_RETRIES = 2;
 
 interface LinkedPubkey {
   pubkey: string;
@@ -11,22 +17,30 @@ interface LinkedPubkey {
   };
 }
 
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
-}
-
+/**
+ * Gets the API base URL from environment variables with validation
+ * @returns API base URL string
+ * @throws {Error} If VITE_NEW_API_URL is not configured or doesn't use HTTPS
+ */
 const getApiBaseUrl = (): string => {
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
   if (!configuredUrl) {
-    console.error("VITE_NEW_API_URL environment variable is not configured");
+    console.error("Configuration Error: VITE_NEW_API_URL environment variable is not configured", {
+      error: "missing_env_var",
+      variable: "VITE_NEW_API_URL",
+      context: "useLinkedPubkeys"
+    });
     throw new Error("API URL not configured");
   }
   
   // Enforce HTTPS for security
   if (!configuredUrl.startsWith('https://')) {
-    console.error("API URL must use HTTPS protocol for security", { url: configuredUrl });
+    console.error("Configuration Error: API URL must use HTTPS protocol for security", {
+      error: "invalid_protocol",
+      configuredUrl,
+      expectedProtocol: "https://",
+      context: "useLinkedPubkeys"
+    });
     throw new Error("API URL must use HTTPS protocol");
   }
   
@@ -103,14 +117,20 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
       }
     },
     enabled: !!firebaseUser,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    staleTime: CACHE_STALE_TIME,
+    gcTime: CACHE_GC_TIME,
     retry: (failureCount, error) => {
-      // Don't retry auth errors
-      if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
-        return false;
+      // Don't retry auth errors - check for specific status codes
+      if (error instanceof Error) {
+        const isAuthError = error.message.includes('Authentication expired') || 
+                           error.message.includes('Access denied') ||
+                           error.message.includes('status 401') ||
+                           error.message.includes('status 403');
+        if (isAuthError) {
+          return false;
+        }
       }
-      return failureCount < 2;
+      return failureCount < MAX_RETRIES;
     },
   });
 }
@@ -118,32 +138,24 @@ export function useLinkedPubkeys(firebaseUser?: FirebaseUser) {
 /**
  * Hook to fetch linked pubkeys by email (legacy support)
  * @param email - Email address to fetch linked pubkeys for
+ * @param firebaseUser - Firebase user for authentication
  * @returns React Query result with linked pubkeys array
  */
-export function useLinkedPubkeysByEmail(email: string) {
+export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUser) {
   return useQuery({
-    queryKey: ['linked-pubkeys-email', email],
+    queryKey: ['linked-pubkeys-email', email, firebaseUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
-      if (!email) return [];
+      if (!email || !firebaseUser) return [];
 
       try {
         const API_BASE_URL = getApiBaseUrl();
-        // TODO: Backend implementation needed for production
-        // This endpoint requires backend implementation to:
-        // 1. Validate Firebase auth token
-        // 2. Query database for pubkeys linked to the email
-        // 3. Return array of linked pubkeys with security controls
-        // API endpoint: POST /auth/get-linked-pubkeys
-        // Request body: { email: string }
-        // Response: { success: boolean, pubkeys: string[], error?: string }
-        // Headers: Authorization: Bearer <firebase-token>
+        const firebaseToken = await firebaseUser.getIdToken();
+        
         const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // TODO: Add Firebase auth token for security
-            // This requires implementing getAuth().currentUser?.getIdToken()
-            // Authorization: `Bearer ${firebaseToken}`
+            'Authorization': `Bearer ${firebaseToken}`
           },
           body: JSON.stringify({ email })
         });
@@ -188,12 +200,30 @@ export function useLinkedPubkeysByEmail(email: string) {
         throw error;
       }
     },
-    enabled: !!email,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: !!email && !!firebaseUser,
+    staleTime: CACHE_STALE_TIME,
+    gcTime: CACHE_GC_TIME,
+    retry: (failureCount, error) => {
+      // Don't retry auth errors - check for specific status codes
+      if (error instanceof Error) {
+        const isAuthError = error.message.includes('Authentication expired') || 
+                           error.message.includes('Access denied') ||
+                           error.message.includes('status 401') ||
+                           error.message.includes('status 403');
+        if (isAuthError) {
+          return false;
+        }
+      }
+      return failureCount < MAX_RETRIES;
+    },
   });
 }
 
-// Hook to get linked pubkeys with their profiles loaded
+/**
+ * Hook to get linked pubkeys with their profiles loaded
+ * @param firebaseUser - Firebase user object with getIdToken method
+ * @returns React Query result with linked pubkeys array (profiles loaded separately)
+ */
 export function useLinkedPubkeysWithProfiles(firebaseUser?: FirebaseUser) {
   const { data: linkedPubkeys = [], ...query } = useLinkedPubkeys(firebaseUser);
   

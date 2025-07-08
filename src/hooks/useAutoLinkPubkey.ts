@@ -4,23 +4,7 @@ import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
 import { logAuthSuccess, logAuthError } from "@/lib/authLogger";
 import { isValidPubkey } from "@/lib/pubkeyUtils";
-
-interface FirebaseUser {
-  uid: string;
-  email: string | null;
-  getIdToken: () => Promise<string>;
-}
-
-interface NostrSigner {
-  // Define signer interface if needed
-  [key: string]: unknown;
-}
-
-interface AutoLinkResult {
-  success: boolean;
-  message?: string;
-  error?: Error;
-}
+import { FirebaseUser, NostrSigner, AutoLinkResult } from "@/types/auth";
 
 /**
  * Hook for automatically linking Firebase accounts with Nostr pubkeys
