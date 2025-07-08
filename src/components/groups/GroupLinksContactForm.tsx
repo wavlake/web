@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,7 +56,7 @@ export function GroupLinksContactForm({ group, communityId }: GroupLinksContactF
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Extract current metadata from group event tags
-  const extractCurrentMetadata = (): GroupLinksContactFormData => {
+  const extractCurrentMetadata = useCallback((): GroupLinksContactFormData => {
     const tags = group.tags;
     
     // Helper to find tag value
@@ -91,7 +91,7 @@ export function GroupLinksContactForm({ group, communityId }: GroupLinksContactF
         facebook: getTagValue("facebook"),
       },
     };
-  };
+  }, [group]);
 
   const form = useForm<GroupLinksContactFormData>({
     resolver: zodResolver(groupLinksContactSchema),
@@ -102,7 +102,7 @@ export function GroupLinksContactForm({ group, communityId }: GroupLinksContactF
   useEffect(() => {
     const metadata = extractCurrentMetadata();
     form.reset(metadata);
-  }, [group.id, form]);
+  }, [group.id, form, extractCurrentMetadata]);
 
   const addLink = () => {
     const currentLinks = form.getValues("links");
