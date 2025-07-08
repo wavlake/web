@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createNip98AuthHeader } from "@/lib/nip98Auth";
+import type { NostrEvent } from "@nostrify/nostrify";
 import type {
   LegacyMetadataResponse,
   LegacyTracksResponse,
@@ -10,6 +11,16 @@ import type {
   LegacyAlbumTracksResponse,
 } from "@/types/legacyApi";
 
+// Type for Nostr signer with NIP-44 support
+interface NostrSigner {
+  getPublicKey: () => Promise<string>;
+  signEvent: (event: NostrEvent) => Promise<NostrEvent>;
+  nip44?: {
+    encrypt: (pubkey: string, plaintext: string) => Promise<string>;
+    decrypt: (pubkey: string, ciphertext: string) => Promise<string>;
+  };
+}
+
 // Base API URL for the new API
 const API_BASE_URL =
   import.meta.env.VITE_NEW_API_URL || "http://localhost:8082/v1";
@@ -17,7 +28,7 @@ const API_BASE_URL =
 /**
  * Helper function to make authenticated requests to legacy API using NIP-98
  */
-async function fetchLegacyApi<T>(endpoint: string, signer: any): Promise<T> {
+async function fetchLegacyApi<T>(endpoint: string, signer: NostrSigner): Promise<T> {
   if (!signer) {
     throw new Error("No Nostr signer available");
   }
