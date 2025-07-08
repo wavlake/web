@@ -45,6 +45,7 @@ export interface CommunityContextValue {
   getCommunityId: (community: Community) => string;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CommunityContext = createContext<
   CommunityContextValue | undefined
 >(undefined);
