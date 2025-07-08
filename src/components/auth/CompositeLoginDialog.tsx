@@ -33,6 +33,7 @@ type AuthStep = 'choice' | 'nostr' | 'firebase';
 interface FirebaseUser {
   uid: string;
   email: string | null;
+  getIdToken: () => Promise<string>;
 }
 
 /**
@@ -64,7 +65,7 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   const { syncProfile } = useProfileSync();
   
   // Fetch linked pubkeys when we have a Firebase user
-  const { data: linkedPubkeys = [] } = useLinkedPubkeys(firebaseUser?.email || '');
+  const { data: linkedPubkeys = [] } = useLinkedPubkeys(firebaseUser || undefined);
 
   /**
    * Handles user selection from the login choice step with proper enum validation
@@ -143,7 +144,8 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
     if (currentUser) {
       const user = {
         uid: currentUser.uid,
-        email: currentUser.email
+        email: currentUser.email,
+        getIdToken: () => currentUser.getIdToken()
       };
       setFirebaseUser(user);
       // Proceed to Nostr auth step with Firebase user context
