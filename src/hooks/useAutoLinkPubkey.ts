@@ -3,7 +3,7 @@ import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
 import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
 import { logAuthSuccess, logAuthError } from "@/lib/authLogger";
-import { isValidPubkey } from "@/lib/pubkeyUtils";
+import { isValidPubkey, validatePubkeyOrThrow } from "@/lib/pubkeyUtils";
 
 interface FirebaseUser {
   uid: string;
@@ -132,9 +132,24 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
   });
 
   // Performance optimization: track recent linking attempts to prevent duplicates
-  const recentAttempts = useRef<Map<string, number>>(new Map());
+  const recentAttempts = useRef<Map<string, { timestamp: number; accessed: number }>>(new Map());
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout>();
 
+  /**
+   * Clears all timeouts to prevent memory leaks
+   */
+  const clearAllTimeouts = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
+      cleanupTimeoutRef.current = undefined;
+    }
+  }, []);
+  
   /**
    * Clears the linking timeout if it exists.
    * 
@@ -148,22 +163,22 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     }
   }, []);
 
-  // Memoize error patterns for performance optimization
-  const errorPatterns = useMemo(() => ({
-    'rate_limit': ['rate limit', '429', 'too many requests'],
-    'network': ['network', 'fetch', 'connection', 'offline'],
-    'timeout': ['timeout', 'aborted', 'request timeout'],
-    'validation': ['invalid', 'validation', 'bad request', '400'],
-    'duplicate': ['duplicate', 'already linked', 'already exists'],
-    'permission': ['permission', 'unauthorized', 'forbidden', '401', '403'],
-    'unknown': []
-  } as Record<AutoLinkErrorType, string[]>), []);
+  // Memoize error patterns with priority ordering for optimal categorization
+  const errorPatterns = useMemo(() => [
+    { type: 'permission' as AutoLinkErrorType, patterns: ['unauthorized', 'forbidden', '401', '403', 'permission'] },
+    { type: 'rate_limit' as AutoLinkErrorType, patterns: ['rate limit', '429', 'too many requests'] },
+    { type: 'timeout' as AutoLinkErrorType, patterns: ['timeout', 'aborted', 'request timeout'] },
+    { type: 'validation' as AutoLinkErrorType, patterns: ['invalid', 'validation', 'bad request', '400'] },
+    { type: 'duplicate' as AutoLinkErrorType, patterns: ['duplicate', 'already linked', 'already exists'] },
+    { type: 'network' as AutoLinkErrorType, patterns: ['network', 'fetch', 'connection', 'offline'] },
+  ], []);
 
   /**
-   * Categorizes errors into specific types for appropriate handling.
+   * Categorizes errors into specific types for appropriate handling using priority-based matching.
    * 
    * This function analyzes error messages to determine the appropriate error type,
-   * which is used for retry logic and user-friendly error messages.
+   * which is used for retry logic and user-friendly error messages. Error types are
+   * matched in priority order to ensure accurate categorization.
    * 
    * @param error - The error to categorize
    * @returns The categorized error type
@@ -173,10 +188,10 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     
     const message = error.message.toLowerCase();
     
-    // Find matching error type using memoized patterns
-    for (const [errorType, patterns] of Object.entries(errorPatterns)) {
-      if (errorType !== 'unknown' && patterns.some(pattern => message.includes(pattern))) {
-        return errorType as AutoLinkErrorType;
+    // Find matching error type using priority-ordered patterns
+    for (const { type, patterns } of errorPatterns) {
+      if (patterns.some(pattern => message.includes(pattern))) {
+        return type;
       }
     }
     
@@ -247,38 +262,80 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
    */
   const hasRecentAttempt = useCallback((firebaseUser: FirebaseUser, pubkey?: string): boolean => {
     const key = createAttemptKey(firebaseUser.uid, pubkey);
-    const lastAttempt = recentAttempts.current.get(key);
+    const attemptData = recentAttempts.current.get(key);
     
-    if (!lastAttempt) return false;
+    if (!attemptData) return false;
     
-    // Consider attempts within the last 2 minutes as recent (reduced from 5 minutes)
+    // Update access time for LRU behavior
+    attemptData.accessed = Date.now();
+    
+    // Consider attempts within the last 2 minutes as recent
     const twoMinutesAgo = Date.now() - (2 * 60 * 1000);
-    return lastAttempt > twoMinutesAgo;
+    return attemptData.timestamp > twoMinutesAgo;
   }, []);
 
   /**
-   * Records a linking attempt to prevent duplicates with optimized cleanup
+   * Automatically cleans up expired cache entries
    */
-  const recordAttempt = useCallback((firebaseUser: FirebaseUser, pubkey?: string) => {
-    const key = createAttemptKey(firebaseUser.uid, pubkey);
-    recentAttempts.current.set(key, Date.now());
+  const scheduleCleanup = useCallback(() => {
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
+    }
     
-    // Optimized cleanup strategy - batch deletion for better performance
-    if (recentAttempts.current.size > 50) {
-      const cutoff = Date.now() - (30 * 60 * 1000); // 30 minutes ago
-      const keysToDelete: string[] = [];
+    cleanupTimeoutRef.current = setTimeout(() => {
+      const now = Date.now();
+      const expiredCutoff = now - (30 * 60 * 1000); // 30 minutes
+      const accessCutoff = now - (10 * 60 * 1000); // 10 minutes since last access
       
-      // Collect keys to delete first
-      for (const [k, timestamp] of recentAttempts.current.entries()) {
-        if (timestamp < cutoff) {
-          keysToDelete.push(k);
+      // Use iterator for efficient deletion during iteration
+      for (const [key, { timestamp, accessed }] of recentAttempts.current.entries()) {
+        if (timestamp < expiredCutoff || accessed < accessCutoff) {
+          recentAttempts.current.delete(key);
         }
       }
       
-      // Batch delete for better performance
-      keysToDelete.forEach(k => recentAttempts.current.delete(k));
-    }
+      // Schedule next cleanup if cache is not empty
+      if (recentAttempts.current.size > 0) {
+        scheduleCleanup();
+      }
+    }, 5 * 60 * 1000); // Cleanup every 5 minutes
   }, []);
+
+  /**
+   * Records a linking attempt to prevent duplicates with LRU-based cache management
+   */
+  const recordAttempt = useCallback((firebaseUser: FirebaseUser, pubkey?: string) => {
+    const key = createAttemptKey(firebaseUser.uid, pubkey);
+    const now = Date.now();
+    
+    recentAttempts.current.set(key, {
+      timestamp: now,
+      accessed: now
+    });
+    
+    // Implement cache size limit with LRU eviction
+    if (recentAttempts.current.size > 100) {
+      // Find least recently accessed entry
+      let lruKey: string | null = null;
+      let oldestAccess = now;
+      
+      for (const [k, { accessed }] of recentAttempts.current.entries()) {
+        if (accessed < oldestAccess) {
+          oldestAccess = accessed;
+          lruKey = k;
+        }
+      }
+      
+      if (lruKey) {
+        recentAttempts.current.delete(lruKey);
+      }
+    }
+    
+    // Schedule cleanup if not already scheduled
+    if (!cleanupTimeoutRef.current && recentAttempts.current.size === 1) {
+      scheduleCleanup();
+    }
+  }, [scheduleCleanup]);
 
   /**
    * Performs auto-linking with retry logic and comprehensive error handling
@@ -489,19 +546,19 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
 
     // Perform linking with retry logic using sanitized pubkey
     return autoLinkWithRetry(firebaseUser, sanitizedPubkey, signer);
-  }, [hasRecentAttempt, recordAttempt, autoLinkWithRetry]);
+  }, [hasRecentAttempt, recordAttempt, autoLinkWithRetry, config]);
 
   /**
    * Resets the hook state to idle
    */
   const resetState = useCallback(() => {
-    clearLinkingTimeout();
+    clearAllTimeouts();
     setHookState({
       state: 'idle',
       isLinking: false,
       retryCount: 0,
     });
-  }, [clearLinkingTimeout]);
+  }, [clearAllTimeouts]);
 
   /**
    * Clears the last error state
@@ -515,10 +572,11 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     }));
   }, []);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts and cache on unmount
   const cleanup = useCallback(() => {
-    clearLinkingTimeout();
-  }, [clearLinkingTimeout]);
+    clearAllTimeouts();
+    recentAttempts.current.clear();
+  }, [clearAllTimeouts]);
 
   return {
     // Core functionality

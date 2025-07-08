@@ -27,8 +27,37 @@ export function isValidPubkey(pubkey: string | null | undefined): boolean {
     return false;
   }
   
-  // Basic validation: should be 64 character hex string
+  // Enhanced validation: should be exactly 64 character hex string
+  if (pubkey.length !== 64) {
+    return false;
+  }
+  
+  // Validate hex characters only
   return /^[0-9a-fA-F]{64}$/.test(pubkey);
+}
+
+/**
+ * Validates a pubkey and throws a descriptive error if invalid
+ * @param pubkey - The pubkey string to validate
+ * @param context - Optional context for error message
+ * @throws {Error} If pubkey format is invalid
+ */
+export function validatePubkeyOrThrow(pubkey: string | null | undefined, context?: string): asserts pubkey is string {
+  if (!pubkey) {
+    throw new Error(`Pubkey is required${context ? ` for ${context}` : ''}`);
+  }
+  
+  if (typeof pubkey !== 'string') {
+    throw new Error(`Pubkey must be a string${context ? ` for ${context}` : ''}, received: ${typeof pubkey}`);
+  }
+  
+  if (pubkey.length !== 64) {
+    throw new Error(`Invalid pubkey length${context ? ` for ${context}` : ''}: expected 64 characters, got ${pubkey.length}`);
+  }
+  
+  if (!/^[0-9a-fA-F]+$/.test(pubkey)) {
+    throw new Error(`Invalid pubkey format${context ? ` for ${context}` : ''}: must contain only hexadecimal characters (0-9, a-f, A-F)`);
+  }
 }
 
 /**
