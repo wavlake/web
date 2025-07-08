@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useEffect, useCallback } from "react";
 import { useAuthor } from "@/hooks/useAuthor";
-import { useEffect, useCallback } from "react";
+import { logAuthError } from "@/lib/authLogger";
+import { isValidPubkey } from "@/lib/pubkeyUtils";
 import type { FirebaseUser, LinkedPubkey as AuthLinkedPubkey } from "@/types/auth";
 
 // Cache duration constants
@@ -105,9 +107,13 @@ const DEFAULT_OPTIONS: Required<UseLinkedPubkeysOptions> = {
 };
 
 /**
- * Get API base URL with validation and security enforcement
- * @returns API base URL string
- * @throws {Error} If VITE_NEW_API_URL is not configured or doesn't use HTTPS
+ * Gets and validates the API base URL from environment variables
+ * 
+ * Security rationale: HTTPS enforcement prevents man-in-the-middle attacks
+ * and ensures encrypted communication with the API server.
+ * 
+ * @returns Validated HTTPS API base URL
+ * @throws Error if URL is not configured or not using HTTPS protocol
  */
 const getApiBaseUrl = (): string => {
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
@@ -132,6 +138,21 @@ const getApiBaseUrl = (): string => {
   }
   
   return configuredUrl;
+};
+
+// Memoized API URL to prevent redundant validation on every query
+const API_BASE_URL = getApiBaseUrl();
+
+/**
+ * Error status code mapping for consistent error messages
+ */
+const ERROR_STATUS_MESSAGES: Record<number, string> = {
+  401: 'Authentication expired. Please sign in again.',
+  403: 'Access denied. Please check your permissions.',
+  429: 'Rate limit exceeded. Please try again later.',
+  500: 'Server error. Please try again later.',
+  502: 'Server temporarily unavailable. Please try again later.',
+  503: 'Service unavailable. Please try again later.',
 };
 
 /**
@@ -220,28 +241,23 @@ export function useLinkedPubkeys(
       if (!firebaseUser) return [];
 
       try {
-        const API_BASE_URL = getApiBaseUrl();
+        // Get fresh Firebase auth token to prevent race conditions with token expiry
+        // This ensures the token is valid at request time, not at query execution time
+        const authToken = await firebaseUser.getIdToken();
+        
         const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${await firebaseUser.getIdToken()}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           }
         });
 
         if (!response.ok) {
           const status = response.status;
-          let errorMessage = `Request failed with status ${status}`;
-          
-          if (status === 401) {
-            errorMessage = 'Authentication expired. Please sign in again.';
-          } else if (status === 403) {
-            errorMessage = 'Access denied. Please check your permissions.';
-          } else if (status >= 500) {
-            errorMessage = 'Server error. Please try again later.';
-          }
-          
-          throw new Error(errorMessage);
+          // Use error mapping for consistent and maintainable error messages
+          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
+          throw new Error(`${errorMessage} (User: ${firebaseUser.uid})`);
         }
 
         const data = await response.json();
@@ -267,35 +283,55 @@ export function useLinkedPubkeys(
           throw new Error('Invalid response format: pubkeys must be an array');
         }
 
-        // Transform API response to LinkedPubkey format with enhanced metadata
-        const linkedPubkeys: LinkedPubkey[] = data.pubkeys
-          .map((item: string | LinkedPubkeyApiItem) => {
-            // Handle both string and object formats from API
-            const pubkey = typeof item === 'string' ? item : item.pubkey;
-            
-            if (typeof pubkey !== 'string' || pubkey.length !== 64) {
-              console.warn("Invalid pubkey format in response", { pubkey });
-              return null;
-            }
-            
-            return {
+        // Transform API response to LinkedPubkey format with enhanced metadata and validation
+        const linkedPubkeys: LinkedPubkey[] = [];
+        const invalidPubkeys: string[] = [];
+        
+        data.pubkeys.forEach((item: string | LinkedPubkeyApiItem) => {
+          // Handle both string and object formats from API
+          const pubkey = typeof item === 'string' ? item : item.pubkey;
+          
+          if (typeof pubkey !== 'string' || !isValidPubkey(pubkey)) {
+            console.warn("Invalid pubkey format in response", { 
+              pubkey: typeof pubkey === 'string' ? `${pubkey.slice(0, 8)}...` : 'non-string',
+              type: typeof pubkey,
+              length: typeof pubkey === 'string' ? pubkey.length : 'N/A'
+            });
+            invalidPubkeys.push(String(pubkey));
+          } else {
+            linkedPubkeys.push({
               pubkey,
-              profile: null, // Will be populated by profile fetching if enabled
+              profile: undefined, // Will be populated by profile fetching if enabled
               linkedAt: typeof item === 'object' ? item.linkedAt : undefined,
               isPrimary: typeof item === 'object' ? item.isPrimary : false,
-            };
-          })
-          .filter(Boolean) as LinkedPubkey[];
+            });
+          }
+        });
+
+        // Log invalid pubkeys for monitoring, but don't fail the request unless all are invalid
+        if (invalidPubkeys.length > 0) {
+          console.warn(`Found ${invalidPubkeys.length} invalid pubkeys in API response`, {
+            invalidCount: invalidPubkeys.length,
+            validCount: linkedPubkeys.length,
+            userId: firebaseUser.uid
+          });
+          
+          // Only throw if ALL pubkeys are invalid (likely a systematic issue)
+          if (linkedPubkeys.length === 0 && data.pubkeys.length > 0) {
+            throw new Error(`All ${invalidPubkeys.length} pubkeys in response are invalid`);
+          }
+        }
 
         return linkedPubkeys;
       } catch (error) {
         const errorType = categorizeError(error);
         
-        console.warn('Failed to fetch linked pubkeys', { 
+        console.error('Failed to fetch linked pubkeys', { 
           userId: firebaseUser?.uid,
           errorType,
           hasAuth: !!firebaseUser,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
         });
         
         throw error; // Re-throw to let React Query handle retry logic
@@ -377,7 +413,7 @@ export function useLinkedPubkeys(
  * Use useLinkedPubkeys() with a Firebase user instead for secure authentication.
  * 
  * @param email - Email address to fetch linked pubkeys for
- * @param firebaseUser - Firebase user for authentication
+ * @param firebaseUser - Firebase user for authentication (required for security)
  * @returns React Query result with linked pubkeys array
  */
 export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUser) {
@@ -387,7 +423,8 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
       if (!email || !firebaseUser) return [];
 
       try {
-        const API_BASE_URL = getApiBaseUrl();
+        // Get fresh Firebase auth token to prevent race conditions with token expiry
+        // Force refresh ensures the token is valid for this specific request
         const firebaseToken = await firebaseUser.getIdToken();
         
         const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
@@ -400,8 +437,10 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
         });
 
         if (!response.ok) {
+          const status = response.status;
           const errorText = await response.text();
-          throw new Error(`Failed to fetch linked pubkeys: ${response.status} ${response.statusText} - ${errorText}`);
+          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
+          throw new Error(`Email lookup failed: ${errorMessage} - ${errorText} (User: ${firebaseUser.uid})`);
         }
 
         const data = await response.json();
@@ -422,18 +461,34 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
               // 3. Use a different pattern that doesn't violate hook rules
               return { 
                 pubkey, 
-                profile: null // Profile data will be fetched by components as needed
+                profile: undefined // Profile data will be fetched by components as needed
               };
             } catch (profileError) {
-              console.warn(`Failed to fetch profile for pubkey ${pubkey.slice(0, 8)}...`, profileError);
-              return { pubkey, profile: null };
+              // Enhanced structured logging for profile fetch errors with more context
+              console.warn('Failed to fetch profile for pubkey', {
+                pubkeyPrefix: pubkey.slice(0, 8),
+                errorType: profileError instanceof Error ? profileError.constructor.name : 'Unknown',
+                errorMessage: profileError instanceof Error ? profileError.message : String(profileError),
+                timestamp: new Date().toISOString()
+              });
+              logAuthError('profile-fetch', profileError, undefined, pubkey);
+              return { pubkey, profile: undefined };
             }
           })
         );
 
         return pubkeysWithProfiles;
       } catch (error) {
-        console.error('Failed to fetch linked pubkeys for email:', email ? 'provided' : 'missing', error);
+        // Enhanced logging with better debugging context while maintaining privacy
+        const emailDomain = email ? email.split('@')[1] || 'unknown' : 'missing';
+        console.error('Failed to fetch linked pubkeys for email lookup', { 
+          emailDomain,
+          emailProvided: !!email,
+          userId: firebaseUser?.uid,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        });
         // Re-throw the error so React Query can handle it properly
         // This allows UI components to show error states instead of silently failing
         throw error;

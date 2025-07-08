@@ -35,7 +35,7 @@ interface AuthLogContext {
 }
 
 /**
- * Sanitizes log context to prevent sensitive data exposure
+ * Sanitizes log context to prevent sensitive data exposure while preserving debugging utility
  * 
  * Security considerations:
  * - Truncates pubkeys to prevent full key exposure in logs
@@ -44,33 +44,50 @@ interface AuthLogContext {
  * - Prevents sensitive data from reaching external log services
  * 
  * @param context - The raw context object
- * @returns Sanitized context safe for logging
+ * @returns Sanitized context safe for logging with appropriate detail level
  */
 function sanitizeLogContext(context: AuthLogContext): Record<string, string | number | boolean> {
   const sanitized: Record<string, string | number | boolean> = {};
+  const isDevelopment = import.meta.env.DEV;
   
   // Copy safe fields
   if (context.operation) sanitized.operation = context.operation;
   if (context.firebaseUid) sanitized.firebaseUid = context.firebaseUid;
   if (context.linkedPubkeysCount !== undefined) sanitized.linkedPubkeysCount = context.linkedPubkeysCount;
   
-  // Sanitize email - only show domain for privacy
+  // Enhanced email handling - show more detail in development for debugging
   if (context.firebaseEmail) {
     const emailParts = context.firebaseEmail.split('@');
+    if (isDevelopment) {
+      // In development, show first 3 chars + domain for better debugging
+      const localPart = emailParts[0] || '';
+      const domain = emailParts[1] || 'unknown';
+      sanitized.firebaseEmailDebug = `${localPart.slice(0, 3)}***@${domain}`;
+    }
+    // Always include domain for analytics
     sanitized.firebaseEmailDomain = emailParts.length > 1 ? emailParts[1] : 'unknown';
   }
   
-  // Sanitize pubkey
+  // Enhanced pubkey handling with context-aware truncation
   if (context.pubkey) {
     sanitized.pubkey = truncatePubkey(context.pubkey);
+    // Add pubkey length for validation debugging
+    sanitized.pubkeyLength = context.pubkey.length;
+    // Add format validation status
+    sanitized.pubkeyValid = /^[0-9a-fA-F]{64}$/.test(context.pubkey);
   }
   
-  // Handle error safely
+  // Enhanced error handling with more context
   if (context.error) {
-    sanitized.error = typeof context.error === 'string' ? context.error : 'Error object';
+    if (typeof context.error === 'string') {
+      sanitized.error = context.error;
+      sanitized.errorLength = context.error.length;
+    } else {
+      sanitized.error = 'Error object';
+    }
   }
   
-  // Copy other safe fields (avoiding functions and complex objects)
+  // Copy other safe fields with type validation
   Object.keys(context).forEach(key => {
     if (!['operation', 'firebaseUid', 'firebaseEmail', 'pubkey', 'error', 'linkedPubkeysCount'].includes(key)) {
       const value = context[key];
@@ -81,6 +98,34 @@ function sanitizeLogContext(context: AuthLogContext): Record<string, string | nu
   });
   
   return sanitized;
+}
+
+/**
+ * Intelligently truncates stack traces for logging while preserving useful information
+ * Uses line-based truncation instead of arbitrary character limits to maintain readability
+ * @param stackTrace - The full stack trace string
+ * @returns Truncated stack trace that preserves key information
+ */
+function truncateStackTrace(stackTrace: string): string {
+  const lines = stackTrace.split('\n');
+  
+  // Keep the error message line and first 8 stack frames for context
+  const importantLines = lines.slice(0, 9);
+  
+  // For short stack traces, return as-is (using line count instead of character count)
+  if (lines.length <= 10) {
+    return stackTrace;
+  }
+  
+  // Add informative truncation notice
+  const truncated = importantLines.join('\n');
+  const remainingLines = lines.length - importantLines.length;
+  
+  if (remainingLines > 0) {
+    return `${truncated}\n... (${remainingLines} more stack frames truncated - check full logs for complete trace)`;
+  }
+  
+  return truncated;
 }
 
 /**
@@ -138,7 +183,7 @@ export function logAuthError(operation: string, error: unknown, firebaseUser?: F
     errorDetails: {
       name: error instanceof Error ? error.name : 'UnknownError',
       message: errorMessage,
-      stack: errorStack ? errorStack.substring(0, 500) : undefined // Limit stack trace for security
+      stack: errorStack ? truncateStackTrace(errorStack) : undefined
     }
   };
   
