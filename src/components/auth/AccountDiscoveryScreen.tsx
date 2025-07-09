@@ -147,7 +147,11 @@ export function AccountDiscoveryScreen({
               </div>
 
               <CardTitle className="text-center text-xl">
-                {hasLinkedAccounts ? "Choose Your Account" : "Welcome back!"}
+                {hasLegacyProfile
+                  ? hasLinkedAccounts
+                    ? "Choose Your Account"
+                    : "Welcome back!"
+                  : "Welcome to Wavlake!"}
               </CardTitle>
               <CardDescription className="text-center">
                 {hasLinkedAccounts
@@ -159,7 +163,7 @@ export function AccountDiscoveryScreen({
                   : "Let's get you set up with a Nostr account"}
               </CardDescription>
             </CardHeader>
-
+            {/* Account Summary */}
             <CardContent className="space-y-4">
               {/* Error Display */}
               {error && (
@@ -208,15 +212,17 @@ export function AccountDiscoveryScreen({
               {/* Action Buttons */}
               {!isLoading && (
                 <div className="space-y-2 pt-4">
-                  {/* Generate New Account */}
+                  {/* Create New Nostr account */}
                   <Button
                     onClick={onGenerateNewAccount}
-                    variant="outline"
+                    {...(hasLinkedAccounts ? { variant: "outline" } : {})}
                     className="w-full"
                     disabled={isLoading}
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Generate New Account
+                    {hasLinkedAccounts
+                      ? "Create a New Account"
+                      : "Get Started with a New Account"}
                   </Button>
 
                   {/* Use Different Account */}
@@ -229,27 +235,13 @@ export function AccountDiscoveryScreen({
                     <Key className="w-4 h-4 mr-2" />
                     Login with an existing Nostr Account
                   </Button>
-
-                  {/* Empty State CTA */}
-                  {!hasLinkedAccounts && !hasLegacyProfile && (
-                    <Button
-                      onClick={onGenerateNewAccount}
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Get Started with New Account
-                    </Button>
-                  )}
                 </div>
               )}
-
-              {/* Account Summary */}
               {!isLoading && hasLinkedAccounts && (
                 <div className="text-center text-sm text-muted-foreground pt-2">
                   {hasMultipleAccounts
                     ? `Choose from ${linkedAccounts.length} linked accounts`
-                    : "Your linked account is ready to use"}
+                    : "Please select your account to continue"}
                 </div>
               )}
             </CardContent>
