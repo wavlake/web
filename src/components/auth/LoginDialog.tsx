@@ -20,18 +20,26 @@ import {
 } from "@/components/ui/tabs.tsx";
 import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
+import { NostrAvatar } from "../NostrAvatar";
 
 interface LoginDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onLogin: () => void;
+  expectedPubkey?: string; // Optional expected pubkey for specific login flows
+  title?: string; // Optional title for the dialog
+  description?: string; // Optional description for the dialog
 }
 
 const LoginDialog: React.FC<LoginDialogProps> = ({
   isOpen,
   onClose,
   onLogin,
+  expectedPubkey,
+  title,
+  description,
 }) => {
+  // Fetch profile data for the expected pubkey
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
@@ -116,13 +124,19 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
         <DialogHeader className="px-6 pt-6 pb-0 relative">
           <DialogTitle className="text-xl font-semibold text-center">
-            Log in
+            {title || "Log in"}
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground mt-2">
-            Access your account securely with Nostr
+            {description || "Access your account securely with Nostr"}
+            {expectedPubkey && (
+              <NostrAvatar
+                pubkey={expectedPubkey || ""}
+                size={64}
+                includeName
+              />
+            )}
           </DialogDescription>
         </DialogHeader>
-
         <div className="px-6 py-8 space-y-6">
           <Tabs
             defaultValue={"nostr" in window ? "extension" : "key"}
