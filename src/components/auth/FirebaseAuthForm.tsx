@@ -277,17 +277,22 @@ export function FirebaseAuthForm({
               )}
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 {/* Email Field */}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     value={formState.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="your@email.com"
                     disabled={isLoading}
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                     className={
                       formState.fieldErrors.email ? "border-destructive" : ""
                     }
@@ -305,11 +310,13 @@ export function FirebaseAuthForm({
                   <div className="relative">
                     <Input
                       id="password"
+                      name="password"
                       type={formState.showPassword ? "text" : "password"}
                       value={formState.password}
                       onChange={(e) => handlePasswordChange(e.target.value)}
                       placeholder="Enter your password"
                       disabled={isLoading}
+                      autoComplete={formState.mode === "signup" ? "new-password" : "current-password"}
                       className={
                         formState.fieldErrors.password
                           ? "border-destructive pr-10"
@@ -366,6 +373,7 @@ export function FirebaseAuthForm({
                     <div className="relative">
                       <Input
                         id="confirmPassword"
+                        name="confirmPassword"
                         type={
                           formState.showConfirmPassword ? "text" : "password"
                         }
@@ -375,6 +383,7 @@ export function FirebaseAuthForm({
                         }
                         placeholder="Confirm your password"
                         disabled={isLoading}
+                        autoComplete="new-password"
                         className={
                           formState.fieldErrors.confirmPassword
                             ? "border-destructive pr-10"
