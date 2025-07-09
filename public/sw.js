@@ -1,20 +1,67 @@
 // Service Worker for PWA and Push Notifications
 // Enhanced to handle web push notifications as per PRD
 
-// Install event - skip waiting to activate immediately
+const CACHE_NAME = 'wavlake-v1';
+const STATIC_CACHE_URLS = [
+  '/',
+  '/manifest.json',
+  '/favicon-96x96.png',
+  '/web-app-manifest-192x192.png',
+  '/web-app-manifest-512x512.png'
+];
+
+// Install event - cache essential resources
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_CACHE_URLS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-// Activate event - claim clients immediately
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
-// Fetch event - pass through all requests to network
+// Fetch event - cache-first strategy for static assets, network-first for dynamic content
 self.addEventListener('fetch', (event) => {
-  // Simply pass through all requests without caching
-  event.respondWith(fetch(event.request));
+  const { request } = event;
+  
+  // Handle static assets with cache-first strategy
+  if (request.url.includes('.png') || request.url.includes('.ico') || request.url.includes('manifest.json')) {
+    event.respondWith(
+      caches.match(request)
+        .then(response => response || fetch(request))
+        .catch(() => caches.match('/favicon-96x96.png')) // Fallback icon
+    );
+    return;
+  }
+  
+  // Handle navigation requests
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .catch(() => caches.match('/'))
+    );
+    return;
+  }
+  
+  // Default: network-first for other requests
+  event.respondWith(
+    fetch(request)
+      .catch(() => caches.match(request))
+  );
 });
 
 // Push event - handle incoming push notifications

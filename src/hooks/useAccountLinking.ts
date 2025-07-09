@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createNip98AuthHeader } from "@/lib/nip98Auth";
-import { getAuth } from "firebase/auth";
+import { initializeFirebaseAuth } from "@/lib/firebaseAuth";
 
 // Base API URL for the new API
 const API_BASE_URL =
@@ -21,7 +21,7 @@ export function useLinkFirebaseAccount() {
       }
 
       // Get Firebase auth token
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         throw new Error("Must be logged in with Firebase to link account");
@@ -61,9 +61,27 @@ export function useLinkFirebaseAccount() {
       const data = await response.json();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       // Invalidate account linking status to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
+      
+      // Invalidate linked pubkeys cache to refresh linked accounts data
+      const { auth } = initializeFirebaseAuth();
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["linked-pubkeys", firebaseUser.uid] 
+        });
+      }
+      
+      // Emit event for other components to react to account linking
+      window.dispatchEvent(new CustomEvent('account-linked', { 
+        detail: { 
+          pubkey: user?.pubkey,
+          firebaseUid: firebaseUser?.uid,
+          success: true 
+        } 
+      }));
     },
   });
 }
@@ -82,7 +100,7 @@ export function useUnlinkFirebaseAccount() {
       }
 
       // Get Firebase auth token (required for unlink operation)
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         throw new Error("Must be logged in with Firebase to unlink account");
@@ -113,9 +131,27 @@ export function useUnlinkFirebaseAccount() {
       const data = await response.json();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       // Invalidate account linking status to refresh the UI
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
+      
+      // Invalidate linked pubkeys cache to refresh linked accounts data
+      const { auth } = initializeFirebaseAuth();
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["linked-pubkeys", firebaseUser.uid] 
+        });
+      }
+      
+      // Emit event for other components to react to account unlinking
+      window.dispatchEvent(new CustomEvent('account-unlinked', { 
+        detail: { 
+          pubkey: user?.pubkey,
+          firebaseUid: firebaseUser?.uid,
+          success: true 
+        } 
+      }));
     },
   });
 }

@@ -1,109 +1,243 @@
-# Authentication Architecture
+# Wavlake Authentication System
 
-Wavlake uses a hybrid authentication system: **Nostr** for identity and **Firebase** for legacy business operations.
+## Overview
 
-## Nostr Authentication
+Wavlake implements a sophisticated multi-path authentication system that seamlessly integrates **Nostr** identity with **Firebase** business operations. The system provides three distinct user entry points while maintaining a unified experience.
 
-### Primary Authentication Methods
+## Authentication Flow Tree
 
-1. **Extension (NIP-07)**: Browser extensions like Alby, nos2x
-   - Most secure - private keys never leave extension
-   - Uses `window.nostr` interface
-
-2. **Nsec**: Direct private key input
-   - Fallback when extensions unavailable
-   - Stored securely in browser storage
-
-3. **Bunker (NIP-46)**: Remote signer
-   - Signing from different devices/services
-   - Uses nostr-tools bunker functionality
-
-### Key Components
-
-**NostrLoginProvider** (`NostrLoginProvider.tsx`)
-- Manages session state and persistence
-- Handles automatic reconnection
-- Provides auth context throughout app
-
-**LoginArea** (`LoginArea.tsx`)
-- Single component for login/account switching
-- Don't wrap in conditional logic
-- Handles all login UI internally
-
-### Usage
-
-```tsx
-// Check authentication
-const { user } = useCurrentUser();
-if (!user) return <span>Please log in</span>;
-
-// Display login UI
-import { LoginArea } from "@/components/auth/LoginArea";
-<LoginArea />
-```
-
-## Firebase Integration
-
-### Purpose
-Firebase is **only for group owners** who need:
-- Revenue analytics
-- Advanced community management
-- Payment system integration
-- Legacy data access
-
-**Note**: Moderators and regular users don't need Firebase.
-
-### Implementation
-
-**FirebaseOwnerGuard** (`FirebaseOwnerGuard.tsx`)
-- Redirects to `/link-firebase` when needed
-- Non-blocking for basic functionality
-- Only enforces for owner features
-
-### Account Linking Flow
-1. User logs in with Nostr
-2. System detects owner role
-3. When accessing owner features → redirect to `/link-firebase`
-4. One-time linking process
-5. Association persists
-
-## Authentication Flow
+### Main Entry Points (Index.tsx)
 
 ```
-1. Nostr Login (Extension/Nsec/Bunker)
-   ↓
-2. Profile Sync & Cache
-   ↓
-3. Role Detection (listener/moderator/owner)
-   ↓
-4. Firebase Prompt (owners only, when needed)
-   ↓
-5. Full Feature Access
+🏠 Landing Page (Index.tsx)
+├── 🚀 "Get Started" (New Users)
+│   └── → /create-account (onboarding flow)
+│
+├── 📧 "I have a Wavlake account" (Existing Email Users)
+│   └── FirebaseAuthForm → ProfileDiscoveryScreen
+│       ├── 📋 Has Linked Accounts
+│       │   ├── Select Account → NostrAuthStep (targeted)
+│       │   ├── Use Different Account → NostrAuthStep (open)
+│       │   └── Generate New Account → /create-account
+│       └── 🆕 No Linked Accounts  
+│           ├── Generate New Account → /create-account (recommended)
+│           └── Use Existing Nostr → NostrAuthStep (open)
+│
+└── 🔑 "I have a Nostr account" (Direct Nostr)
+    └── LoginDialog → Success → /groups
 ```
+
+## Core Components
+
+### 1. **Index.tsx** - Authentication Orchestrator
+**Purpose:** Central coordinator managing all authentication flows
+
+**State Management:**
+- `selectedPath`: Controls current authentication screen
+- `firebaseUser`: Stores Firebase authentication result  
+- `selectedPubkey`: Target pubkey for linked account auth
+- `isNewFirebaseUser`: Performance optimization flag
+
+**Key Features:**
+- Multi-path authentication routing
+- Context-aware navigation with state preservation
+- Comprehensive error handling and fallbacks
+
+### 2. **ProfileDiscoveryScreen.tsx** - Account Discovery
+**Purpose:** Post-Firebase authentication flow for account linking
+
+**Advanced Features:**
+- **Performance Optimization:** Skips API calls for new users via `isNewUser` flag
+- **Real-time Profile Data:** Dynamic profile loading with `useAuthor()` hook
+- **Legacy Profile Integration:** Shows existing Wavlake profile data
+- **Multi-scenario Handling:** Linked accounts, no accounts, new users
+
+**State Integration:**
+- `useLinkedPubkeys()` - Fetch associated Nostr accounts
+- `useLegacyProfile()` - Retrieve existing Wavlake profile
+- Conditional API optimization for performance
+
+### 3. **NostrAuthStep.tsx** - Advanced Nostr Authentication  
+**Purpose:** Comprehensive Nostr authentication with auto-linking
+
+**Authentication Methods:**
+- **Extension (NIP-07):** Browser extension one-click login
+- **Nsec:** Private key input with file upload support
+- **Bunker (NIP-46):** Remote signers and hardware wallets
+
+**Advanced Features:**
+- **Real-time Mismatch Detection:** Immediate pubkey validation feedback
+- **Auto-linking Integration:** Seamless Firebase account association
+- **Profile Selection UI:** Multi-account selection interface
+- **Comprehensive Error Handling:** User-friendly error messages with retry logic
+
+**Security Features:**
+- Input validation at multiple layers
+- No private key persistence
+- Sanitized error messages
+- HTTPS-only API communication
+
+### 4. **FirebaseAuthForm.tsx** - Email/Password Authentication
+**Purpose:** Traditional email/password authentication with modern UX
+
+**Features:**
+- Dual-mode interface (sign-in/sign-up)
+- Real-time form validation
+- `useFirebaseAuthForm()` hook integration
+- Loading states and error handling
+- Optional back navigation support
+
+### 5. **LoginDialog.tsx** - Simple Nostr Authentication
+**Purpose:** Streamlined Nostr login for direct authentication flows
+
+**Features:**
+- Clean tabbed interface (Extension/Nsec/Bunker)
+- Automatic profile synchronization
+- File upload support for private keys
+- Stable component design (minimal modifications)
+
+## Hook Architecture
+
+### Authentication State Management
+
+**`useCurrentUser()`** - Central Auth State
+- Single source of truth for authentication
+- Bridges Nostrify and legacy systems
+- Automatic profile metadata integration
+- Handles all login types (nsec, bunker, extension)
+
+**`useLinkedPubkeys()`** - Account Linking
+- Enterprise-grade caching with TanStack Query
+- Multiple hook variants for different use cases
+- Event-driven updates across components
+- Background refetching with cache invalidation
+
+**`useAutoLinkPubkey()`** - Auto-linking System
+- Intelligent linking strategy selection
+- Comprehensive validation and error handling
+- Event system for cross-component communication
+- Automatic cache invalidation after linking
+
+## Advanced Features
+
+### Real-time Mismatch Detection
+- **Immediate Feedback:** Validates pubkey mismatches as user types
+- **No Authentication:** Uses `nostr-tools` for pubkey extraction only
+- **User-friendly Alerts:** Clear proceed/retry options
+- **Performance Optimized:** No API calls during validation
+
+### Performance Optimizations
+- **New User Detection:** Skips unnecessary API calls during signup
+- **Background Updates:** Non-blocking cache refreshes  
+- **Conditional Rendering:** Components mount only when needed
+- **Exponential Backoff:** Intelligent retry mechanisms
+
+### Security Architecture
+- **Input Validation:** Multi-layer validation for all inputs
+- **Error Sanitization:** Prevents information leakage
+- **Token Management:** Secure Firebase token handling
+- **HTTPS Enforcement:** All API communication over HTTPS
 
 ## Development Guidelines
 
-### Do's
-- Use `useCurrentUser()` for auth state
-- Wrap owner features with `FirebaseOwnerGuard`
-- Use NIP-98 for authenticated API requests
-- Handle auth failures gracefully
+### Authentication State
+```tsx
+// Always use for auth state
+const { user } = useCurrentUser();
+if (!user) return <LoginRequired />;
 
-### Don'ts
-- Don't re-introduce Firebase to login flow
-- Don't bypass auth guards
-- Don't mix Firebase into Nostr login
+// Check specific authentication status
+const { isLoading } = useCurrentUser();
+```
 
-## Security Notes
+### Account Linking
+```tsx
+// Check for linked accounts
+const { data: linkedPubkeys, isLoading } = useLinkedPubkeys(firebaseUser);
 
-**Nostr Security**
-- Private keys never exposed in code
-- Extension signing = maximum security
-- NIP-98 prevents request tampering
-- Auto session timeout
+// Auto-link accounts
+const { autoLink, isLinking } = useAutoLinkPubkey();
+await autoLink(firebaseUser, pubkey);
+```
 
-**Firebase Security**  
-- Minimal scope - business ops only
-- Secure account linking
-- Token-based with auto-refresh
-- Separated from main auth flow
+### Navigation Patterns
+```tsx
+// Always include source context for create-account
+navigate("/create-account", {
+  state: {
+    source: "onboarding", // or "firebase-generation"
+    returnPath: "/groups",
+    firebaseUserData: userData // if applicable
+  }
+});
+```
+
+### Component Integration
+```tsx
+// Use NostrAuthStep for advanced auth with linking
+<NostrAuthStep
+  firebaseUser={firebaseUser}
+  linkedPubkeys={linkedPubkeys}
+  expectedPubkey={targetPubkey} // for targeted auth
+  onSuccess={handleSuccess}
+  onBack={handleBack}
+  enableAutoLink={true}
+/>
+
+// Use LoginDialog for simple direct auth
+<LoginDialog
+  isOpen={isOpen}
+  onClose={handleClose}
+  onLogin={handleSuccess}
+/>
+```
+
+## Error Handling Patterns
+
+### User-Friendly Messages
+- Network errors → "Please check your connection"
+- Invalid inputs → "Please check your credentials"
+- Rate limiting → "Too many attempts, please wait"
+- Extension errors → "Please ensure your Nostr extension is working"
+
+### Fallback Options
+- Extension unavailable → Show nsec input
+- Network failures → Retry mechanisms
+- Validation errors → Clear guidance for correction
+- Authentication failures → Alternative methods
+
+## Testing Considerations
+
+### Test Scenarios
+- **User States:** 0, 1, and multiple linked pubkeys
+- **New vs Returning:** Different optimization paths
+- **Network Conditions:** Offline/online state handling
+- **Error Cases:** All failure modes with proper recovery
+
+### Performance Testing
+- **API Call Optimization:** Verify new user flag effectiveness
+- **Cache Efficiency:** Background updates vs fresh loads
+- **Real-time Validation:** Input responsiveness
+- **Navigation Speed:** State transition performance
+
+## Integration Points
+
+### Firebase ↔ Nostr Bridge
+- Seamless account association
+- Automatic profile synchronization
+- Event-driven cache updates
+- Secure token management
+
+### Navigation Flow
+- Context-aware routing
+- State preservation across navigation
+- Proper cleanup on authentication success
+- Memory management for sensitive data
+
+### Event System
+- Custom events for cross-component communication
+- Automatic cache invalidation triggers
+- Real-time UI updates
+- Background synchronization
+
+This authentication system represents a production-ready, enterprise-grade implementation that balances security, performance, and user experience while seamlessly integrating multiple authentication providers.

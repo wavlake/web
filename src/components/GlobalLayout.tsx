@@ -9,7 +9,9 @@ interface GlobalLayoutProps {
 // Routes that should not have the global layout applied
 const EXCLUDED_ROUTES = [
   "/", // Landing page - custom layout for login/onboarding
+  "/login", // Login page - custom authentication layout
   "/welcome", // Welcome page - custom onboarding flow
+  "/create-account", // Account creation page - custom onboarding layout
 ];
 
 // Routes that need special layout treatment

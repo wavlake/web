@@ -36,12 +36,6 @@ export default function Groups() {
   const [showPWAInstructions, setShowPWAInstructions] = useState(false);
   const { wallet, isLoading: isWalletLoading } = useCashuWallet();
 
-  // Log wallet data when it loads
-  useEffect(() => {
-    if (wallet) {
-      console.log("Wallet loaded in Groups page:", wallet);
-    }
-  }, [wallet]);
 
   // Listen for PWA instructions event from banner
   useEffect(() => {

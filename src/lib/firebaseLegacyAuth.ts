@@ -53,58 +53,78 @@ export function useFirebaseLegacyAuth() {
 
   const handleFirebaseEmailLogin = useCallback(
     async (email: string, password: string) => {
-      const { initializeFirebaseAuth, isFirebaseAuthConfigured } = await import(
-        "@/lib/firebaseAuth"
-      );
+      setIsLoading(true);
+      setError(null);
 
-      if (!isFirebaseAuthConfigured()) {
-        throw new Error("Firebase authentication is not configured");
+      try {
+        const { initializeFirebaseAuth, isFirebaseAuthConfigured } =
+          await import("@/lib/firebaseAuth");
+
+        if (!isFirebaseAuthConfigured()) {
+          throw new Error("Firebase authentication is not configured");
+        }
+
+        const { signInWithEmailAndPassword } = await import("firebase/auth");
+        const { auth } = initializeFirebaseAuth();
+
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const firebaseToken = await userCredential.user.getIdToken();
+
+        // Store token for later use
+        sessionStorage.setItem("firebaseToken", firebaseToken);
+
+        return userCredential.user;
+      } catch (error) {
+        handleError(error, "Failed to sign in");
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-
-      const { signInWithEmailAndPassword } = await import("firebase/auth");
-      const { auth } = initializeFirebaseAuth();
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const firebaseToken = await userCredential.user.getIdToken();
-
-      // Store token for later use
-      sessionStorage.setItem("firebaseToken", firebaseToken);
-
-      return firebaseToken;
     },
-    []
+    [handleError]
   );
 
   const handleFirebaseEmailSignup = useCallback(
     async (email: string, password: string) => {
-      const { initializeFirebaseAuth, isFirebaseAuthConfigured } = await import(
-        "@/lib/firebaseAuth"
-      );
+      setIsLoading(true);
+      setError(null);
 
-      if (!isFirebaseAuthConfigured()) {
-        throw new Error("Firebase authentication is not configured");
+      try {
+        const { initializeFirebaseAuth, isFirebaseAuthConfigured } =
+          await import("@/lib/firebaseAuth");
+
+        if (!isFirebaseAuthConfigured()) {
+          throw new Error("Firebase authentication is not configured");
+        }
+
+        const { createUserWithEmailAndPassword } = await import(
+          "firebase/auth"
+        );
+        const { auth } = initializeFirebaseAuth();
+
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const firebaseToken = await userCredential.user.getIdToken();
+
+        // Store token for later use
+        sessionStorage.setItem("firebaseToken", firebaseToken);
+
+        return userCredential.user;
+      } catch (error) {
+        handleError(error, "Failed to create account");
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-
-      const { createUserWithEmailAndPassword } = await import("firebase/auth");
-      const { auth } = initializeFirebaseAuth();
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const firebaseToken = await userCredential.user.getIdToken();
-
-      // Store token for later use
-      sessionStorage.setItem("firebaseToken", firebaseToken);
-
-      return firebaseToken;
     },
-    []
+    [handleError]
   );
 
   const linkPubkey = useCallback(async (pubkey: string, signer: any) => {

@@ -10,9 +10,20 @@ export function useLoginActions() {
   return {
     // Login with a Nostr secret key
     nsec(nsec: string) {
-      const login = NLogin.fromNsec(nsec);
-      addLogin(login);
-      return login;
+      
+      try {
+        const login = NLogin.fromNsec(nsec);
+        
+        addLogin(login);
+        
+        return login;
+      } catch (error) {
+        console.error('[useLoginActions] Failed to create login from nsec', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
+      }
     },
     // Login with a NIP-46 "bunker://" URI
     async bunker(uri: string) {
