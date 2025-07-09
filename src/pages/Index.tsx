@@ -42,6 +42,11 @@ const Index = () => {
     }
   }, [user, navigate]);
 
+  // Don't render login content if user is authenticated
+  if (user) {
+    return null;
+  }
+
   const handleGetStarted = () => {
     console.log("[Index] User starting Get Started flow", {
       component: "Index",
