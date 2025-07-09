@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { type NLoginType } from "@nostrify/react/login";
-import { User as FirebaseUser, getAuth } from "firebase/auth";
+import { User as FirebaseUser } from "firebase/auth";
+import { initializeFirebaseAuth } from "@/lib/firebaseAuth";
 import { useCreateAccount } from "@/hooks/useCreateAccount";
 import { useLegacyProfile, type LegacyProfile } from "@/hooks/useLegacyProfile";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
@@ -28,12 +29,12 @@ interface LocationState {
 
 /**
  * Dedicated page for all account creation flows.
- * 
+ *
  * This page handles:
  * - New user onboarding ("Get Started" flow)
  * - Firebase user generating new Nostr account
  * - Standalone account creation
- * 
+ *
  * Context is passed via location state to maintain clean URLs while
  * preserving complex state objects.
  */
@@ -54,11 +55,12 @@ const CreateAccount = () => {
   // Only access Firebase for firebase-generation flow
   const firebaseUser = useMemo(() => {
     if (source !== "firebase-generation") return null;
-    
+
     try {
-      return getAuth().currentUser;
+      const { auth } = initializeFirebaseAuth();
+      return auth.currentUser;
     } catch (error) {
-      console.warn('Firebase not initialized for onboarding flow:', error);
+      console.warn("Firebase not initialized for onboarding flow:", error);
       return null;
     }
   }, [source]);
@@ -78,12 +80,19 @@ const CreateAccount = () => {
 
   // Start account creation automatically when page loads (except for Firebase generation)
   useEffect(() => {
-    if (source !== "firebase-generation" && !createdAccountData && !isCreatingAccount) {
+    if (
+      source !== "firebase-generation" &&
+      !createdAccountData &&
+      !isCreatingAccount
+    ) {
       handleCreateAccount();
     }
   }, [source]);
 
-  const handleCreateAccount = async (profileData?: { name?: string; picture?: string }) => {
+  const handleCreateAccount = async (profileData?: {
+    name?: string;
+    picture?: string;
+  }) => {
     setIsCreatingAccount(true);
     setStep("creating");
 
@@ -95,49 +104,42 @@ const CreateAccount = () => {
         customName: profileData?.name || legacyProfile?.name || undefined,
       };
 
-      console.log('[CreateAccount] Starting account creation', {
-        component: 'CreateAccount',
-        action: 'handleCreateAccount',
-        source,
-        hasFirebaseUser: !!firebaseUser,
-        hasLegacyProfile: !!legacyProfile,
-        legacyProfileName: legacyProfile?.name,
-        timestamp: new Date().toISOString()
-      });
 
       const result = await createAccount(accountOptions);
 
       // Auto-link to Firebase account if provided
       if (firebaseUser && source === "firebase-generation") {
-        console.log('[CreateAccount] Auto-linking to Firebase account');
         try {
           await autoLink(firebaseUser, result.pubkey);
-          console.log('[CreateAccount] Auto-linking successful');
         } catch (linkError) {
-          console.warn('[CreateAccount] Auto-linking failed, but continuing', linkError);
+          console.warn(
+            "[CreateAccount] Auto-linking failed, but continuing",
+            linkError
+          );
           // Don't fail the entire flow if linking fails
         }
       }
 
       // Publish additional profile metadata if picture is provided
       if (profileData?.picture) {
-        console.log('[CreateAccount] Publishing profile metadata with picture');
         try {
           const metadata = {
-            name: profileData.name || result.name || legacyProfile?.name || '',
+            name: profileData.name || result.name || legacyProfile?.name || "",
             picture: profileData.picture,
             ...(legacyProfile?.about && { about: legacyProfile.about }),
             ...(legacyProfile?.website && { website: legacyProfile.website }),
             ...(legacyProfile?.nip05 && { nip05: legacyProfile.nip05 }),
           };
-          
+
           await publishEvent({
             kind: 0,
             content: JSON.stringify(metadata),
           });
-          console.log('[CreateAccount] Profile metadata published successfully');
         } catch (publishError) {
-          console.warn('[CreateAccount] Failed to publish profile metadata, but continuing', publishError);
+          console.warn(
+            "[CreateAccount] Failed to publish profile metadata, but continuing",
+            publishError
+          );
           // Don't fail the entire flow if metadata publishing fails
         }
       }
@@ -158,14 +160,13 @@ const CreateAccount = () => {
 
       // For Firebase generation, navigate to return path directly
       if (source === "firebase-generation") {
-        console.log('[CreateAccount] Firebase generation complete, navigating to return path');
         navigate(returnPath);
       } else {
         // For other sources, move to profile setup step
         setStep("profile-setup");
       }
     } catch (error) {
-      console.error('[CreateAccount] Account creation failed:', error);
+      console.error("[CreateAccount] Account creation failed:", error);
       setIsCreatingAccount(false);
 
       toast({
@@ -205,26 +206,13 @@ const CreateAccount = () => {
     }
 
     if (source === "firebase-generation") {
-      return [
-        ...baseSteps,
-        "• Linking to your Wavlake account",
-      ];
+      return [...baseSteps, "• Linking to your Wavlake account"];
     }
 
-    return [
-      ...baseSteps,
-      "• Creating your profile",
-    ];
+    return [...baseSteps, "• Creating your profile"];
   };
 
   const handleBack = () => {
-    console.log('[CreateAccount] User navigating back', {
-      component: 'CreateAccount',
-      action: 'handleBack',
-      source,
-      step,
-      hasLocationState: !!locationState
-    });
 
     // Navigate back based on source
     switch (source) {
@@ -241,26 +229,15 @@ const CreateAccount = () => {
   };
 
   const handleProfileSetupComplete = () => {
-    console.log('[CreateAccount] Profile setup completed', {
-      component: 'CreateAccount',
-      action: 'handleProfileSetupComplete',
-      source,
-      returnPath,
-      navigatingTo: returnPath
-    });
 
     // Navigate to the appropriate destination
     navigate(returnPath);
   };
 
-  const handleFirebaseGenerationComplete = async (profileData?: { name?: string; picture?: string }) => {
-    console.log('[CreateAccount] Firebase generation profile completed', {
-      component: 'CreateAccount',
-      action: 'handleFirebaseGenerationComplete',
-      profileData,
-      hasFirebaseUser: !!firebaseUser,
-      timestamp: new Date().toISOString()
-    });
+  const handleFirebaseGenerationComplete = async (profileData?: {
+    name?: string;
+    picture?: string;
+  }) => {
 
     // Create the account with the profile data
     await handleCreateAccount(profileData);
@@ -285,7 +262,11 @@ const CreateAccount = () => {
           </div>
 
           <div className="space-y-3">
-            <Button onClick={() => handleCreateAccount()} className="w-full" disabled={isCreatingAccount}>
+            <Button
+              onClick={() => handleCreateAccount()}
+              className="w-full"
+              disabled={isCreatingAccount}
+            >
               {isCreatingAccount ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -295,8 +276,12 @@ const CreateAccount = () => {
                 "Create New Account"
               )}
             </Button>
-            
-            <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+
+            <Button
+              onClick={() => navigate("/")}
+              variant="outline"
+              className="w-full"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Login
             </Button>
@@ -314,7 +299,7 @@ const CreateAccount = () => {
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold">Creating Your Account</h1>
             <p className="text-muted-foreground">
-              {source === "firebase-generation" 
+              {source === "firebase-generation"
                 ? "Setting up your new Nostr account..."
                 : "We'll set up everything for you"}
             </p>
@@ -346,7 +331,7 @@ const CreateAccount = () => {
   // Show profile setup - either after account creation (onboarding) or before (firebase-generation)
   if (step === "profile-setup") {
     const initialName = createdAccountData?.name || legacyProfile?.name;
-    
+    const isFirebase = source === "firebase-generation";
     return (
       <OnboardingContext.Provider
         value={{ generatedName: initialName || null }}
@@ -354,24 +339,31 @@ const CreateAccount = () => {
         <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
           <div className="w-full max-w-lg mx-auto p-8">
             <h2 className="text-2xl font-bold mb-4 text-center">
-              {source === "firebase-generation" 
+              {isFirebase
                 ? "Create Your Nostr Account"
                 : "Set your name and pic"}
             </h2>
             <p className="text-gray-600 mb-6 text-center">
-              {source === "firebase-generation" && legacyProfile
+              {isFirebase && legacyProfile
                 ? "We've pre-filled your profile with your existing information. Click 'Save' to create your new Nostr account."
-                : source === "firebase-generation"
+                : isFirebase
                 ? "Fill in your profile details and click 'Save' to create your new Nostr account."
                 : "You can always update them later."}
             </p>
             <EditProfileForm
-              showSkipLink={true}
+              showSkipLink={!isFirebase}
               initialName={initialName}
-              legacyProfile={legacyProfile ? { name: legacyProfile.name, picture: legacyProfile.picture } : null}
-              source={source}
+              legacyProfile={
+                legacyProfile
+                  ? { name: legacyProfile.name, picture: legacyProfile.picture }
+                  : null
+              }
               onBack={handleProfileSetupBack}
-              onComplete={source === "firebase-generation" ? handleFirebaseGenerationComplete : handleProfileSetupComplete}
+              onComplete={
+                isFirebase
+                  ? handleFirebaseGenerationComplete
+                  : handleProfileSetupComplete
+              }
             />
           </div>
         </div>

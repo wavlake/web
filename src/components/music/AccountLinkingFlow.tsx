@@ -194,7 +194,9 @@ export function AccountLinkingFlow({
 
       <div className="space-y-3">
         <div className="space-y-1">
-          <Label htmlFor="email" className="text-sm">Email</Label>
+          <Label htmlFor="email" className="text-sm">
+            Email
+          </Label>
           <Input
             id="email"
             type="email"
@@ -209,7 +211,9 @@ export function AccountLinkingFlow({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="password" className="text-sm">Password</Label>
+          <Label htmlFor="password" className="text-sm">
+            Password
+          </Label>
           <Input
             id="password"
             type="password"
@@ -225,7 +229,9 @@ export function AccountLinkingFlow({
 
         {authMode === "signup" && (
           <div className="space-y-1">
-            <Label htmlFor="confirmPassword" className="text-sm">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-sm">
+              Confirm Password
+            </Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -336,9 +342,7 @@ export function AccountLinkingFlow({
             uploads
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto">
-          {getStepContent()}
-        </div>
+        <div className="overflow-y-auto">{getStepContent()}</div>
       </DialogContent>
     </Dialog>
   );

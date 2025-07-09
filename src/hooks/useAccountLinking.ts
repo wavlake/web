@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createNip98AuthHeader } from "@/lib/nip98Auth";
-import { getAuth } from "firebase/auth";
+import { initializeFirebaseAuth } from "@/lib/firebaseAuth";
 
 // Base API URL for the new API
 const API_BASE_URL =
@@ -21,7 +21,7 @@ export function useLinkFirebaseAccount() {
       }
 
       // Get Firebase auth token
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         throw new Error("Must be logged in with Firebase to link account");
@@ -66,7 +66,8 @@ export function useLinkFirebaseAccount() {
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
       
       // Invalidate linked pubkeys cache to refresh linked accounts data
-      const firebaseUser = getAuth().currentUser;
+      const { auth } = initializeFirebaseAuth();
+      const firebaseUser = auth.currentUser;
       if (firebaseUser) {
         queryClient.invalidateQueries({ 
           queryKey: ["linked-pubkeys", firebaseUser.uid] 
@@ -99,7 +100,7 @@ export function useUnlinkFirebaseAccount() {
       }
 
       // Get Firebase auth token (required for unlink operation)
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const firebaseUser = auth.currentUser;
       if (!firebaseUser) {
         throw new Error("Must be logged in with Firebase to unlink account");
@@ -135,7 +136,8 @@ export function useUnlinkFirebaseAccount() {
       queryClient.invalidateQueries({ queryKey: ["account-linking-status"] });
       
       // Invalidate linked pubkeys cache to refresh linked accounts data
-      const firebaseUser = getAuth().currentUser;
+      const { auth } = initializeFirebaseAuth();
+      const firebaseUser = auth.currentUser;
       if (firebaseUser) {
         queryClient.invalidateQueries({ 
           queryKey: ["linked-pubkeys", firebaseUser.uid] 

@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Eagerly load the main pages
 import Index from "./pages/Index";
 import CreateAccount from "./pages/CreateAccount";
+
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import Profile from "./pages/Profile";
@@ -55,81 +56,120 @@ export function AppRouter() {
       <WelcomeRedirect>
         <GlobalLayout>
           <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/create-account" element={<CreateAccount />} />
-          <Route path="/welcome" element={<WelcomePage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/:communityId" element={<DashboardDetail />} />
-          <Route path="/create-artist" element={<CreateArtist />} />
-          <Route path="/groups" element={<Groups />} />
-          <Route path="/group/:groupId" element={<GroupDetail />} />
-          <Route path="/profile/:pubkey" element={<Profile />} />
-          <Route path="/t/:hashtag" element={<Hashtag />} />
-          <Route path="/trending" element={<Trending />} />
-          <Route path="/feed" element={<GroupPostsFeed />} />
-          
-          {/* Lazy loaded routes */}
-          <Route path="/group/:groupId/guidelines" element={
-            <Suspense fallback={<PageLoader />}>
-              <GroupGuidelines />
-            </Suspense>
-          } />
-          <Route path="/create-group" element={
-            <Suspense fallback={<PageLoader />}>
-              <CreateGroup />
-            </Suspense>
-          } />
-          <Route path="/settings" element={
-            <Suspense fallback={<PageLoader />}>
-              <Settings />
-            </Suspense>
-          } />
-          <Route path="/settings/profile" element={
-            <Suspense fallback={<PageLoader />}>
-              <ProfileSettings />
-            </Suspense>
-          } />
-          <Route path="/settings/notifications" element={
-            <Suspense fallback={<PageLoader />}>
-              <Notifications />
-            </Suspense>
-          } />
-          <Route path="/wallet" element={
-            <Suspense fallback={<PageLoader />}>
-              <CashuWallet />
-            </Suspense>
-          } />
-          <Route path="/link-preview-test" element={
-            <Suspense fallback={<PageLoader />}>
-              <LinkPreviewTest />
-            </Suspense>
-          } />
-          <Route path="/about" element={
-            <Suspense fallback={<PageLoader />}>
-              <AboutPage />
-            </Suspense>
-          } />
-          <Route path="/faq" element={
-            <Suspense fallback={<PageLoader />}>
-              <FaqPage />
-            </Suspense>
-          } />
-          <Route path="/legacy-api-test" element={
-            <Suspense fallback={<PageLoader />}>
-              <LegacyApiTestPage />
-            </Suspense>
-          } />
-          <Route path="/account-linking" element={
-            <Suspense fallback={<PageLoader />}>
-              <AccountLinking />
-            </Suspense>
-          } />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={
-            <Suspense fallback={<PageLoader />}>
-              <NotFound />
-            </Suspense>
-          } />
+            <Route path="/" element={<Index />} />
+            <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/welcome" element={<WelcomePage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route
+              path="/dashboard/:communityId"
+              element={<DashboardDetail />}
+            />
+            <Route path="/create-artist" element={<CreateArtist />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/group/:groupId" element={<GroupDetail />} />
+            <Route path="/profile/:pubkey" element={<Profile />} />
+            <Route path="/t/:hashtag" element={<Hashtag />} />
+            <Route path="/trending" element={<Trending />} />
+            <Route path="/feed" element={<GroupPostsFeed />} />
+
+            {/* Lazy loaded routes */}
+            <Route
+              path="/group/:groupId/guidelines"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <GroupGuidelines />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/create-group"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <CreateGroup />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Settings />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/settings/profile"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <ProfileSettings />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/settings/notifications"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Notifications />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/wallet"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <CashuWallet />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/link-preview-test"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <LinkPreviewTest />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <AboutPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/faq"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FaqPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/legacy-api-test"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <LegacyApiTestPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/account-linking"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <AccountLinking />
+                </Suspense>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route
+              path="*"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <NotFound />
+                </Suspense>
+              }
+            />
           </Routes>
         </GlobalLayout>
       </WelcomeRedirect>

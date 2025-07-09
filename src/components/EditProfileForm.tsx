@@ -30,7 +30,6 @@ interface EditProfileFormProps {
   initialName?: string | null;
   initialPicture?: string | null;
   legacyProfile?: { name?: string; picture?: string } | null;
-  source?: "onboarding" | "firebase-generation" | "standalone";
   onBack?: () => void;
   onComplete?: (profileData?: { name?: string; picture?: string }) => void;
 }
@@ -50,7 +49,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   initialName = null,
   initialPicture = null,
   legacyProfile = null,
-  source,
   onBack,
   onComplete,
 }) => {
@@ -196,11 +194,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
         }
       }
 
-      console.log("Publishing profile update:", {
-        original: existingMetadata,
-        updates: values,
-        final: data,
-      });
 
       // Prepare the kind 0 event
       const eventToPublish = {
@@ -208,12 +201,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
         content: JSON.stringify(data),
       };
 
-      console.log("Complete kind 0 event being published:", {
-        event: eventToPublish,
-        parsedContent: data,
-        contentString: JSON.stringify(data),
-        preservedFields: Object.keys(data),
-      });
 
       // Publish the metadata event (kind 0) with all preserved fields
       await publishEvent(eventToPublish);
@@ -222,10 +209,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
       queryClient.invalidateQueries({ queryKey: ["logins"] });
       queryClient.invalidateQueries({ queryKey: ["author", user.pubkey] });
 
-      console.log(
-        "Profile updated successfully. Preserved fields:",
-        Object.keys(data)
-      );
 
       // Use the provided onComplete callback if available
       if (onComplete) {
@@ -337,41 +320,15 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
 
             {showSkipLink && (
               <div className="flex flex-col items-center gap-3 mt-4">
-                {source !== "firebase-generation" && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        onComplete ? onComplete({}) : navigate("/groups")
-                      }
-                    >
-                      Skip for now
-                    </Button>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-muted" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          or
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={handleBackToLogin}
+                  variant="link"
+                  className="text-muted-foreground"
+                  onClick={() =>
+                    onComplete ? onComplete({}) : navigate("/groups")
+                  }
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to login
+                  Skip for now
                 </Button>
               </div>
             )}

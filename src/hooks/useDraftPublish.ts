@@ -121,20 +121,14 @@ export function useDraftPublish() {
       
       // Add community tag if communityId is provided (NIP-72)
       if (communityId) {
-        console.log('Publishing draft track with communityId:', communityId);
         // communityId format: "34550:pubkey:d-identifier"
         const [kind, pubkey, dIdentifier] = communityId.split(":");
-        console.log('Parsed communityId parts:', { kind, pubkey, dIdentifier });
         if (kind === "34550" && pubkey && dIdentifier) {
           // Add community tag to existing tags
           eventToPublish.tags = [...eventToPublish.tags, ["a", communityId]];
-          console.log('Added community tag to draft track:', ["a", communityId]);
-          console.log('Final draft track tags:', eventToPublish.tags);
         } else {
           console.error('Invalid communityId format for draft track:', communityId, 'Expected format: 34550:pubkey:d-identifier');
         }
-      } else {
-        console.warn('No communityId provided for draft track - this will create orphaned content!');
       }
 
       // Publish the modified future event
@@ -178,20 +172,14 @@ export function useDraftPublish() {
       
       // Add community tag if communityId is provided (NIP-72)
       if (communityId) {
-        console.log('Publishing draft album with communityId:', communityId);
         // communityId format: "34550:pubkey:d-identifier"
         const [kind, pubkey, dIdentifier] = communityId.split(":");
-        console.log('Parsed communityId parts:', { kind, pubkey, dIdentifier });
         if (kind === "34550" && pubkey && dIdentifier) {
           // Add community tag to existing tags
           eventToPublish.tags = [...eventToPublish.tags, ["a", communityId]];
-          console.log('Added community tag to draft album:', ["a", communityId]);
-          console.log('Final draft album tags:', eventToPublish.tags);
         } else {
           console.error('Invalid communityId format for draft album:', communityId, 'Expected format: 34550:pubkey:d-identifier');
         }
-      } else {
-        console.warn('No communityId provided for draft album - this will create orphaned content!');
       }
 
       // Publish the modified future event

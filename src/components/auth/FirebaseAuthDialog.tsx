@@ -11,14 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Loader2,
-  LogIn,
-  UserPlus,
-} from "lucide-react";
-import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
+import { AlertTriangle, Loader2, LogIn, UserPlus } from "lucide-react";
+import { useFirebaseAuthForm } from "@/hooks/useFirebaseAuthForm";
 import { toast } from "sonner";
 
 interface FirebaseAuthDialogProps {
@@ -42,22 +36,26 @@ export function FirebaseAuthDialog({
   currentEmail,
   showSignOutFirst = false,
 }: FirebaseAuthDialogProps) {
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
   const [needsSignOut, setNeedsSignOut] = useState(showSignOutFirst);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const {
+    authMode,
+    setAuthMode,
+    formData,
+    updateFormData,
+    clearForm,
     isLoading: isFirebaseAuthLoading,
     error: firebaseError,
     setError: setFirebaseError,
-    handleFirebaseEmailLogin,
-    handleFirebaseEmailSignup,
-  } = useFirebaseLegacyAuth();
+    handleSubmit,
+  } = useFirebaseAuthForm({
+    showSuccessToast: true,
+    onSuccess: () => {
+      onSuccess();
+      onClose();
+    },
+  });
 
   const handleFirebaseSignOut = async () => {
     setIsSigningOut(true);
@@ -84,45 +82,11 @@ export function FirebaseAuthDialog({
   };
 
   const handleFirebaseAuth = async () => {
-    if (!formData.email || !formData.password) {
-      setFirebaseError("Please fill in all fields");
-      return;
-    }
-
-    if (
-      authMode === "signup" &&
-      formData.password !== formData.confirmPassword
-    ) {
-      setFirebaseError("Passwords do not match");
-      return;
-    }
-
-    try {
-      setFirebaseError(null);
-
-      // Authenticate with Firebase
-      if (authMode === "signup") {
-        await handleFirebaseEmailSignup(formData.email, formData.password);
-        toast.success("Account created successfully");
-      } else {
-        await handleFirebaseEmailLogin(formData.email, formData.password);
-        toast.success("Successfully signed in");
-      }
-
-      // Clear form and close
-      setFormData({ email: "", password: "", confirmPassword: "" });
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error("Firebase authentication error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Authentication failed"
-      );
-    }
+    await handleSubmit();
   };
 
   const handleClose = () => {
-    setFormData({ email: "", password: "", confirmPassword: "" });
+    clearForm();
     setFirebaseError(null);
     setNeedsSignOut(showSignOutFirst);
     onClose();
@@ -271,7 +235,7 @@ export function FirebaseAuthDialog({
                         placeholder="your@email.com"
                         value={formData.email}
                         onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
+                          updateFormData({ email: e.target.value })
                         }
                         disabled={isFirebaseAuthLoading}
                       />
@@ -284,7 +248,7 @@ export function FirebaseAuthDialog({
                         placeholder="Enter password"
                         value={formData.password}
                         onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
+                          updateFormData({ password: e.target.value })
                         }
                         disabled={isFirebaseAuthLoading}
                       />
@@ -317,7 +281,7 @@ export function FirebaseAuthDialog({
                         placeholder="your@email.com"
                         value={formData.email}
                         onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
+                          updateFormData({ email: e.target.value })
                         }
                         disabled={isFirebaseAuthLoading}
                       />
@@ -330,7 +294,7 @@ export function FirebaseAuthDialog({
                         placeholder="Enter password"
                         value={formData.password}
                         onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
+                          updateFormData({ password: e.target.value })
                         }
                         disabled={isFirebaseAuthLoading}
                       />
@@ -345,8 +309,7 @@ export function FirebaseAuthDialog({
                         placeholder="Confirm password"
                         value={formData.confirmPassword}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          updateFormData({
                             confirmPassword: e.target.value,
                           })
                         }
