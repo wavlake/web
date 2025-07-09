@@ -11,12 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertTriangle,
-  Loader2,
-  LogIn,
-  UserPlus,
-} from "lucide-react";
+import { AlertTriangle, Loader2, LogIn, UserPlus } from "lucide-react";
 import { useFirebaseAuthForm } from "@/hooks/useFirebaseAuthForm";
 import { toast } from "sonner";
 
@@ -54,7 +49,7 @@ export function FirebaseAuthDialog({
     error: firebaseError,
     setError: setFirebaseError,
     handleSubmit,
-  } = useFirebaseAuthForm({ 
+  } = useFirebaseAuthForm({
     showSuccessToast: true,
     onSuccess: () => {
       onSuccess();

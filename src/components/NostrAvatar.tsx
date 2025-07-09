@@ -1,14 +1,7 @@
 import { useAuthor } from "@/hooks/useAuthor";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toast } from "@/hooks/useToast";
 import { nip19 } from "nostr-tools";
-import { useState } from "react";
 import { Copy } from "lucide-react";
 
 export const NostrAvatar = ({
@@ -21,11 +14,8 @@ export const NostrAvatar = ({
   includeName?: boolean;
 }) => {
   const profile = useAuthor(pubkey);
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
 
-  const avatarUrl =
-    profile?.data?.metadata?.picture ||
-    `https://robohash.org/${pubkey}.png?size=${size}x${size}`;
+  const avatarUrl = profile?.data?.metadata?.picture;
 
   // Convert pubkey to npub format for tooltip
   const npubKey = nip19.npubEncode(pubkey);
@@ -66,24 +56,14 @@ export const NostrAvatar = ({
       {includeName && (
         <div className="text-center flex items-center gap-2">
           <span>{displayName}</span>
-          <TooltipProvider>
-            <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleCopyPubkey}
-                  onMouseEnter={() => setIsTooltipOpen(true)}
-                  onMouseLeave={() => setIsTooltipOpen(false)}
-                  className="p-1 hover:bg-muted rounded transition-colors"
-                  aria-label="Copy pubkey"
-                >
-                  <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="font-mono text-xs break-all max-w-xs">{npubKey}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
+          <button
+            onClick={handleCopyPubkey}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            aria-label="Copy pubkey"
+          >
+            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+          </button>
         </div>
       )}
     </div>

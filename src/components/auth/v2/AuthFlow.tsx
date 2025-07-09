@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuthFlow } from "@/hooks/auth/useAuthFlow";
 import { useNostrAuthentication } from "@/hooks/auth/useNostrAuthentication";
@@ -15,6 +15,7 @@ import { useAccountDiscovery } from "@/hooks/auth/useAccountDiscovery";
 import { useAccountLinking } from "@/hooks/auth/useAccountLinking";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
+import { useNostrLogin } from "@nostrify/react/login";
 import { AuthMethodSelector } from "./AuthMethodSelector";
 import { NostrAuthForm } from "./NostrAuthForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
@@ -77,6 +78,8 @@ export function AuthFlow() {
   const { user: currentUser } = useCurrentUser();
   const { state, context, send } = useAuthFlow();
   const { syncProfile } = useProfileSync();
+  const { addLogin } = useNostrLogin();
+  const navigate = useNavigate();
 
   // Business logic hooks
   const nostrAuth = useNostrAuthentication();
@@ -91,9 +94,9 @@ export function AuthFlow() {
   useEffect(() => {
     if (currentUser) {
       // User is already authenticated, redirect
-      window.location.replace("/groups");
+      navigate("/groups", { replace: true });
     }
-  }, [currentUser]);
+  }, [currentUser, navigate]);
 
   // Don't render auth flow if user is authenticated
   if (currentUser) {
@@ -105,15 +108,23 @@ export function AuthFlow() {
     method: NostrAuthMethod,
     credentials: NostrCredentials
   ) => {
+    console.log(
+      "Handling Nostr authentication with method:",
+      method,
+      credentials
+    );
     try {
       const login = await nostrAuth.authenticate(method, credentials);
 
+      // CRITICAL: Register the login with useNostrLogin so useCurrentUser() can find it
+      addLogin(login);
+
       // Sync profile after successful login
       await syncProfile(login.pubkey);
-
+      console.log({ context });
       // If we have a Firebase user context, we're doing targeted auth
       if (context.firebaseUser) {
-        // Link the account
+        // Now link the account (useCurrentUser() will find the authenticated user)
         await accountLinking.linkAccount(context.firebaseUser, login.pubkey);
 
         // Complete the flow
@@ -209,6 +220,7 @@ export function AuthFlow() {
           isOpen={true}
           onClose={handleBack}
           onLogin={() => {}}
+          handleNostrAuth={handleNostrAuth}
           expectedPubkey={context.selectedPubkey || undefined} // Use selected pubkey if available
         />
       );
@@ -257,6 +269,7 @@ export function AuthFlow() {
           isOpen={true}
           onClose={handleBack}
           onLogin={() => {}}
+          handleNostrAuth={handleNostrAuth}
           expectedPubkey={context.selectedPubkey || undefined} // Use selected pubkey if available
           title="Sign in to link your account"
           description="Please sign in with your Nostr account to link it to your Wavlake profile"
