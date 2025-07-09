@@ -1,11 +1,5 @@
 import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Sparkles, Mail, Key, LucideIcon } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 
@@ -30,7 +24,7 @@ interface LoginChoiceOption {
   className?: string;
 }
 
-interface LoginChoiceStepProps {
+interface LoginChoiceContentProps {
   /** Callback fired when user selects an authentication option */
   onSelect: (choice: LoginChoice) => void;
 }
@@ -137,8 +131,9 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({ option, onSelect }) => {
 };
 
 /**
- * Enhanced authentication entry point component that presents users with three distinct
- * authentication options, providing clear guidance for different user types.
+ * Authentication choice content component that can be used standalone (outside of dialog).
+ * This is a pure content component without dialog wrapper, perfect for embedding
+ * in custom page layouts.
  *
  * Features:
  * - Three-option interface with clear visual hierarchy
@@ -148,39 +143,28 @@ const ChoiceButton: React.FC<ChoiceButtonProps> = ({ option, onSelect }) => {
  * - Type-safe enum-based choice handling
  *
  * @param onSelect - Callback fired when user selects an authentication option
- * @returns JSX element containing the choice step interface
+ * @returns JSX element containing the choice content
  */
-export const LoginChoiceStep: React.FC<LoginChoiceStepProps> = ({
+export const LoginChoiceContent: React.FC<LoginChoiceContentProps> = ({
   onSelect,
 }) => {
   const loginChoices = useMemo(() => createLoginChoices(), []);
 
   return (
-    <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
-      <DialogHeader className="px-6 pt-6 pb-0 relative">
-        <DialogTitle className="text-xl font-semibold text-center">
-          Welcome to Wavlake
-        </DialogTitle>
-        <DialogDescription className="text-center text-muted-foreground mt-2">
-          Choose how you'd like to get started
-        </DialogDescription>
-      </DialogHeader>
-
-      <div
-        className="px-6 py-8 space-y-4"
-        role="group"
-        aria-label="Authentication options"
-      >
-        {loginChoices.map((option) => (
-          <ChoiceButton
-            key={option.value}
-            option={option}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
-    </DialogContent>
+    <div
+      className="space-y-4"
+      role="group"
+      aria-label="Authentication options"
+    >
+      {loginChoices.map((option) => (
+        <ChoiceButton
+          key={option.value}
+          option={option}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
   );
 };
 
-export default LoginChoiceStep;
+export default LoginChoiceContent;

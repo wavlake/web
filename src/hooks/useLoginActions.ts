@@ -10,9 +10,33 @@ export function useLoginActions() {
   return {
     // Login with a Nostr secret key
     nsec(nsec: string) {
-      const login = NLogin.fromNsec(nsec);
-      addLogin(login);
-      return login;
+      console.log('[useLoginActions] Starting nsec login', {
+        component: 'useLoginActions',
+        action: 'nsec',
+        nsecLength: nsec.length,
+        nsecPrefix: nsec.slice(0, 5),
+        timestamp: new Date().toISOString()
+      });
+      
+      try {
+        const login = NLogin.fromNsec(nsec);
+        console.log('[useLoginActions] NLogin.fromNsec successful', {
+          pubkey: `${login.pubkey.slice(0, 8)}...${login.pubkey.slice(-8)}`,
+          type: login.type,
+          id: login.id
+        });
+        
+        addLogin(login);
+        console.log('[useLoginActions] Login added to state, current logins count:', logins.length + 1);
+        
+        return login;
+      } catch (error) {
+        console.error('[useLoginActions] Failed to create login from nsec', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
+      }
     },
     // Login with a NIP-46 "bunker://" URI
     async bunker(uri: string) {

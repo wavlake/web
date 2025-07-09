@@ -40,11 +40,13 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
 import { useToast } from "@/hooks/useToast";
 import { useNostr } from "@nostrify/react";
+import { useAuthor } from "@/hooks/useAuthor";
 import { NUser } from "@nostrify/react/login";
 import LoginDialog from "./LoginDialog";
 import { logAuthError, logAuthInfo } from "@/lib/authLogger";
@@ -96,6 +98,9 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   const { syncProfile } = useProfileSync();
   const { autoLink, isLinking } = useAutoLinkPubkey();
   const { toast } = useToast();
+  
+  // Fetch profile data for the expected pubkey
+  const expectedProfile = useAuthor(expectedPubkey);
 
   const loginToUser = (loginInfo: NLoginType): { signer: NostrSigner } => {
     switch (loginInfo.type) {
@@ -180,34 +185,66 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleLoginSuccess = async (loginInfo: NLoginType) => {
+    console.log('[NostrAuthStep] Starting handleLoginSuccess', {
+      component: 'NostrAuthStep',
+      action: 'handleLoginSuccess',
+      pubkey: `${loginInfo.pubkey.slice(0, 8)}...${loginInfo.pubkey.slice(-8)}`,
+      loginType: loginInfo.type,
+      expectedPubkey: expectedPubkey ? `${expectedPubkey.slice(0, 8)}...${expectedPubkey.slice(-8)}` : null,
+      hasFirebaseUser: !!firebaseUser,
+      enableAutoLink,
+      linkedPubkeysCount: linkedPubkeys.length
+    });
+
     try {
       // Validate pubkey format
+      console.log('[NostrAuthStep] Validating pubkey format');
       if (!validatePubkey(loginInfo.pubkey)) {
         throw new Error("Invalid pubkey format received from authentication");
       }
 
       // Validate expected pubkey if provided
       if (expectedPubkey && loginInfo.pubkey !== expectedPubkey) {
+        console.error('[NostrAuthStep] Pubkey mismatch', {
+          expected: expectedPubkey,
+          received: loginInfo.pubkey
+        });
         throw new Error(`Please sign in with the account ending in ...${expectedPubkey.slice(-8)}`);
       }
+
+      console.log('[NostrAuthStep] Pubkey validation passed');
 
       // Log the authentication attempt
       logAuthInfo('nostr-auth-step-start', firebaseUser, loginInfo.pubkey, linkedPubkeys.length);
 
       // Sync profile after successful login
+      console.log('[NostrAuthStep] Starting profile sync');
       await syncProfile(loginInfo.pubkey);
+      console.log('[NostrAuthStep] Profile sync completed');
 
       // Attempt auto-linking if enabled
       if (enableAutoLink && firebaseUser) {
+        console.log('[NostrAuthStep] Starting auto-link process');
         const user = loginToUser(loginInfo);
         await handleAutoLink(loginInfo.pubkey, user.signer);
+        console.log('[NostrAuthStep] Auto-link process completed');
+      } else {
+        console.log('[NostrAuthStep] Skipping auto-link', {
+          enableAutoLink,
+          hasFirebaseUser: !!firebaseUser
+        });
       }
 
       logAuthInfo('nostr-auth-step-success', firebaseUser, loginInfo.pubkey);
+      console.log('[NostrAuthStep] Calling onSuccess callback');
       onSuccess(loginInfo);
     } catch (error) {
+      console.error('[NostrAuthStep] Authentication processing failed', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        pubkey: `${loginInfo.pubkey.slice(0, 8)}...${loginInfo.pubkey.slice(-8)}`
+      });
       logAuthError('nostr-auth-step', error, firebaseUser, loginInfo.pubkey, linkedPubkeys.length);
-      console.warn("Authentication processing failed");
       setError(getErrorMessage(error));
     }
   };
@@ -265,29 +302,54 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleKeyLogin = async () => {
-    if (!nsec.trim()) return;
+    console.log('[NostrAuthStep] Starting nsec login process', {
+      component: 'NostrAuthStep',
+      action: 'handleKeyLogin',
+      hasNsec: !!nsec.trim(),
+      nsecLength: nsec.length,
+      expectedPubkey: expectedPubkey ? `${expectedPubkey.slice(0, 8)}...${expectedPubkey.slice(-8)}` : null,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!nsec.trim()) {
+      console.warn('[NostrAuthStep] No nsec provided');
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log('[NostrAuthStep] Validating nsec format');
       if (!validateNsec(nsec)) {
         throw new Error("Invalid private key format. Must be a valid 63-character nsec1 key.");
       }
 
+      console.log('[NostrAuthStep] Creating login info from nsec');
       const loginInfo = login.nsec(nsec);
+      
+      console.log('[NostrAuthStep] Generated login info', {
+        pubkey: `${loginInfo.pubkey.slice(0, 8)}...${loginInfo.pubkey.slice(-8)}`,
+        type: loginInfo.type,
+        id: loginInfo.id
+      });
       
       if (!validatePubkey(loginInfo.pubkey)) {
         throw new Error("Invalid pubkey received from nsec authentication");
       }
       
+      console.log('[NostrAuthStep] Pubkey validation passed, calling handleLoginSuccess');
       await handleLoginSuccess(loginInfo);
     } catch (error) {
-      console.warn("Private key authentication failed");
+      console.error('[NostrAuthStep] Private key authentication failed', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setError(getErrorMessage(error));
       setRetryCount(prev => prev + 1);
     } finally {
       setIsLoading(false);
+      console.log('[NostrAuthStep] Nsec login process completed');
     }
   };
 
@@ -464,13 +526,58 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
             </DialogTitle>
             <div className="w-8" /> {/* Spacer for centering */}
           </div>
-          <DialogDescription className="text-center text-muted-foreground mt-2">
-            {expectedPubkey ? (
-              <>Please sign in with your account ending in ...{expectedPubkey.slice(-8)}</>
-            ) : (
-              <>Access your account securely with Nostr{enableAutoLink && firebaseUser ? " (will be linked automatically)" : ""}</>
-            )}
-          </DialogDescription>
+          {expectedPubkey && expectedProfile?.data ? (
+            <div className="flex flex-col items-center mt-4 space-y-3">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={expectedProfile.data?.metadata?.picture} />
+                <AvatarFallback className="text-lg">
+                  {expectedProfile.data?.metadata?.name?.[0]?.toUpperCase() || 
+                   expectedProfile.data?.metadata?.display_name?.[0]?.toUpperCase() ||
+                   expectedPubkey.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-center">
+                {expectedProfile.data?.metadata?.name || expectedProfile.data?.metadata?.display_name ? (
+                  <>
+                    <div className="font-medium text-foreground">
+                      {expectedProfile.data.metadata.name || expectedProfile.data.metadata.display_name}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Please sign in with your account ending in ...{expectedPubkey.slice(-8)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Please sign in with your account ending in ...{expectedPubkey.slice(-8)}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : expectedPubkey && expectedProfile?.isLoading ? (
+            <div className="flex flex-col items-center mt-4 space-y-3">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="text-lg">
+                  {expectedPubkey.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">
+                  Loading profile...
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Please sign in with your account ending in ...{expectedPubkey.slice(-8)}
+                </div>
+              </div>
+            </div>
+          ) : expectedPubkey ? (
+            <DialogDescription className="text-center text-muted-foreground mt-2">
+              Please sign in with your account ending in ...{expectedPubkey.slice(-8)}
+            </DialogDescription>
+          ) : (
+            <DialogDescription className="text-center text-muted-foreground mt-2">
+              Access your account securely with Nostr{enableAutoLink && firebaseUser ? " (will be linked automatically)" : ""}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="px-6 py-6 space-y-6">

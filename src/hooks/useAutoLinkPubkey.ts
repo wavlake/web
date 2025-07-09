@@ -595,6 +595,15 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
     pubkey?: string,
     signer?: NostrSigner
   ): Promise<AutoLinkResult> => {
+    console.log('[useAutoLinkPubkey] Starting auto-link process', {
+      component: 'useAutoLinkPubkey',
+      action: 'autoLink',
+      firebaseUID: firebaseUser?.uid,
+      pubkey: pubkey ? `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}` : undefined,
+      hasSigner: !!signer,
+      timestamp: new Date().toISOString()
+    });
+    
     // Input sanitization for security - remove whitespace that could bypass validation
     const sanitizedPubkey = pubkey?.trim();
     

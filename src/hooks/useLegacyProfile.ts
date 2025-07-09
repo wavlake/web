@@ -2,19 +2,50 @@ import { useQuery } from "@tanstack/react-query";
 import type { FirebaseUser } from "@/types/auth";
 
 /**
+ * Legacy API response structure from /legacy/metadata endpoint
+ */
+interface LegacyApiResponse {
+  user: {
+    id: string;
+    name: string;
+    lightning_address: string;
+    artwork_url: string;
+    msat_balance: number;
+    is_locked: boolean;
+  };
+  artists: Array<{
+    id: string;
+    name: string;
+    verified: boolean;
+    msat_total: number;
+  }>;
+  albums: Array<{
+    id: string;
+    title: string;
+    is_single: boolean;
+    is_draft: boolean;
+    msat_total: number;
+  }>;
+  tracks: Array<{
+    id: string;
+    title: string;
+  }>;
+}
+
+/**
  * Legacy profile data interface for Nostr kind 0 event population
  * Maps Wavlake legacy profile fields to Nostr profile metadata standards
  */
 export interface LegacyProfile {
-  /** User's display name (from displayName or derived from email) - required, non-empty string */
+  /** User's display name (from name field) - required, non-empty string */
   readonly name: string;
-  /** User's bio/about text (from bio field or empty string) */
+  /** User's bio/about text (empty string for legacy users) */
   readonly about: string;
-  /** URL to user's profile picture (from profileImageUrl or empty string) */
+  /** URL to user's profile picture (from artwork_url or empty string) */
   readonly picture: string;
-  /** User's website URL (from website field or empty string) */
+  /** User's website URL (empty string for legacy users) */
   readonly website: string;
-  /** NIP-05 identifier using user's email for verification - required, non-empty string */
+  /** NIP-05 identifier using lightning_address for verification - required, non-empty string */
   readonly nip05: string;
 }
 
@@ -80,7 +111,7 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
       
       try {
         const API_BASE_URL = getApiBaseUrl();
-        const response = await fetch(`${API_BASE_URL}/auth/legacy-profile`, {
+        const response = await fetch(`${API_BASE_URL}/legacy/metadata`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${await firebaseUser.getIdToken()}`,
@@ -105,37 +136,34 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
           throw new Error(`Failed to fetch legacy profile (status: ${status})`);
         }
         
-        const data = await response.json();
+        const data: LegacyApiResponse = await response.json();
         
         // Validate response data structure
         if (typeof data !== 'object' || data === null) {
           throw new Error('Invalid response format: expected object');
         }
         
-        // Handle case where API returns success but no profile data
-        if (!data.success) {
-          if (data.error) {
-            throw new Error(`API error: ${data.error}`);
-          }
-          return null;
+        // Validate that user object exists
+        if (!data.user || typeof data.user !== 'object') {
+          throw new Error('Invalid response format: missing user object');
         }
         
         // Extract and format profile data for Nostr compatibility
-        const baseName = data.displayName || data.email?.split('@')[0] || '';
-        const finalName = baseName.trim() || firebaseUser.email?.split('@')[0] || 'Anonymous';
-        const finalNip05 = data.email || '';
+        const userData = data.user;
+        const finalName = userData.name?.trim() || firebaseUser.email?.split('@')[0] || 'Anonymous';
+        const finalNip05 = userData.lightning_address || '';
         
         const profile: LegacyProfile = {
           name: finalName,
-          about: data.bio || '',
-          picture: data.profileImageUrl || '',
-          website: data.website || '',
+          about: '', // Legacy users don't have bio data
+          picture: userData.artwork_url || '',
+          website: '', // Legacy users don't have website data
           nip05: finalNip05
         };
         
         // Validate required fields are not empty
-        if (!profile.name.trim() || !profile.nip05.trim()) {
-          throw new Error('Invalid profile data: missing required fields');
+        if (!profile.name.trim()) {
+          throw new Error('Invalid profile data: missing required name field');
         }
         
         return profile;
@@ -206,6 +234,6 @@ export function useLegacyProfileStatus(firebaseUser?: FirebaseUser | null) {
     /** Any error that occurred during fetching */
     error,
     /** Whether legacy profile data exists and has meaningful content */
-    hasRichProfile: Boolean(legacyProfile?.about || legacyProfile?.picture || legacyProfile?.website)
+    hasRichProfile: Boolean(legacyProfile?.picture)
   };
 }

@@ -88,8 +88,8 @@ type LinkedPubkeysErrorType =
  */
 interface LinkedPubkeyApiItem {
   pubkey?: string;
-  linkedAt?: number;
-  isPrimary?: boolean;
+  linked_at?: string;
+  last_used_at?: string;
 }
 
 /**
@@ -262,6 +262,7 @@ export function useLinkedPubkeys(
 
         const data = await response.json();
         
+        
         // Validate response data structure
         if (typeof data !== 'object' || data === null) {
           throw new Error('Invalid response format: expected object');
@@ -275,21 +276,20 @@ export function useLinkedPubkeys(
           return [];
         }
         
-        if (!data.pubkeys) {
+        if (!data.linked_pubkeys) {
           return [];
         }
         
-        if (!Array.isArray(data.pubkeys)) {
-          throw new Error('Invalid response format: pubkeys must be an array');
+        if (!Array.isArray(data.linked_pubkeys)) {
+          throw new Error('Invalid response format: linked_pubkeys must be an array');
         }
 
         // Transform API response to LinkedPubkey format with enhanced metadata and validation
         const linkedPubkeys: LinkedPubkey[] = [];
         const invalidPubkeys: string[] = [];
         
-        data.pubkeys.forEach((item: string | LinkedPubkeyApiItem) => {
-          // Handle both string and object formats from API
-          const pubkey = typeof item === 'string' ? item : item.pubkey;
+        data.linked_pubkeys.forEach((item: LinkedPubkeyApiItem) => {
+          const pubkey = item.pubkey;
           
           if (typeof pubkey !== 'string' || !isValidPubkey(pubkey)) {
             console.warn("Invalid pubkey format in response", { 
@@ -302,8 +302,8 @@ export function useLinkedPubkeys(
             linkedPubkeys.push({
               pubkey,
               profile: undefined, // Will be populated by profile fetching if enabled
-              linkedAt: typeof item === 'object' ? item.linkedAt : undefined,
-              isPrimary: typeof item === 'object' ? item.isPrimary : false,
+              linkedAt: item.linked_at ? new Date(item.linked_at).getTime() : undefined,
+              isPrimary: false, // API doesn't provide this, could be enhanced later
             });
           }
         });
@@ -317,7 +317,7 @@ export function useLinkedPubkeys(
           });
           
           // Only throw if ALL pubkeys are invalid (likely a systematic issue)
-          if (linkedPubkeys.length === 0 && data.pubkeys.length > 0) {
+          if (linkedPubkeys.length === 0 && data.linked_pubkeys.length > 0) {
             throw new Error(`All ${invalidPubkeys.length} pubkeys in response are invalid`);
           }
         }

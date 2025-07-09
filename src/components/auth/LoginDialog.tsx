@@ -111,7 +111,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
     reader.readAsText(file);
   };
 
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">

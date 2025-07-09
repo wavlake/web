@@ -28,6 +28,10 @@ import { useLoginActions } from "@/hooks/useLoginActions";
 interface EditProfileFormProps {
   showSkipLink?: boolean;
   initialName?: string | null;
+  initialPicture?: string | null;
+  legacyProfile?: { name?: string; picture?: string } | null;
+  onBack?: () => void;
+  onComplete?: (profileData?: { name?: string; picture?: string }) => void;
 }
 
 /**
@@ -43,6 +47,10 @@ interface EditProfileFormProps {
 export const EditProfileForm: FC<EditProfileFormProps> = ({
   showSkipLink = false,
   initialName = null,
+  initialPicture = null,
+  legacyProfile = null,
+  onBack,
+  onComplete,
 }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -50,6 +58,9 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   // Get current user and their complete metadata from relays
   // This ensures we have all existing profile fields to preserve
   const { user, metadata } = useCurrentUser();
+  
+  // Determine if we're in creation mode (user not signed in yet)
+  const isCreationMode = !user;
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
@@ -59,13 +70,20 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   const form = useForm<NostrMetadata>({
     resolver: zodResolver(n.metadata()),
     defaultValues: {
-      name: initialName || "",
-      picture: "",
+      name: initialName || legacyProfile?.name || "",
+      picture: initialPicture || legacyProfile?.picture || "",
     },
   });
 
   // Handle going back to login
   const handleBackToLogin = async () => {
+    // Use the provided onBack callback if available
+    if (onBack) {
+      onBack();
+      return;
+    }
+
+    // Default behavior: logout and navigate to root
     try {
       await logout();
       navigate("/", { replace: true });
@@ -78,9 +96,16 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
 
   // Update form values when user data is loaded
   useEffect(() => {
-    // If initialName is provided, use it (for onboarding flow)
-    if (initialName) {
-      form.setValue("name", initialName);
+    // If initialName/initialPicture are provided, use them (for onboarding flow)
+    if (initialName || initialPicture) {
+      if (initialName) form.setValue("name", initialName);
+      if (initialPicture) form.setValue("picture", initialPicture);
+    } else if (legacyProfile) {
+      // Use legacy profile data for Firebase generation flows
+      form.reset({
+        name: legacyProfile.name || "",
+        picture: legacyProfile.picture || "",
+      });
     } else if (metadata) {
       // Otherwise, use metadata from relays (for existing users)
       form.reset({
@@ -88,7 +113,8 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
         picture: metadata.picture || "",
       });
     }
-  }, [metadata, form, initialName]);
+  }, [metadata, form, initialName, initialPicture, legacyProfile]);
+
 
   // Handle file uploads for profile picture and banner
   const uploadPicture = async (file: File, field: "picture" | "banner") => {
@@ -115,6 +141,14 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   };
 
   const onSubmit = async (values: NostrMetadata) => {
+    // In creation mode, we don't publish metadata events - just pass the data to onComplete
+    if (isCreationMode) {
+      if (onComplete) {
+        onComplete({ name: values.name, picture: values.picture });
+      }
+      return;
+    }
+
     if (!user) {
       toast({
         title: "Error",
@@ -192,8 +226,11 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
         Object.keys(data)
       );
 
-      // If this was part of onboarding, navigate to groups page
-      if (showSkipLink) {
+      // Use the provided onComplete callback if available
+      if (onComplete) {
+        onComplete({ name: values.name, picture: values.picture });
+      } else if (showSkipLink) {
+        // Default behavior: If this was part of onboarding, navigate to groups page
         navigate("/groups");
       }
     } catch (error) {
@@ -224,34 +261,38 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
                           "UP"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute bottom-0 right-0">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="secondary"
-                        className="h-8 w-8 rounded-full shadow"
-                        onClick={() =>
-                          document.getElementById("picture-upload")?.click()
-                        }
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      <input
-                        id="picture-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            uploadPicture(file, "picture");
+                    {!isCreationMode && (
+                      <div className="absolute bottom-0 right-0">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="h-8 w-8 rounded-full shadow"
+                          onClick={() =>
+                            document.getElementById("picture-upload")?.click()
                           }
-                        }}
-                      />
-                    </div>
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                        <input
+                          id="picture-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              uploadPicture(file, "picture");
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                   <FormDescription className="text-center text-sm">
-                    Upload a profile picture
+                    {isCreationMode 
+                      ? "You can upload a profile picture after creating your account"
+                      : "Upload a profile picture"}
                   </FormDescription>
                   <FormMessage />
                 </div>
@@ -299,11 +340,11 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
                   type="button"
                   variant="link"
                   className="text-muted-foreground"
-                  onClick={() => navigate("/groups")}
+                  onClick={() => onComplete ? onComplete({}) : navigate("/groups")}
                 >
                   Skip for now
                 </Button>
-                
+
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-muted" />

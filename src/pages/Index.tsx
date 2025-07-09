@@ -1,259 +1,338 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import CompositeLoginDialog from "@/components/auth/CompositeLoginDialog";
-import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
-import { EditProfileForm } from "@/components/EditProfileForm";
-import { generateFakeName } from "@/lib/utils";
-import { useNostrLogin, NLogin } from "@nostrify/react/login";
-import { useNostrPublish } from "@/hooks/useNostrPublish";
-import { generateSecretKey, nip19 } from "nostr-tools";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Sparkles, Mail, Key, Loader2 } from "lucide-react";
+import { type NLoginType } from "@nostrify/react/login";
+import { User as FirebaseUser } from "firebase/auth";
+import { FirebaseAuthForm } from "@/components/auth/FirebaseAuthForm";
+import { ProfileDiscoveryScreen } from "@/components/auth/ProfileDiscoveryScreen";
+import LoginDialog from "@/components/auth/LoginDialog";
+import NostrAuthStep from "@/components/auth/NostrAuthStep";
+import { Dialog } from "@/components/ui/dialog";
 import { toast } from "@/hooks/useToast";
-import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
-import { useCreateAccount } from "@/hooks/useCreateAccount";
-import { useCashuWallet } from "@/hooks/useCashuWallet";
-import { PWAInstallButton } from "@/components/PWAInstallButton";
-import { Smartphone } from "lucide-react";
-import { useCashuStore } from "@/stores/cashuStore";
-import { useOnboardingStore } from "@/stores/onboardingStore";
-import { getTokenAmount } from "@/lib/cashu";
-import { useCurrencyDisplayStore } from "@/stores/currencyDisplayStore";
-import { useBitcoinPrice, satsToUSD, formatUSD } from "@/hooks/useBitcoinPrice";
-import { usePWA } from "@/hooks/usePWA";
-import { OnboardingContext } from "@/contexts/OnboardingContext";
 
+/**
+ * Clean, greenfield login page for Wavlake authentication.
+ *
+ * This page provides a fresh approach to user authentication with three clear paths:
+ * - Get Started: For new users who want to create an account automatically
+ * - Wavlake Account: For existing users with email/password accounts
+ * - Nostr Account: For users with existing Nostr keys
+ */
 const Index = () => {
-  const { currentUser } = useLoggedInAccounts();
-  const [loginOpen, setLoginOpen] = useState(false);
   const navigate = useNavigate();
-  const { addLogin } = useNostrLogin();
-  const { mutateAsync: publishEvent } = useNostrPublish();
-  const [newUser, setNewUser] = useState(false);
-  const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
-  const { createAccount, isCreating } = useCreateAccount();
-  const { wallet, isLoading } = useCashuWallet();
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [selectedPubkey, setSelectedPubkey] = useState<string | null>(null);
 
-  const [generatedName, setGeneratedName] = useState<string | null>(null);
-  const cashuStore = useCashuStore();
-  const onboardingStore = useOnboardingStore();
-  const { showSats } = useCurrencyDisplayStore();
-  const { data: btcPrice, isLoading: btcPriceLoading } = useBitcoinPrice();
-  const [tokenProcessed, setTokenProcessed] = useState(false);
-  const { isRunningAsPwa } = usePWA();
+  const handleGetStarted = () => {
+    console.log("[Index] User starting Get Started flow", {
+      component: "Index",
+      action: "handleGetStarted",
+      navigatingTo: "/create-account",
+      source: "onboarding",
+    });
 
-  // Check for token in URL on mount
-  useEffect(() => {
-    // Don't process if already processed
-    if (tokenProcessed) return;
-
-    // Check if user has already claimed an onboarding token
-    if (onboardingStore.isTokenClaimed()) {
-      setTokenProcessed(true);
-      // Clean up the URL
-      window.history.replaceState(null, "", window.location.pathname);
-      return;
-    }
-
-    const hash = window.location.hash;
-    if (hash && hash.includes("token=")) {
-      const tokenMatch = hash.match(/token=([^&]+)/);
-      if (tokenMatch && tokenMatch[1]) {
-        const token = tokenMatch[1];
-
-        // If USD mode and price is still loading, wait
-        if (!showSats && btcPriceLoading) {
-          return;
-        }
-
-        try {
-          // Get the token amount
-          const amount = getTokenAmount(token);
-
-          // Store the token for later redemption
-          cashuStore.setPendingOnboardingToken(token);
-
-          // Clean up the URL
-          window.history.replaceState(null, "", window.location.pathname);
-
-          // Format the amount based on user preference
-          let displayAmount: string;
-          if (showSats) {
-            displayAmount = `${amount.toLocaleString()} sats`;
-          } else {
-            const usd = satsToUSD(amount, btcPrice?.USD || null);
-            displayAmount =
-              usd !== null ? formatUSD(usd) : `${amount.toLocaleString()} sats`;
-          }
-
-          // Show notification with animated icon
-          toast({
-            title: "✅ Ecash waiting for you!",
-            description: `Complete signup to receive ${displayAmount} in your wallet`,
-          });
-
-          // Mark as processed
-          setTokenProcessed(true);
-        } catch (error) {
-          console.error("Error processing token:", error);
-          setTokenProcessed(true);
-        }
-      }
-    }
-  }, [
-    cashuStore,
-    onboardingStore,
-    showSats,
-    btcPrice,
-    btcPriceLoading,
-    tokenProcessed,
-  ]);
-
-  // Redirect to /groups after user is logged in
-  useEffect(() => {
-    if (currentUser && !newUser) {
-      // Query the wallet when user logs in
-      if (wallet) {
-        console.log("User wallet found:", wallet);
-        // Wallet exists, redirect to groups
-        navigate("/groups", { replace: true });
-      } else if (isLoading) {
-        // Wait for wallet query to complete
-        console.log("Fetching wallet data...");
-      } else {
-        // Wallet query completed but no wallet found
-        console.log("No wallet found for user");
-        createCashuWallet()
-          .then(() => {
-            navigate("/groups", { replace: true });
-          })
-          .catch((error) => {
-            console.error("Failed to create wallet:", error);
-            navigate("/groups", { replace: true });
-          });
-      }
-    }
-  }, [newUser, currentUser, navigate, wallet, isLoading, createCashuWallet]);
-
-  // Handle account creation inline
-  const handleCreateAccount = async () => {
-    setNewUser(true);
-    try {
-      const result = await createAccount({
-        generateName: true,
-        createWallet: true,
-        onComplete: ({ name }) => {
-          // Store the generated name in state immediately
-          setGeneratedName(name || null);
-          setNewUser(true); // Mark as new user
-        },
-        onError: (error) => {
-          console.error("Account creation failed:", error);
-          setNewUser(false);
-        },
-      });
-    } catch (error) {
-      console.error("Account creation failed:", error);
-      setNewUser(false);
-    }
+    navigate("/create-account", {
+      state: {
+        source: "onboarding",
+        returnPath: "/groups",
+      },
+    });
   };
 
-  // Handler for login dialog
-  const handleLogin = () => {
-    setLoginOpen(false);
+  const handleWavlakeAccount = () => {
+    setSelectedPath("wavlake-account");
   };
 
-  // Onboarding step 1: Not logged in
-  if (!currentUser) {
+  const handleNostrAccount = () => {
+    setIsLoginDialogOpen(true);
+  };
+
+  const handleBack = () => {
+    setSelectedPath(null);
+  };
+
+  const handleFirebaseSuccess = (user: FirebaseUser) => {
+    console.log("Firebase authentication successful:", user.uid);
+    // Store Firebase user and show profile discovery
+    setFirebaseUser(user);
+    setSelectedPath("profile-discovery");
+  };
+
+  // Profile discovery handlers
+  const handleSelectPubkey = (pubkey: string) => {
+    console.log("[Index] User selected linked pubkey", {
+      component: "Index",
+      action: "handleSelectPubkey",
+      selectedPubkey: `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`,
+      fromPath: "profile-discovery",
+      toPath: "nostr-auth-targeted",
+      firebaseUser: firebaseUser ? firebaseUser.uid : null,
+    });
+    setSelectedPubkey(pubkey);
+    setSelectedPath("nostr-auth-targeted");
+  };
+
+  const handleUseDifferentAccount = () => {
+    // Go to open Nostr authentication
+    setSelectedPath("nostr-auth-open");
+  };
+
+  const handleGenerateNewAccount = () => {
+    console.log("[Index] User starting Firebase account generation", {
+      component: "Index",
+      action: "handleGenerateNewAccount",
+      firebaseUser: firebaseUser?.uid,
+      navigatingTo: "/create-account",
+      source: "firebase-generation",
+    });
+
+    navigate("/create-account", {
+      state: {
+        firebaseUserData: firebaseUser
+          ? {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            }
+          : null,
+        source: "firebase-generation",
+        returnPath: "/groups",
+      },
+    });
+  };
+
+  const handleLoginDialogClose = () => {
+    setIsLoginDialogOpen(false);
+  };
+
+  const handleLoginDialogSuccess = () => {
+    setIsLoginDialogOpen(false);
+    navigate("/groups"); // Navigate to groups after successful Nostr login
+  };
+
+  // Targeted Nostr authentication handlers
+  const handleTargetedAuthSuccess = (login: NLoginType) => {
+    console.log("[Index] Targeted auth successful", {
+      component: "Index",
+      action: "handleTargetedAuthSuccess",
+      pubkey: `${login.pubkey.slice(0, 8)}...${login.pubkey.slice(-8)}`,
+      loginType: login.type,
+      loginId: login.id,
+      selectedPubkey: selectedPubkey
+        ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}`
+        : null,
+      navigatingTo: "/groups",
+    });
+    navigate("/groups");
+  };
+
+  const handleTargetedAuthBack = () => {
+    console.log("[Index] User navigating back from targeted auth", {
+      component: "Index",
+      action: "handleTargetedAuthBack",
+      fromPath: "nostr-auth-targeted",
+      toPath: "profile-discovery",
+      selectedPubkey: selectedPubkey
+        ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}`
+        : null,
+    });
+    setSelectedPath("profile-discovery");
+    setSelectedPubkey(null);
+  };
+
+  // Open Nostr authentication handlers (for "Use different account" flow)
+  const handleOpenAuthSuccess = (login: NLoginType) => {
+    console.log("[Index] Open auth successful", {
+      component: "Index",
+      action: "handleOpenAuthSuccess",
+      pubkey: `${login.pubkey.slice(0, 8)}...${login.pubkey.slice(-8)}`,
+      loginType: login.type,
+      loginId: login.id,
+      firebaseUser: firebaseUser ? firebaseUser.uid : null,
+      navigatingTo: "/groups",
+    });
+    navigate("/groups");
+  };
+
+  const handleOpenAuthBack = () => {
+    console.log("[Index] User navigating back from open auth", {
+      component: "Index",
+      action: "handleOpenAuthBack",
+      fromPath: "nostr-auth-open",
+      toPath: "profile-discovery",
+      firebaseUser: firebaseUser ? firebaseUser.uid : null,
+    });
+    setSelectedPath("profile-discovery");
+  };
+
+  // Show profile discovery after Firebase authentication
+  if (selectedPath === "profile-discovery" && firebaseUser) {
     return (
-      <>
-        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
-          <div className="w-full max-w-md mx-auto px-8 text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <img
-                src="/wavlake-icon-96.png"
-                alt="Wavlake"
-                width={64}
-                height={64}
-                className="object-contain"
-              />
-              <h1 className="text-4xl font-bold">Wavlake</h1>
-            </div>
-            <div className="text-lg text-muted-foreground font-extralight">
-              Stream Anywhere, Earn Everywhere
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            onClick={handleCreateAccount}
-            disabled={isCreating}
-            className="w-full max-w-[200px] flex items-center justify-center gap-2 mb-6"
-          >
-            {isCreating ? "Creating..." : "Get Started"}
-          </Button>
-          <div className="text-sm text-muted-foreground flex items-center justify-center mt-3">
-            <span>Have a Nostr/Wavlake account?</span>&nbsp;
-            <Button
-              variant="link"
-              size="sm"
-              className="text-primary font-medium hover:underline p-0 h-auto"
-              onClick={() => setLoginOpen(true)}
-            >
-              Sign in
-            </Button>
-          </div>
+      <ProfileDiscoveryScreen
+        firebaseUser={firebaseUser}
+        onBack={handleBack}
+        onSelectPubkey={handleSelectPubkey}
+        onUseDifferentAccount={handleUseDifferentAccount}
+        onGenerateNewAccount={handleGenerateNewAccount}
+      />
+    );
+  }
 
-          {/* PWA Install Section - Only show if not already running as PWA */}
-          {!isRunningAsPwa && (
-            <div className="mt-8 p-4 bg-muted/50 rounded-lg text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Smartphone className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Get the App
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Install Wavlake for the best experience
-              </p>
-              <PWAInstallButton
-                variant="outline"
-                size="sm"
-                className="w-full max-w-[200px]"
-              />
-            </div>
-          )}
-        </div>
-        <CompositeLoginDialog
-          isOpen={loginOpen}
-          onClose={() => setLoginOpen(false)}
-          onLogin={handleLogin}
+  // Show targeted Nostr authentication for selected pubkey
+  if (
+    selectedPath === "nostr-auth-targeted" &&
+    firebaseUser &&
+    selectedPubkey
+  ) {
+    return (
+      <Dialog open={true} onOpenChange={handleTargetedAuthBack}>
+        <NostrAuthStep
+          firebaseUser={firebaseUser}
+          linkedPubkeys={[]}
+          expectedPubkey={selectedPubkey}
+          onSuccess={handleTargetedAuthSuccess}
+          onBack={handleTargetedAuthBack}
+          enableAutoLink={true}
         />
-      </>
+      </Dialog>
     );
   }
 
-  // Onboarding step 2: New user (just created account) or user without metadata
-  if (currentUser && newUser) {
+  // Show open Nostr authentication (for "Use different account" flow)
+  if (selectedPath === "nostr-auth-open" && firebaseUser) {
     return (
-      <OnboardingContext.Provider value={{ generatedName }}>
-        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background">
-          <div className="w-full max-w-lg mx-auto p-8">
-            <h2 className="text-2xl font-bold mb-4 text-center">
-              Set your name and pic
-            </h2>
-            <p className="text-gray-600 mb-6 text-center">
-              You can always update them later.
-            </p>
-            <EditProfileForm showSkipLink={true} initialName={generatedName} />
-          </div>
-        </div>
-      </OnboardingContext.Provider>
+      <Dialog open={true} onOpenChange={handleOpenAuthBack}>
+        <NostrAuthStep
+          firebaseUser={firebaseUser}
+          linkedPubkeys={[]}
+          expectedPubkey={undefined}
+          onSuccess={handleOpenAuthSuccess}
+          onBack={handleOpenAuthBack}
+          enableAutoLink={true}
+        />
+      </Dialog>
     );
   }
 
-  // Fallback (should redirect to /groups in most cases)
+  // Show Wavlake account authentication
+  if (selectedPath === "wavlake-account") {
+    return (
+      <FirebaseAuthForm
+        onSuccess={handleFirebaseSuccess}
+        onBack={handleBack}
+        title="Sign in to Wavlake"
+        description="Use your existing email and password"
+      />
+    );
+  }
+
+  // Main login choice screen
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground">
-      <div>Loading groups...</div>
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Mobile-optimized layout */}
+      <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 md:p-8">
+        {/* Header - more compact on mobile */}
+        <div className="w-full max-w-xs sm:max-w-md mx-auto text-center mb-6 sm:mb-8 px-4 sm:px-0">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <img
+              src="/wavlake-icon-96.png"
+              alt="Wavlake"
+              width={48}
+              height={48}
+              className="object-contain sm:w-16 sm:h-16"
+            />
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Wavlake</h1>
+          </div>
+          <p className="text-base sm:text-lg text-muted-foreground">
+            Stream Anywhere, Earn Everywhere
+          </p>
+        </div>
+
+        {/* Authentication Options - wider on mobile */}
+        <div className="w-full max-w-xs sm:max-w-md mx-auto px-4 sm:px-0">
+          <Card className="border-0 shadow-lg sm:border sm:shadow-sm">
+            <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
+              <CardTitle className="text-center text-lg sm:text-xl">Welcome to Wavlake</CardTitle>
+              <CardDescription className="text-center text-sm sm:text-base">
+                Choose how you'd like to get started
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+            {/* Get Started Button */}
+            <Button
+              onClick={handleGetStarted}
+              variant="outline"
+              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+              size="lg"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <Sparkles className="w-5 h-5 shrink-0 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-base sm:text-base">Get Started</div>
+                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                    New to Wavlake? We'll create an account for you
+                  </div>
+                </div>
+              </div>
+            </Button>
+
+            {/* Wavlake Account Button */}
+            <Button
+              onClick={handleWavlakeAccount}
+              variant="outline"
+              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+              size="lg"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <Mail className="w-5 h-5 shrink-0 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-base sm:text-base break-words">I have a Wavlake account</div>
+                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                    Sign in with your existing email address
+                  </div>
+                </div>
+              </div>
+            </Button>
+
+            {/* Nostr Account Button */}
+            <Button
+              onClick={handleNostrAccount}
+              variant="outline"
+              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+              size="lg"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <Key className="w-5 h-5 shrink-0 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-base sm:text-base break-words">I have a Nostr account</div>
+                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                    Sign in with your existing Nostr keys
+                  </div>
+                </div>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Login Dialog */}
+      <LoginDialog
+        isOpen={isLoginDialogOpen}
+        onClose={handleLoginDialogClose}
+        onLogin={handleLoginDialogSuccess}
+      />
+      </div>
     </div>
   );
 };

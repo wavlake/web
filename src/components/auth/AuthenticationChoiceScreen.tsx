@@ -1,15 +1,8 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { type NLoginType } from "@nostrify/react/login";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { LoginChoiceStep, LoginChoice } from "./LoginChoiceStep";
+import { LoginChoiceContent, LoginChoice } from "./LoginChoiceContent";
 import LoginDialog from "./LoginDialog";
 import { FirebaseAuthDialog } from "./FirebaseAuthDialog";
 import NostrAuthStep from "./NostrAuthStep";
@@ -21,15 +14,13 @@ import { getAuth } from "firebase/auth";
 import { FirebaseUser } from "@/types/auth";
 
 /**
- * Props for the CompositeLoginDialog component
+ * Props for the AuthenticationChoiceScreen component
  */
-interface CompositeLoginDialogProps {
-  /** Whether the dialog is open */
-  isOpen: boolean;
-  /** Callback fired when dialog should close */
-  onClose: () => void;
-  /** Callback fired when user successfully logs in */
+interface AuthenticationChoiceScreenProps {
+  /** Callback fired when user successfully logs in (existing users) */
   onLogin: (login?: NLoginType) => void;
+  /** Callback fired when a new user account is created */
+  onNewUserCreated?: (login: NLoginType, generatedName?: string) => void;
 }
 
 /**
@@ -38,9 +29,9 @@ interface CompositeLoginDialogProps {
 type AuthStep = "choice" | "nostr" | "firebase";
 
 /**
- * CompositeLoginDialog orchestrates the enhanced authentication flow,
- * presenting users with three distinct authentication options and managing
- * the state transitions between different authentication steps.
+ * AuthenticationChoiceScreen provides the main authentication interface for the landing page.
+ * This is the non-dialog version of CompositeLoginDialog, designed to be displayed directly
+ * on the Index page for unauthenticated users.
  *
  * Features:
  * - Three-step authentication flow (choice → auth → completion)
@@ -49,15 +40,11 @@ type AuthStep = "choice" | "nostr" | "firebase";
  * - Auto-account creation for new users
  * - Integration with existing authentication components
  *
- * @param isOpen - Whether the dialog is currently open
- * @param onClose - Callback fired when dialog should close
  * @param onLogin - Callback fired when user successfully logs in
  */
-export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
-  isOpen,
-  onClose,
-  onLogin,
-}) => {
+export const AuthenticationChoiceScreen: React.FC<
+  AuthenticationChoiceScreenProps
+> = ({ onLogin, onNewUserCreated }) => {
   const [step, setStep] = useState<AuthStep>("choice");
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -112,8 +99,13 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
 
       await syncProfile(result.pubkey);
 
-      onLogin(result.login);
-      onClose();
+      // Call the new user callback instead of login to trigger profile edit screen
+      if (onNewUserCreated) {
+        onNewUserCreated(result.login, result.name);
+      } else {
+        // Fallback to login if callback not provided
+        onLogin(result.login);
+      }
     } catch (error) {
       console.error("Auto account creation failed:", error);
 
@@ -157,7 +149,6 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   const handleNostrLogin = (login?: NLoginType) => {
     // Pass the login through to parent if provided
     onLogin(login);
-    onClose();
   };
 
   /**
@@ -169,34 +160,12 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
   }, []);
 
   /**
-   * Resets state and closes the dialog
-   */
-  const handleClose = () => {
-    setStep("choice");
-    setIsCreatingAccount(false);
-    setFirebaseUser(null);
-    onClose();
-  };
-
-  /**
-   * Enhanced close handler that provides back navigation context
-   */
-  const handleCloseWithBackNavigation = () => {
-    if (step !== "choice") {
-      // If user is not on choice step, go back instead of closing
-      handleBack();
-    } else {
-      handleClose();
-    }
-  };
-
-  /**
    * BackButton component for navigation between authentication steps.
    * Memoized to prevent unnecessary re-renders.
    */
   const BackButton = useMemo(
     () => (
-      <div className="fixed top-4 left-4 z-[60]">
+      <div className="absolute top-4 left-4 z-10">
         <Button
           variant="ghost"
           size="sm"
@@ -212,21 +181,19 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
     [handleBack]
   );
 
-  // Show loading dialog during account creation
+  // Show loading screen during account creation
   if (isCreatingAccount) {
     return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl bg-red-400">
-          <DialogHeader className="px-6 pt-6 pb-0 relative">
-            <DialogTitle className="text-xl font-semibold text-center">
-              Creating Your Account
-            </DialogTitle>
-            <DialogDescription className="text-center text-muted-foreground mt-2">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
+        <div className="w-full max-w-md mx-auto text-center space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold">Creating Your Account</h1>
+            <p className="text-muted-foreground">
               Please wait while we set up your new Wavlake account
-            </DialogDescription>
-          </DialogHeader>
+            </p>
+          </div>
 
-          <div className="px-6 py-8 flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
@@ -235,64 +202,100 @@ export const CompositeLoginDialog: React.FC<CompositeLoginDialogProps> = ({
               <div className="text-xs text-muted-foreground space-y-1">
                 <div>• Generating secure Nostr keys</div>
                 <div>• Creating Lightning wallet</div>
-                <div>• Syncing profile information</div>
+                <div>• Setting up your profile</div>
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   }
 
-  // Render appropriate step content
+  // Render Firebase authentication step
+  if (step === "firebase") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8 relative">
+        {BackButton}
+        <div className="w-full max-w-md mx-auto">
+          <FirebaseAuthDialog
+            isOpen={true}
+            onClose={handleBack}
+            onSuccess={handleFirebaseSuccess}
+            title="Sign in to Wavlake"
+            description="Use your existing Wavlake account credentials"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Render Nostr authentication step
   if (step === "nostr") {
     // Use NostrAuthStep when we have Firebase user context, otherwise use LoginDialog
     if (firebaseUser) {
       return (
-        <Dialog open={isOpen} onOpenChange={handleBack}>
-          <NostrAuthStep
-            firebaseUser={firebaseUser}
-            linkedPubkeys={linkedPubkeys}
-            onSuccess={handleNostrLogin}
-            onBack={handleBack}
-          />
-        </Dialog>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8 relative">
+          {BackButton}
+          <div className="w-full max-w-md mx-auto">
+            <NostrAuthStep
+              firebaseUser={firebaseUser}
+              linkedPubkeys={linkedPubkeys}
+              onSuccess={handleNostrLogin}
+              onBack={handleBack}
+            />
+          </div>
+        </div>
       );
     } else {
       return (
-        <>
-          <LoginDialog
-            isOpen={isOpen}
-            onClose={handleCloseWithBackNavigation}
-            onLogin={() => handleNostrLogin()}
-          />
-          {isOpen && BackButton}
-        </>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8 relative">
+          {BackButton}
+          <div className="w-full max-w-md mx-auto">
+            <LoginDialog
+              isOpen={true}
+              onClose={handleBack}
+              onLogin={() => handleNostrLogin()}
+            />
+          </div>
+        </div>
       );
     }
   }
 
-  if (step === "firebase") {
-    return (
-      <>
-        <FirebaseAuthDialog
-          isOpen={isOpen}
-          onClose={handleCloseWithBackNavigation}
-          onSuccess={handleFirebaseSuccess}
-          title="Sign in to Wavlake"
-          description="Use your existing Wavlake account credentials"
-        />
-        {isOpen && BackButton}
-      </>
-    );
-  }
-
-  // Default to choice step
+  // Default to choice step - render as main page content
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <LoginChoiceStep onSelect={handleChoiceSelect} />
-    </Dialog>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background dark:bg-dark-background p-8">
+      <div className="w-full max-w-md mx-auto px-8 text-center mb-8">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <img
+            src="/wavlake-icon-96.png"
+            alt="Wavlake"
+            width={64}
+            height={64}
+            className="object-contain"
+          />
+          <h1 className="text-4xl font-bold">Wavlake</h1>
+        </div>
+        <div className="text-lg text-muted-foreground font-extralight">
+          Stream Anywhere, Earn Everywhere
+        </div>
+      </div>
+
+      {/* Render the choice step content without dialog wrapper */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold">Welcome to Wavlake</h2>
+            <p className="text-muted-foreground mt-2">
+              Choose how you'd like to get started
+            </p>
+          </div>
+
+          <LoginChoiceContent onSelect={handleChoiceSelect} />
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default CompositeLoginDialog;
+export default AuthenticationChoiceScreen;

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Eagerly load the main pages
 import Index from "./pages/Index";
+import CreateAccount from "./pages/CreateAccount";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import Profile from "./pages/Profile";
@@ -55,6 +56,7 @@ export function AppRouter() {
         <GlobalLayout>
           <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/:communityId" element={<DashboardDetail />} />
