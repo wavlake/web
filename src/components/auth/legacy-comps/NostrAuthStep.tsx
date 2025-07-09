@@ -42,15 +42,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLoginActions } from "@/hooks/legacy/useLegacyLoginActions";
+import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
-import { useAutoLinkPubkey } from "@/hooks/legacy/useLegacyAutoLinkPubkey";
+import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
 import { useToast } from "@/hooks/useToast";
 import { useNostr } from "@nostrify/react";
 import { useAuthor } from "@/hooks/useAuthor";
-import { PubkeyMismatchAlert } from "./LegacyPubkeyMismatchAlert";
+import { PubkeyMismatchAlert } from "../PubkeyMismatchAlert";
 import { NUser } from "@nostrify/react/login";
-import LoginDialog from "./LegacyLoginDialog";
+import LoginDialog from "../LoginDialog";
 import { logAuthError, logAuthInfo } from "@/lib/authLogger";
 import { truncatePubkey, getDisplayName } from "@/lib/pubkeyUtils";
 import { FirebaseUser } from "@/types/auth";
@@ -237,7 +237,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleLoginSuccess = async (loginInfo: NLoginType) => {
-
     try {
       // Validate pubkey format
       if (!validatePubkey(loginInfo.pubkey)) {
@@ -262,7 +261,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         setIsLoading(false);
         return;
       }
-
 
       // Log the authentication attempt
       logAuthInfo(
@@ -365,7 +363,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleKeyLogin = async () => {
-
     if (!nsec.trim()) {
       console.warn("[NostrAuthStep] No nsec provided");
       return;

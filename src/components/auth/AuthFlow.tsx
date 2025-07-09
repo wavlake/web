@@ -23,7 +23,7 @@ import { AccountDiscoveryScreen } from "./AccountDiscoveryScreen";
 import { toast } from "@/hooks/useToast";
 import type { NLoginType } from "@nostrify/react/login";
 import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
-import LoginDialog from "../LoginDialog";
+import LoginDialog from "./LoginDialog";
 
 // ============================================================================
 // Helper Functions
