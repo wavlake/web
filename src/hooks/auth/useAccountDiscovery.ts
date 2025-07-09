@@ -50,36 +50,40 @@ function getDiscoveryErrorMessage(error: unknown): string {
 /**
  * Transform legacy linked pubkeys response to unified format
  */
-function transformLinkedPubkeys(legacyPubkeys: any[]): LinkedAccount[] {
+function transformLinkedPubkeys(legacyPubkeys: unknown[]): LinkedAccount[] {
   if (!Array.isArray(legacyPubkeys)) {
     return [];
   }
 
-  return legacyPubkeys.map((item) => ({
-    pubkey: item.pubkey,
-    profile: item.profile ? {
-      name: item.profile.name,
-      display_name: item.profile.display_name,
-      picture: item.profile.picture,
-      about: item.profile.about,
-    } : undefined,
-    linkedAt: item.linkedAt,
-    isPrimary: item.isPrimary || false,
-  }));
+  return legacyPubkeys.map((item: unknown) => {
+    const pubkeyItem = item as Record<string, unknown>;
+    return {
+      pubkey: pubkeyItem.pubkey as string,
+      profile: pubkeyItem.profile ? {
+        name: (pubkeyItem.profile as Record<string, unknown>).name as string,
+        display_name: (pubkeyItem.profile as Record<string, unknown>).display_name as string,
+        picture: (pubkeyItem.profile as Record<string, unknown>).picture as string,
+        about: (pubkeyItem.profile as Record<string, unknown>).about as string,
+      } : undefined,
+      linkedAt: pubkeyItem.linkedAt as number,
+      isPrimary: (pubkeyItem.isPrimary as boolean) || false,
+    };
+  });
 }
 
 /**
  * Transform legacy profile data to unified format
  */
-function transformLegacyProfile(legacyData: any): LegacyProfile | null {
+function transformLegacyProfile(legacyData: unknown): LegacyProfile | null {
   if (!legacyData) {
     return null;
   }
 
+  const data = legacyData as Record<string, unknown>;
   return {
-    email: legacyData.email,
-    displayName: legacyData.displayName,
-    photoURL: legacyData.photoURL,
+    email: data.email as string,
+    displayName: data.displayName as string,
+    photoURL: data.photoURL as string,
   };
 }
 
@@ -129,15 +133,10 @@ export function useAccountDiscovery(
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
 
   // Fetch linked pubkeys (skip for new users for performance)
-  const linkedPubkeysQuery = useLinkedPubkeys(firebaseUser, {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!firebaseUser && !isNewUser,
-  });
+  const linkedPubkeysQuery = useLinkedPubkeys(firebaseUser);
 
   // Fetch legacy profile data (skip for new users for performance)
-  const legacyProfileQuery = useLegacyProfile(firebaseUser?.email, firebaseUser, {
-    enabled: !!firebaseUser && !isNewUser,
-  });
+  const legacyProfileQuery = useLegacyProfile(firebaseUser);
 
   // Transform data to unified format
   const linkedAccounts = transformLinkedPubkeys(linkedPubkeysQuery.data || []);

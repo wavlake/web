@@ -22,7 +22,7 @@ export type AuthMethod = 'nostr' | 'firebase' | 'create-account';
 
 export interface AuthenticatedUser {
   pubkey: string;
-  signer: any; // From Nostrify
+  signer: unknown; // From Nostrify
   profile?: {
     name?: string;
     display_name?: string;

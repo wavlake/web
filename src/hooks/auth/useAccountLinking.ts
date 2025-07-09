@@ -9,7 +9,7 @@ import { useState, useCallback } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAutoLinkPubkey } from '@/hooks/legacy/useLegacyAutoLinkPubkey';
-import { toast } from '@/hooks/useToast';
+import { toast } from 'sonner';
 import type { AccountLinkingResult } from '@/types/authFlow';
 
 // ============================================================================

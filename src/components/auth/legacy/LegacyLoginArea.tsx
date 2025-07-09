@@ -4,9 +4,9 @@
 import React, { useState } from 'react';
 import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
-import LoginDialog from './LoginDialog';
+import LoginDialog from './LegacyLoginDialog';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
-import { AccountSwitcher } from './AccountSwitcher';
+import { AccountSwitcher } from './LegacyAccountSwitcher';
 
 export function LoginArea() {
   const { currentUser } = useLoggedInAccounts();

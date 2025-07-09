@@ -215,7 +215,7 @@ export function NostrAuthForm({
 
         {/* Mismatch Warning */}
         {formState.mismatchWarning?.show && (
-          <Alert variant="warning">
+          <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">

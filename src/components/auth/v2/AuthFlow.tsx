@@ -58,20 +58,19 @@ function convertToAuthenticatedUser(login: NLoginType) {
  * - Account linking integration
  * 
  * @example
- * ```tsx
- * // Replace Index.tsx with this component
+ * Replace Index.tsx with this component:
+ * 
  * function App() {
  *   return (
  *     <Router>
  *       <Routes>
  *         <Route path="/" element={<AuthFlow />} />
  *         <Route path="/legacy-login" element={<LegacyIndex />} />
- *         {/* other routes */}
+ *         // other routes
  *       </Routes>
  *     </Router>
  *   );
  * }
- * ```
  */
 export function AuthFlow() {
   const { user: currentUser } = useCurrentUser();
@@ -196,7 +195,7 @@ export function AuthFlow() {
             onAuthenticate={handleNostrAuth}
             onBack={handleBack}
             isLoading={nostrAuth.isLoading}
-            error={nostrAuth.error}
+            error={nostrAuth.error || undefined}
             supportedMethods={nostrAuth.supportedMethods}
             expectedPubkey={context.selectedPubkey}
           />
@@ -209,7 +208,7 @@ export function AuthFlow() {
           onAuthenticate={handleFirebaseAuth}
           onBack={handleBack}
           isLoading={firebaseAuth.isLoading}
-          error={firebaseAuth.error}
+          error={firebaseAuth.error || undefined}
           initialMode={state.mode}
         />
       );
@@ -227,7 +226,7 @@ export function AuthFlow() {
           linkedAccounts={accountDiscovery.linkedAccounts}
           legacyProfile={accountDiscovery.legacyProfile}
           isLoading={accountDiscovery.isLoading}
-          error={accountDiscovery.error}
+          error={accountDiscovery.error || undefined}
           onSelectAccount={handleAccountSelection}
           onUseDifferentAccount={handleUseDifferentAccount}
           onGenerateNewAccount={handleGenerateNewAccount}
@@ -248,7 +247,7 @@ export function AuthFlow() {
             onAuthenticate={handleNostrAuth}
             onBack={handleBack}
             isLoading={nostrAuth.isLoading || accountLinking.isLinking}
-            error={nostrAuth.error || accountLinking.error}
+            error={nostrAuth.error || accountLinking.error || undefined}
             supportedMethods={nostrAuth.supportedMethods}
             expectedPubkey={context.selectedPubkey}
             title="Sign in to link your account"

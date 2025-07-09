@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertTriangle, ArrowLeft, ArrowRight } from "lucide-react";
 import { useAuthor } from "@/hooks/useAuthor";
-import { Tooltip } from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PubkeyMismatchAlertProps {
   expectedPubkey: string;

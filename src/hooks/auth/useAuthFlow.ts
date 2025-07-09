@@ -280,7 +280,7 @@ export function useAuthFlow(): AuthFlowResult {
   const isLoading = useMemo(() => {
     // Add loading states as needed based on your requirements
     return false; // Individual hooks will manage their own loading states
-  }, [state]);
+  }, []);
 
   return {
     state,
