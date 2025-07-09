@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowLeft, 
-  ChevronRight, 
   Loader2, 
   Users, 
   UserPlus, 
@@ -22,11 +21,8 @@ import {
 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import type { LinkedAccount, LegacyProfile } from '@/types/authFlow';
-import { 
-  getAccountDisplayName, 
-  getAccountAvatarUrl, 
-  sortAccountsByPriority 
-} from '@/hooks/auth/useAccountDiscovery';
+import { sortAccountsByPriority } from '@/hooks/auth/useAccountDiscovery';
+import { LinkedAccountCard } from './LinkedAccountCard';
 
 // ============================================================================
 // Types
@@ -190,43 +186,12 @@ export function AccountDiscoveryScreen({
               {!isLoading && hasLinkedAccounts && (
                 <div className="space-y-3">
                   {sortedAccounts.map((account) => (
-                    <div
+                    <LinkedAccountCard
                       key={account.pubkey}
-                      className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => onSelectAccount(account.pubkey)}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={getAccountAvatarUrl(account)} />
-                          <AvatarFallback>
-                            {getAccountDisplayName(account)[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">
-                              {getAccountDisplayName(account)}
-                            </p>
-                            {account.isPrimary && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                Primary
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {account.pubkey.slice(0, 8)}...{account.pubkey.slice(-8)}
-                          </p>
-                          {account.profile?.about && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {account.profile.about}
-                            </p>
-                          )}
-                        </div>
-                        
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </div>
+                      account={account}
+                      onSelect={() => onSelectAccount(account.pubkey)}
+                      disabled={isLoading}
+                    />
                   ))}
                 </div>
               )}
@@ -305,26 +270,6 @@ export function AccountDiscoveryScreen({
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Get appropriate icon for account type
- */
-export function getAccountIcon(account: LinkedAccount): React.ReactNode {
-  // Could be extended to show different icons based on account properties
-  return <Users className="h-4 w-4" />;
-}
-
-/**
- * Get account status text
- */
-export function getAccountStatusText(account: LinkedAccount): string {
-  if (account.isPrimary) return 'Primary Account';
-  if (account.linkedAt) {
-    const date = new Date(account.linkedAt);
-    return `Linked ${date.toLocaleDateString()}`;
-  }
-  return 'Linked Account';
-}
 
 /**
  * Check if account discovery is complete
