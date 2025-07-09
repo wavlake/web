@@ -1,20 +1,20 @@
 /**
  * Account discovery hook
- * 
+ *
  * This hook handles the discovery of linked Nostr accounts and legacy profile data
  * after Firebase authentication, extracted from the legacy ProfileDiscoveryScreen.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
-import { useQuery } from '@tanstack/react-query';
-import { useLinkedPubkeys } from '@/hooks/legacy/useLegacyLinkedPubkeys';
-import { useLegacyProfile } from '@/hooks/useLegacyProfile';
-import type { 
-  AccountDiscoveryResult, 
-  LinkedAccount, 
-  LegacyProfile 
-} from '@/types/authFlow';
+import { useState, useCallback, useEffect } from "react";
+import { User as FirebaseUser } from "firebase/auth";
+import { useQuery } from "@tanstack/react-query";
+import { useLegacyProfile } from "@/hooks/useLegacyProfile";
+import type {
+  AccountDiscoveryResult,
+  LinkedAccount,
+  LegacyProfile,
+} from "@/types/authFlow";
+import { useLinkedPubkeys } from "../useLinkedPubkeys";
 
 // ============================================================================
 // Error Handling
@@ -26,21 +26,21 @@ import type {
 function getDiscoveryErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    
-    if (message.includes('network') || message.includes('fetch')) {
-      return 'Unable to load your accounts. Please check your connection and try again.';
+
+    if (message.includes("network") || message.includes("fetch")) {
+      return "Unable to load your accounts. Please check your connection and try again.";
     }
-    if (message.includes('authentication') || message.includes('token')) {
-      return 'Session expired. Please sign in again.';
+    if (message.includes("authentication") || message.includes("token")) {
+      return "Session expired. Please sign in again.";
     }
-    if (message.includes('timeout')) {
-      return 'Loading timed out. Please try again.';
+    if (message.includes("timeout")) {
+      return "Loading timed out. Please try again.";
     }
-    
-    return 'Unable to load your account information. Please try again.';
+
+    return "Unable to load your account information. Please try again.";
   }
-  
-  return 'An unexpected error occurred while loading your accounts.';
+
+  return "An unexpected error occurred while loading your accounts.";
 }
 
 // ============================================================================
@@ -59,12 +59,18 @@ function transformLinkedPubkeys(legacyPubkeys: unknown[]): LinkedAccount[] {
     const pubkeyItem = item as Record<string, unknown>;
     return {
       pubkey: pubkeyItem.pubkey as string,
-      profile: pubkeyItem.profile ? {
-        name: (pubkeyItem.profile as Record<string, unknown>).name as string,
-        display_name: (pubkeyItem.profile as Record<string, unknown>).display_name as string,
-        picture: (pubkeyItem.profile as Record<string, unknown>).picture as string,
-        about: (pubkeyItem.profile as Record<string, unknown>).about as string,
-      } : undefined,
+      profile: pubkeyItem.profile
+        ? {
+            name: (pubkeyItem.profile as Record<string, unknown>)
+              .name as string,
+            display_name: (pubkeyItem.profile as Record<string, unknown>)
+              .display_name as string,
+            picture: (pubkeyItem.profile as Record<string, unknown>)
+              .picture as string,
+            about: (pubkeyItem.profile as Record<string, unknown>)
+              .about as string,
+          }
+        : undefined,
       linkedAt: pubkeyItem.linkedAt as number,
       isPrimary: (pubkeyItem.isPrimary as boolean) || false,
     };
@@ -93,29 +99,29 @@ function transformLegacyProfile(legacyData: unknown): LegacyProfile | null {
 
 /**
  * Account discovery hook
- * 
+ *
  * This hook handles the discovery of linked Nostr accounts and legacy profile
  * data after successful Firebase authentication. It's extracted from the legacy
  * ProfileDiscoveryScreen component and focuses purely on data fetching.
- * 
+ *
  * Features:
  * - Discover linked Nostr accounts
  * - Fetch legacy profile data
  * - Performance optimization for new users
  * - Comprehensive error handling
  * - Manual refresh capability
- * 
+ *
  * @param firebaseUser - Firebase user to discover accounts for
  * @param isNewUser - Skip API calls for new users (performance optimization)
- * 
+ *
  * @example
  * ```tsx
  * function AccountDiscoveryScreen({ firebaseUser, isNewUser }) {
  *   const { linkedAccounts, legacyProfile, isLoading, error, refresh } = useAccountDiscovery(firebaseUser, isNewUser);
- *   
+ *
  *   if (isLoading) return <div>Loading your accounts...</div>;
  *   if (error) return <div>Error: {error}</div>;
- *   
+ *
  *   return (
  *     <div>
  *       <h2>Found {linkedAccounts.length} linked accounts</h2>
@@ -143,16 +149,15 @@ export function useAccountDiscovery(
   const legacyProfile = transformLegacyProfile(legacyProfileQuery.data);
 
   // Determine overall loading state
-  const isLoading = (
-    linkedPubkeysQuery.isLoading || 
-    legacyProfileQuery.isLoading
-  ) && !isNewUser;
+  const isLoading =
+    (linkedPubkeysQuery.isLoading || legacyProfileQuery.isLoading) &&
+    !isNewUser;
 
   // Handle errors from either query
   useEffect(() => {
     const linkedError = linkedPubkeysQuery.error;
     const profileError = legacyProfileQuery.error;
-    
+
     if (linkedError || profileError) {
       const primaryError = linkedError || profileError;
       const errorMessage = getDiscoveryErrorMessage(primaryError);
@@ -167,8 +172,8 @@ export function useAccountDiscovery(
    */
   const refresh = useCallback(() => {
     setError(null);
-    setManualRefreshCount(prev => prev + 1);
-    
+    setManualRefreshCount((prev) => prev + 1);
+
     if (!isNewUser) {
       linkedPubkeysQuery.refetch();
       legacyProfileQuery.refetch();
@@ -202,7 +207,10 @@ export function useAccountDiscovery(
 /**
  * Hook to check if user has any linked accounts
  */
-export function useHasLinkedAccounts(firebaseUser?: FirebaseUser, isNewUser: boolean = false): boolean {
+export function useHasLinkedAccounts(
+  firebaseUser?: FirebaseUser,
+  isNewUser: boolean = false
+): boolean {
   const { linkedAccounts } = useAccountDiscovery(firebaseUser, isNewUser);
   return linkedAccounts.length > 0;
 }
@@ -210,17 +218,28 @@ export function useHasLinkedAccounts(firebaseUser?: FirebaseUser, isNewUser: boo
 /**
  * Hook to get primary linked account
  */
-export function usePrimaryLinkedAccount(firebaseUser?: FirebaseUser, isNewUser: boolean = false): LinkedAccount | null {
+export function usePrimaryLinkedAccount(
+  firebaseUser?: FirebaseUser,
+  isNewUser: boolean = false
+): LinkedAccount | null {
   const { linkedAccounts } = useAccountDiscovery(firebaseUser, isNewUser);
-  return linkedAccounts.find(account => account.isPrimary) || linkedAccounts[0] || null;
+  return (
+    linkedAccounts.find((account) => account.isPrimary) ||
+    linkedAccounts[0] ||
+    null
+  );
 }
 
 /**
  * Hook to check discovery status
  */
-export function useDiscoveryStatus(firebaseUser?: FirebaseUser, isNewUser: boolean = false) {
-  const { linkedAccounts, legacyProfile, isLoading, error } = useAccountDiscovery(firebaseUser, isNewUser);
-  
+export function useDiscoveryStatus(
+  firebaseUser?: FirebaseUser,
+  isNewUser: boolean = false
+) {
+  const { linkedAccounts, legacyProfile, isLoading, error } =
+    useAccountDiscovery(firebaseUser, isNewUser);
+
   return {
     hasLinkedAccounts: linkedAccounts.length > 0,
     hasLegacyProfile: !!legacyProfile,
@@ -250,28 +269,32 @@ export function getAccountDisplayName(account: LinkedAccount): string {
 /**
  * Get account avatar URL
  */
-export function getAccountAvatarUrl(account: LinkedAccount): string | undefined {
+export function getAccountAvatarUrl(
+  account: LinkedAccount
+): string | undefined {
   return account.profile?.picture;
 }
 
 /**
  * Sort accounts by priority (primary first, then by linking date)
  */
-export function sortAccountsByPriority(accounts: LinkedAccount[]): LinkedAccount[] {
+export function sortAccountsByPriority(
+  accounts: LinkedAccount[]
+): LinkedAccount[] {
   return [...accounts].sort((a, b) => {
     // Primary accounts first
     if (a.isPrimary && !b.isPrimary) return -1;
     if (!a.isPrimary && b.isPrimary) return 1;
-    
+
     // Then by linking date (most recent first)
     if (a.linkedAt && b.linkedAt) {
       return b.linkedAt - a.linkedAt;
     }
-    
+
     // Accounts with linking date before those without
     if (a.linkedAt && !b.linkedAt) return -1;
     if (!a.linkedAt && b.linkedAt) return 1;
-    
+
     return 0;
   });
 }
@@ -279,6 +302,9 @@ export function sortAccountsByPriority(accounts: LinkedAccount[]): LinkedAccount
 /**
  * Check if account discovery should be skipped for performance
  */
-export function shouldSkipDiscovery(isNewUser: boolean, firebaseUser?: FirebaseUser): boolean {
+export function shouldSkipDiscovery(
+  isNewUser: boolean,
+  firebaseUser?: FirebaseUser
+): boolean {
   return isNewUser || !firebaseUser;
 }

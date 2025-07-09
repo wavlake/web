@@ -8,9 +8,9 @@
 import { useState, useCallback } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAutoLinkPubkey } from "@/hooks/legacy/useLegacyAutoLinkPubkey";
 import { toast } from "sonner";
 import type { AccountLinkingResult } from "@/types/authFlow";
+import { useAutoLinkPubkey } from "../useAutoLinkPubkey";
 
 // ============================================================================
 // Error Handling
@@ -161,7 +161,6 @@ export function useAccountLinking(
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Use the legacy auto-link hook for the actual linking logic
   const { autoLink } = useAutoLinkPubkey({
     showNotifications: false, // We'll handle notifications ourselves
   });
