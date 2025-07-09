@@ -30,6 +30,7 @@ interface EditProfileFormProps {
   initialName?: string | null;
   initialPicture?: string | null;
   legacyProfile?: { name?: string; picture?: string } | null;
+  source?: "onboarding" | "firebase-generation" | "standalone";
   onBack?: () => void;
   onComplete?: (profileData?: { name?: string; picture?: string }) => void;
 }
@@ -49,6 +50,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   initialName = null,
   initialPicture = null,
   legacyProfile = null,
+  source,
   onBack,
   onComplete,
 }) => {
@@ -334,7 +336,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
               Save
             </Button>
 
-            {showSkipLink && (
+            {showSkipLink && source !== "firebase-generation" && (
               <div className="flex flex-col items-center gap-3 mt-4">
                 <Button
                   type="button"

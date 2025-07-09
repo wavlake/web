@@ -369,6 +369,7 @@ const CreateAccount = () => {
               showSkipLink={true}
               initialName={initialName}
               legacyProfile={legacyProfile ? { name: legacyProfile.name, picture: legacyProfile.picture } : null}
+              source={source}
               onBack={handleProfileSetupBack}
               onComplete={source === "firebase-generation" ? handleFirebaseGenerationComplete : handleProfileSetupComplete}
             />
