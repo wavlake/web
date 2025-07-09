@@ -1,31 +1,28 @@
 /**
  * Nostr Authentication Form Component
- * 
+ *
  * Pure UI component for Nostr authentication.
  * All business logic is provided via props - no internal state management.
  */
 
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Upload, ArrowLeft, AlertCircle } from 'lucide-react';
-import type { 
-  NostrAuthMethod, 
-  NostrCredentials 
-} from '@/types/authFlow';
-import { 
-  getMethodDisplayName, 
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, Upload, ArrowLeft, AlertCircle } from "lucide-react";
+import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
+import {
+  getMethodDisplayName,
   getMethodDescription,
-  extractPubkeyFromNsec 
-} from '@/hooks/auth/useNostrAuthentication';
+  extractPubkeyFromNsec,
+} from "@/hooks/auth/useNostrAuthentication";
 
 // ============================================================================
 // Types
@@ -33,7 +30,10 @@ import {
 
 interface NostrAuthFormProps {
   /** Called when authentication is attempted */
-  onAuthenticate: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<void>;
+  onAuthenticate: (
+    method: NostrAuthMethod,
+    credentials: NostrCredentials
+  ) => Promise<void>;
   /** Called when user wants to go back */
   onBack: () => void;
   /** Whether authentication is in progress */
@@ -69,10 +69,10 @@ interface FormState {
 
 /**
  * NostrAuthForm Component
- * 
+ *
  * A clean, focused component for Nostr authentication that replaces the
  * complex 920-line NostrAuthStep component from the legacy system.
- * 
+ *
  * Features:
  * - Pure presentation component (no business logic)
  * - Support for extension, nsec, and bunker authentication
@@ -80,12 +80,12 @@ interface FormState {
  * - File upload support for private keys
  * - Mismatch detection and warnings
  * - Responsive design
- * 
+ *
  * @example
  * ```tsx
  * function NostrAuthScreen() {
  *   const { authenticate, isLoading, error, supportedMethods } = useNostrAuthentication();
- *   
+ *
  *   return (
  *     <NostrAuthForm
  *       onAuthenticate={authenticate}
@@ -106,38 +106,37 @@ export function NostrAuthForm({
   supportedMethods,
   expectedPubkey,
   showMismatchWarning = true,
-  title = 'Sign in with Nostr',
-  description = 'Access your account securely with Nostr',
+  title = "Sign in with Nostr",
+  description = "Access your account securely with Nostr",
 }: NostrAuthFormProps) {
-  
   const [formState, setFormState] = useState<FormState>({
-    nsec: '',
-    bunkerUri: '',
-    activeTab: supportedMethods[0] || 'extension',
+    nsec: "",
+    bunkerUri: "",
+    activeTab: supportedMethods[0] || "extension",
     mismatchWarning: null,
   });
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update form state
   const updateFormState = (updates: Partial<FormState>) => {
-    setFormState(prev => ({ ...prev, ...updates }));
+    setFormState((prev) => ({ ...prev, ...updates }));
   };
 
   // Handle nsec input change with real-time mismatch detection
   const handleNsecChange = (value: string) => {
     updateFormState({ nsec: value });
-    
+
     if (showMismatchWarning && expectedPubkey && value.trim()) {
       const enteredPubkey = extractPubkeyFromNsec(value.trim());
-      
+
       if (enteredPubkey && enteredPubkey !== expectedPubkey) {
         updateFormState({
           mismatchWarning: {
             show: true,
             expectedPubkey,
             enteredPubkey,
-          }
+          },
         });
       } else {
         updateFormState({ mismatchWarning: null });
@@ -161,22 +160,31 @@ export function NostrAuthForm({
 
   // Handle authentication attempts
   const handleExtensionAuth = async () => {
-    await onAuthenticate('extension', { method: 'extension' });
+    await onAuthenticate("extension", { method: "extension" });
   };
 
   const handleNsecAuth = async () => {
     if (!formState.nsec.trim()) return;
-    await onAuthenticate('nsec', { method: 'nsec', nsec: formState.nsec.trim() });
+    await onAuthenticate("nsec", {
+      method: "nsec",
+      nsec: formState.nsec.trim(),
+    });
   };
 
   const handleBunkerAuth = async () => {
     if (!formState.bunkerUri.trim()) return;
-    await onAuthenticate('bunker', { method: 'bunker', bunkerUri: formState.bunkerUri.trim() });
+    await onAuthenticate("bunker", {
+      method: "bunker",
+      bunkerUri: formState.bunkerUri.trim(),
+    });
   };
 
   // Validation helpers
-  const isNsecValid = formState.nsec.trim().length > 0 && formState.nsec.startsWith('nsec1');
-  const isBunkerValid = formState.bunkerUri.trim().length > 0 && formState.bunkerUri.startsWith('bunker://');
+  const isNsecValid =
+    formState.nsec.trim().length > 0 && formState.nsec.startsWith("nsec1");
+  const isBunkerValid =
+    formState.bunkerUri.trim().length > 0 &&
+    formState.bunkerUri.startsWith("bunker://");
 
   return (
     <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
@@ -191,12 +199,10 @@ export function NostrAuthForm({
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <DialogTitle className="text-xl font-semibold">
-            {title}
-          </DialogTitle>
+          <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
           <div className="w-8" /> {/* Spacer for centering */}
         </div>
-        
+
         <DialogDescription className="text-center text-muted-foreground mt-2">
           {description}
         </DialogDescription>
@@ -207,9 +213,7 @@ export function NostrAuthForm({
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
@@ -221,11 +225,18 @@ export function NostrAuthForm({
               <div className="space-y-2">
                 <p className="font-medium">Account Mismatch Detected</p>
                 <p className="text-sm">
-                  The private key you entered belongs to a different account than expected.
+                  The private key you entered belongs to a different account
+                  than expected.
                 </p>
                 <div className="text-xs space-y-1 font-mono">
-                  <div>Expected: ...{formState.mismatchWarning.expectedPubkey.slice(-8)}</div>
-                  <div>Entered: ...{formState.mismatchWarning.enteredPubkey.slice(-8)}</div>
+                  <div>
+                    Expected: ...
+                    {formState.mismatchWarning.expectedPubkey.slice(-8)}
+                  </div>
+                  <div>
+                    Entered: ...
+                    {formState.mismatchWarning.enteredPubkey.slice(-8)}
+                  </div>
                 </div>
               </div>
             </AlertDescription>
@@ -233,33 +244,40 @@ export function NostrAuthForm({
         )}
 
         {/* Authentication Methods */}
-        <Tabs 
-          value={formState.activeTab} 
-          onValueChange={(value) => updateFormState({ activeTab: value as NostrAuthMethod })}
+        <Tabs
+          value={formState.activeTab}
+          onValueChange={(value) =>
+            updateFormState({ activeTab: value as NostrAuthMethod })
+          }
           className="w-full"
         >
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${supportedMethods.length}, 1fr)` }}>
-            {supportedMethods.map(method => (
+          <TabsList
+            className="grid w-full"
+            style={{
+              gridTemplateColumns: `repeat(${supportedMethods.length}, 1fr)`,
+            }}
+          >
+            {supportedMethods.map((method) => (
               <TabsTrigger key={method} value={method}>
-                {getMethodDisplayName(method).replace(' ', '')}
+                {getMethodDisplayName(method).replace(" ", "")}
               </TabsTrigger>
             ))}
           </TabsList>
 
           {/* Extension Authentication */}
-          {supportedMethods.includes('extension') && (
+          {supportedMethods.includes("extension") && (
             <TabsContent value="extension" className="space-y-4">
               <div className="text-center p-4 rounded-lg bg-muted">
                 <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
                 <div className="text-sm text-muted-foreground mb-4">
-                  {getMethodDescription('extension')}
+                  {getMethodDescription("extension")}
                 </div>
                 <Button
                   className="w-full rounded-full py-6"
                   onClick={handleExtensionAuth}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Connecting...' : 'Login with Extension'}
+                  {isLoading ? "Connecting..." : "Login with Extension"}
                 </Button>
                 <div className="text-xs text-muted-foreground mt-2">
                   Supports Alby, nos2x, and other NIP-07 extensions
@@ -269,7 +287,7 @@ export function NostrAuthForm({
           )}
 
           {/* Nsec Authentication */}
-          {supportedMethods.includes('nsec') && (
+          {supportedMethods.includes("nsec") && (
             <TabsContent value="nsec" className="space-y-4">
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -318,19 +336,18 @@ export function NostrAuthForm({
                   onClick={handleNsecAuth}
                   disabled={isLoading || !isNsecValid}
                 >
-                  {isLoading 
-                    ? 'Verifying...' 
-                    : formState.mismatchWarning?.show 
-                      ? 'Proceed with This Account'
-                      : 'Login with Private Key'
-                  }
+                  {isLoading
+                    ? "Verifying..."
+                    : formState.mismatchWarning?.show
+                    ? "Proceed with This Account"
+                    : "Login with Private Key"}
                 </Button>
               </div>
             </TabsContent>
           )}
 
           {/* Bunker Authentication */}
-          {supportedMethods.includes('bunker') && (
+          {supportedMethods.includes("bunker") && (
             <TabsContent value="bunker" className="space-y-4">
               <div className="space-y-2">
                 <label
@@ -342,7 +359,9 @@ export function NostrAuthForm({
                 <Input
                   id="bunkerUri"
                   value={formState.bunkerUri}
-                  onChange={(e) => updateFormState({ bunkerUri: e.target.value })}
+                  onChange={(e) =>
+                    updateFormState({ bunkerUri: e.target.value })
+                  }
                   className="rounded-lg focus-visible:ring-primary"
                   placeholder="bunker://..."
                   disabled={isLoading}
@@ -353,7 +372,7 @@ export function NostrAuthForm({
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground">
-                  {getMethodDescription('bunker')}
+                  {getMethodDescription("bunker")}
                 </div>
               </div>
 
@@ -362,7 +381,7 @@ export function NostrAuthForm({
                 onClick={handleBunkerAuth}
                 disabled={isLoading || !isBunkerValid}
               >
-                {isLoading ? 'Connecting...' : 'Connect with Bunker'}
+                {isLoading ? "Connecting..." : "Connect with Bunker"}
               </Button>
             </TabsContent>
           )}

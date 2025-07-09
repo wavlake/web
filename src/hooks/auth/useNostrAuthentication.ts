@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useNostr } from '@nostrify/react';
-import { NLogin } from '@nostrify/react/login';
+import { NLogin, type NLoginType } from '@nostrify/react/login';
 import { getPublicKey } from 'nostr-tools';
 import { decode } from 'nostr-tools/nip19';
 import type {
@@ -186,33 +186,38 @@ export function useNostrAuthentication(): NostrAuthResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine supported methods based on environment
+  // Always include all methods - let users attempt them and get helpful feedback
   const supportedMethods = useMemo((): NostrAuthMethod[] => {
-    const methods: NostrAuthMethod[] = ['nsec', 'bunker'];
-    
-    // Check for extension support
-    if (typeof window !== 'undefined' && 'nostr' in window) {
-      methods.unshift('extension');
-    }
-    
-    return methods;
+    return ['extension', 'nsec', 'bunker'];
   }, []);
 
   /**
    * Authenticate with extension (NIP-07)
    */
   const authenticateWithExtension = useCallback(async () => {
-    if (!('nostr' in window)) {
-      throw new Error('Nostr extension not found. Please install a NIP-07 compatible extension.');
+    if (typeof window === 'undefined' || !('nostr' in window)) {
+      throw new Error('Nostr extension not found. Please install a NIP-07 compatible extension like Alby, nos2x, or Flamingo, then refresh the page.');
     }
 
-    const login = await NLogin.fromExtension();
-    
-    if (!validatePubkey(login.pubkey)) {
-      throw new Error('Invalid pubkey received from extension');
-    }
+    try {
+      const login = await NLogin.fromExtension();
+      
+      if (!validatePubkey(login.pubkey)) {
+        throw new Error('Invalid pubkey received from extension');
+      }
 
-    return login;
+      return login;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected')) {
+          throw new Error('Authentication cancelled. Please try again and approve the request in your extension.');
+        }
+        if (error.message.includes('not found') || error.message.includes('undefined')) {
+          throw new Error('Extension not responding. Please check that your Nostr extension is enabled and try again.');
+        }
+      }
+      throw error;
+    }
   }, []);
 
   /**
@@ -266,7 +271,7 @@ export function useNostrAuthentication(): NostrAuthResult {
     setError(null);
 
     try {
-      let login;
+      let login: NLoginType;
 
       switch (method) {
         case 'extension':

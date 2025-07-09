@@ -237,7 +237,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleLoginSuccess = async (loginInfo: NLoginType) => {
-
     try {
       // Validate pubkey format
       if (!validatePubkey(loginInfo.pubkey)) {
@@ -262,7 +261,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
         setIsLoading(false);
         return;
       }
-
 
       // Log the authentication attempt
       logAuthInfo(
@@ -365,7 +363,6 @@ export const NostrAuthStep: React.FC<NostrAuthStepProps> = ({
   };
 
   const handleKeyLogin = async () => {
-
     if (!nsec.trim()) {
       console.warn("[NostrAuthStep] No nsec provided");
       return;

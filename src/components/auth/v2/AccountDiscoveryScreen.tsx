@@ -1,28 +1,34 @@
 /**
  * Account Discovery Screen Component
- * 
+ *
  * Pure UI component for discovering and selecting linked accounts.
  * All business logic is provided via props - no internal state management.
  */
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ArrowLeft, 
-  Loader2, 
-  Users, 
-  UserPlus, 
-  Key, 
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  ArrowLeft,
+  Loader2,
+  Users,
+  UserPlus,
+  Key,
   AlertCircle,
-  RefreshCw 
-} from 'lucide-react';
-import { User as FirebaseUser } from 'firebase/auth';
-import type { LinkedAccount, LegacyProfile } from '@/types/authFlow';
-import { sortAccountsByPriority } from '@/hooks/auth/useAccountDiscovery';
-import { LinkedAccountCard } from './LinkedAccountCard';
+  RefreshCw,
+} from "lucide-react";
+import { User as FirebaseUser } from "firebase/auth";
+import type { LinkedAccount, LegacyProfile } from "@/types/authFlow";
+import { sortAccountsByPriority } from "@/hooks/auth/useAccountDiscovery";
+import { LinkedAccountCard } from "./LinkedAccountCard";
 
 // ============================================================================
 // Types
@@ -57,22 +63,22 @@ interface AccountDiscoveryScreenProps {
 
 /**
  * AccountDiscoveryScreen Component
- * 
+ *
  * A clean, focused component for account discovery that replaces the
  * complex ProfileDiscoveryScreen from the legacy system.
- * 
+ *
  * Features:
  * - Pure presentation component (no business logic)
  * - Display linked accounts with profile information
  * - Show legacy profile data when available
  * - Provide options for different account flows
  * - Responsive design with proper loading states
- * 
+ *
  * @example
  * ```tsx
  * function AccountDiscoveryContainer() {
  *   const { linkedAccounts, legacyProfile, isLoading, error } = useAccountDiscovery(firebaseUser);
- *   
+ *
  *   return (
  *     <AccountDiscoveryScreen
  *       firebaseUser={firebaseUser}
@@ -101,10 +107,9 @@ export function AccountDiscoveryScreen({
   onBack,
   onRefresh,
 }: AccountDiscoveryScreenProps) {
-  
   // Sort accounts by priority
   const sortedAccounts = sortAccountsByPriority(linkedAccounts);
-  
+
   // Determine the main content to show
   const hasLinkedAccounts = linkedAccounts.length > 0;
   const hasLegacyProfile = !!legacyProfile;
@@ -135,19 +140,24 @@ export function AccountDiscoveryScreen({
                     className="p-2 h-8 w-8"
                     disabled={isLoading}
                   >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                    />
                   </Button>
                 )}
               </div>
-              
+
               <CardTitle className="text-center text-xl">
-                {hasLinkedAccounts ? 'Choose Your Account' : 'Welcome to Wavlake'}
+                {hasLinkedAccounts
+                  ? "Choose Your Account"
+                  : "Welcome to Wavlake"}
               </CardTitle>
               <CardDescription className="text-center">
-                {hasLinkedAccounts 
-                  ? `We found ${linkedAccounts.length} Nostr account${linkedAccounts.length > 1 ? 's' : ''} linked to your email`
-                  : 'Let\'s get you set up with a Nostr account'
-                }
+                {hasLinkedAccounts
+                  ? `We found ${linkedAccounts.length} Nostr account${
+                      linkedAccounts.length > 1 ? "s" : ""
+                    } linked to your email`
+                  : "Let's get you set up with a Nostr account"}
               </CardDescription>
             </CardHeader>
 
@@ -196,21 +206,6 @@ export function AccountDiscoveryScreen({
                 </div>
               )}
 
-              {/* Legacy Profile Info */}
-              {!isLoading && hasLegacyProfile && (
-                <Alert>
-                  <Users className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="space-y-1">
-                      <p className="font-medium">Existing Wavlake Profile Found</p>
-                      <p className="text-sm">
-                        {legacyProfile.displayName || legacyProfile.email}
-                      </p>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {/* Action Buttons */}
               {!isLoading && (
                 <div className="space-y-2 pt-4">
@@ -253,10 +248,9 @@ export function AccountDiscoveryScreen({
               {/* Account Summary */}
               {!isLoading && hasLinkedAccounts && (
                 <div className="text-center text-sm text-muted-foreground pt-2">
-                  {hasMultipleAccounts 
+                  {hasMultipleAccounts
                     ? `Choose from ${linkedAccounts.length} linked accounts`
-                    : 'Your linked account is ready to use'
-                  }
+                    : "Your linked account is ready to use"}
                 </div>
               )}
             </CardContent>
