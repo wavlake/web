@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useEffect, useCallback } from "react";
-import { useAuthor } from "@/hooks/useAuthor";
-import { logAuthError } from "@/lib/authLogger";
 import { isValidPubkey } from "@/lib/pubkeyUtils";
-import type { FirebaseUser, LinkedPubkey as AuthLinkedPubkey } from "@/types/auth";
+import type {
+  FirebaseUser,
+  LinkedPubkey as AuthLinkedPubkey,
+} from "@/types/auth";
 
 // Cache duration constants
 const CACHE_STALE_TIME = 10 * 60 * 1000; // 10 minutes
@@ -18,7 +19,7 @@ interface LinkedPubkey extends AuthLinkedPubkey {
   /** Profile metadata with legacy support for display_name */
   profile?: {
     name?: string;
-    display_name?: string;  // Legacy support
+    display_name?: string; // Legacy support
     picture?: string;
     about?: string;
     nip05?: string;
@@ -75,13 +76,13 @@ interface UseLinkedPubkeysResult {
 /**
  * Error types for specific error handling and user feedback
  */
-type LinkedPubkeysErrorType = 
-  | 'network'
-  | 'authentication' 
-  | 'authorization'
-  | 'server'
-  | 'validation'
-  | 'unknown';
+type LinkedPubkeysErrorType =
+  | "network"
+  | "authentication"
+  | "authorization"
+  | "server"
+  | "validation"
+  | "unknown";
 
 /**
  * API response item format for linked pubkeys
@@ -108,35 +109,41 @@ const DEFAULT_OPTIONS: Required<UseLinkedPubkeysOptions> = {
 
 /**
  * Gets and validates the API base URL from environment variables
- * 
+ *
  * Security rationale: HTTPS enforcement prevents man-in-the-middle attacks
  * and ensures encrypted communication with the API server.
- * 
+ *
  * @returns Validated HTTPS API base URL
  * @throws Error if URL is not configured or not using HTTPS protocol
  */
 const getApiBaseUrl = (): string => {
   const configuredUrl = import.meta.env.VITE_NEW_API_URL;
   if (!configuredUrl) {
-    console.error("Configuration Error: VITE_NEW_API_URL environment variable is not configured", {
-      error: "missing_env_var",
-      variable: "VITE_NEW_API_URL",
-      context: "useLinkedPubkeys"
-    });
+    console.error(
+      "Configuration Error: VITE_NEW_API_URL environment variable is not configured",
+      {
+        error: "missing_env_var",
+        variable: "VITE_NEW_API_URL",
+        context: "useLinkedPubkeys",
+      }
+    );
     throw new Error("API URL not configured");
   }
-  
+
   // Enforce HTTPS for security in production (allow http in dev for flexibility)
-  if (import.meta.env.PROD && !configuredUrl.startsWith('https://')) {
-    console.error("Configuration Error: API URL must use HTTPS protocol for security in production", {
-      error: "invalid_protocol",
-      configuredUrl,
-      expectedProtocol: "https://",
-      context: "useLinkedPubkeys"
-    });
+  if (import.meta.env.PROD && !configuredUrl.startsWith("https://")) {
+    console.error(
+      "Configuration Error: API URL must use HTTPS protocol for security in production",
+      {
+        error: "invalid_protocol",
+        configuredUrl,
+        expectedProtocol: "https://",
+        context: "useLinkedPubkeys",
+      }
+    );
     throw new Error("API URL must use HTTPS protocol");
   }
-  
+
   return configuredUrl;
 };
 
@@ -147,44 +154,48 @@ const API_BASE_URL = getApiBaseUrl();
  * Error status code mapping for consistent error messages
  */
 const ERROR_STATUS_MESSAGES: Record<number, string> = {
-  401: 'Authentication expired. Please sign in again.',
-  403: 'Access denied. Please check your permissions.',
-  429: 'Rate limit exceeded. Please try again later.',
-  500: 'Server error. Please try again later.',
-  502: 'Server temporarily unavailable. Please try again later.',
-  503: 'Service unavailable. Please try again later.',
+  401: "Authentication expired. Please sign in again.",
+  403: "Access denied. Please check your permissions.",
+  429: "Rate limit exceeded. Please try again later.",
+  500: "Server error. Please try again later.",
+  502: "Server temporarily unavailable. Please try again later.",
+  503: "Service unavailable. Please try again later.",
 };
 
 /**
  * Categorizes errors for appropriate handling and user feedback
  */
 const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
-  if (!(error instanceof Error)) return 'unknown';
-  
+  if (!(error instanceof Error)) return "unknown";
+
   const message = error.message.toLowerCase();
-  
-  if (message.includes('401') || message.includes('authentication expired')) {
-    return 'authentication';
+
+  if (message.includes("401") || message.includes("authentication expired")) {
+    return "authentication";
   }
-  if (message.includes('403') || message.includes('access denied')) {
-    return 'authorization';
+  if (message.includes("403") || message.includes("access denied")) {
+    return "authorization";
   }
-  if (message.includes('network') || message.includes('fetch') || message.includes('connection')) {
-    return 'network';
+  if (
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("connection")
+  ) {
+    return "network";
   }
-  if (message.includes('500') || message.includes('server error')) {
-    return 'server';
+  if (message.includes("500") || message.includes("server error")) {
+    return "server";
   }
-  if (message.includes('invalid') || message.includes('validation')) {
-    return 'validation';
+  if (message.includes("invalid") || message.includes("validation")) {
+    return "validation";
   }
-  
-  return 'unknown';
+
+  return "unknown";
 };
 
 /**
  * Enhanced hook to fetch and manage linked pubkeys for Firebase accounts
- * 
+ *
  * Features:
  * - Comprehensive state management with loading, error, and background fetch states
  * - Automatic integration with Firebase authentication state changes
@@ -192,15 +203,15 @@ const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
  * - Reactive updates when accounts are linked/unlinked through other parts of the system
  * - Optional profile data fetching with efficient batching
  * - Comprehensive error handling with categorized error types
- * 
+ *
  * @example
  * ```tsx
  * // Basic usage
  * const { data: linkedPubkeys, isLoading, error } = useLinkedPubkeys(firebaseUser);
- * 
+ *
  * if (isLoading) return <div>Loading linked accounts...</div>;
  * if (error) return <div>Error: {error.message}</div>;
- * 
+ *
  * return (
  *   <div>
  *     <h3>Linked Accounts ({linkedPubkeys.length})</h3>
@@ -212,7 +223,7 @@ const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
  *   </div>
  * );
  * ```
- * 
+ *
  * @example
  * ```tsx
  * // With custom configuration
@@ -222,21 +233,21 @@ const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
  *   retryConfig: { maxRetries: 1, retryDelay: 500 }
  * });
  * ```
- * 
+ *
  * @param firebaseUser - Firebase user object with getIdToken method
  * @param options - Configuration options for hook behavior
  * @returns Enhanced hook result with comprehensive state management
  */
 export function useLinkedPubkeys(
-  firebaseUser?: FirebaseUser, 
+  firebaseUser?: FirebaseUser,
   options: UseLinkedPubkeysOptions = {}
 ): UseLinkedPubkeysResult {
   const config = { ...DEFAULT_OPTIONS, ...options };
   const queryClient = useQueryClient();
-  
+
   // Core query for fetching linked pubkeys
   const query = useQuery({
-    queryKey: ['linked-pubkeys', firebaseUser?.uid],
+    queryKey: ["linked-pubkeys", firebaseUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
       if (!firebaseUser) return [];
 
@@ -244,30 +255,34 @@ export function useLinkedPubkeys(
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // This ensures the token is valid at request time, not at query execution time
         const authToken = await firebaseUser.getIdToken();
-        
-        const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
+
+        const response = await fetch(
+          `${API_BASE_URL}/auth/get-linked-pubkeys`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
 
         if (!response.ok) {
           const status = response.status;
           // Use error mapping for consistent and maintainable error messages
-          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
+          const errorMessage =
+            ERROR_STATUS_MESSAGES[status] ||
+            `Request failed with status ${status}`;
           throw new Error(`${errorMessage} (User: ${firebaseUser.uid})`);
         }
 
         const data = await response.json();
-        
-        
+
         // Validate response data structure
-        if (typeof data !== 'object' || data === null) {
-          throw new Error('Invalid response format: expected object');
+        if (typeof data !== "object" || data === null) {
+          throw new Error("Invalid response format: expected object");
         }
-        
+
         if (!data.success) {
           // Handle API errors gracefully
           if (data.error) {
@@ -275,34 +290,41 @@ export function useLinkedPubkeys(
           }
           return [];
         }
-        
+
         if (!data.linked_pubkeys) {
           return [];
         }
-        
+
         if (!Array.isArray(data.linked_pubkeys)) {
-          throw new Error('Invalid response format: linked_pubkeys must be an array');
+          throw new Error(
+            "Invalid response format: linked_pubkeys must be an array"
+          );
         }
 
         // Transform API response to LinkedPubkey format with enhanced metadata and validation
         const linkedPubkeys: LinkedPubkey[] = [];
         const invalidPubkeys: string[] = [];
-        
+
         data.linked_pubkeys.forEach((item: LinkedPubkeyApiItem) => {
           const pubkey = item.pubkey;
-          
-          if (typeof pubkey !== 'string' || !isValidPubkey(pubkey)) {
-            console.warn("Invalid pubkey format in response", { 
-              pubkey: typeof pubkey === 'string' ? `${pubkey.slice(0, 8)}...` : 'non-string',
+
+          if (typeof pubkey !== "string" || !isValidPubkey(pubkey)) {
+            console.warn("Invalid pubkey format in response", {
+              pubkey:
+                typeof pubkey === "string"
+                  ? `${pubkey.slice(0, 8)}...`
+                  : "non-string",
               type: typeof pubkey,
-              length: typeof pubkey === 'string' ? pubkey.length : 'N/A'
+              length: typeof pubkey === "string" ? pubkey.length : "N/A",
             });
             invalidPubkeys.push(String(pubkey));
           } else {
             linkedPubkeys.push({
               pubkey,
               profile: undefined, // Will be populated by profile fetching if enabled
-              linkedAt: item.linked_at ? new Date(item.linked_at).getTime() : undefined,
+              linkedAt: item.linked_at
+                ? new Date(item.linked_at).getTime()
+                : undefined,
               isPrimary: false, // API doesn't provide this, could be enhanced later
             });
           }
@@ -310,30 +332,36 @@ export function useLinkedPubkeys(
 
         // Log invalid pubkeys for monitoring, but don't fail the request unless all are invalid
         if (invalidPubkeys.length > 0) {
-          console.warn(`Found ${invalidPubkeys.length} invalid pubkeys in API response`, {
-            invalidCount: invalidPubkeys.length,
-            validCount: linkedPubkeys.length,
-            userId: firebaseUser.uid
-          });
-          
+          console.warn(
+            `Found ${invalidPubkeys.length} invalid pubkeys in API response`,
+            {
+              invalidCount: invalidPubkeys.length,
+              validCount: linkedPubkeys.length,
+              userId: firebaseUser.uid,
+            }
+          );
+
           // Only throw if ALL pubkeys are invalid (likely a systematic issue)
           if (linkedPubkeys.length === 0 && data.linked_pubkeys.length > 0) {
-            throw new Error(`All ${invalidPubkeys.length} pubkeys in response are invalid`);
+            throw new Error(
+              `All ${invalidPubkeys.length} pubkeys in response are invalid`
+            );
           }
         }
 
         return linkedPubkeys;
       } catch (error) {
         const errorType = categorizeError(error);
-        
-        console.error('Failed to fetch linked pubkeys', { 
+
+        console.error("Failed to fetch linked pubkeys", {
           userId: firebaseUser?.uid,
           errorType,
           hasAuth: !!firebaseUser,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown error",
+          timestamp: new Date().toISOString(),
         });
-        
+
         throw error; // Re-throw to let React Query handle retry logic
       }
     },
@@ -344,12 +372,12 @@ export function useLinkedPubkeys(
     refetchOnReconnect: config.enableBackgroundRefetch,
     retry: (failureCount, error) => {
       const errorType = categorizeError(error);
-      
+
       // Don't retry authentication/authorization errors
-      if (errorType === 'authentication' || errorType === 'authorization') {
+      if (errorType === "authentication" || errorType === "authorization") {
         return false;
       }
-      
+
       return failureCount < (config.retryConfig.maxRetries || MAX_RETRIES);
     },
     retryDelay: (attemptIndex) => {
@@ -366,15 +394,15 @@ export function useLinkedPubkeys(
     try {
       await query.refetch();
     } catch (error) {
-      console.warn('Manual refetch failed', { error });
+      console.warn("Manual refetch failed", { error });
       // Error is already handled by React Query
     }
   }, [query]);
 
   // Cache invalidation function
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ 
-      queryKey: ['linked-pubkeys', firebaseUser?.uid] 
+    queryClient.invalidateQueries({
+      queryKey: ["linked-pubkeys", firebaseUser?.uid],
     });
   }, [queryClient, firebaseUser?.uid]);
 
@@ -382,16 +410,17 @@ export function useLinkedPubkeys(
   useEffect(() => {
     if (firebaseUser?.uid) {
       // Invalidate stale cache when user changes
-      const lastUserId = localStorage.getItem('last-firebase-user-id');
+      const lastUserId = localStorage.getItem("last-firebase-user-id");
       if (lastUserId && lastUserId !== firebaseUser.uid) {
         invalidate();
       }
-      localStorage.setItem('last-firebase-user-id', firebaseUser.uid);
+      localStorage.setItem("last-firebase-user-id", firebaseUser.uid);
     }
   }, [firebaseUser?.uid, invalidate]);
 
   // Find primary pubkey
-  const primaryPubkey = query.data?.find(pk => pk.isPrimary) || query.data?.[0];
+  const primaryPubkey =
+    query.data?.find((pk) => pk.isPrimary) || query.data?.[0];
 
   return {
     data: query.data || [],
@@ -408,17 +437,20 @@ export function useLinkedPubkeys(
 
 /**
  * Hook to fetch linked pubkeys by email (legacy support)
- * 
+ *
  * @deprecated This function is incomplete and should not be used in production.
  * Use useLinkedPubkeys() with a Firebase user instead for secure authentication.
- * 
+ *
  * @param email - Email address to fetch linked pubkeys for
  * @param firebaseUser - Firebase user for authentication (required for security)
  * @returns React Query result with linked pubkeys array
  */
-export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUser) {
+export function useLinkedPubkeysByEmail(
+  email: string,
+  firebaseUser?: FirebaseUser
+) {
   return useQuery({
-    queryKey: ['linked-pubkeys-email', email, firebaseUser?.uid],
+    queryKey: ["linked-pubkeys-email", email, firebaseUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
       if (!email || !firebaseUser) return [];
 
@@ -426,27 +458,36 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // Force refresh ensures the token is valid for this specific request
         const firebaseToken = await firebaseUser.getIdToken();
-        
-        const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${firebaseToken}`
-          },
-          body: JSON.stringify({ email })
-        });
+
+        const response = await fetch(
+          `${API_BASE_URL}/auth/get-linked-pubkeys`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${firebaseToken}`,
+            },
+            body: JSON.stringify({ email }),
+          }
+        );
 
         if (!response.ok) {
           const status = response.status;
           const errorText = await response.text();
-          const errorMessage = ERROR_STATUS_MESSAGES[status] || `Request failed with status ${status}`;
-          throw new Error(`Email lookup failed: ${errorMessage} - ${errorText} (User: ${firebaseUser.uid})`);
+          const errorMessage =
+            ERROR_STATUS_MESSAGES[status] ||
+            `Request failed with status ${status}`;
+          throw new Error(
+            `Email lookup failed: ${errorMessage} - ${errorText} (User: ${firebaseUser.uid})`
+          );
         }
 
         const data = await response.json();
 
         if (!data.success) {
-          throw new Error(`API error: ${data.error || 'Unknown error occurred'}`);
+          throw new Error(
+            `API error: ${data.error || "Unknown error occurred"}`
+          );
         }
 
         // Transform the API response to include profile data
@@ -459,19 +500,24 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
               // 1. Fetch profiles in the component using separate useAuthor calls
               // 2. Create a server-side profile resolution endpoint
               // 3. Use a different pattern that doesn't violate hook rules
-              return { 
-                pubkey, 
-                profile: undefined // Profile data will be fetched by components as needed
+              return {
+                pubkey,
+                profile: undefined, // Profile data will be fetched by components as needed
               };
             } catch (profileError) {
               // Enhanced structured logging for profile fetch errors with more context
-              console.warn('Failed to fetch profile for pubkey', {
+              console.warn("Failed to fetch profile for pubkey", {
                 pubkeyPrefix: pubkey.slice(0, 8),
-                errorType: profileError instanceof Error ? profileError.constructor.name : 'Unknown',
-                errorMessage: profileError instanceof Error ? profileError.message : String(profileError),
-                timestamp: new Date().toISOString()
+                errorType:
+                  profileError instanceof Error
+                    ? profileError.constructor.name
+                    : "Unknown",
+                errorMessage:
+                  profileError instanceof Error
+                    ? profileError.message
+                    : String(profileError),
+                timestamp: new Date().toISOString(),
               });
-              logAuthError('profile-fetch', profileError, undefined, pubkey);
               return { pubkey, profile: undefined };
             }
           })
@@ -480,14 +526,17 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
         return pubkeysWithProfiles;
       } catch (error) {
         // Enhanced logging with better debugging context while maintaining privacy
-        const emailDomain = email ? email.split('@')[1] || 'unknown' : 'missing';
-        console.error('Failed to fetch linked pubkeys for email lookup', { 
+        const emailDomain = email
+          ? email.split("@")[1] || "unknown"
+          : "missing";
+        console.error("Failed to fetch linked pubkeys for email lookup", {
           emailDomain,
           emailProvided: !!email,
           userId: firebaseUser?.uid,
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorType:
+            error instanceof Error ? error.constructor.name : "Unknown",
           errorMessage: error instanceof Error ? error.message : String(error),
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         // Re-throw the error so React Query can handle it properly
         // This allows UI components to show error states instead of silently failing
@@ -500,10 +549,11 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
     retry: (failureCount, error) => {
       // Don't retry auth errors - check for specific status codes
       if (error instanceof Error) {
-        const isAuthError = error.message.includes('Authentication expired') || 
-                           error.message.includes('Access denied') ||
-                           error.message.includes('status 401') ||
-                           error.message.includes('status 403');
+        const isAuthError =
+          error.message.includes("Authentication expired") ||
+          error.message.includes("Access denied") ||
+          error.message.includes("status 401") ||
+          error.message.includes("status 403");
         if (isAuthError) {
           return false;
         }
@@ -515,26 +565,26 @@ export function useLinkedPubkeysByEmail(email: string, firebaseUser?: FirebaseUs
 
 /**
  * Enhanced hook that fetches linked pubkeys with their profile data
- * 
+ *
  * This hook extends useLinkedPubkeys to automatically fetch profile metadata
  * for each linked pubkey, providing a complete view of linked accounts.
- * 
+ *
  * Note: Profile fetching is done efficiently to avoid violating React Hook rules
  * and minimize API calls through intelligent caching.
- * 
+ *
  * @param firebaseUser - Firebase user object with getIdToken method
  * @param options - Configuration options, automatically enables profile fetching
  * @returns Hook result with linked pubkeys including populated profile data
  */
 export function useLinkedPubkeysWithProfiles(
   firebaseUser?: FirebaseUser,
-  options: Omit<UseLinkedPubkeysOptions, 'includeProfiles'> = {}
+  options: Omit<UseLinkedPubkeysOptions, "includeProfiles"> = {}
 ): UseLinkedPubkeysResult {
   // Force enable profile fetching for this hook
   const configWithProfiles = { ...options, includeProfiles: true };
-  
+
   const baseResult = useLinkedPubkeys(firebaseUser, configWithProfiles);
-  
+
   // For now, return the base result since profile fetching should be done
   // at the component level to avoid React Hook rules violations
   // Future enhancement: Implement server-side profile resolution
@@ -543,23 +593,23 @@ export function useLinkedPubkeysWithProfiles(
 
 /**
  * Utility hook for getting account linking status and related operations
- * 
+ *
  * This hook provides a convenient interface for components that need to
  * check linking status and perform linking operations.
- * 
+ *
  * @example
  * ```tsx
- * const { 
- *   hasLinkedPubkeys, 
- *   linkedCount, 
+ * const {
+ *   hasLinkedPubkeys,
+ *   linkedCount,
  *   hasMultipleAccounts,
- *   primaryPubkey 
+ *   primaryPubkey
  * } = useAccountLinkingStatus(firebaseUser);
- * 
+ *
  * if (!hasLinkedPubkeys) {
  *   return <div>No linked Nostr accounts found. <LinkAccountButton /></div>;
  * }
- * 
+ *
  * return (
  *   <div>
  *     <p>You have {linkedCount} linked account{linkedCount > 1 ? 's' : ''}</p>
@@ -568,13 +618,18 @@ export function useLinkedPubkeysWithProfiles(
  *   </div>
  * );
  * ```
- * 
+ *
  * @param firebaseUser - Firebase user to check linking status for
  * @returns Object with linking status and utility functions
  */
 export function useAccountLinkingStatus(firebaseUser?: FirebaseUser) {
-  const { data: linkedPubkeys, isLoading, error, refetch } = useLinkedPubkeys(firebaseUser);
-  
+  const {
+    data: linkedPubkeys,
+    isLoading,
+    error,
+    refetch,
+  } = useLinkedPubkeys(firebaseUser);
+
   return {
     /** Whether the Firebase user has any linked pubkeys */
     hasLinkedPubkeys: linkedPubkeys.length > 0,
@@ -591,49 +646,49 @@ export function useAccountLinkingStatus(firebaseUser?: FirebaseUser) {
     /** Whether user has multiple linked accounts */
     hasMultipleAccounts: linkedPubkeys.length > 1,
     /** Primary pubkey if available */
-    primaryPubkey: linkedPubkeys.find(pk => pk.isPrimary) || linkedPubkeys[0],
+    primaryPubkey: linkedPubkeys.find((pk) => pk.isPrimary) || linkedPubkeys[0],
   };
 }
 
 /**
  * Hook for components that need to react to account linking changes
- * 
+ *
  * This hook automatically invalidates the linked pubkeys cache when
  * account linking operations occur elsewhere in the application.
- * 
+ *
  * @param firebaseUser - Firebase user to monitor for linking changes
  */
 export function useLinkedPubkeysSync(firebaseUser?: FirebaseUser) {
   const queryClient = useQueryClient();
-  
+
   const syncWithLinkingOperations = useCallback(() => {
     if (firebaseUser?.uid) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['linked-pubkeys', firebaseUser.uid] 
+      queryClient.invalidateQueries({
+        queryKey: ["linked-pubkeys", firebaseUser.uid],
       });
     }
   }, [queryClient, firebaseUser?.uid]);
-  
+
   // Listen for account linking events
   useEffect(() => {
     const handleAccountLinked = () => {
       syncWithLinkingOperations();
     };
-    
+
     const handleAccountUnlinked = () => {
       syncWithLinkingOperations();
     };
-    
+
     // Listen for custom events from linking operations
-    window.addEventListener('account-linked', handleAccountLinked);
-    window.addEventListener('account-unlinked', handleAccountUnlinked);
-    
+    window.addEventListener("account-linked", handleAccountLinked);
+    window.addEventListener("account-unlinked", handleAccountUnlinked);
+
     return () => {
-      window.removeEventListener('account-linked', handleAccountLinked);
-      window.removeEventListener('account-unlinked', handleAccountUnlinked);
+      window.removeEventListener("account-linked", handleAccountLinked);
+      window.removeEventListener("account-unlinked", handleAccountUnlinked);
     };
   }, [syncWithLinkingOperations]);
-  
+
   return {
     /** Manually trigger sync with linking operations */
     sync: syncWithLinkingOperations,
@@ -642,38 +697,38 @@ export function useLinkedPubkeysSync(firebaseUser?: FirebaseUser) {
 
 /**
  * Performance and Integration Notes:
- * 
+ *
  * 1. **Profile Data Fetching**: Components requiring profile data should use useAuthor
  *    hooks separately to avoid React Hook rules violations. Future enhancement could
  *    implement server-side profile resolution for better performance.
- * 
+ *
  * 2. **Cache Management**: The hook automatically manages cache invalidation when
  *    Firebase users change, ensuring fresh data without unnecessary refetches.
- * 
+ *
  * 3. **Reactivity**: Integration with account linking operations through event listeners
  *    and query invalidation ensures real-time updates across the application.
- * 
+ *
  * 4. **Error Recovery**: Comprehensive error categorization enables appropriate retry
  *    logic and user feedback for different failure scenarios.
- * 
+ *
  * 5. **Performance Optimization**: Intelligent caching, background updates, and
  *    debounced refetching prevent unnecessary API calls while maintaining data freshness.
- * 
+ *
  * Usage Examples:
- * 
+ *
  * ```typescript
  * // Basic usage
  * const { data: linkedPubkeys, isLoading, error } = useLinkedPubkeys(firebaseUser);
- * 
+ *
  * // With custom configuration
  * const result = useLinkedPubkeys(firebaseUser, {
  *   staleTime: 5 * 60 * 1000, // 5 minutes
  *   enableBackgroundRefetch: false,
  * });
- * 
+ *
  * // For account linking status checking
  * const { hasLinkedPubkeys, linkedCount } = useAccountLinkingStatus(firebaseUser);
- * 
+ *
  * // For components that need to sync with linking operations
  * const { sync } = useLinkedPubkeysSync(firebaseUser);
  * ```
