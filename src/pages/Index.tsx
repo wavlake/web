@@ -34,6 +34,7 @@ const Index = () => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
   const [selectedPubkey, setSelectedPubkey] = useState<string | null>(null);
+  const [isNewFirebaseUser, setIsNewFirebaseUser] = useState(false);
 
   // Redirect authenticated users to /groups
   useEffect(() => {
@@ -48,13 +49,6 @@ const Index = () => {
   }
 
   const handleGetStarted = () => {
-    console.log("[Index] User starting Get Started flow", {
-      component: "Index",
-      action: "handleGetStarted",
-      navigatingTo: "/create-account",
-      source: "onboarding",
-    });
-
     navigate("/create-account", {
       state: {
         source: "onboarding",
@@ -75,23 +69,18 @@ const Index = () => {
     setSelectedPath(null);
   };
 
-  const handleFirebaseSuccess = (user: FirebaseUser) => {
-    console.log("Firebase authentication successful:", user.uid);
+  const handleFirebaseSuccess = (
+    user: FirebaseUser,
+    isNewUser: boolean = false
+  ) => {
     // Store Firebase user and show profile discovery
     setFirebaseUser(user);
+    setIsNewFirebaseUser(isNewUser);
     setSelectedPath("profile-discovery");
   };
 
   // Profile discovery handlers
   const handleSelectPubkey = (pubkey: string) => {
-    console.log("[Index] User selected linked pubkey", {
-      component: "Index",
-      action: "handleSelectPubkey",
-      selectedPubkey: `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`,
-      fromPath: "profile-discovery",
-      toPath: "nostr-auth-targeted",
-      firebaseUser: firebaseUser ? firebaseUser.uid : null,
-    });
     setSelectedPubkey(pubkey);
     setSelectedPath("nostr-auth-targeted");
   };
@@ -102,13 +91,6 @@ const Index = () => {
   };
 
   const handleGenerateNewAccount = () => {
-    console.log("[Index] User starting Firebase account generation", {
-      component: "Index",
-      action: "handleGenerateNewAccount",
-      firebaseUser: firebaseUser?.uid,
-      navigatingTo: "/create-account",
-      source: "firebase-generation",
-    });
 
     navigate("/create-account", {
       state: {
@@ -137,60 +119,25 @@ const Index = () => {
 
   // Targeted Nostr authentication handlers
   const handleTargetedAuthSuccess = (login: NLoginType) => {
-    console.log("[Index] Targeted auth successful", {
-      component: "Index",
-      action: "handleTargetedAuthSuccess",
-      pubkey: `${login.pubkey.slice(0, 8)}...${login.pubkey.slice(-8)}`,
-      loginType: login.type,
-      loginId: login.id,
-      selectedPubkey: selectedPubkey
-        ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}`
-        : null,
-      navigatingTo: "/groups",
-    });
     navigate("/groups");
   };
 
   const handleTargetedAuthBack = () => {
-    console.log("[Index] User navigating back from targeted auth", {
-      component: "Index",
-      action: "handleTargetedAuthBack",
-      fromPath: "nostr-auth-targeted",
-      toPath: "profile-discovery",
-      selectedPubkey: selectedPubkey
-        ? `${selectedPubkey.slice(0, 8)}...${selectedPubkey.slice(-8)}`
-        : null,
-    });
     setSelectedPath("profile-discovery");
     setSelectedPubkey(null);
   };
 
   // Open Nostr authentication handlers (for "Use different account" flow)
   const handleOpenAuthSuccess = (login: NLoginType) => {
-    console.log("[Index] Open auth successful", {
-      component: "Index",
-      action: "handleOpenAuthSuccess",
-      pubkey: `${login.pubkey.slice(0, 8)}...${login.pubkey.slice(-8)}`,
-      loginType: login.type,
-      loginId: login.id,
-      firebaseUser: firebaseUser ? firebaseUser.uid : null,
-      navigatingTo: "/groups",
-    });
     navigate("/groups");
   };
 
   const handleOpenAuthBack = () => {
-    console.log("[Index] User navigating back from open auth", {
-      component: "Index",
-      action: "handleOpenAuthBack",
-      fromPath: "nostr-auth-open",
-      toPath: "profile-discovery",
-      firebaseUser: firebaseUser ? firebaseUser.uid : null,
-    });
     setSelectedPath("profile-discovery");
   };
 
   // Show profile discovery after Firebase authentication
+  // This is where users can view their linked pubkeys
   if (selectedPath === "profile-discovery" && firebaseUser) {
     return (
       <ProfileDiscoveryScreen
@@ -199,6 +146,7 @@ const Index = () => {
         onSelectPubkey={handleSelectPubkey}
         onUseDifferentAccount={handleUseDifferentAccount}
         onGenerateNewAccount={handleGenerateNewAccount}
+        isNewUser={isNewFirebaseUser} // Optimize API calls for new users
       />
     );
   }
@@ -266,7 +214,9 @@ const Index = () => {
               height={48}
               className="object-contain sm:w-16 sm:h-16"
             />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Wavlake</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+              Wavlake
+            </h1>
           </div>
           <p className="text-base sm:text-lg text-muted-foreground">
             Stream Anywhere, Earn Everywhere
@@ -277,75 +227,83 @@ const Index = () => {
         <div className="w-full max-w-xs sm:max-w-md mx-auto px-4 sm:px-0">
           <Card className="border-0 shadow-lg sm:border sm:shadow-sm">
             <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
-              <CardTitle className="text-center text-lg sm:text-xl">Welcome to Wavlake</CardTitle>
+              <CardTitle className="text-center text-lg sm:text-xl">
+                Welcome to Wavlake
+              </CardTitle>
               <CardDescription className="text-center text-sm sm:text-base">
                 Choose how you'd like to get started
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-            {/* Get Started Button */}
-            <Button
-              onClick={handleGetStarted}
-              variant="outline"
-              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
-              size="lg"
-            >
-              <div className="flex items-center gap-3 w-full">
-                <Sparkles className="w-5 h-5 shrink-0 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-base sm:text-base">Get Started</div>
-                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
-                    New to Wavlake? We'll create an account for you
+              {/* Get Started Button */}
+              <Button
+                onClick={handleGetStarted}
+                variant="outline"
+                className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+                size="lg"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <Sparkles className="w-5 h-5 shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-base sm:text-base">
+                      Get Started
+                    </div>
+                    <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                      New to Wavlake? We'll create an account for you
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Button>
+              </Button>
 
-            {/* Wavlake Account Button */}
-            <Button
-              onClick={handleWavlakeAccount}
-              variant="outline"
-              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
-              size="lg"
-            >
-              <div className="flex items-center gap-3 w-full">
-                <Mail className="w-5 h-5 shrink-0 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-base sm:text-base break-words">I have a Wavlake account</div>
-                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
-                    Sign in with your existing email address
+              {/* Wavlake Account Button */}
+              <Button
+                onClick={handleWavlakeAccount}
+                variant="outline"
+                className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+                size="lg"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <Mail className="w-5 h-5 shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-base sm:text-base break-words">
+                      I have a Wavlake account
+                    </div>
+                    <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                      Sign in with your existing email address
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Button>
+              </Button>
 
-            {/* Nostr Account Button */}
-            <Button
-              onClick={handleNostrAccount}
-              variant="outline"
-              className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
-              size="lg"
-            >
-              <div className="flex items-center gap-3 w-full">
-                <Key className="w-5 h-5 shrink-0 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-base sm:text-base break-words">I have a Nostr account</div>
-                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
-                    Sign in with your existing Nostr keys
+              {/* Nostr Account Button */}
+              <Button
+                onClick={handleNostrAccount}
+                variant="outline"
+                className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors"
+                size="lg"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <Key className="w-5 h-5 shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-base sm:text-base break-words">
+                      I have a Nostr account
+                    </div>
+                    <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                      Sign in with your existing Nostr keys
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Login Dialog */}
-      <LoginDialog
-        isOpen={isLoginDialogOpen}
-        onClose={handleLoginDialogClose}
-        onLogin={handleLoginDialogSuccess}
-      />
+        {/* Login Dialog */}
+        <LoginDialog
+          isOpen={isLoginDialogOpen}
+          onClose={handleLoginDialogClose}
+          onLogin={handleLoginDialogSuccess}
+        />
       </div>
     </div>
   );

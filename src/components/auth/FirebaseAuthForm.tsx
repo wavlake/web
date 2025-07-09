@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,18 +5,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertTriangle,
-  ArrowLeft,
   Loader2,
   LogIn,
   UserPlus,
+  ArrowLeft,
 } from "lucide-react";
 import { User as FirebaseUser } from "firebase/auth";
-import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
-import { toast } from "sonner";
+import { useFirebaseAuthForm } from "@/hooks/useFirebaseAuthForm";
 
 interface FirebaseAuthFormProps {
-  onSuccess: (user: FirebaseUser) => void;
-  onBack: () => void;
+  onSuccess: (user: FirebaseUser, isNewUser?: boolean) => void;
+  onBack?: () => void;
   title?: string;
   description?: string;
 }
@@ -28,56 +26,18 @@ export function FirebaseAuthForm({
   title = "Sign in to Wavlake",
   description = "Use your existing email and password",
 }: FirebaseAuthFormProps) {
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
   const {
+    authMode,
+    setAuthMode,
+    formData,
+    updateFormData,
     isLoading: isFirebaseAuthLoading,
     error: firebaseError,
-    setError: setFirebaseError,
-    handleFirebaseEmailLogin,
-    handleFirebaseEmailSignup,
-  } = useFirebaseLegacyAuth();
+    handleSubmit,
+  } = useFirebaseAuthForm({ onSuccess });
 
   const handleFirebaseAuth = async () => {
-    if (!formData.email || !formData.password) {
-      setFirebaseError("Please fill in all fields");
-      return;
-    }
-
-    if (
-      authMode === "signup" &&
-      formData.password !== formData.confirmPassword
-    ) {
-      setFirebaseError("Passwords do not match");
-      return;
-    }
-
-    try {
-      let user: FirebaseUser;
-
-      // Use hook methods for authentication
-      if (authMode === "signup") {
-        user = await handleFirebaseEmailSignup(formData.email, formData.password);
-        toast.success("Account created successfully");
-      } else {
-        user = await handleFirebaseEmailLogin(formData.email, formData.password);
-        toast.success("Successfully signed in");
-      }
-
-      // Clear form and trigger success with user
-      setFormData({ email: "", password: "", confirmPassword: "" });
-      onSuccess(user);
-    } catch (error) {
-      console.error("Firebase authentication error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Authentication failed"
-      );
-    }
+    await handleSubmit();
   };
 
   return (
@@ -86,27 +46,21 @@ export function FirebaseAuthForm({
         <div className="space-y-4 sm:space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-xl sm:text-2xl font-semibold">{title}</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">{description}</p>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              {description}
+            </p>
           </div>
 
           <Tabs
             value={authMode}
-            onValueChange={(value) =>
-              setAuthMode(value as "login" | "signup")
-            }
+            onValueChange={(value) => setAuthMode(value as "login" | "signup")}
           >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger
-                value="login"
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="login" className="flex items-center gap-2">
                 <LogIn className="h-4 w-4" />
                 Sign In
               </TabsTrigger>
-              <TabsTrigger
-                value="signup"
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="signup" className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
                 Sign Up
               </TabsTrigger>
@@ -135,9 +89,7 @@ export function FirebaseAuthForm({
                     type="email"
                     placeholder="your@email.com"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => updateFormData({ email: e.target.value })}
                     disabled={isFirebaseAuthLoading}
                   />
                 </div>
@@ -149,7 +101,7 @@ export function FirebaseAuthForm({
                     placeholder="Enter password"
                     value={formData.password}
                     onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
+                      updateFormData({ password: e.target.value })
                     }
                     disabled={isFirebaseAuthLoading}
                   />
@@ -181,9 +133,7 @@ export function FirebaseAuthForm({
                     type="email"
                     placeholder="your@email.com"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => updateFormData({ email: e.target.value })}
                     disabled={isFirebaseAuthLoading}
                   />
                 </div>
@@ -195,7 +145,7 @@ export function FirebaseAuthForm({
                     placeholder="Enter password"
                     value={formData.password}
                     onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
+                      updateFormData({ password: e.target.value })
                     }
                     disabled={isFirebaseAuthLoading}
                   />
@@ -210,8 +160,7 @@ export function FirebaseAuthForm({
                     placeholder="Confirm password"
                     value={formData.confirmPassword}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
+                      updateFormData({
                         confirmPassword: e.target.value,
                       })
                     }
@@ -233,6 +182,19 @@ export function FirebaseAuthForm({
             )}
             {authMode === "signup" ? "Create Account" : "Sign In"}
           </Button>
+          {onBack && (
+            <div className="flex justify-center mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBack}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to login options
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

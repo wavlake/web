@@ -91,19 +91,16 @@ export function ImagePreview({ src, alt = 'Image', className }: ImagePreviewProp
       if (imageUrl.includes('.png')) {
         // Try jpg instead
         const newUrl = imageUrl.replace('.png', '.jpg');
-        console.log('Trying JPG format:', newUrl);
         setImageUrl(newUrl);
         setIsLoading(true);
       } else if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg')) {
         // Try png instead
         const newUrl = imageUrl.replace(/\.(jpg|jpeg)/, '.png');
-        console.log('Trying PNG format:', newUrl);
         setImageUrl(newUrl);
         setIsLoading(true);
       } else {
         // Add format parameter
         const newUrl = `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}format=jpg`;
-        console.log('Trying with format parameter:', newUrl);
         setImageUrl(newUrl);
         setIsLoading(true);
       }
@@ -111,7 +108,6 @@ export function ImagePreview({ src, alt = 'Image', className }: ImagePreviewProp
       // Second retry: Try with cache busting parameter
       const cacheBuster = Date.now();
       const newUrl = `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}_=${cacheBuster}`;
-      console.log('Trying with cache buster:', newUrl);
       setImageUrl(newUrl);
       setIsLoading(true);
     }

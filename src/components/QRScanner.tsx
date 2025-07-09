@@ -94,14 +94,12 @@ export function QRScanner({
       setIsLoading(true);
 
       // First, try to request camera permission explicitly
-      console.log("Requesting camera permission...");
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
         });
         // Stop the stream immediately, we just wanted to check permissions
         stream.getTracks().forEach((track) => track.stop());
-        console.log("Camera permission granted");
       } catch (permError) {
         console.error("Permission error:", permError);
         throw permError;
@@ -111,11 +109,8 @@ export function QRScanner({
       const codeReader = new BrowserQRCodeReader();
       readerRef.current = codeReader;
 
-      console.log("Initializing QR scanner...");
-
       // Get video devices using the static method
       const devices = await BrowserCodeReader.listVideoInputDevices();
-      console.log("Found video devices:", devices);
 
       if (devices.length === 0) {
         throw new Error("No camera devices found");
@@ -168,8 +163,6 @@ export function QRScanner({
         setSelectedCameraId(deviceToUse.deviceId);
       }
 
-      console.log("Using device:", deviceToUse);
-
       // Stop any existing controls before starting new ones
       if (controlsRef.current) {
         try {
@@ -207,7 +200,6 @@ export function QRScanner({
             // Mark as processing to prevent further scans
             isProcessingRef.current = true;
             
-            console.log("QR Code detected:", scannedText);
             lastScannedRef.current = scannedText;
             
             // Set a timeout to reset the last scanned reference
@@ -242,7 +234,6 @@ export function QRScanner({
       );
 
       controlsRef.current = controls;
-      console.log("Scanner started successfully");
       setHasPermission(true);
       setIsScanning(true);
       setIsLoading(false);
@@ -295,8 +286,6 @@ export function QRScanner({
     const nextIndex = (currentIndex + 1) % availableCameras.length;
     const nextCamera = availableCameras[nextIndex];
     
-    console.log("Switching from camera:", selectedCameraId, "to:", nextCamera.deviceId);
-    
     // Set loading state while switching
     setIsLoading(true);
     setIsScanning(false);
@@ -316,7 +305,6 @@ export function QRScanner({
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => {
         track.stop();
-        console.log("Stopped track:", track.label);
       });
       videoRef.current.srcObject = null;
     }

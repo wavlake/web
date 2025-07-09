@@ -28,6 +28,8 @@ interface ProfileDiscoveryScreenProps {
   onSelectPubkey: (pubkey: string) => void;
   onUseDifferentAccount: () => void;
   onGenerateNewAccount: () => void;
+  /** Skip API calls for new users during signup flow */
+  isNewUser?: boolean;
 }
 
 /**
@@ -35,6 +37,10 @@ interface ProfileDiscoveryScreenProps {
  * 
  * This component handles the discovery and selection of linked Nostr accounts
  * based on the enhanced authentication flows documented in ENHANCED_AUTH_UX_FLOWS.md
+ * 
+ * Performance optimization: For new users during signup flow, API calls to
+ * check for linked pubkeys and legacy profiles are skipped via the isNewUser flag,
+ * reducing unnecessary requests and improving signup performance.
  */
 export function ProfileDiscoveryScreen({
   firebaseUser,
@@ -42,20 +48,21 @@ export function ProfileDiscoveryScreen({
   onSelectPubkey,
   onUseDifferentAccount,
   onGenerateNewAccount,
+  isNewUser = false,
 }: ProfileDiscoveryScreenProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   
+  // Skip API calls for new users during signup flow to optimize performance
   const { 
     data: linkedPubkeys, 
     isLoading: isLoadingLinked, 
     error: linkedError 
-  } = useLinkedPubkeys(firebaseUser);
+  } = useLinkedPubkeys(isNewUser ? undefined : firebaseUser);
 
-  
   const { 
     data: legacyProfile, 
     isLoading: isLoadingLegacy 
-  } = useLegacyProfile(firebaseUser);
+  } = useLegacyProfile(isNewUser ? undefined : firebaseUser);
 
   const isLoading = isLoadingLinked || isLoadingLegacy;
 
@@ -69,8 +76,8 @@ export function ProfileDiscoveryScreen({
     }
   };
 
-  // Show loading state while fetching data
-  if (isLoading) {
+  // Show loading state while fetching data (skip for new users)
+  if (!isNewUser && isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
         <div className="w-full max-w-md mx-auto text-center space-y-4 sm:space-y-6">
@@ -129,8 +136,8 @@ export function ProfileDiscoveryScreen({
     );
   }
 
-  // Flow 2: User has linked pubkeys - show profile selection
-  if (linkedPubkeys && linkedPubkeys.length > 0) {
+  // Flow 2: User has linked pubkeys - show profile selection (skip for new users)
+  if (!isNewUser && linkedPubkeys && linkedPubkeys.length > 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6 md:p-8">
         <div className="w-full max-w-lg mx-auto">
@@ -197,14 +204,19 @@ export function ProfileDiscoveryScreen({
       <div className="w-full max-w-md mx-auto">
         <Card className="border-0 shadow-lg sm:border sm:shadow-sm">
           <CardHeader className="pb-4 sm:pb-6">
-            <CardTitle className="text-lg sm:text-xl">Welcome back!</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">
+              {isNewUser ? "Welcome to Wavlake!" : "Welcome back!"}
+            </CardTitle>
             <CardDescription className="text-sm sm:text-base">
-              No Nostr accounts found. Let's get you set up:
+              {isNewUser 
+                ? "Let's get you set up with a Nostr account:"
+                : "No Nostr accounts found. Let's get you set up:"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Show legacy profile preview if available */}
-            {legacyProfile && (
+            {/* Show legacy profile preview if available (skip for new users) */}
+            {!isNewUser && legacyProfile && (
               <div className="p-3 sm:p-4 bg-muted rounded-lg">
                 <p className="text-sm font-medium mb-2">Your Wavlake Profile:</p>
                 <div className="flex items-center gap-3">
@@ -247,7 +259,7 @@ export function ProfileDiscoveryScreen({
                 )}
               </Button>
               
-              {legacyProfile && (
+              {!isNewUser && legacyProfile && (
                 <p className="text-xs text-center text-muted-foreground">
                   Recommended: Uses your existing profile information
                 </p>
