@@ -60,7 +60,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
   // Get current user and their complete metadata from relays
   // This ensures we have all existing profile fields to preserve
   const { user, metadata } = useCurrentUser();
-  
+
   // Determine if we're in creation mode (user not signed in yet)
   const isCreationMode = !user;
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
@@ -116,7 +116,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
       });
     }
   }, [metadata, form, initialName, initialPicture, legacyProfile]);
-
 
   // Handle file uploads for profile picture and banner
   const uploadPicture = async (file: File, field: "picture" | "banner") => {
@@ -292,7 +291,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
                     )}
                   </div>
                   <FormDescription className="text-center text-sm">
-                    {isCreationMode 
+                    {isCreationMode
                       ? "You can upload a profile picture after creating your account"
                       : "Upload a profile picture"}
                   </FormDescription>
@@ -336,27 +335,33 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
               Save
             </Button>
 
-            {showSkipLink && source !== "firebase-generation" && (
+            {showSkipLink && (
               <div className="flex flex-col items-center gap-3 mt-4">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="text-muted-foreground"
-                  onClick={() => onComplete ? onComplete({}) : navigate("/groups")}
-                >
-                  Skip for now
-                </Button>
+                {source !== "firebase-generation" && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        onComplete ? onComplete({}) : navigate("/groups")
+                      }
+                    >
+                      Skip for now
+                    </Button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-muted" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      or
-                    </span>
-                  </div>
-                </div>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-muted" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                          or
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <Button
                   type="button"
