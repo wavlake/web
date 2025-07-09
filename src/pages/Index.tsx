@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import LoginDialog from "@/components/auth/LoginDialog";
 import NostrAuthStep from "@/components/auth/NostrAuthStep";
 import { Dialog } from "@/components/ui/dialog";
 import { toast } from "@/hooks/useToast";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /**
  * Clean, greenfield login page for Wavlake authentication.
@@ -28,10 +29,18 @@ import { toast } from "@/hooks/useToast";
  */
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
   const [selectedPubkey, setSelectedPubkey] = useState<string | null>(null);
+
+  // Redirect authenticated users to /groups
+  useEffect(() => {
+    if (user) {
+      navigate("/groups", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleGetStarted = () => {
     console.log("[Index] User starting Get Started flow", {
