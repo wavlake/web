@@ -125,7 +125,7 @@ const Header: React.FC<HeaderProps> = ({ className, title }) => {
         <div className="flex items-center gap-3">
           {showClaimButton && <ClaimOnboardingTokenButton />}
           <ThemeToggle />
-          <LoginArea />
+          <LoginArea showWavlakeLegacyLoginButton={true} />
         </div>
       </div>
     </header>

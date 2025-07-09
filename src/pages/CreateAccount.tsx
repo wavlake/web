@@ -104,7 +104,6 @@ const CreateAccount = () => {
         customName: profileData?.name || legacyProfile?.name || undefined,
       };
 
-
       const result = await createAccount(accountOptions);
 
       // Auto-link to Firebase account if provided
@@ -213,23 +212,10 @@ const CreateAccount = () => {
   };
 
   const handleBack = () => {
-
-    // Navigate back based on source
-    switch (source) {
-      case "firebase-generation":
-        // Go back to root page - Index.tsx should handle Firebase auth state
-        navigate("/");
-        break;
-      case "onboarding":
-        navigate("/");
-        break;
-      default:
-        navigate("/");
-    }
+    navigate("/");
   };
 
   const handleProfileSetupComplete = () => {
-
     // Navigate to the appropriate destination
     navigate(returnPath);
   };
@@ -238,7 +224,6 @@ const CreateAccount = () => {
     name?: string;
     picture?: string;
   }) => {
-
     // Create the account with the profile data
     await handleCreateAccount(profileData);
   };

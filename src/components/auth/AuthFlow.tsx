@@ -108,11 +108,6 @@ export function AuthFlow() {
     method: NostrAuthMethod,
     credentials: NostrCredentials
   ) => {
-    console.log(
-      "Handling Nostr authentication with method:",
-      method,
-      credentials
-    );
     try {
       const login = await nostrAuth.authenticate(method, credentials);
 
@@ -121,7 +116,6 @@ export function AuthFlow() {
 
       // Sync profile after successful login
       await syncProfile(login.pubkey);
-      console.log({ context });
       // If we have a Firebase user context, we're doing targeted auth
       if (context.firebaseUser) {
         // Now link the account (useCurrentUser() will find the authenticated user)

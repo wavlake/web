@@ -22,6 +22,7 @@ import { useLoginActions } from "@/hooks/useLoginActions";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { NostrAvatar } from "../NostrAvatar";
 import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
+import { useNavigate } from "react-router-dom";
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ interface LoginDialogProps {
     method: NostrAuthMethod,
     credentials: NostrCredentials
   ) => Promise<void>; // Optional custom auth handler
+  showWavlakeLegacyLoginButton?: boolean; // Optional prop to show legacy login button
 }
 
 const LoginDialog: React.FC<LoginDialogProps> = ({
@@ -44,7 +46,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   title,
   description,
   handleNostrAuth,
+  showWavlakeLegacyLoginButton = false,
 }) => {
+  const navigate = useNavigate();
   // Fetch profile data for the expected pubkey
   const [isLoading, setIsLoading] = useState(false);
   const [nsec, setNsec] = useState("");
@@ -278,6 +282,16 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
               </Button>
             </TabsContent>
           </Tabs>
+          {showWavlakeLegacyLoginButton && (
+            <Button
+              className="w-full rounded-full py-6"
+              onClick={() => {
+                navigate("/?state=firebase-auth");
+              }}
+            >
+              Login with Wavlake (Legacy account)
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

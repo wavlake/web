@@ -1,5 +1,11 @@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { LoginArea } from "@/components/auth/LoginArea";
 import { DashboardList } from "@/components/DashboardList";
 import { CommunityProvider } from "@/contexts/CommunityContext";
@@ -11,18 +17,18 @@ function DashboardContent() {
   if (!user) {
     return (
       <div className="space-y-6 my-6">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>Dashboard Access</CardTitle>
-              <CardDescription>
-                Please log in to access your dashboard
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LoginArea />
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Dashboard Access</CardTitle>
+            <CardDescription>
+              Please log in to access your dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginArea showWavlakeLegacyLoginButton={true} />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

@@ -5,8 +5,8 @@
  * with a clean state machine pattern that makes the auth flow predictable and debuggable.
  */
 
-import { useReducer, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useReducer, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   AuthFlowState,
   AuthFlowEvent,
@@ -167,6 +167,28 @@ function authFlowReducer(
 const initialState: AuthFlowState = { type: 'method-selection' };
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get initial state based on URL search parameters
+ */
+function getInitialStateFromUrl(searchParams: URLSearchParams): AuthFlowState {
+  const stateParam = searchParams.get('state');
+  
+  switch (stateParam) {
+    case 'firebase-auth':
+      return { type: 'firebase-auth', mode: 'signin' };
+    case 'firebase-signup':
+      return { type: 'firebase-auth', mode: 'signup' };
+    case 'nostr-auth':
+      return { type: 'nostr-auth' };
+    default:
+      return initialState;
+  }
+}
+
+// ============================================================================
 // Main Hook
 // ============================================================================
 
@@ -181,6 +203,12 @@ const initialState: AuthFlowState = { type: 'method-selection' };
  * - Impossible states eliminated
  * - Clear separation of state and side effects
  * - Easy debugging and testing
+ * - URL parameter support for direct state navigation
+ * 
+ * URL Parameters:
+ * - `?state=firebase-auth` - Start with Firebase sign-in form
+ * - `?state=firebase-signup` - Start with Firebase sign-up form
+ * - `?state=nostr-auth` - Start with Nostr authentication
  * 
  * @example
  * ```tsx
@@ -196,10 +224,20 @@ const initialState: AuthFlowState = { type: 'method-selection' };
  *   }
  * }
  * ```
+ * 
+ * @example
+ * ```tsx
+ * // Navigate directly to Firebase auth
+ * navigate("/?state=firebase-auth");
+ * 
+ * // Navigate directly to Nostr auth
+ * navigate("/?state=nostr-auth");
+ * ```
  */
 export function useAuthFlow(): AuthFlowResult {
   const navigate = useNavigate();
-  const [state, dispatch] = useReducer(authFlowReducer, initialState);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [state, dispatch] = useReducer(authFlowReducer, searchParams, getInitialStateFromUrl);
 
   // Extract context from current state
   const context = useMemo((): AuthFlowContext => {
@@ -223,6 +261,18 @@ export function useAuthFlow(): AuthFlowResult {
 
     return ctx;
   }, [state]);
+
+  // Clean up URL parameters when state changes
+  useEffect(() => {
+    // Clear state parameter from URL when we move away from initial URL-driven state
+    if (state.type !== 'method-selection' && searchParams.has('state')) {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('state');
+        return newParams;
+      });
+    }
+  }, [state.type, searchParams, setSearchParams]);
 
   // Enhanced send function with side effects
   const send = useCallback((event: AuthFlowEvent) => {
