@@ -9,10 +9,10 @@ import { useState, useCallback } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  getAuth,
   AuthError as FirebaseAuthError 
 } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
+import { initializeFirebaseAuth } from '@/lib/firebaseAuth';
 import type { FirebaseAuthResult } from '@/types/authFlow';
 
 // ============================================================================
@@ -189,7 +189,7 @@ export function useFirebaseAuthentication(): FirebaseAuthResult {
     setError(null);
 
     try {
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       
       setIsLoading(false);
@@ -227,7 +227,7 @@ export function useFirebaseAuthentication(): FirebaseAuthResult {
     setError(null);
 
     try {
-      const auth = getAuth();
+      const { auth } = initializeFirebaseAuth();
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       
       setIsLoading(false);

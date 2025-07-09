@@ -217,8 +217,8 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
               
               // Sign out from Firebase if authenticated
               try {
-                const { getAuth } = await import("firebase/auth");
-                const auth = getAuth();
+                const { initializeFirebaseAuth } = await import("@/lib/firebaseAuth");
+                const { auth } = initializeFirebaseAuth();
                 if (auth.currentUser) {
                   await auth.signOut();
                   console.log("Successfully signed out from Firebase");

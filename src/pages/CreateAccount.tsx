@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { type NLoginType } from "@nostrify/react/login";
-import { User as FirebaseUser, getAuth } from "firebase/auth";
+import { User as FirebaseUser } from "firebase/auth";
+import { initializeFirebaseAuth } from "@/lib/firebaseAuth";
 import { useCreateAccount } from "@/hooks/useCreateAccount";
 import { useLegacyProfile, type LegacyProfile } from "@/hooks/useLegacyProfile";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
@@ -56,7 +57,8 @@ const CreateAccount = () => {
     if (source !== "firebase-generation") return null;
 
     try {
-      return getAuth().currentUser;
+      const { auth } = initializeFirebaseAuth();
+      return auth.currentUser;
     } catch (error) {
       console.warn("Firebase not initialized for onboarding flow:", error);
       return null;
