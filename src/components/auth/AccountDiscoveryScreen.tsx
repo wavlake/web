@@ -147,13 +147,13 @@ export function AccountDiscoveryScreen({
               </div>
 
               <CardTitle className="text-center text-xl">
-                {hasLinkedAccounts
-                  ? "Choose Your Account"
-                  : "Welcome to Wavlake"}
+                {hasLinkedAccounts ? "Choose Your Account" : "Welcome back!"}
               </CardTitle>
               <CardDescription className="text-center">
                 {hasLinkedAccounts
-                  ? `We found ${linkedAccounts.length} Nostr account${
+                  ? `We found ${
+                      linkedAccounts.length > 1 ? linkedAccounts.length : "a"
+                    } Nostr account${
                       linkedAccounts.length > 1 ? "s" : ""
                     } linked to your email`
                   : "Let's get you set up with a Nostr account"}
@@ -208,17 +208,6 @@ export function AccountDiscoveryScreen({
               {/* Action Buttons */}
               {!isLoading && (
                 <div className="space-y-2 pt-4">
-                  {/* Use Different Account */}
-                  <Button
-                    onClick={onUseDifferentAccount}
-                    variant="outline"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    <Key className="w-4 h-4 mr-2" />
-                    Use Different Nostr Account
-                  </Button>
-
                   {/* Generate New Account */}
                   <Button
                     onClick={onGenerateNewAccount}
@@ -228,6 +217,17 @@ export function AccountDiscoveryScreen({
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
                     Generate New Account
+                  </Button>
+
+                  {/* Use Different Account */}
+                  <Button
+                    onClick={onUseDifferentAccount}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    <Key className="w-4 h-4 mr-2" />
+                    Login with an existing Nostr Account
                   </Button>
 
                   {/* Empty State CTA */}
