@@ -58,32 +58,20 @@ export function FirebaseAuthForm({
     }
 
     try {
-      setFirebaseError(null);
+      let user: FirebaseUser;
 
-      // Get the Firebase auth and user credential
-      const { initializeFirebaseAuth } = await import("@/lib/firebaseAuth");
-      const { auth } = initializeFirebaseAuth();
-
-      let userCredential;
-
-      // Authenticate with Firebase
+      // Use hook methods for authentication
       if (authMode === "signup") {
-        const { createUserWithEmailAndPassword } = await import("firebase/auth");
-        userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        user = await handleFirebaseEmailSignup(formData.email, formData.password);
         toast.success("Account created successfully");
       } else {
-        const { signInWithEmailAndPassword } = await import("firebase/auth");
-        userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        user = await handleFirebaseEmailLogin(formData.email, formData.password);
         toast.success("Successfully signed in");
       }
 
-      // Store token for later use
-      const firebaseToken = await userCredential.user.getIdToken();
-      sessionStorage.setItem("firebaseToken", firebaseToken);
-
       // Clear form and trigger success with user
       setFormData({ email: "", password: "", confirmPassword: "" });
-      onSuccess(userCredential.user);
+      onSuccess(user);
     } catch (error) {
       console.error("Firebase authentication error:", error);
       toast.error(
