@@ -178,11 +178,15 @@ export function AuthMethodSelector({
                     onClick={() => handleMethodClick(method.method)}
                     variant={method.variant === 'primary' ? 'default' : 'outline'}
                     disabled={isLoading}
-                    className="w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 hover:bg-muted/50 active:bg-muted/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      method.variant === 'primary' 
+                        ? 'hover:bg-primary/90 active:bg-primary/80' 
+                        : 'hover:bg-muted/50 active:bg-muted/70'
+                    }`}
                     size="lg"
                   >
                     <div className="flex items-center gap-3 w-full">
-                      <IconComponent className="w-5 h-5 shrink-0 text-primary" />
+                      <IconComponent className={`w-5 h-5 shrink-0 ${method.variant === 'primary' ? 'text-primary-foreground' : 'text-primary'}`} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-base sm:text-base">
                           {method.title}
