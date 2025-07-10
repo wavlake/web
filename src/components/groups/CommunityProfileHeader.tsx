@@ -42,6 +42,11 @@ interface CommunityProfileHeaderProps {
 function safeImageUrl(url: string | undefined): string | undefined {
   if (!url) return undefined;
   
+  // Filter out placeholder paths - these are intentionally invalid and shouldn't be logged
+  if (url === "/placeholder.svg" || url.includes("placeholder")) {
+    return undefined;
+  }
+  
   try {
     const parsed = new URL(url);
     // Only allow http(s) protocols for images
@@ -160,7 +165,7 @@ export function CommunityProfileHeader({
                 }}
               />
             ) : (
-              <div className="w-full h-full bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center">
+              <div className="w-full h-full bg-background text-primary font-bold text-4xl flex items-center justify-center">
                 {name.charAt(0).toUpperCase()}
               </div>
             )}
