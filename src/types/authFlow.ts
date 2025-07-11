@@ -1,6 +1,6 @@
 /**
  * Type definitions for the new authentication flow system
- * 
+ *
  * This file defines all types for the state machine-based auth flow,
  * replacing the scattered state management in the legacy system.
  */
@@ -12,12 +12,12 @@ import { User as FirebaseUser } from "firebase/auth";
 // Auth Method Types
 // ============================================================================
 
-export type NostrAuthMethod = 'extension' | 'nsec' | 'bunker';
+export type NostrAuthMethod = "extension" | "nsec" | "bunker";
 
-export type AuthMethod = 'nostr' | 'firebase' | 'create-account';
+export type AuthMethod = "nostr" | "firebase" | "create-account";
 
 // ============================================================================
-// User and Account Types  
+// User and Account Types
 // ============================================================================
 
 export interface AuthenticatedUser {
@@ -54,46 +54,46 @@ export interface LegacyProfile {
 // Auth Flow State Machine Types
 // ============================================================================
 
-export type AuthFlowState = 
-  | { type: 'method-selection' }
-  | { type: 'nostr-auth'; method?: NostrAuthMethod }
-  | { type: 'firebase-auth'; mode: 'signin' | 'signup' }
-  | { 
-      type: 'account-discovery';
+export type AuthFlowState =
+  | { type: "method-selection" }
+  | { type: "nostr-auth"; method?: NostrAuthMethod }
+  | { type: "firebase-auth"; mode: "signin" | "signup" }
+  | {
+      type: "account-discovery";
       firebaseUser: FirebaseUser;
       isNewUser?: boolean;
     }
   | {
-      type: 'account-linking';
+      type: "account-linking";
       firebaseUser: FirebaseUser;
       selectedPubkey: string;
     }
   | {
-      type: 'completed';
+      type: "completed";
       user: AuthenticatedUser;
     }
   | {
-      type: 'error';
+      type: "error";
       error: string;
       previousState?: AuthFlowState;
     };
 
-export type AuthFlowEvent = 
-  | { type: 'SELECT_NOSTR' }
-  | { type: 'SELECT_FIREBASE' }
-  | { type: 'SELECT_CREATE_ACCOUNT' }
-  | { type: 'SET_NOSTR_METHOD'; method: NostrAuthMethod }
-  | { type: 'SET_FIREBASE_MODE'; mode: 'signin' | 'signup' }
-  | { type: 'FIREBASE_SUCCESS'; user: FirebaseUser; isNewUser?: boolean }
-  | { type: 'NOSTR_SUCCESS'; login: NLoginType }
-  | { type: 'ACCOUNT_SELECTED'; pubkey: string }
-  | { type: 'USE_DIFFERENT_ACCOUNT' }
-  | { type: 'GENERATE_NEW_ACCOUNT' }
-  | { type: 'LINKING_COMPLETE'; user: AuthenticatedUser }
-  | { type: 'BACK' }
-  | { type: 'RESET' }
-  | { type: 'ERROR'; error: string }
-  | { type: 'RETRY' };
+export type AuthFlowEvent =
+  | { type: "SELECT_NOSTR" }
+  | { type: "SELECT_FIREBASE" }
+  | { type: "SELECT_CREATE_ACCOUNT" }
+  | { type: "SET_NOSTR_METHOD"; method: NostrAuthMethod }
+  | { type: "SET_FIREBASE_MODE"; mode: "signin" | "signup" }
+  | { type: "FIREBASE_SUCCESS"; user: FirebaseUser; isNewUser?: boolean }
+  | { type: "NOSTR_SUCCESS"; login: NLoginType }
+  | { type: "ACCOUNT_SELECTED"; pubkey: string }
+  | { type: "USE_DIFFERENT_ACCOUNT" }
+  | { type: "GENERATE_NEW_ACCOUNT" }
+  | { type: "LINKING_COMPLETE"; user: AuthenticatedUser }
+  | { type: "BACK" }
+  | { type: "RESET" }
+  | { type: "ERROR"; error: string }
+  | { type: "RETRY" };
 
 // Context passed through auth flow
 export interface AuthFlowContext {
@@ -119,7 +119,10 @@ export interface AuthFlowResult {
 }
 
 export interface NostrAuthResult {
-  authenticate: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NLoginType>;
+  authenticate: (
+    method: NostrAuthMethod,
+    credentials: NostrCredentials
+  ) => Promise<NLoginType>;
   isLoading: boolean;
   error: string | null;
   supportedMethods: NostrAuthMethod[];
@@ -127,11 +130,18 @@ export interface NostrAuthResult {
 }
 
 export interface FirebaseAuthResult {
-  signIn: (email: string, password: string) => Promise<{ user: FirebaseUser; isNewUser: boolean }>;
-  signUp: (email: string, password: string) => Promise<{ user: FirebaseUser; isNewUser: boolean }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ user: FirebaseUser; isNewUser: boolean }>;
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ user: FirebaseUser; isNewUser: boolean }>;
   isLoading: boolean;
   error: string | null;
   clearError: () => void;
+  logOut: () => Promise<void>;
 }
 
 export interface AccountDiscoveryResult {
@@ -154,22 +164,22 @@ export interface AccountLinkingResult {
 // Credential Types
 // ============================================================================
 
-export type NostrCredentials = 
-  | { method: 'extension' }
-  | { method: 'nsec'; nsec: string }
-  | { method: 'bunker'; bunkerUri: string };
+export type NostrCredentials =
+  | { method: "extension" }
+  | { method: "nsec"; nsec: string }
+  | { method: "bunker"; bunkerUri: string };
 
 // ============================================================================
 // Error Types
 // ============================================================================
 
-export type AuthErrorType = 
-  | 'network'
-  | 'authentication'
-  | 'authorization'
-  | 'validation'
-  | 'linking'
-  | 'unknown';
+export type AuthErrorType =
+  | "network"
+  | "authentication"
+  | "authorization"
+  | "validation"
+  | "linking"
+  | "unknown";
 
 export interface AuthError {
   type: AuthErrorType;
@@ -183,7 +193,7 @@ export interface AuthError {
 // ============================================================================
 
 export interface NavigationOptions {
-  source: 'onboarding' | 'firebase-generation' | 'manual';
+  source: "onboarding" | "firebase-generation" | "manual";
   returnPath: string;
   firebaseUserData?: {
     uid: string;

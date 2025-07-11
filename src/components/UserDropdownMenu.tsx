@@ -118,20 +118,9 @@ export function UserDropdownMenu() {
       removeLogin(currentUser.id);
     }
 
-    cashuStore.clearStore();
-
-    try {
-      const { initializeFirebaseAuth } = await import("@/lib/firebaseAuth");
-      const { auth } = initializeFirebaseAuth();
-      if (auth.currentUser) {
-        await auth.signOut();
-      }
-    } catch (error) {
-      console.error("Error signing out from Firebase:", error);
-    }
-
     const wavlakeOnboardingStored = localStorage.getItem("wavlake-onboarding");
     localStorage.clear();
+
     if (wavlakeOnboardingStored) {
       localStorage.setItem("wavlake-onboarding", wavlakeOnboardingStored);
     }

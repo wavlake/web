@@ -1,26 +1,27 @@
-import { useNostr } from '@nostrify/react';
-import { NLogin, useNostrLogin } from '@nostrify/react/login';
+import { useNostr } from "@nostrify/react";
+import { NLogin, useNostrLogin } from "@nostrify/react/login";
+import { useFirebaseAuthentication } from "./auth/useFirebaseAuthentication";
 
 // NOTE: This file should not be edited except for adding new login methods.
 
 export function useLoginActions() {
   const { nostr } = useNostr();
   const { logins, addLogin, removeLogin } = useNostrLogin();
+  const { logOut: logOutFirebase } = useFirebaseAuthentication();
 
   return {
     // Login with a Nostr secret key
     nsec(nsec: string) {
-      
       try {
         const login = NLogin.fromNsec(nsec);
-        
+
         addLogin(login);
-        
+
         return login;
       } catch (error) {
-        console.error('[useLoginActions] Failed to create login from nsec', {
+        console.error("[useLoginActions] Failed to create login from nsec", {
           error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
+          stack: error instanceof Error ? error.stack : undefined,
         });
         throw error;
       }
@@ -42,7 +43,8 @@ export function useLoginActions() {
       const login = logins[0];
       if (login) {
         removeLogin(login.id);
+        logOutFirebase();
       }
-    }
+    },
   };
 }
