@@ -5,9 +5,8 @@
  * This replaces the complex Index.tsx with a clean state machine-driven flow.
  */
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Dialog } from "@/components/ui/dialog";
 import { useAuthFlow } from "@/hooks/auth/useAuthFlow";
 import { useNostrAuthentication } from "@/hooks/auth/useNostrAuthentication";
 import { useFirebaseAuthentication } from "@/hooks/auth/useFirebaseAuthentication";
@@ -17,13 +16,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { useNostrLogin } from "@nostrify/react/login";
 import { AuthMethodSelector } from "./AuthMethodSelector";
-import { NostrAuthForm } from "./NostrAuthForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
-import { AccountDiscoveryScreen } from "./AccountDiscoveryScreen";
-import { toast } from "@/hooks/useToast";
+import { AccountDiscoveryScreen } from "../AccountDiscoveryScreen";
 import type { NLoginType } from "@nostrify/react/login";
 import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
-import LoginDialog from "./LoginDialog";
+import LoginDialog from "../LoginDialog";
 
 // ============================================================================
 // Helper Functions

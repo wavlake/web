@@ -316,7 +316,11 @@ export function FirebaseAuthForm({
                       onChange={(e) => handlePasswordChange(e.target.value)}
                       placeholder="Enter your password"
                       disabled={isLoading}
-                      autoComplete={formState.mode === "signup" ? "new-password" : "current-password"}
+                      autoComplete={
+                        formState.mode === "signup"
+                          ? "new-password"
+                          : "current-password"
+                      }
                       className={
                         formState.fieldErrors.password
                           ? "border-destructive pr-10"
@@ -426,7 +430,7 @@ export function FirebaseAuthForm({
               </form>
 
               {/* Mode Toggle */}
-              <div className="text-center">
+              {/* <div className="text-center">
                 <p className="text-sm text-muted-foreground">
                   {content.switchText}
                 </p>
@@ -438,7 +442,7 @@ export function FirebaseAuthForm({
                 >
                   {content.switchAction}
                 </Button>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </div>

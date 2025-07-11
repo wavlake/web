@@ -1,21 +1,21 @@
 /**
  * Auth Method Selector Component
- * 
+ *
  * Pure UI component for selecting authentication method.
  * All business logic is provided via props - no internal state management.
  */
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Sparkles, Mail, Key } from 'lucide-react';
-import type { AuthMethod } from '@/types/authFlow';
+} from "@/components/ui/card";
+import { Sparkles, Mail } from "lucide-react";
+import type { AuthMethod } from "@/types/authFlow";
 
 // ============================================================================
 // Types
@@ -41,7 +41,7 @@ interface AuthMethodOption {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  variant?: 'default' | 'primary';
+  variant?: "default" | "primary";
 }
 
 // ============================================================================
@@ -50,24 +50,24 @@ interface AuthMethodOption {
 
 const AUTH_METHODS: AuthMethodOption[] = [
   {
-    method: 'create-account',
+    method: "create-account",
     icon: Sparkles,
-    title: 'Get Started',
-    description: 'New to Wavlake? We\'ll create an account for you',
-    variant: 'primary',
+    title: "Get Started",
+    description: "New to Wavlake? We'll create an account for you",
+    variant: "primary",
   },
   {
-    method: 'firebase',
+    method: "firebase",
     icon: Mail,
-    title: 'I have a Wavlake account',
-    description: 'Sign in with your existing email address',
+    title: "Migrate Legacy Wavlake account",
+    description: "Sign in with your existing Wavlake account",
   },
-  {
-    method: 'nostr',
-    icon: Key,
-    title: 'I have a Nostr account',
-    description: 'Sign in with your existing Nostr keys',
-  },
+  // {
+  //   method: 'nostr',
+  //   icon: Key,
+  //   title: 'I have a Nostr account',
+  //   description: 'Sign in with your existing Nostr keys',
+  // },
 ];
 
 // ============================================================================
@@ -76,22 +76,22 @@ const AUTH_METHODS: AuthMethodOption[] = [
 
 /**
  * AuthMethodSelector Component
- * 
+ *
  * A clean, focused component for selecting authentication methods.
  * This replaces the complex method selection logic embedded in the legacy Index.tsx.
- * 
+ *
  * Features:
  * - Pure presentation component (no business logic)
  * - Clear visual hierarchy
  * - Responsive design
  * - Accessible interactions
  * - Customizable content
- * 
+ *
  * @example
  * ```tsx
  * function AuthFlow() {
  *   const { send } = useAuthFlow();
- *   
+ *
  *   return (
  *     <AuthMethodSelector
  *       onSelectMethod={(method) => {
@@ -108,14 +108,13 @@ export function AuthMethodSelector({
   onSelectMethod,
   isLoading = false,
   error,
-  title = 'Welcome to Wavlake',
-  description = 'Choose how you\'d like to get started',
+  title = "Welcome to Wavlake",
+  description = "Choose how you'd like to get started",
   showCreateAccount = true,
 }: AuthMethodSelectorProps) {
-  
   // Filter methods based on configuration
-  const visibleMethods = AUTH_METHODS.filter(method => 
-    showCreateAccount || method.method !== 'create-account'
+  const visibleMethods = AUTH_METHODS.filter(
+    (method) => showCreateAccount || method.method !== "create-account"
   );
 
   const handleMethodClick = (method: AuthMethod) => {
@@ -126,9 +125,9 @@ export function AuthMethodSelector({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Mobile-optimized layout */}
-      <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 md:p-8">
+      <div className="flex-1 flex flex-col px-2 justify-center sm:p-6 md:p-8">
         {/* Header - more compact on mobile */}
-        <div className="w-full max-w-xs sm:max-w-md mx-auto text-center mb-6 sm:mb-8 px-4 sm:px-0">
+        <div className="w-full sm:max-w-md mx-auto text-center mb-6 sm:mb-8 px-4 sm:px-0">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <img
               src="/wavlake-icon-96.png"
@@ -147,7 +146,7 @@ export function AuthMethodSelector({
         </div>
 
         {/* Authentication Options - wider on mobile */}
-        <div className="w-full max-w-xs sm:max-w-md mx-auto px-4 sm:px-0">
+        <div className="w-full sm:max-w-md mx-auto">
           <Card className="border-0 shadow-lg sm:border sm:shadow-sm">
             <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
               <CardTitle className="text-center text-lg sm:text-xl">
@@ -157,7 +156,7 @@ export function AuthMethodSelector({
                 {description}
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
               {/* Error Display */}
               {error && (
@@ -171,32 +170,40 @@ export function AuthMethodSelector({
               {/* Method Buttons */}
               {visibleMethods.map((method) => {
                 const IconComponent = method.icon;
-                
+
                 return (
                   <Button
                     key={method.method}
                     onClick={() => handleMethodClick(method.method)}
-                    variant={method.variant === 'primary' ? 'default' : 'outline'}
+                    variant={
+                      method.variant === "primary" ? "default" : "outline"
+                    }
                     disabled={isLoading}
-                    className={`w-full h-auto py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      method.variant === 'primary' 
-                        ? 'hover:bg-primary/90 active:bg-primary/80' 
-                        : 'hover:bg-muted/50 active:bg-muted/70'
+                    className={`w-full h-auto min-h-[100px] sm:min-h-[80px] py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      method.variant === "primary"
+                        ? "hover:bg-primary/90 active:bg-primary/80"
+                        : "hover:bg-muted/50 active:bg-muted/70"
                     }`}
                     size="lg"
                   >
                     <div className="flex items-center gap-3 w-full">
-                      <IconComponent className={`w-5 h-5 shrink-0 ${method.variant === 'primary' ? 'text-primary-foreground' : 'text-primary'}`} />
-                      <div className="flex-1 min-w-0">
+                      <IconComponent
+                        className={`w-5 h-5 shrink-0 ${
+                          method.variant === "primary"
+                            ? "text-primary-foreground"
+                            : "text-primary"
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="font-medium text-base sm:text-base">
                           {method.title}
                         </div>
-                        <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words">
+                        <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
                           {method.description}
                         </div>
                       </div>
                       {isLoading && (
-                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
                       )}
                     </div>
                   </Button>
@@ -217,19 +224,21 @@ export function AuthMethodSelector({
 /**
  * Get method display information
  */
-export function getMethodInfo(method: AuthMethod): AuthMethodOption | undefined {
-  return AUTH_METHODS.find(m => m.method === method);
+export function getMethodInfo(
+  method: AuthMethod
+): AuthMethodOption | undefined {
+  return AUTH_METHODS.find((m) => m.method === method);
 }
 
 /**
  * Check if method is available
  */
 export function isMethodAvailable(method: AuthMethod): boolean {
-  if (method === 'nostr') {
+  if (method === "nostr") {
     // Check if Nostr extension is available
-    return typeof window !== 'undefined' && 'nostr' in window;
+    return typeof window !== "undefined" && "nostr" in window;
   }
-  
+
   return true; // Firebase and create-account are always available
 }
 
@@ -237,7 +246,7 @@ export function isMethodAvailable(method: AuthMethod): boolean {
  * Get available methods based on environment
  */
 export function getAvailableMethods(): AuthMethod[] {
-  return AUTH_METHODS
-    .filter(method => isMethodAvailable(method.method))
-    .map(method => method.method);
+  return AUTH_METHODS.filter((method) => isMethodAvailable(method.method)).map(
+    (method) => method.method
+  );
 }

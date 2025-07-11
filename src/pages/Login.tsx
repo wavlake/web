@@ -1,4 +1,4 @@
-import AuthFlow from "@/components/auth/AuthFlow";
+import AuthFlow from "@/components/auth/v3/AuthFlow";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
