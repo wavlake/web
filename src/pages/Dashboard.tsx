@@ -25,7 +25,7 @@ function DashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginArea showWavlakeLegacyLoginButton={true} />
+            <LoginArea />
           </CardContent>
         </Card>
       </div>
