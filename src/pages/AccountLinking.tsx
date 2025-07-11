@@ -27,7 +27,7 @@ import {
   useUnlinkFirebaseAccount,
   useLinkFirebaseAccount,
 } from "@/hooks/useAccountLinking";
-import { LoginButton } from "@/components/auth/LoginButton";
+import { LoginButton } from "@/components/auth/v3/LoginButton";
 import { FirebaseAuthDialog } from "@/components/auth/FirebaseAuthDialog";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
 import {

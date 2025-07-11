@@ -39,7 +39,7 @@ import { useState } from "react";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import { usePWA } from "@/hooks/usePWA";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { LoginButton } from "./auth/LoginButton";
+import { LoginButton } from "./auth/v3/LoginButton";
 
 // Menu item configuration
 interface MenuItem {
