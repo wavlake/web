@@ -18,6 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardDetail from "./pages/DashboardDetail";
 import WelcomePage from "./pages/WelcomePage";
 import CreateArtist from "./pages/CreateArtist";
+import Login from "./pages/Login";
 
 // Lazy load less frequently used pages
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -58,6 +59,7 @@ export function AppRouter() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/welcome" element={<WelcomePage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route
