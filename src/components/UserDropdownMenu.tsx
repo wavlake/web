@@ -41,6 +41,7 @@ import { useState } from "react";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import { usePWA } from "@/hooks/usePWA";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
+import { LoginButton } from "./auth/LoginButton";
 
 export function UserDropdownMenu() {
   const { currentUser, otherUsers, setLogin, removeLogin } =
@@ -50,6 +51,7 @@ export function UserDropdownMenu() {
   const markAllAsRead = useMarkAllNotificationsAsRead();
   const cashuStore = useCashuStore();
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { isInstallable, isRunningAsPwa, promptInstall } = usePWA();
   const { isLinked } = useAccountLinkingStatus();
 
@@ -65,11 +67,35 @@ export function UserDropdownMenu() {
       setShowInstallInstructions(true);
     }
   };
-  if (!currentUser) return null;
+
+  // Show placeholder dropdown during logout
+  if (isLoggingOut) {
+    return (
+      <div className="flex items-center gap-2 p-1.5 rounded-full w-full text-foreground max-w-56">
+        <div className="w-8 h-8 rounded-md bg-muted animate-pulse" />
+        <div className="flex-1 hidden md:block">
+          <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+        </div>
+        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-0" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <LoginButton />;
+  }
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    // Navigate immediately to prevent glitchy rendering
+    navigate("/login", { replace: true });
+
     // Remove Nostr login
-    removeLogin(currentUser.id);
+    if (currentUser) {
+      removeLogin(currentUser.id);
+    }
+
     cashuStore.clearStore();
 
     // Sign out from Firebase if authenticated
@@ -91,7 +117,6 @@ export function UserDropdownMenu() {
     if (wavlakeOnboardingStored) {
       localStorage.setItem("wavlake-onboarding", wavlakeOnboardingStored);
     }
-    navigate("/login", { replace: true });
   };
 
   return (
@@ -105,10 +130,10 @@ export function UserDropdownMenu() {
             <div className="relative">
               <Avatar className="w-8 h-8 rounded-md">
                 <AvatarImage
-                  src={currentUser.metadata.picture}
-                  alt={currentUser.metadata.name}
+                  src={currentUser?.metadata.picture}
+                  alt={currentUser?.metadata.name}
                 />
-                {currentUser.metadata.name?.charAt(0) ? (
+                {currentUser?.metadata.name?.charAt(0) ? (
                   <AvatarFallback>
                     {currentUser.metadata.name?.charAt(0)}
                   </AvatarFallback>
@@ -126,7 +151,7 @@ export function UserDropdownMenu() {
             </div>
             <div className="flex-1 text-left hidden md:block truncate">
               <p className="font-medium text-xs truncate">
-                {currentUser.metadata.name || currentUser.pubkey}
+                {currentUser?.metadata.name || currentUser?.pubkey || ""}
               </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
@@ -138,7 +163,7 @@ export function UserDropdownMenu() {
             asChild
             className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md text-sm md:gap-2 gap-3"
           >
-            <Link to={`/profile/${currentUser.pubkey}`}>
+            <Link to={`/profile/${currentUser?.pubkey || ""}`}>
               <User className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 w-4 h-4" />
               <span>View Profile</span>
             </Link>

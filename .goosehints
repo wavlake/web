@@ -200,23 +200,23 @@ The `useCurrentUser` hook should be used to ensure that the user is logged in be
 
 ### Nostr Login
 
-To enable login with Nostr, simply use the `LoginArea` component already included in this project.
+To enable login with Nostr, simply use the `LoginButton` component already included in this project.
 
 ```tsx
-import { LoginArea } from "@/components/auth/LoginArea";
+import { LoginButton } from "@/components/auth/LoginButton";
 
 function MyComponent() {
   return (
     <div>
       {/* other components ... */}
 
-      <LoginArea />
+      <LoginButton />
     </div>
   );
 }
 ```
 
-The `LoginArea` component displays a "Log in" button when the user is logged out, and changes to an account switcher once the user is logged in. It handles all the login-related UI and interactions internally, including displaying login dialogs and switching between accounts. It should not be wrapped in any conditional logic.
+The `LoginButton` component displays a "Log in" button when the user is logged out, and changes to an account switcher once the user is logged in. It handles all the login-related UI and interactions internally, including displaying login dialogs and switching between accounts. It should not be wrapped in any conditional logic.
 
 ### `npub`, `naddr`, and other Nostr addresses
 

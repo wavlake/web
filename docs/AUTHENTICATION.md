@@ -413,7 +413,7 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 
 ### 5.2 UI Components
 
-#### LoginArea Component
+#### LoginButton Component
 
 - Displays "Log in" button when no user is authenticated
 - Shows UserDropdownMenu when user is logged in
@@ -532,7 +532,7 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 - `/src/hooks/useCurrentUser.ts` - Primary user state management
 - `/src/hooks/useLoggedInAccounts.ts` - Multi-account management
 - `/src/hooks/useLoginActions.ts` - Login/logout functionality
-- `/src/components/auth/LoginArea.tsx` - Main login UI
+- `/src/components/auth/LoginButton.tsx` - Main login UI
 - `/src/components/auth/LoginDialog.tsx` - Authentication dialog
 - `/src/components/auth/UserDropdownMenu.tsx` - Account management UI
 

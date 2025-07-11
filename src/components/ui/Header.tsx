@@ -1,16 +1,14 @@
-import { LoginArea } from "@/components/auth/LoginArea";
-import { BalanceDisplay } from "@/components/BalanceDisplay";
 import { ClaimOnboardingTokenButton } from "@/components/ClaimOnboardingTokenButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCashuStore } from "@/stores/cashuStore";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Icon } from "@/components/ui/Icon";
 import type React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Wallet } from "lucide-react";
 import { calculateBalance } from "@/lib/cashu";
+import { UserDropdownMenu } from "../UserDropdownMenu";
 
 interface HeaderProps {
   className?: string;
@@ -125,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({ className, title }) => {
         <div className="flex items-center gap-3">
           {showClaimButton && <ClaimOnboardingTokenButton />}
           <ThemeToggle />
-          <LoginArea />
+          <UserDropdownMenu />
         </div>
       </div>
     </header>
