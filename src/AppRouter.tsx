@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { GlobalLayout } from "@/components/GlobalLayout";
+import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Eagerly load the main pages
