@@ -205,26 +205,10 @@ export function AuthFlow() {
       );
 
     case "sign-in":
-      return (
-        <GenericStep
-          handleBack={handleBack}
-          title="Sign In"
-          description="Sign in to your Wavlake account"
-        >
-          <SignIn handleBack={handleBack} />
-        </GenericStep>
-      );
+      return <SignIn handleBack={handleBack} />;
 
     case "sign-up":
-      return (
-        <GenericStep
-          handleBack={handleBack}
-          title="Sign In"
-          description="Sign in to your Wavlake account"
-        >
-          <SignUp handleBack={handleBack} />
-        </GenericStep>
-      );
+      return <SignUp handleBack={handleBack} />;
 
     default:
       // This shouldn't happen with proper TypeScript, but handle gracefully

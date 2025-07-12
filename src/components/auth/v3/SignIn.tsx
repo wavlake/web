@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 
 import { NostrAuthForm } from "./NostrAuthForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
+import { GenericStep } from "./GenericStep";
 
 type SIGN_IN_STEP = "nostr" | "legacy";
 
@@ -12,7 +13,11 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
   switch (STATE) {
     case "nostr":
       return (
-        <div>
+        <GenericStep
+          handleBack={handleBack}
+          title="Sign In"
+          description="Sign in to your Wavlake account"
+        >
           {/* {expectedPubkey && (
             <NostrAvatar pubkey={expectedPubkey || ""} size={64} includeName />
           )} */}
@@ -23,20 +28,18 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
           >
             Migrate Legacy Wavlake Account
           </Button>
-        </div>
+        </GenericStep>
       );
 
     case "legacy":
       return (
-        <div>
+        <GenericStep
+          handleBack={() => SET_STATE("nostr")}
+          title="Sign In"
+          description="Sign in to your Wavlake account"
+        >
           <FirebaseAuthForm />
-          <Button
-            className="w-full rounded-full py-6"
-            onClick={() => SET_STATE("nostr")}
-          >
-            Sign in with Nostr keys
-          </Button>
-        </div>
+        </GenericStep>
       );
 
     default:
