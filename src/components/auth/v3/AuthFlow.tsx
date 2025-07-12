@@ -1,31 +1,26 @@
-/**
- * AuthFlow Container Component
- *
- * Main orchestrator for the new authentication system.
- * This replaces the complex Index.tsx with a clean state machine-driven flow.
- */
-
-import { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
 import { useAuthFlow } from "@/hooks/auth/useAuthFlow";
 import { useNostrAuthentication } from "@/hooks/auth/useNostrAuthentication";
 import { useFirebaseAuthentication } from "@/hooks/auth/useFirebaseAuthentication";
-import { useAccountDiscovery } from "@/hooks/auth/useAccountDiscovery";
 import { useAccountLinking } from "@/hooks/auth/useAccountLinking";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { useNostrLogin } from "@nostrify/react/login";
-import { AuthMethodSelector } from "./AuthMethodSelector";
-import { FirebaseAuthForm } from "./FirebaseAuthForm";
-import { AccountDiscoveryScreen } from "../AccountDiscoveryScreen";
 import type { NLoginType } from "@nostrify/react/login";
 import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
-import LoginDialog from "../LoginDialog";
+import { useState } from "react";
+import { SignIn } from "./SignIn";
+import { SignUp } from "./SignUp";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Sparkles, Mail, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { GenericStep } from "./GenericStep";
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
+type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
 /**
  * Convert NLoginType to AuthenticatedUser for state machine
  */
@@ -37,68 +32,59 @@ function convertToAuthenticatedUser(login: NLoginType) {
   };
 }
 
-// ============================================================================
-// Main Component
-// ============================================================================
+const StartHeader = () => {
+  return (
+    <div className="w-full sm:max-w-md mx-auto text-center mb-6 sm:mb-8 px-4 sm:px-0">
+      <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <img
+          src="/wavlake-icon-96.png"
+          alt="Wavlake"
+          width={48}
+          height={48}
+          className="object-contain sm:w-16 sm:h-16"
+        />
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Wavlake</h1>
+      </div>
+      <p className="text-base sm:text-lg text-muted-foreground">
+        Stream Anywhere, Earn Everywhere
+      </p>
+    </div>
+  );
+};
+interface AuthMethodOption {
+  method: "sign-in" | "sign-up";
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  variant?: "default" | "primary";
+}
 
-/**
- * AuthFlow Component
- *
- * The main authentication flow orchestrator that replaces the complex
- * state management in the legacy Index.tsx. This component uses the
- * state machine pattern to provide a clean, predictable auth flow.
- *
- * Features:
- * - State machine-driven navigation
- * - Clear separation of concerns
- * - Automatic authenticated user redirection
- * - Comprehensive error handling
- * - Profile synchronization
- * - Account linking integration
- *
- * @example
- * Replace Index.tsx with this component:
- *
- * function App() {
- *   return (
- *     <Router>
- *       <Routes>
- *         <Route path="/" element={<AuthFlow />} />
- *         <Route path="/legacy-login" element={<LegacyIndex />} />
- *         // other routes
- *       </Routes>
- *     </Router>
- *   );
- * }
- */
+const AUTH_METHODS: AuthMethodOption[] = [
+  {
+    method: "sign-up",
+    icon: Sparkles,
+    title: "Get Started",
+    description: "", //"New to Wavlake? We'll create an account for you",
+    variant: "primary",
+  },
+  {
+    method: "sign-in",
+    icon: Mail,
+    title: "Sign in",
+    description: "", //"Sign in with your Wavlake or Nostr account",
+  },
+];
 export function AuthFlow() {
-  const { user: currentUser } = useCurrentUser();
+  const [STATE, SET_STATE] = useState<AUTH_STEP>("method-selection");
   const { state, context, send } = useAuthFlow();
   const { syncProfile } = useProfileSync();
   const { addLogin } = useNostrLogin();
-  const navigate = useNavigate();
 
   // Business logic hooks
   const nostrAuth = useNostrAuthentication();
   const firebaseAuth = useFirebaseAuthentication();
-  const accountDiscovery = useAccountDiscovery(
-    context.firebaseUser,
-    context.isNewUser
-  );
+
   const accountLinking = useAccountLinking();
-
-  // Redirect authenticated users to /groups
-  useEffect(() => {
-    if (currentUser) {
-      // User is already authenticated, redirect
-      navigate("/groups", { replace: true });
-    }
-  }, [currentUser, navigate]);
-
-  // Don't render auth flow if user is authenticated
-  if (currentUser) {
-    return null;
-  }
 
   // Handle Nostr authentication
   const handleNostrAuth = async (
@@ -174,155 +160,84 @@ export function AuthFlow() {
     send({ type: "GENERATE_NEW_ACCOUNT" });
   };
 
-  // Handle back navigation
   const handleBack = () => {
-    send({ type: "BACK" });
-  };
-
-  // Handle retry from error state
-  const handleRetry = () => {
-    send({ type: "RETRY" });
-  };
-
-  // Handle refresh in account discovery
-  const handleRefresh = () => {
-    accountDiscovery.refresh();
+    SET_STATE("method-selection");
   };
 
   // Render based on current state
-  switch (state.type) {
+  switch (STATE) {
     case "method-selection":
       return (
-        <AuthMethodSelector
-          onSelectMethod={(method) => {
-            if (method === "nostr") send({ type: "SELECT_NOSTR" });
-            else if (method === "firebase") send({ type: "SELECT_FIREBASE" });
-            else if (method === "create-account")
-              send({ type: "SELECT_CREATE_ACCOUNT" });
-          }}
-          isLoading={false}
-          error={context.error}
-        />
+        <GenericStep
+          title="Welcome to Wavlake"
+          description="Choose how you want to get started"
+          header={StartHeader()}
+        >
+          {AUTH_METHODS.map((method) => {
+            const IconComponent = method.icon;
+
+            return (
+              <Button
+                key={method.method}
+                onClick={() => SET_STATE(method.method)}
+                variant={method.variant === "primary" ? "default" : "outline"}
+                className={`w-full h-auto min-h-[100px] sm:min-h-[80px] py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  method.variant === "primary"
+                    ? "hover:bg-primary/90 active:bg-primary/80"
+                    : "hover:bg-muted/50 active:bg-muted/70"
+                }`}
+                size="lg"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <IconComponent
+                    className={`w-5 h-5 shrink-0 ${
+                      method.variant === "primary"
+                        ? "text-primary-foreground"
+                        : "text-primary"
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="font-medium text-base sm:text-base">
+                      {method.title}
+                    </div>
+                    <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
+                      {method.description}
+                    </div>
+                  </div>
+                </div>
+              </Button>
+            );
+          })}
+        </GenericStep>
       );
 
-    case "nostr-auth":
+    case "sign-in":
       return (
-        <LoginDialog
-          isOpen={true}
-          onClose={handleBack}
-          onLogin={() => {}}
-          handleNostrAuth={handleNostrAuth}
-          expectedPubkey={context.selectedPubkey || undefined} // Use selected pubkey if available
-        />
+        <GenericStep
+          handleBack={handleBack}
+          title="Sign In"
+          description="Sign in to your Wavlake account"
+        >
+          <SignIn handleBack={handleBack} />;
+        </GenericStep>
       );
 
-    case "firebase-auth":
+    case "sign-up":
       return (
-        <FirebaseAuthForm
-          onAuthenticate={handleFirebaseAuth}
-          onBack={handleBack}
-          isLoading={firebaseAuth.isLoading}
-          error={firebaseAuth.error || undefined}
-          initialMode={state.mode}
-        />
-      );
-
-    case "account-discovery":
-      if (!context.firebaseUser) {
-        // This shouldn't happen with proper state machine, but handle gracefully
-        send({ type: "ERROR", error: "Missing Firebase user context" });
-        return null;
-      }
-
-      return (
-        <AccountDiscoveryScreen
-          firebaseUser={context.firebaseUser}
-          linkedAccounts={accountDiscovery.linkedAccounts}
-          legacyProfile={accountDiscovery.legacyProfile}
-          isLoading={accountDiscovery.isLoading}
-          error={accountDiscovery.error || undefined}
-          onSelectAccount={handleAccountSelection}
-          onUseDifferentAccount={handleUseDifferentAccount}
-          onGenerateNewAccount={handleGenerateNewAccount}
-          onBack={handleBack}
-          onRefresh={handleRefresh}
-        />
-      );
-
-    case "account-linking":
-      if (!context.firebaseUser || !context.selectedPubkey) {
-        send({ type: "ERROR", error: "Missing linking context" });
-        return null;
-      }
-
-      return (
-        <LoginDialog
-          isOpen={true}
-          onClose={handleBack}
-          onLogin={() => {}}
-          handleNostrAuth={handleNostrAuth}
-          expectedPubkey={context.selectedPubkey || undefined} // Use selected pubkey if available
-          title="Sign in to link your account"
-          description="Please sign in with your Nostr account to link it to your Wavlake profile"
-        />
-      );
-
-    case "completed":
-      // This will be handled by the useEffect redirect, but provide fallback
-      return <Navigate to="/groups" replace />;
-
-    case "error":
-      return (
-        <AuthMethodSelector
-          onSelectMethod={(method) => {
-            if (method === "nostr") send({ type: "SELECT_NOSTR" });
-            else if (method === "firebase") send({ type: "SELECT_FIREBASE" });
-            else if (method === "create-account")
-              send({ type: "SELECT_CREATE_ACCOUNT" });
-          }}
-          isLoading={false}
-          error={context.error}
-        />
+        <GenericStep
+          handleBack={handleBack}
+          title="Sign In"
+          description="Sign in to your Wavlake account"
+        >
+          <SignUp handleBack={handleBack} />
+        </GenericStep>
       );
 
     default:
       // This shouldn't happen with proper TypeScript, but handle gracefully
       console.error("Unknown auth flow state:", state);
-      return (
-        <AuthMethodSelector
-          onSelectMethod={(method) => {
-            if (method === "nostr") send({ type: "SELECT_NOSTR" });
-            else if (method === "firebase") send({ type: "SELECT_FIREBASE" });
-            else if (method === "create-account")
-              send({ type: "SELECT_CREATE_ACCOUNT" });
-          }}
-          isLoading={false}
-          error="An unexpected error occurred. Please try again."
-        />
-      );
+      return <div>An unexpected error occurred. Please try again.</div>;
   }
-}
-
-// ============================================================================
-// Development Helper
-// ============================================================================
-
-/**
- * Development version with debug information
- * Only available in development mode
- */
-export function AuthFlowWithDebug() {
-  const authFlow = useAuthFlow();
-
-  if (process.env.NODE_ENV === "development") {
-    console.group("🔐 Auth Flow Debug");
-    console.log("State:", authFlow.state);
-    console.log("Context:", authFlow.context);
-    console.log("Can go back:", authFlow.state.type !== "method-selection");
-    console.groupEnd();
-  }
-
-  return <AuthFlow />;
 }
 
 export default AuthFlow;
