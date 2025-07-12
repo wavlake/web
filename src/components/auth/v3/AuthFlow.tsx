@@ -9,14 +9,7 @@ import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { useState } from "react";
 import { SignIn } from "./SignIn";
 import { SignUp } from "./SignUp";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Sparkles, Mail, Star } from "lucide-react";
+import { Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GenericStep } from "./GenericStep";
 
@@ -218,7 +211,7 @@ export function AuthFlow() {
           title="Sign In"
           description="Sign in to your Wavlake account"
         >
-          <SignIn handleBack={handleBack} />;
+          <SignIn handleBack={handleBack} />
         </GenericStep>
       );
 
