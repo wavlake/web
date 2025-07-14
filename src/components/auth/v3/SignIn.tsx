@@ -16,7 +16,7 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
         <GenericStep
           handleBack={handleBack}
           title="Sign In"
-          description="Sign in to your Wavlake account"
+          description="Sign in to Wavlake"
         >
           {/* {expectedPubkey && (
             <NostrAvatar pubkey={expectedPubkey || ""} size={64} includeName />
@@ -36,7 +36,7 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
         <GenericStep
           handleBack={() => SET_STATE("nostr")}
           title="Sign In"
-          description="Sign in to your Wavlake account"
+          description="Sign in to Wavlake"
         >
           <FirebaseAuthForm />
         </GenericStep>
