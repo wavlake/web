@@ -1,11 +1,3 @@
-import { useAuthFlow } from "@/hooks/auth/useAuthFlow";
-import { useNostrAuthentication } from "@/hooks/auth/useNostrAuthentication";
-import { useFirebaseAuthentication } from "@/hooks/auth/useFirebaseAuthentication";
-import { useAccountLinking } from "@/hooks/auth/useAccountLinking";
-import { useProfileSync } from "@/hooks/useProfileSync";
-import { useNostrLogin } from "@nostrify/react/login";
-import type { NLoginType } from "@nostrify/react/login";
-import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { useState } from "react";
 import { SignIn } from "./SignIn";
 import { SignUp } from "./SignUp";
@@ -14,16 +6,6 @@ import { Button } from "@/components/ui/button";
 import { GenericStep } from "./GenericStep";
 
 type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
-/**
- * Convert NLoginType to AuthenticatedUser for state machine
- */
-function convertToAuthenticatedUser(login: NLoginType) {
-  return {
-    pubkey: login.pubkey,
-    signer: login, // Will be processed by useCurrentUser
-    // Profile will be fetched by useCurrentUser
-  };
-}
 
 const StartHeader = () => {
   return (
@@ -69,89 +51,6 @@ const AUTH_METHODS: AuthMethodOption[] = [
 ];
 export function AuthFlow() {
   const [STATE, SET_STATE] = useState<AUTH_STEP>("method-selection");
-  const { state, context, send } = useAuthFlow();
-  const { syncProfile } = useProfileSync();
-  const { addLogin } = useNostrLogin();
-
-  // Business logic hooks
-  const nostrAuth = useNostrAuthentication();
-  const firebaseAuth = useFirebaseAuthentication();
-
-  const accountLinking = useAccountLinking();
-
-  // Handle Nostr authentication
-  const handleNostrAuth = async (
-    method: NostrAuthMethod,
-    credentials: NostrCredentials
-  ) => {
-    try {
-      const login = await nostrAuth.authenticate(method, credentials);
-
-      // CRITICAL: Register the login with useNostrLogin so useCurrentUser() can find it
-      addLogin(login);
-
-      // Sync profile after successful login
-      await syncProfile(login.pubkey);
-      // If we have a Firebase user context, we're doing targeted auth
-      if (context.firebaseUser) {
-        // Now link the account (useCurrentUser() will find the authenticated user)
-        await accountLinking.linkAccount(context.firebaseUser, login.pubkey);
-
-        // Complete the flow
-        const user = convertToAuthenticatedUser(login);
-        send({ type: "LINKING_COMPLETE", user });
-      } else {
-        // Direct Nostr auth - complete immediately
-        send({ type: "NOSTR_SUCCESS", login });
-      }
-    } catch (error) {
-      console.error("Nostr authentication failed:", error);
-      send({
-        type: "ERROR",
-        error: error instanceof Error ? error.message : "Authentication failed",
-      });
-    }
-  };
-
-  // Handle Firebase authentication
-  const handleFirebaseAuth = async (
-    email: string,
-    password: string,
-    isSignUp: boolean
-  ) => {
-    try {
-      const result = isSignUp
-        ? await firebaseAuth.signUp(email, password)
-        : await firebaseAuth.signIn(email, password);
-
-      send({
-        type: "FIREBASE_SUCCESS",
-        user: result.user,
-        isNewUser: result.isNewUser,
-      });
-    } catch (error) {
-      console.error("Firebase authentication failed:", error);
-      send({
-        type: "ERROR",
-        error: error instanceof Error ? error.message : "Authentication failed",
-      });
-    }
-  };
-
-  // Handle account selection
-  const handleAccountSelection = (pubkey: string) => {
-    send({ type: "ACCOUNT_SELECTED", pubkey });
-  };
-
-  // Handle different account flow
-  const handleUseDifferentAccount = () => {
-    send({ type: "USE_DIFFERENT_ACCOUNT" });
-  };
-
-  // Handle generate new account
-  const handleGenerateNewAccount = () => {
-    send({ type: "GENERATE_NEW_ACCOUNT" });
-  };
 
   const handleBack = () => {
     SET_STATE("method-selection");
@@ -212,7 +111,7 @@ export function AuthFlow() {
 
     default:
       // This shouldn't happen with proper TypeScript, but handle gracefully
-      console.error("Unknown auth flow state:", state);
+      console.error("Unknown auth flow state:", STATE);
       return <div>An unexpected error occurred. Please refresh the page.</div>;
   }
 }
