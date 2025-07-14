@@ -213,7 +213,7 @@ export function AuthFlow() {
     default:
       // This shouldn't happen with proper TypeScript, but handle gracefully
       console.error("Unknown auth flow state:", state);
-      return <div>An unexpected error occurred. Please try again.</div>;
+      return <div>An unexpected error occurred. Please refresh the page.</div>;
   }
 }
 

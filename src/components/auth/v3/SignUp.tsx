@@ -10,14 +10,38 @@ import {
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
 import { GenericStep } from "./GenericStep";
+import { useNavigate } from "react-router-dom";
 
-type STATES = "sign-up" | "artist" | "profile" | "artist-type" | "firebase";
+type STATES =
+  | "sign-up"
+  | "artist"
+  | "profile"
+  | "artist-type"
+  | "firebase"
+  | "welcome";
 export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
+  const navigate = useNavigate();
   const [STATE, SET_STATE] = useState<STATES>("sign-up");
-  const [isIndividual, setIsIndividual] = useState(true);
+  const [isSoloArtist, setIsSoloArtist] = useState(true);
   const [isArtist, setIsArtist] = useState(true);
-  const handleSignup = () => {
-    console.log("Signing up with Nostr...");
+
+  const getProfileStepDescription = () => {
+    if (isArtist) {
+      return isSoloArtist
+        ? "This is your public solo artist profile that will be visible to others."
+        : "This is your public band/group profile that will be visible to others. You'll be able to make individual member profiles later.";
+    }
+
+    return "This is your public user profile that will be visible to others.";
+  };
+
+  const getProfileTitle = () => {
+    if (isArtist) {
+      return isSoloArtist
+        ? "Create Solo Artist Profile"
+        : "Create Band/Group Profile";
+    }
+    return "Create User Profile";
   };
 
   switch (STATE) {
@@ -27,99 +51,115 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
           <GenericStep
             handleBack={handleBack}
             title="Sign Up"
-            description="Select whether you want to sign up as an artist or a listener. This helps us tailor your experience."
+            description="Select whether you want to sign up as an artist or a
+                    listener. This helps us tailor your experience."
           >
-            <div>
-              <div className="px-6 py-8 space-y-6">
-                <div className="flex items-center gap-2">
-                  <p className="text-base">
-                    What would you like to sign up as?
-                  </p>
-                  <Tooltip>
+            {/* <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>This can be changed later in settings</p>
                     </TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant={isArtist ? "default" : "outline"}
-                    className="w-full rounded-full py-6"
-                    onClick={() => setIsArtist(true)}
-                  >
-                    <MicIcon className="mr-2" />
-                    Artist
-                  </Button>
-                  <Button
-                    variant={!isArtist ? "default" : "outline"}
-                    className="w-full rounded-full py-6"
-                    onClick={() => setIsArtist(false)}
-                  >
-                    <HeadphonesIcon className="mr-2" />
-                    Listener
-                  </Button>
-                </div>
-              </div>
-              <div className="px-6">
-                <Button
-                  className="w-full rounded-full py-6"
-                  onClick={() =>
-                    SET_STATE(isArtist ? "artist-type" : "profile")
-                  }
-                >
-                  Continue
-                </Button>
-              </div>
+                  </Tooltip> */}
+            <div className="flex items-center gap-4 py-4">
+              <Button
+                variant={isArtist ? "default" : "outline"}
+                className="w-full rounded-full py-6"
+                onClick={() => setIsArtist(true)}
+              >
+                <MicIcon className="mr-2" />
+                Artist
+              </Button>
+              <Button
+                variant={!isArtist ? "default" : "outline"}
+                className="w-full rounded-full py-6"
+                onClick={() => setIsArtist(false)}
+              >
+                <HeadphonesIcon className="mr-2" />
+                Listener
+              </Button>
             </div>
+            <Button
+              className="w-full rounded-full py-6"
+              onClick={() => SET_STATE(isArtist ? "artist-type" : "profile")}
+            >
+              Continue
+            </Button>
           </GenericStep>
         </TooltipProvider>
       );
-    case "profile":
-      return (
-        <GenericStep
-          handleBack={() => SET_STATE("sign-up")}
-          title="Create User Profile"
-          description="This is your public user profile that will be visible to others."
-        >
-          <EditProfileForm />
-        </GenericStep>
-      );
+
     case "artist-type":
       return (
         <GenericStep
-          handleBack={() => SET_STATE("artist")}
+          handleBack={() => SET_STATE("sign-up")}
           title="Select Artist Type"
           description="Choose the type of artist you are. This helps us tailor your experience."
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 py-4">
             <Button
-              variant={isIndividual ? "default" : "outline"}
+              variant={isSoloArtist ? "default" : "outline"}
               className="w-full rounded-full py-6"
-              onClick={() => setIsIndividual(true)}
+              onClick={() => setIsSoloArtist(true)}
             >
-              Individual Artist
+              Solo Artist
             </Button>
             <Button
-              variant={!isIndividual ? "default" : "outline"}
+              variant={!isSoloArtist ? "default" : "outline"}
               className="w-full rounded-full py-6"
-              onClick={() => setIsIndividual(false)}
+              onClick={() => setIsSoloArtist(false)}
             >
               Band/Group
             </Button>
           </div>
+          <Button
+            className="w-full rounded-full py-6"
+            onClick={() => SET_STATE("profile")}
+          >
+            Continue
+          </Button>
         </GenericStep>
       );
+
+    case "profile":
+      return (
+        <GenericStep
+          handleBack={() => SET_STATE(isArtist ? "artist-type" : "sign-up")}
+          title={getProfileTitle()}
+          description={getProfileStepDescription()}
+        >
+          <EditProfileForm onComplete={() => SET_STATE("firebase")} />
+        </GenericStep>
+      );
+
     case "firebase":
       return (
         <GenericStep
-          handleBack={() => SET_STATE(isArtist ? "artist-type" : "profile")}
-          title="Add Backup Email"
+          handleBack={() => SET_STATE("profile")}
+          title="Add a Backup Email"
           description="This email will be used for account recovery and notifications."
         >
-          <FirebaseAuthForm />
+          <FirebaseAuthForm onComplete={() => SET_STATE("welcome")} />
+        </GenericStep>
+      );
+
+    case "welcome":
+      return (
+        <GenericStep
+          title="Welcome to Wavlake!"
+          description={
+            isArtist
+              ? "You're all set up as an artist! Next we'll walk you through creating your artist page."
+              : "You're all set up! Next, you can explore artist pages and discover new music."
+          }
+        >
+          <Button
+            className="w-full rounded-full py-6"
+            onClick={() => navigate(isArtist ? "/dashboard" : "/groups")}
+          >
+            {isArtist ? "Create your artist page" : "Explore artist pages"}
+          </Button>
         </GenericStep>
       );
     default:

@@ -22,6 +22,7 @@ interface FirebaseAuthFormProps {
   title?: string;
   /** Custom description */
   description?: string;
+  onComplete?: () => void;
 }
 
 interface FormState {
@@ -44,6 +45,7 @@ export function FirebaseAuthForm({
   initialMode = "signin",
   title,
   description,
+  onComplete,
 }: FirebaseAuthFormProps) {
   const [formState, setFormState] = useState<FormState>({
     email: "",
@@ -135,6 +137,7 @@ export function FirebaseAuthForm({
     //   formState.password,
     //   formState.mode === "signup"
     // );
+    if (onComplete) onComplete();
   };
 
   // Toggle mode
