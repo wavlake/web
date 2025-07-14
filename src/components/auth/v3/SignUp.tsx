@@ -11,6 +11,8 @@ import { EditProfileForm } from "@/components/EditProfileForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
 import { GenericStep } from "./GenericStep";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useV3CreateAccount } from "./useV3CreateAccount";
 
 type STATES =
   | "sign-up"
@@ -20,6 +22,8 @@ type STATES =
   | "firebase"
   | "welcome";
 export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
+  const { createAccount, isCreating } = useV3CreateAccount();
+  const { user, metadata } = useCurrentUser();
   const navigate = useNavigate();
   const [STATE, SET_STATE] = useState<STATES>("sign-up");
   const [isSoloArtist, setIsSoloArtist] = useState(true);
@@ -42,6 +46,12 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
         : "Create Band/Group Profile";
     }
     return "Create User Profile";
+  };
+
+  const handleProfileCreation = async () => {
+    if (isCreating) return;
+
+    await createAccount();
   };
 
   switch (STATE) {
@@ -82,7 +92,16 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
             </div>
             <Button
               className="w-full rounded-full py-6"
-              onClick={() => SET_STATE(isArtist ? "artist-type" : "profile")}
+              onClick={async () => {
+                if (isArtist) {
+                  // choose artist type
+                  SET_STATE("artist-type");
+                } else {
+                  // if no user create user profile for listener
+                  !user && (await handleProfileCreation());
+                  SET_STATE("profile");
+                }
+              }}
             >
               Continue
             </Button>
@@ -115,7 +134,11 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
           </div>
           <Button
             className="w-full rounded-full py-6"
-            onClick={() => SET_STATE("profile")}
+            onClick={async () => {
+              // if no user create user profile for artist
+              !user && (await handleProfileCreation());
+              SET_STATE("profile");
+            }}
           >
             Continue
           </Button>
@@ -129,7 +152,15 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
           title={getProfileTitle()}
           description={getProfileStepDescription()}
         >
-          <EditProfileForm onComplete={() => SET_STATE("firebase")} />
+          {metadata ? (
+            <EditProfileForm
+              // namePlaceholder={getNamePlaceholder()}
+              onComplete={() => SET_STATE(isArtist ? "firebase" : "welcome")}
+              showSkipLink={isArtist ? false : true}
+            />
+          ) : (
+            <div>Loading...</div>
+          )}
         </GenericStep>
       );
 

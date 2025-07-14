@@ -26,6 +26,7 @@ import { useLoginActions } from "@/hooks/useLoginActions";
 interface EditProfileFormProps {
   showSkipLink?: boolean;
   initialName?: string | null;
+  onComplete?: () => void; // Callback when profile update is complete
 }
 
 /**
@@ -41,6 +42,7 @@ interface EditProfileFormProps {
 export const EditProfileForm: FC<EditProfileFormProps> = ({
   showSkipLink = false,
   initialName = null,
+  onComplete,
 }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -191,9 +193,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
       );
 
       // If this was part of onboarding, navigate to groups page
-      if (showSkipLink) {
-        navigate("/groups");
-      }
+      onComplete?.();
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
@@ -292,38 +292,14 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
             </Button>
 
             {showSkipLink && (
-              <div className="flex flex-col items-center gap-3 mt-4">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="text-muted-foreground"
-                  onClick={() => navigate("/groups")}
-                >
-                  Skip for now
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-muted" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      or
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={handleBackToLogin}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to login
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="link"
+                className="text-muted-foreground"
+                onClick={() => navigate("/groups")}
+              >
+                Skip for now
+              </Button>
             )}
           </div>
         </form>
