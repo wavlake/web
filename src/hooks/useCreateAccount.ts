@@ -14,7 +14,11 @@ interface CreateAccountOptions {
   /** Whether to create a Cashu wallet for the new account */
   createWallet?: boolean;
   /** Callback to call when account creation is complete */
-  onComplete?: (result: { login: NLoginType; pubkey: string; name?: string }) => void;
+  onComplete?: (result: {
+    login: NLoginType;
+    pubkey: string;
+    name?: string;
+  }) => void;
   /** Callback to call when account creation fails */
   onError?: (error: Error) => void;
 }
@@ -32,9 +36,11 @@ export function useCreateAccount() {
   const [isCreating, setIsCreating] = useState(false);
   const { addLogin } = useNostrLogin();
   const { mutateAsync: publishEvent } = useNostrPublish();
-  const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
+  // const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
 
-  const createAccount = async (options: CreateAccountOptions = {}): Promise<CreateAccountResult> => {
+  const createAccount = async (
+    options: CreateAccountOptions = {}
+  ): Promise<CreateAccountResult> => {
     const {
       generateName = true,
       customName,
@@ -67,7 +73,8 @@ export function useCreateAccount() {
         try {
           // Create wallet if requested
           if (createWallet) {
-            await createCashuWallet();
+            console.log("TODO - CREATE CASHU WALLET");
+            // await createCashuWallet();
           }
 
           // Publish metadata if name is provided
@@ -90,8 +97,9 @@ export function useCreateAccount() {
 
       return result;
     } catch (error) {
-      const accountError = error instanceof Error ? error : new Error("Failed to create account");
-      
+      const accountError =
+        error instanceof Error ? error : new Error("Failed to create account");
+
       // Show toast notification
       toast({
         title: "Error",
