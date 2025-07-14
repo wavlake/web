@@ -13,6 +13,8 @@ import { GenericStep } from "./GenericStep";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useV3CreateAccount } from "./useV3CreateAccount";
+import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
+import { User } from "firebase/auth";
 
 type STATES =
   | "sign-up"
@@ -22,8 +24,10 @@ type STATES =
   | "firebase"
   | "welcome";
 export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
+  const { autoLink } = useAutoLinkPubkey();
   const { createAccount, isCreating } = useV3CreateAccount();
   const { user, metadata } = useCurrentUser();
+
   const navigate = useNavigate();
   const [STATE, SET_STATE] = useState<STATES>("sign-up");
   const [isSoloArtist, setIsSoloArtist] = useState(true);
@@ -171,11 +175,29 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
           title="Add a Backup Email"
           description="This email will be used for account recovery and notifications."
         >
-          <FirebaseAuthForm onComplete={() => SET_STATE("welcome")} />
+          <FirebaseAuthForm
+            mode="signup"
+            onComplete={async (firebaseUser: User) => {
+              const linkResult = await autoLink(
+                firebaseUser,
+                user?.pubkey,
+                user?.signer
+              );
+              if (linkResult) {
+                console.log(
+                  "Successfully linked Firebase user to Nostr account"
+                );
+              } else {
+                console.error("Failed to link Firebase user to Nostr account");
+              }
+              SET_STATE("welcome");
+            }}
+          />
         </GenericStep>
       );
 
     case "welcome":
+      // TODO - save a NIP-78 settings event for the user, with their artist vs listener preference
       return (
         <GenericStep
           title="Welcome to Wavlake!"

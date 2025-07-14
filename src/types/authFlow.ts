@@ -69,6 +69,12 @@ export type AuthFlowState =
       selectedPubkey: string;
     }
   | {
+      type: "create-account";
+      source: "onboarding" | "firebase-generation";
+      firebaseUser?: FirebaseUser;
+      returnPath?: string;
+    }
+  | {
       type: "completed";
       user: AuthenticatedUser;
     }

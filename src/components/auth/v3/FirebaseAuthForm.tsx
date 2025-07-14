@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import { ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import {
   isValidEmail,
   isValidPassword,
   getPasswordStrength,
 } from "@/hooks/auth/useFirebaseAuthentication";
+import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
+import { User } from "firebase/auth";
 
 interface FirebaseAuthFormProps {
   /** Whether authentication is in progress */
@@ -17,19 +19,18 @@ interface FirebaseAuthFormProps {
   /** Error message to display */
   error?: string;
   /** Initial mode (signin or signup) */
-  initialMode?: "signin" | "signup";
+  mode: "signin" | "signup";
   /** Custom title */
   title?: string;
   /** Custom description */
   description?: string;
-  onComplete?: () => void;
+  onComplete?: (user: User) => void | Promise<void>;
 }
 
 interface FormState {
   email: string;
   password: string;
   confirmPassword: string;
-  mode: "signin" | "signup";
   showPassword: boolean;
   showConfirmPassword: boolean;
   fieldErrors: {
@@ -42,16 +43,25 @@ interface FormState {
 export function FirebaseAuthForm({
   isLoading = false,
   error,
-  initialMode = "signin",
+  mode = "signin",
   title,
   description,
   onComplete,
 }: FirebaseAuthFormProps) {
+  const {
+    isLoading: isFirebaseAuthLoading,
+    error: firebaseError,
+    setError: setFirebaseError,
+    handleFirebaseEmailLogin,
+    handleFirebaseEmailSignup,
+  } = useFirebaseLegacyAuth();
+
+  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+
   const [formState, setFormState] = useState<FormState>({
     email: "",
     password: "",
     confirmPassword: "",
-    mode: initialMode,
     showPassword: false,
     showConfirmPassword: false,
     fieldErrors: {},
@@ -76,14 +86,14 @@ export function FirebaseAuthForm({
         }
         break;
       case "password":
-        if (formState.mode === "signup" && !isValidPassword(value, true)) {
+        if (mode === "signup" && !isValidPassword(value, true)) {
           error = "Password must be at least 6 characters long";
-        } else if (formState.mode === "signin" && !value.trim()) {
+        } else if (mode === "signin" && !value.trim()) {
           error = "Password is required";
         }
         break;
       case "confirmPassword":
-        if (formState.mode === "signup" && value !== formState.password) {
+        if (mode === "signup" && value !== formState.password) {
           error = "Passwords do not match";
         }
         break;
@@ -105,7 +115,7 @@ export function FirebaseAuthForm({
     validateField("password", value);
 
     // Revalidate confirm password if it was entered
-    if (formState.mode === "signup" && formState.confirmPassword) {
+    if (mode === "signup" && formState.confirmPassword) {
       validateField("confirmPassword", formState.confirmPassword);
     }
   };
@@ -122,7 +132,7 @@ export function FirebaseAuthForm({
     // Validate all fields
     validateField("email", formState.email);
     validateField("password", formState.password);
-    if (formState.mode === "signup") {
+    if (mode === "signup") {
       validateField("confirmPassword", formState.confirmPassword);
     }
 
@@ -132,28 +142,29 @@ export function FirebaseAuthForm({
     );
     if (hasErrors) return;
 
-    // await onAuthenticate(
-    //   formState.email,
-    //   formState.password,
-    //   formState.mode === "signup"
-    // );
-    if (onComplete) onComplete();
-  };
+    try {
+      const newUser =
+        mode === "signin"
+          ? await handleFirebaseEmailLogin(formState.email, formState.password)
+          : await handleFirebaseEmailSignup(formState.email, formState.password);
 
-  // Toggle mode
-  const toggleMode = () => {
-    updateFormState({
-      mode: formState.mode === "signin" ? "signup" : "signin",
-      fieldErrors: {}, // Clear errors when switching modes
-    });
+      // Handle onComplete callback with loading state
+      if (onComplete) {
+        setIsCompletionLoading(true);
+        await onComplete(newUser);
+        setIsCompletionLoading(false);
+      }
+    } catch (error) {
+      setIsCompletionLoading(false);
+      throw error; // Re-throw to let Firebase hook handle the error
+    }
   };
 
   // Check if form is valid
   const isFormValid =
     isValidEmail(formState.email) &&
-    isValidPassword(formState.password, formState.mode === "signup") &&
-    (formState.mode === "signin" ||
-      formState.password === formState.confirmPassword);
+    isValidPassword(formState.password, mode === "signup") &&
+    (mode === "signin" || formState.password === formState.confirmPassword);
 
   // Get password strength for display
   const passwordStrength = getPasswordStrength(formState.password);
@@ -176,7 +187,7 @@ export function FirebaseAuthForm({
     },
   };
 
-  const content = modeContent[formState.mode];
+  const content = modeContent[mode];
 
   return (
     <div>
@@ -198,7 +209,7 @@ export function FirebaseAuthForm({
             value={formState.email}
             onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="your@email.com"
-            disabled={isLoading}
+            disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
             autoComplete="email"
             autoCapitalize="none"
             autoCorrect="off"
@@ -223,11 +234,9 @@ export function FirebaseAuthForm({
               value={formState.password}
               onChange={(e) => handlePasswordChange(e.target.value)}
               placeholder="Enter your password"
-              disabled={isLoading}
+              disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
               autoComplete={
-                formState.mode === "signup"
-                  ? "new-password"
-                  : "current-password"
+                mode === "signup" ? "new-password" : "current-password"
               }
               className={
                 formState.fieldErrors.password
@@ -243,7 +252,7 @@ export function FirebaseAuthForm({
                 })
               }
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              disabled={isLoading}
+              disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
             >
               {formState.showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -259,7 +268,7 @@ export function FirebaseAuthForm({
           )}
 
           {/* Password Strength Indicator */}
-          {formState.mode === "signup" && formState.password && (
+          {mode === "signup" && formState.password && (
             <div className="flex items-center gap-2 text-xs">
               <span>Strength:</span>
               <span
@@ -279,7 +288,7 @@ export function FirebaseAuthForm({
         </div>
 
         {/* Confirm Password Field (Sign Up Only) */}
-        {formState.mode === "signup" && (
+        {mode === "signup" && (
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <div className="relative">
@@ -290,7 +299,7 @@ export function FirebaseAuthForm({
                 value={formState.confirmPassword}
                 onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 placeholder="Confirm your password"
-                disabled={isLoading}
+                disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
                 autoComplete="new-password"
                 className={
                   formState.fieldErrors.confirmPassword
@@ -306,7 +315,7 @@ export function FirebaseAuthForm({
                   })
                 }
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={isLoading}
+                disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
               >
                 {formState.showConfirmPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -327,26 +336,18 @@ export function FirebaseAuthForm({
         <Button
           type="submit"
           className="w-full"
-          disabled={isLoading || !isFormValid}
+          disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading || !isFormValid}
         >
-          {isLoading ? "Please wait..." : content.submitText}
+          {(isLoading || isFirebaseAuthLoading || isCompletionLoading) && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
+          {isLoading || isFirebaseAuthLoading
+            ? "Authenticating..."
+            : isCompletionLoading
+            ? "Completing setup..."
+            : content.submitText}
         </Button>
       </form>
-
-      {/* Mode Toggle */}
-      {/* <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {content.switchText}
-                </p>
-                <Button
-                  variant="link"
-                  onClick={toggleMode}
-                  disabled={isLoading}
-                  className="p-0 h-auto font-normal"
-                >
-                  {content.switchAction}
-                </Button>
-              </div> */}
     </div>
   );
 }

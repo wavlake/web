@@ -4,6 +4,8 @@ import { SignUp } from "./SignUp";
 import { Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GenericStep } from "./GenericStep";
+import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
+import { useNavigate } from "react-router-dom";
 
 type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
 
@@ -50,6 +52,9 @@ const AUTH_METHODS: AuthMethodOption[] = [
   },
 ];
 export function AuthFlow() {
+  const navigate = useNavigate();
+
+  const { currentUser, removeLogin } = useLoggedInAccounts();
   const [STATE, SET_STATE] = useState<AUTH_STEP>("method-selection");
 
   const handleBack = () => {
@@ -59,6 +64,23 @@ export function AuthFlow() {
   // Render based on current state
   switch (STATE) {
     case "method-selection":
+      if (currentUser) {
+        return (
+          <GenericStep
+            title="Welcome Back"
+            description="You're already signed in. Choose how you want to continue."
+            header={StartHeader()}
+          >
+            <div className="flex flex-col gap-4">
+              <div>Signed in as: {currentUser.metadata.name}</div>
+              <Button onClick={() => navigate("/groups")}>Back to Home</Button>
+              <Button onClick={() => removeLogin(currentUser.id)}>
+                Logout
+              </Button>
+            </div>
+          </GenericStep>
+        );
+      }
       return (
         <GenericStep
           title="Welcome to Wavlake"

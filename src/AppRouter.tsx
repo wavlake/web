@@ -57,7 +57,6 @@ export function AppRouter() {
         <Routes>
           {/* These routes do not have the header - see GlobalLayout.tsx for more details */}
           <Route path="/" element={<Index />} />
-          <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/login" element={<Login />} />
           <Route path="/welcome" element={<WelcomePage />} />
           {/* These routes have the header and footer */}
