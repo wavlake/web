@@ -5,6 +5,7 @@ import type {
   FirebaseUser,
   LinkedPubkey as AuthLinkedPubkey,
 } from "@/types/auth";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 
 // Cache duration constants
 const CACHE_STALE_TIME = 10 * 60 * 1000; // 10 minutes
@@ -244,17 +245,20 @@ export function useLinkedPubkeys(
 ): UseLinkedPubkeysResult {
   const config = { ...DEFAULT_OPTIONS, ...options };
   const queryClient = useQueryClient();
+  const { getAuthToken, user: currentUser } = useFirebaseAuth();
 
   // Core query for fetching linked pubkeys
   const query = useQuery({
-    queryKey: ["linked-pubkeys", firebaseUser?.uid],
+    queryKey: ["linked-pubkeys", firebaseUser?.uid || currentUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
-      if (!firebaseUser) return [];
+      // Use provided firebaseUser or fall back to current auth user
+      const userToUse = firebaseUser || currentUser;
+      if (!userToUse) return [];
 
       try {
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // This ensures the token is valid at request time, not at query execution time
-        const authToken = await firebaseUser.getIdToken();
+        const authToken = await getAuthToken();
 
         const response = await fetch(
           `${API_BASE_URL}/auth/get-linked-pubkeys`,
@@ -273,7 +277,7 @@ export function useLinkedPubkeys(
           const errorMessage =
             ERROR_STATUS_MESSAGES[status] ||
             `Request failed with status ${status}`;
-          throw new Error(`${errorMessage} (User: ${firebaseUser.uid})`);
+          throw new Error(`${errorMessage} (User: ${userToUse.uid})`);
         }
 
         const data = await response.json();
@@ -337,7 +341,7 @@ export function useLinkedPubkeys(
             {
               invalidCount: invalidPubkeys.length,
               validCount: linkedPubkeys.length,
-              userId: firebaseUser.uid,
+              userId: userToUse.uid,
             }
           );
 
@@ -354,9 +358,9 @@ export function useLinkedPubkeys(
         const errorType = categorizeError(error);
 
         console.error("Failed to fetch linked pubkeys", {
-          userId: firebaseUser?.uid,
+          userId: userToUse?.uid,
           errorType,
-          hasAuth: !!firebaseUser,
+          hasAuth: !!userToUse,
           errorMessage:
             error instanceof Error ? error.message : "Unknown error",
           timestamp: new Date().toISOString(),
@@ -365,7 +369,7 @@ export function useLinkedPubkeys(
         throw error; // Re-throw to let React Query handle retry logic
       }
     },
-    enabled: !!firebaseUser,
+    enabled: !!(firebaseUser || currentUser),
     staleTime: config.staleTime,
     gcTime: config.cacheTime,
     refetchOnWindowFocus: config.enableBackgroundRefetch,
@@ -401,22 +405,24 @@ export function useLinkedPubkeys(
 
   // Cache invalidation function
   const invalidate = useCallback(() => {
+    const userToUse = firebaseUser || currentUser;
     queryClient.invalidateQueries({
-      queryKey: ["linked-pubkeys", firebaseUser?.uid],
+      queryKey: ["linked-pubkeys", userToUse?.uid],
     });
-  }, [queryClient, firebaseUser?.uid]);
+  }, [queryClient, firebaseUser?.uid, currentUser?.uid]);
 
   // Auto-invalidate when user changes to ensure fresh data
   useEffect(() => {
-    if (firebaseUser?.uid) {
+    const userToUse = firebaseUser || currentUser;
+    if (userToUse?.uid) {
       // Invalidate stale cache when user changes
       const lastUserId = localStorage.getItem("last-firebase-user-id");
-      if (lastUserId && lastUserId !== firebaseUser.uid) {
+      if (lastUserId && lastUserId !== userToUse.uid) {
         invalidate();
       }
-      localStorage.setItem("last-firebase-user-id", firebaseUser.uid);
+      localStorage.setItem("last-firebase-user-id", userToUse.uid);
     }
-  }, [firebaseUser?.uid, invalidate]);
+  }, [firebaseUser?.uid, currentUser?.uid, invalidate]);
 
   // Find primary pubkey
   const primaryPubkey =
@@ -449,15 +455,18 @@ export function useLinkedPubkeysByEmail(
   email: string,
   firebaseUser?: FirebaseUser
 ) {
+  const { getAuthToken, user: currentUser } = useFirebaseAuth();
+  
   return useQuery({
     queryKey: ["linked-pubkeys-email", email, firebaseUser?.uid],
     queryFn: async (): Promise<LinkedPubkey[]> => {
-      if (!email || !firebaseUser) return [];
+      const userToUse = firebaseUser || currentUser;
+      if (!email || !userToUse) return [];
 
       try {
         // Get fresh Firebase auth token to prevent race conditions with token expiry
         // Force refresh ensures the token is valid for this specific request
-        const firebaseToken = await firebaseUser.getIdToken();
+        const firebaseToken = await getAuthToken();
 
         const response = await fetch(
           `${API_BASE_URL}/auth/get-linked-pubkeys`,
@@ -478,7 +487,7 @@ export function useLinkedPubkeysByEmail(
             ERROR_STATUS_MESSAGES[status] ||
             `Request failed with status ${status}`;
           throw new Error(
-            `Email lookup failed: ${errorMessage} - ${errorText} (User: ${firebaseUser.uid})`
+            `Email lookup failed: ${errorMessage} - ${errorText} (User: ${userToUse.uid})`
           );
         }
 
@@ -532,7 +541,7 @@ export function useLinkedPubkeysByEmail(
         console.error("Failed to fetch linked pubkeys for email lookup", {
           emailDomain,
           emailProvided: !!email,
-          userId: firebaseUser?.uid,
+          userId: userToUse?.uid,
           errorType:
             error instanceof Error ? error.constructor.name : "Unknown",
           errorMessage: error instanceof Error ? error.message : String(error),
@@ -543,7 +552,7 @@ export function useLinkedPubkeysByEmail(
         throw error;
       }
     },
-    enabled: !!email && !!firebaseUser,
+    enabled: !!email && !!(firebaseUser || currentUser),
     staleTime: CACHE_STALE_TIME,
     gcTime: CACHE_GC_TIME,
     retry: (failureCount, error) => {

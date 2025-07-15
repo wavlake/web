@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Eagerly load the main pages
 import Index from "./pages/Index";
-import CreateAccount from "./pages/CreateAccount";
 
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";

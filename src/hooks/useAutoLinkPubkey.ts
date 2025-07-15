@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
 import { toast } from "sonner";
 import { validatePubkeyOrThrow } from "@/lib/pubkeyUtils";
@@ -55,8 +55,8 @@ const DEFAULT_OPTIONS: Required<AutoLinkOptions> = {
 export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
   const config = useMemo(() => ({ ...DEFAULT_OPTIONS, ...options }), [options]);
   
-  const { linkPubkey } = useFirebaseLegacyAuth();
   const { mutateAsync: linkAccount } = useLinkFirebaseAccount();
+  const { user: currentUser } = useFirebaseAuth();
   const queryClient = useQueryClient();
   
   const [hookState, setHookState] = useState<AutoLinkHookState>({
@@ -68,18 +68,13 @@ export function useAutoLinkPubkey(options: AutoLinkOptions = {}) {
    * Determines the appropriate linking strategy based on available parameters
    */
   const determineLinkingStrategy = useCallback((pubkey?: string, signer?: NostrSigner) => {
-    if (signer && pubkey) {
-      return {
-        execute: () => linkPubkey(pubkey, signer),
-        successMessage: "Account linked successfully using Nostr signer"
-      };
-    } else {
-      return {
-        execute: () => linkAccount(),
-        successMessage: "Account linked successfully"
-      };
-    }
-  }, [linkPubkey, linkAccount]);
+    // For now, we'll use the account linking hook which links the current user
+    // This could be enhanced in the future to support linking arbitrary pubkeys
+    return {
+      execute: () => linkAccount(),
+      successMessage: "Account linked successfully"
+    };
+  }, [linkAccount]);
 
   /**
    * Performs the actual linking operation

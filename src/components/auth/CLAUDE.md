@@ -1,517 +1,556 @@
-# Wavlake Authentication System
+# Wavlake Authentication System Analysis
 
-## Overview
+## Executive Summary
 
-Wavlake implements a sophisticated authentication system built on the **AuthFlow** state machine pattern that seamlessly integrates **Nostr** identity with **Firebase** business operations. The system provides three distinct user entry points while maintaining a unified, predictable experience.
+Wavlake implements a sophisticated **hybrid authentication architecture** that seamlessly combines **Nostr-first identity** with **Firebase-powered business operations**. The system uses a multi-provider architecture with the `FirebaseAuthProvider` as the foundational authentication layer, integrated into a component-based authentication flow that prioritizes user experience while maintaining security.
 
-## Architecture Overview
+## System Architecture Overview
 
-### Core Pattern: AuthFlow State Machine
-
-The authentication system is built around a state machine that provides predictable transitions and eliminates impossible states:
+### Provider Hierarchy
 
 ```
-📍 method-selection → 🔑 nostr-auth → ✅ completed
-📍 method-selection → 📧 firebase-auth → 🔍 account-discovery → 🔗 account-linking → ✅ completed
-📍 method-selection → 🆕 create-account → [navigate to /create-account]
+App.tsx
+├── FirebaseAuthProvider (Global auth state & token management)
+│   ├── NostrLoginProvider (Nostr login persistence)
+│   │   ├── NostrProvider (Protocol integration)
+│   │   │   ├── QueryClientProvider (Data fetching layer)
+│   │   │   └── Application Routes
 ```
 
-### Main Entry Point: AuthFlow
+**Key Integration Points:**
+- **Root Level:** `FirebaseAuthProvider` wraps the entire application in `App.tsx:38`
+- **Authentication Entry:** Login page at `/login` route (`AppRouter.tsx:59`)
+- **State Bridge:** `useCurrentUser()` bridges Nostr and Firebase systems
+- **Token Management:** Centralized through FirebaseAuthProvider for HTTP requests
 
-**File:** `src/components/auth/AuthFlow.tsx`  
-**Purpose:** Central orchestrator that replaced the complex 312-line legacy Index.tsx with a clean, state machine-driven flow.
+### Authentication Philosophy
+
+**Nostr-First Approach:**
+- Primary user identity through Nostr pubkeys
+- Self-sovereign identity without central authority dependency
+- Support for NIP-07 extensions, nsec keys, and NIP-46 bunkers
+
+**Firebase Integration:**
+- Business operations (payments, analytics, notifications)
+- Account linking and recovery capabilities
+- Legacy user migration and email-based workflows
+
+## Core Components Deep Dive
+
+### 1. Login.tsx - Authentication Entry Point (`/src/pages/Login.tsx`)
+
+**Architecture Pattern:** Simple state machine with method selection
+```typescript
+type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
+```
 
 **Key Features:**
-- State machine-driven navigation with predictable transitions
-- Automatic authenticated user redirection to `/groups`
-- Comprehensive error handling with graceful fallbacks
-- Profile synchronization on successful authentication
-- Context-aware component rendering
+- **Authenticated User Detection:** Automatic redirect for logged-in users via `useLoggedInAccounts`
+- **Method Selection:** Clean UI for choosing between signup and signin flows  
+- **Progressive Disclosure:** Shows method selection first, then specialized forms
+- **Responsive Design:** Mobile-first with tablet/desktop adaptations
 
-## Core Components
+**Integration Points:**
+- `useLoggedInAccounts()` for current authentication state
+- `SignIn` and `SignUp` components for specialized flows
+- React Router for navigation management
 
-### 1. **AuthFlow.tsx** - Main Authentication Orchestrator
-**Purpose:** Central coordinator managing all authentication flows using state machine pattern
+### 2. FirebaseAuthProvider.tsx - Core Authentication Infrastructure
 
-**State Management:**
-- `state`: Current state object (method-selection, nostr-auth, firebase-auth, account-discovery, account-linking, completed, error)
-- `context`: Context data (firebaseUser, selectedPubkey, error, isNewUser)
-- `send`: Function to dispatch state machine events
+**Architecture Pattern:** React Context with comprehensive auth operations
 
-**Key Features:**
-- Predictable state transitions with TypeScript safety
-- Automatic profile synchronization on successful login
-- Context-aware navigation with proper cleanup
-- Integration with all authentication hooks
+**Comprehensive Feature Set:**
+```typescript
+interface AuthContextType {
+  // State Management
+  user: User | null;
+  userMetadata: FirebaseUserMetadata | null;
+  loading: boolean;
+  error: AuthError | null;
+  
+  // Token Management
+  getAuthToken: () => Promise<string | null>;
+  refreshToken: () => Promise<string | null>;
+  
+  // Authentication Methods
+  loginWithEmailAndPassword: (credentials: LoginCredentials) => Promise<UserCredential>;
+  registerWithEmailAndPassword: (credentials: RegisterCredentials) => Promise<UserCredential>;
+  loginWithGoogle: () => Promise<UserCredential>;
+  loginWithTwitter: () => Promise<UserCredential>;
+  loginWithApple: () => Promise<UserCredential>;
+  
+  // Passwordless Authentication
+  sendPasswordlessSignInLink: (options: PasswordlessLoginOptions) => Promise<void>;
+  completePasswordlessSignIn: (email: string, emailLink?: string) => Promise<UserCredential>;
+  
+  // Profile & Password Management
+  updateUserProfile: (updates: {displayName?: string; photoURL?: string;}) => Promise<void>;
+  updateUserPassword: (newPassword: string, currentPassword?: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  
+  // Utilities
+  clearError: () => void;
+  isValidEmail: (email: string) => boolean;
+  isValidPassword: (password: string, strict?: boolean) => boolean;
+  getPasswordStrength: (password: string) => 'weak' | 'medium' | 'strong';
+}
+```
 
-### 2. **AuthMethodSelector.tsx** - Method Selection Interface
-**Purpose:** Clean interface for selecting authentication method
+**Security Implementation:**
+- **Input Validation:** Multi-layer validation with regex-based email validation
+- **Password Strength:** Real-time strength analysis with complexity requirements
+- **Error Sanitization:** User-friendly error messages without information leakage
+- **Token Security:** Secure token refresh logic with automatic expiry handling
 
-**Methods Supported:**
-- **Direct Nostr Authentication:** "I have a Nostr account"
-- **Firebase Authentication:** "I have a Wavlake account" 
-- **Account Creation:** "Get Started" (navigates to /create-account)
+**Error Handling Strategy:**
+- **Categorized Errors:** Network, authentication, authorization, server, validation types
+- **User-Friendly Messages:** Custom error mapping for common Firebase error codes
+- **Graceful Degradation:** Fallback options when authentication methods fail
 
-**Features:**
-- Responsive design with consistent styling
-- Loading states during method selection
-- Error display with retry capabilities
-- Accessibility-compliant button interactions
+### 3. V3 Authentication Components
 
-### 3. **NostrAuthForm.tsx** - Nostr Authentication
-**Purpose:** Comprehensive Nostr authentication supporting all standard methods
+#### SignIn.tsx - Multi-Step Signin Flow
+**Architecture Pattern:** Component-level state machine
+```typescript
+type SIGN_IN_STEP = "nostr" | "legacy" | "nostr-legacy" | "welcome";
+```
+
+**Flow Design:**
+1. **Primary Nostr Authentication:** Extension/nsec/bunker login via `NostrAuthForm`
+2. **Legacy Migration Option:** Firebase signin for existing users
+3. **Account Linking:** Automatic linking of Nostr + Firebase accounts
+4. **Welcome/Settings:** Post-authentication setup and preferences
+
+**Key Integration:**
+- **Profile Linking:** `useLinkedPubkeys()` for account discovery
+- **Legacy Migration:** `useLegacyArtists()` for existing artist account detection
+- **Settings Sync:** `useAppSettings()` for user preference management
+
+#### SignUp.tsx - Progressive Onboarding Flow
+**Architecture Pattern:** Multi-step wizard with user type branching
+```typescript
+type STATES = "sign-up" | "artist" | "profile" | "artist-type" | "firebase" | "welcome";
+```
+
+**Progressive Flow:**
+1. **User Type Selection:** Artist vs Listener with tailored experience paths
+2. **Artist Specialization:** Solo artist vs Band/Group differentiation  
+3. **Profile Creation:** `EditProfileForm` integration with Nostr profile events
+4. **Firebase Linking:** Optional email backup for account recovery
+5. **Account Linking:** `useAutoLinkPubkey()` for seamless integration
+
+**Advanced Features:**
+- **Account Creation:** `useV3CreateAccount()` for Nostr account generation
+- **Auto-linking:** Automatic Firebase-Nostr account association
+- **Progressive Enhancement:** Optional steps based on user type
+- **Context-Aware Navigation:** Different end states for artists vs listeners
+
+### 4. Specialized Authentication Forms
+
+#### NostrAuthForm.tsx - Comprehensive Nostr Authentication
+**Architecture Pattern:** Tabbed interface with method-specific validation
 
 **Authentication Methods:**
-- **Extension (NIP-07):** Browser extension one-click login
-- **Nsec:** Private key input with secure file upload support
-- **Bunker (NIP-46):** Remote signers and hardware wallets
+- **Extension (NIP-07):** Browser extension integration with availability detection
+- **Nsec:** Private key input with file upload support and validation
+- **Bunker (NIP-46):** Remote signer URIs with format validation
 
 **Advanced Features:**
-- **Real-time Pubkey Validation:** Immediate feedback for expected pubkey mismatches
-- **Auto-linking Integration:** Seamless Firebase account association
-- **Comprehensive Error Handling:** User-friendly error messages with retry logic
-- **File Upload Support:** Secure nsec file handling with validation
+- **File Upload Support:** Secure nsec file reading with error handling
+- **Real-time Validation:** Immediate feedback for invalid inputs
+- **Method Detection:** Automatic default tab based on browser extension availability
+- **Profile Sync:** Automatic profile synchronization via `useProfileSync()`
 
-**Security Features:**
-- Input validation at multiple layers
-- No private key persistence or logging
-- Sanitized error messages to prevent information leakage
-- HTTPS-only API communication
+**Security Considerations:**
+- **No Key Persistence:** Private keys never stored in browser storage
+- **Input Sanitization:** Validation of all user inputs before processing
+- **Error Isolation:** Method-specific error handling without cross-contamination
 
-### 4. **FirebaseAuthForm.tsx** - Email/Password Authentication
-**Purpose:** Modern email/password authentication with dual-mode interface
+#### FirebaseAuthForm.tsx - Dual-Mode Email Authentication
+**Architecture Pattern:** Single component with signin/signup modes
 
-**Features:**
-- **Dual-mode Interface:** Seamless switching between sign-in and sign-up
-- **Real-time Validation:** Email format and password strength validation
-- **Loading States:** Proper loading indicators during authentication
-- **Error Handling:** Clear error messages with retry options
-- **Back Navigation:** Optional back button for multi-step flows
+**Advanced Form Features:**
+- **Real-time Validation:** Immediate email/password validation feedback
+- **Password Strength Indicator:** Visual strength analysis for signup flows
+- **Toggle Visibility:** Secure password input with reveal/hide functionality
+- **Field-Specific Errors:** Granular error display per form field
 
-**Integration:**
-- Uses `useFirebaseAuthentication()` hook for authentication logic
-- Automatic navigation to account discovery on success
-- Proper cleanup on component unmount
+**Integration Depth:**
+- **Provider Integration:** Direct usage of `useFirebaseAuth()` hook methods
+- **Loading Coordination:** Multiple loading states (auth, completion, validation)
+- **Error Synchronization:** Firebase errors + local form validation errors
+- **Auto-completion:** Proper HTML autocomplete attributes for security
 
-### 5. **AccountDiscoveryScreen.tsx** - Post-Firebase Account Discovery
-**Purpose:** Discovers and presents linked Nostr accounts after Firebase authentication
-
-**Advanced Features:**
-- **Performance Optimization:** Skips API calls for new users via `isNewUser` flag
-- **Real-time Profile Data:** Dynamic profile loading with `useAuthor()` hook
-- **Legacy Profile Integration:** Shows existing Wavlake profile data for migration
-- **Multi-scenario Handling:** Graceful handling of linked accounts, no accounts, and new users
-
-**User Flow Options:**
-- **Select Existing Account:** Choose from linked Nostr accounts
-- **Use Different Account:** Open Nostr auth with any account
-- **Generate New Account:** Create new Nostr account with legacy profile data
-
-**State Integration:**
-- `useAccountDiscovery()` hook for linked accounts and legacy profile
-- Real-time loading states and error handling
-- Manual refresh capability for troubleshooting
-
-### 6. **LoginDialog.tsx** - Simple Direct Nostr Authentication
-**Purpose:** Streamlined Nostr login for direct authentication flows
-
-**Features:**
-- **Clean Tabbed Interface:** Extension/Nsec/Bunker tabs with consistent UX
-- **Automatic Profile Sync:** Profile synchronization on successful login
-- **File Upload Support:** Secure nsec file handling
-- **Expected Pubkey Support:** Validation for targeted authentication scenarios
-
-**Integration:**
-- Modal dialog with proper focus management
-- Integration with `useNostrAuthentication()` hook
-- Automatic cleanup on close/success
-
-## Hook Architecture
+## Authentication Hook Architecture
 
 ### State Management Hooks
 
-#### **useAuthFlow()** - Core State Machine
-**Purpose:** Central state machine managing the entire authentication flow
+#### useCurrentUser() - Unified Authentication State
+**Purpose:** Single source of truth bridging Nostr and legacy authentication
 
-**Returns:**
-- `state`: Current state object with predictable transitions
-- `context`: Context data (firebaseUser, selectedPubkey, error, isNewUser)
-- `send`: Function to dispatch state machine events
-- `can`: Function to check if event can be sent in current state
+**Implementation Analysis:**
+```typescript
+// Primary Nostr authentication through Nostrify
+const { logins } = useNostrLogin();
+const users = useMemo(() => {
+  return logins.map(login => loginToUser(login)); // Convert login to NUser
+}, [logins, loginToUser]);
 
-**Usage:**
-```tsx
-const { state, send, context } = useAuthFlow();
-
-switch (state.type) {
-  case 'method-selection':
-    return <AuthMethodSelector onSelectMethod={(method) => send({ type: `SELECT_${method.toUpperCase()}` })} />;
-  case 'nostr-auth':
-    return <NostrAuthForm onSuccess={(login) => send({ type: 'NOSTR_SUCCESS', login })} />;
-}
+// Fallback to legacy system integration
+const fallbackUser = useMemo(() => {
+  if (user || !loggedInAccount) return null;
+  return {
+    pubkey: loggedInAccount.pubkey,
+    signer: window.nostr || null,
+    method: 'extension' as const
+  } as NUser;
+}, [user, loggedInAccount]);
 ```
 
-#### **useCurrentUser()** - Authentication State
-**Purpose:** Single source of truth for authentication state
+**Bridge Architecture:**
+- **Primary System:** Nostrify-based authentication with proper typing
+- **Fallback System:** Legacy account integration for migration scenarios
+- **Profile Integration:** Automatic `useAuthor()` integration for metadata
+- **Type Safety:** Full TypeScript coverage across all authentication methods
 
-**Features:**
-- Bridges Nostrify and legacy authentication systems
-- Automatic profile metadata integration
-- Handles all login types (nsec, bunker, extension)
-- Provides loading states and error handling
+#### useLoggedInAccounts() - Multi-Account Management
+**Purpose:** Manage multiple Nostr accounts with profile metadata
 
-**Usage:**
-```tsx
-const { user, isLoading } = useCurrentUser();
-if (!user) return <LoginRequired />;
-```
+**Key Features:**
+- **Profile Fetching:** Automatic kind-0 metadata fetching for all accounts
+- **Current User Logic:** First login becomes primary user
+- **Firebase Integration:** Logout coordination between Nostr and Firebase
+- **Error Handling:** Graceful handling of invalid logins or missing metadata
 
-### Authentication Hooks
+### Specialized Authentication Hooks
 
-#### **useNostrAuthentication()** - Pure Nostr Authentication
-**Purpose:** Handles all Nostr authentication methods without side effects
+#### useLinkedPubkeys() - Enterprise-Grade Account Linking
+**Architecture:** TanStack Query with comprehensive caching and error recovery
 
-**Returns:**
-- `authenticate`: Main auth function `(method, credentials) => Promise<NLoginType>`
-- `isLoading`: Loading state indicator
-- `error`: Error message string
-- `supportedMethods`: Array of supported authentication methods
-- `clearError`: Function to clear error state
-
-**Usage:**
-```tsx
-const { authenticate, isLoading, error } = useNostrAuthentication();
-
-const handleAuth = async () => {
-  try {
-    const login = await authenticate('extension', { method: 'extension' });
-    onSuccess(login);
-  } catch (error) {
-    // Error handled by hook
+**Performance Features:**
+```typescript
+const query = useQuery({
+  queryKey: ["linked-pubkeys", firebaseUser?.uid || currentUser?.uid],
+  queryFn: async (): Promise<LinkedPubkey[]> => {
+    const authToken = await getAuthToken(); // Fresh token per request
+    const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+    // ... comprehensive validation and error handling
+  },
+  staleTime: 10 * 60 * 1000, // 10 minutes
+  gcTime: 30 * 60 * 1000,    // 30 minutes  
+  retry: (failureCount, error) => {
+    // Smart retry logic - don't retry auth errors
+    if (categorizeError(error) in ['authentication', 'authorization']) return false;
+    return failureCount < maxRetries;
   }
-};
+});
 ```
 
-#### **useFirebaseAuthentication()** - Pure Firebase Authentication
-**Purpose:** Handles email/password authentication with Firebase
-
-**Returns:**
-- `signIn`: Function `(email, password) => Promise<{user, isNewUser}>`
-- `signUp`: Function `(email, password) => Promise<{user, isNewUser}>`
-- `isLoading`: Loading state indicator
-- `error`: Error message string
-- `clearError`: Function to clear error state
-
-**Usage:**
-```tsx
-const { signIn, signUp, isLoading, error } = useFirebaseAuthentication();
-
-const handleSubmit = async (email, password, isSignUp) => {
-  try {
-    const result = isSignUp ? await signUp(email, password) : await signIn(email, password);
-    onSuccess(result.user, result.isNewUser);
-  } catch (error) {
-    // Error handled by hook
-  }
-};
-```
-
-### Account Management Hooks
-
-#### **useLinkedPubkeys()** - Account Linking Management
-**Purpose:** Fetches and manages linked pubkeys for Firebase accounts
-
-**Parameters:**
-- `firebaseUser`: Firebase user object
-- `options`: Configuration object with caching and refetch options
-
-**Returns:**
-- `data`: Array of LinkedPubkey objects
-- `isLoading`: Initial fetch loading state
-- `error`: Error if fetch failed
-- `isFetching`: Background fetch state
-- `refetch`: Manual refetch function
-- `invalidate`: Cache invalidation function
-- `primaryPubkey`: Primary pubkey if available
-- `count`: Number of linked pubkeys
-
-**Features:**
-- **Enterprise-grade Caching:** TanStack Query with optimistic updates
+**Enterprise Features:**
 - **Background Refetching:** Automatic data freshening on window focus
-- **Performance Optimization:** Configurable stale time and cache retention
-- **Error Recovery:** Exponential backoff with jitter for network failures
+- **Exponential Backoff:** Intelligent retry with jitter for network failures
+- **Error Categorization:** Different handling for auth vs network vs server errors
+- **Cache Management:** User-specific cache invalidation on account changes
+- **Performance Optimization:** Configurable stale time and background updates
 
-**Usage:**
-```tsx
-const { data: linkedPubkeys, isLoading, error, refetch } = useLinkedPubkeys(firebaseUser);
+#### useAutoLinkPubkey() - Intelligent Account Linking
+**Purpose:** Automatic linking with comprehensive validation and error recovery
 
-if (isLoading) return <div>Loading...</div>;
-if (error) return <div>Error: {error.message}</div>;
-
-return (
-  <div>
-    {linkedPubkeys.map(pubkey => (
-      <div key={pubkey.pubkey}>{pubkey.pubkey.slice(0, 8)}...</div>
-    ))}
-  </div>
-);
-```
-
-#### **useAutoLinkPubkey()** - Automatic Account Linking
-**Purpose:** Intelligent account linking with comprehensive validation
-
-**Returns:**
-- `autoLink`: Main function `(firebaseUser, pubkey?, signer?) => Promise<AutoLinkResult>`
-- `state`: 'idle' | 'linking' | 'success' | 'error'
-- `isLinking`: Boolean loading state
-- `lastError`: Last error that occurred
-- `resetState`: Function to reset to idle state
-- `clearError`: Function to clear error state
-
-**Features:**
-- **Intelligent Linking Strategy:** Automatic detection of optimal linking approach
-- **Comprehensive Validation:** Multi-layer validation with user-friendly error messages
-- **Event-driven Updates:** Custom events for cross-component communication
-- **Cache Invalidation:** Automatic cache refresh after successful linking
-
-**Usage:**
-```tsx
-const { autoLink, isLinking, state, lastError } = useAutoLinkPubkey({
-  showNotifications: true
-});
-
-const result = await autoLink(firebaseUser, pubkey);
-```
-
-#### **useAccountDiscovery()** - Account Discovery
-**Purpose:** Discovers linked accounts and legacy profile data
-
-**Parameters:**
-- `firebaseUser`: Firebase user object
-- `isNewUser`: Skip API calls for new users (performance optimization)
-
-**Returns:**
-- `linkedAccounts`: Array of LinkedAccount objects
-- `legacyProfile`: Legacy profile data or null
-- `isLoading`: Loading state
-- `error`: Error message string
-- `refresh`: Manual refresh function
-
-**Features:**
-- **Performance Optimization:** Skips unnecessary API calls for new users
-- **Legacy Profile Integration:** Retrieves existing Wavlake profile data
-- **Real-time Updates:** Background data fetching with cache invalidation
-
-**Usage:**
-```tsx
-const { linkedAccounts, legacyProfile, isLoading, error, refresh } = useAccountDiscovery(firebaseUser, isNewUser);
-
-if (isLoading) return <div>Loading your accounts...</div>;
-if (error) return <div>Error: {error}</div>;
-
-return (
-  <div>
-    <h2>Found {linkedAccounts.length} linked accounts</h2>
-    {legacyProfile && <div>Legacy profile: {legacyProfile.displayName}</div>}
-  </div>
-);
-```
-
-#### **useAccountLinking()** - Account Linking Operations
-**Purpose:** Handles linking and unlinking operations
-
-**Returns:**
-- `linkAccount`: Function `(firebaseUser, pubkey) => Promise<void>`
-- `unlinkAccount`: Function `(pubkey) => Promise<void>`
-- `isLinking`: Loading state
-- `error`: Error message string
-- `clearError`: Function to clear error state
-
-**Usage:**
-```tsx
-const { linkAccount, unlinkAccount, isLinking, error } = useAccountLinking({
-  showNotifications: true
-});
-
-const handleLink = async () => {
+**Linking Strategy:**
+```typescript
+const autoLink = async (firebaseUser: FirebaseUser, pubkey?: string, signer?) => {
   try {
-    await linkAccount(firebaseUser, pubkey);
-    onLinkingComplete();
+    // 1. Validation Layer
+    if (!firebaseUser || !pubkey) throw new Error("Missing required parameters");
+    
+    // 2. Duplicate Detection
+    const existingLinks = await getLinkedPubkeys(firebaseUser);
+    if (existingLinks.some(link => link.pubkey === pubkey)) {
+      return { success: true, reason: 'already_linked' };
+    }
+    
+    // 3. API Integration
+    const authToken = await getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/auth/link-pubkey`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ pubkey })
+    });
+    
+    // 4. Cache Invalidation & Event Emission
+    queryClient.invalidateQueries(['linked-pubkeys']);
+    window.dispatchEvent(new CustomEvent('account-linked', { detail: { pubkey } }));
+    
+    return { success: true, linkedAccounts: updatedAccounts };
   } catch (error) {
-    // Error handled by hook
+    // Comprehensive error handling with user feedback
   }
 };
 ```
 
-## Advanced Features
+## Security Analysis
 
-### State Machine Benefits
-- **Predictable Transitions:** No impossible states or race conditions
-- **TypeScript Safety:** Full type safety for state and context
-- **Debugging:** Clear state visibility in development
-- **Error Recovery:** Graceful error handling with retry capabilities
+### Authentication Security
 
-### Performance Optimizations
-- **New User Detection:** Skips unnecessary API calls during signup flow
-- **Background Updates:** Non-blocking cache refreshes for real-time data
-- **Conditional Rendering:** Components mount only when needed
-- **Exponential Backoff:** Intelligent retry mechanisms for network failures
+**Multi-Layer Input Validation:**
+```typescript
+// Email validation with regex
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
-### Real-time Pubkey Validation
-- **Immediate Feedback:** Validates pubkey mismatches as user types
-- **No Authentication:** Uses `nostr-tools` for client-side pubkey extraction
-- **User-friendly Alerts:** Clear proceed/retry options with context
-- **Performance Optimized:** No API calls during validation
+// Password strength analysis
+const getPasswordStrength = (password: string): 'weak' | 'medium' | 'strong' => {
+  if (password.length < 6) return 'weak';
+  const criteria = [
+    /[A-Z]/.test(password), // uppercase
+    /[a-z]/.test(password), // lowercase  
+    /\d/.test(password),    // numbers
+    /[!@#$%^&*(),.?":{}|<>]/.test(password) // special chars
+  ].filter(Boolean).length;
+  
+  if (criteria >= 3) return 'strong';
+  if (criteria >= 2) return 'medium';
+  return 'weak';
+};
+```
 
-### Security Architecture
-- **Input Validation:** Multi-layer validation for all user inputs
-- **Error Sanitization:** Prevents information leakage through error messages
-- **Token Management:** Secure Firebase token handling with refresh logic
-- **HTTPS Enforcement:** All API communication over HTTPS in production
-- **No Key Persistence:** Private keys never stored or logged
+**Token Security:**
+- **Automatic Refresh:** Tokens refreshed before expiry to prevent race conditions
+- **Secure Storage:** No sensitive data in localStorage, tokens held in memory
+- **API Security:** HTTPS enforcement in production environments
+- **Request Authentication:** Bearer token authentication for all API calls
+
+**Private Key Handling:**
+- **No Persistence:** Private keys never stored in browser storage or logs
+- **Memory Management:** Keys cleared after use, no global state pollution
+- **File Upload Security:** Temporary file reading without persistence
+- **Error Sanitization:** No private key data in error messages or logs
+
+### API Security
+
+**HTTPS Enforcement:**
+```typescript
+const getApiBaseUrl = (): string => {
+  const configuredUrl = import.meta.env.VITE_NEW_API_URL;
+  
+  // Enforce HTTPS in production
+  if (import.meta.env.PROD && !configuredUrl.startsWith("https://")) {
+    throw new Error("API URL must use HTTPS protocol");
+  }
+  
+  return configuredUrl;
+};
+```
+
+**Error Information Leakage Prevention:**
+```typescript
+const ERROR_STATUS_MESSAGES: Record<number, string> = {
+  401: "Authentication expired. Please sign in again.",
+  403: "Access denied. Please check your permissions.",
+  429: "Rate limit exceeded. Please try again later.",
+  500: "Server error. Please try again later.",
+};
+
+// Sanitized error handling without information leakage
+const handleError = (error: unknown, userId: string) => {
+  console.error("Auth operation failed", {
+    userId: userId.slice(0, 8) + "...", // Partial ID only
+    errorType: error instanceof Error ? error.constructor.name : "Unknown",
+    timestamp: new Date().toISOString()
+    // No sensitive data logged
+  });
+};
+```
+
+## Performance & User Experience
+
+### Optimization Strategies
+
+**New User Detection:**
+```typescript
+// Skip unnecessary API calls during signup
+const { linkedAccounts, legacyProfile, isLoading } = useAccountDiscovery(firebaseUser, isNewUser);
+```
+
+**Background Data Synchronization:**
+```typescript
+// TanStack Query configuration for optimal UX
+const queryConfig = {
+  staleTime: 10 * 60 * 1000,        // 10 minutes
+  gcTime: 30 * 60 * 1000,           // 30 minutes
+  refetchOnWindowFocus: true,        // Background sync
+  refetchOnReconnect: true,          // Network recovery
+  retry: intelligentRetryLogic       // Exponential backoff
+};
+```
+
+**Progressive Enhancement:**
+- **Method Detection:** Automatic selection of available authentication methods
+- **Graceful Degradation:** Fallback options when preferred methods unavailable
+- **Loading States:** Granular loading indicators for different operations
+- **Error Recovery:** Clear paths to recovery with alternative methods
+
+### User Experience Patterns
+
+**Predictable State Transitions:**
+```typescript
+// Clear, predictable flow states
+type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
+type SIGN_IN_STEP = "nostr" | "legacy" | "nostr-legacy" | "welcome";
+type SIGNUP_STATES = "sign-up" | "artist" | "profile" | "artist-type" | "firebase" | "welcome";
+```
+
+**Context-Aware Navigation:**
+- **Role-Based Routing:** Artists → `/dashboard`, Listeners → `/groups`
+- **Progressive Disclosure:** Show complexity only when needed
+- **Breadcrumb Navigation:** Clear back button functionality throughout flows
+- **Success States:** Clear completion indicators and next steps
+
+## Error Handling & Recovery
+
+### Comprehensive Error Categorization
+
+```typescript
+type LinkedPubkeysErrorType = 
+  | "network"        // Connection issues, retryable
+  | "authentication" // Auth expired, requires re-login
+  | "authorization"  // Permission denied, requires different account
+  | "server"         // Server errors, retryable with backoff
+  | "validation"     // Input errors, requires user correction
+  | "unknown";       // Unexpected errors, requires fallback
+
+const categorizeError = (error: unknown): LinkedPubkeysErrorType => {
+  if (!(error instanceof Error)) return "unknown";
+  
+  const message = error.message.toLowerCase();
+  
+  if (message.includes("401") || message.includes("authentication expired")) {
+    return "authentication";
+  }
+  // ... additional categorization logic
+};
+```
+
+### User-Friendly Recovery Options
+
+**Error-Specific Recovery:**
+- **Network Errors:** Automatic retry with exponential backoff
+- **Authentication Errors:** Clear re-login prompts without data loss
+- **Validation Errors:** Inline correction guidance with examples
+- **Server Errors:** Graceful degradation with alternative paths
+
+**Fallback Authentication Paths:**
+- **Extension Unavailable:** Automatic fallback to nsec input
+- **Network Issues:** Offline state indicators with retry options
+- **Rate Limiting:** Clear wait time indicators with alternative methods
+- **API Errors:** Fallback to cached data with refresh options
 
 ## Development Guidelines
 
-### Authentication State Management
-```tsx
-// Always use for authentication state
+### Authentication Integration Patterns
+
+**Hook Usage Best Practices:**
+```typescript
+// ✅ Correct: Use useCurrentUser for auth state
 const { user, isLoading } = useCurrentUser();
 if (!user) return <LoginRequired />;
 
-// State machine integration
-const { state, send } = useAuthFlow();
-if (state.type === 'nostr-auth') {
-  return <NostrAuthForm onSuccess={(login) => send({ type: 'NOSTR_SUCCESS', login })} />;
-}
-```
+// ✅ Correct: Use FirebaseAuthProvider for business operations  
+const { getAuthToken, user: firebaseUser } = useFirebaseAuth();
+const token = await getAuthToken();
 
-### Account Linking
-```tsx
-// Check for linked accounts
-const { data: linkedPubkeys, isLoading } = useLinkedPubkeys(firebaseUser);
-
-// Auto-link accounts
-const { autoLink, isLinking } = useAutoLinkPubkey();
-await autoLink(firebaseUser, pubkey);
-```
-
-### Navigation Patterns
-```tsx
-// Always include source context for create-account
-navigate("/create-account", {
-  state: {
-    source: "onboarding", // or "firebase-generation"
-    returnPath: "/groups",
-    firebaseUserData: userData // if applicable
-  }
+// ✅ Correct: Account linking with proper error handling
+const { autoLink, isLinking, lastError } = useAutoLinkPubkey({
+  showNotifications: true
 });
+const result = await autoLink(firebaseUser, pubkey);
 ```
 
-### Component Integration
-```tsx
-// Use AuthFlow for complete authentication system
-<AuthFlow />
-
-// Use individual components for custom flows
+**Component Integration:**
+```typescript
+// ✅ Correct: Props-based component integration
 <NostrAuthForm
-  onSuccess={handleSuccess}
+  onComplete={handleSuccess}
   onError={handleError}
-  expectedPubkey={targetPubkey} // for targeted auth
+  expectedPubkey={targetPubkey} // Optional targeted auth
 />
 
-// Use LoginDialog for simple direct auth
-<LoginDialog
-  isOpen={isOpen}
-  onClose={handleClose}
-  onLogin={handleSuccess}
-  expectedPubkey={targetPubkey} // optional
-/>
+// ✅ Correct: Error boundary integration
+<SentryErrorBoundary>
+  <AuthFlow />
+</SentryErrorBoundary>
 ```
 
-## Error Handling Patterns
+### Testing Strategies
 
-### User-Friendly Messages
-- **Network Errors:** "Please check your connection and try again"
-- **Invalid Inputs:** "Please check your credentials and try again"
-- **Rate Limiting:** "Too many attempts, please wait a moment"
-- **Extension Errors:** "Please ensure your Nostr extension is working"
+**User State Testing:**
+- **Zero Accounts:** New user onboarding flows
+- **Single Account:** Primary user experience paths  
+- **Multiple Accounts:** Account switching and management
+- **Legacy Users:** Migration and linking workflows
 
-### Fallback Options
-- **Extension Unavailable:** Automatically show nsec input option
-- **Network Failures:** Retry mechanisms with exponential backoff
-- **Validation Errors:** Clear guidance for correction with examples
-- **Authentication Failures:** Alternative authentication methods
+**Error Scenario Testing:**
+- **Network Failures:** Offline/online state handling
+- **Authentication Expiry:** Token refresh and re-authentication
+- **Invalid Inputs:** Form validation and error messaging
+- **API Failures:** Graceful degradation and fallback paths
 
-### Error Recovery
-- **Retry Logic:** Intelligent retry with exponential backoff
-- **State Reset:** Clean state reset on error recovery
-- **User Guidance:** Clear instructions for resolving common issues
-- **Graceful Degradation:** Fallback to simpler auth methods when needed
-
-## Testing Considerations
-
-### Test Scenarios
-- **User States:** Test with 0, 1, and multiple linked pubkeys
-- **New vs Returning:** Different optimization paths and user flows
-- **Network Conditions:** Offline/online state handling and recovery
-- **Error Cases:** All failure modes with proper recovery mechanisms
-
-### Performance Testing
+**Performance Testing:**
 - **API Call Optimization:** Verify new user flag effectiveness
 - **Cache Efficiency:** Background updates vs fresh loads
-- **Real-time Validation:** Input responsiveness and accuracy
-- **Navigation Speed:** State transition performance and smoothness
+- **Real-time Validation:** Input responsiveness across methods
+- **Navigation Speed:** State transition performance and memory usage
 
-### Security Testing
-- **Input Validation:** Test all input validation layers
-- **Error Information:** Verify no sensitive information leakage
-- **Token Security:** Proper token handling and refresh logic
-- **HTTPS Enforcement:** All API calls over HTTPS in production
+## Future Enhancement Opportunities
 
-## Integration Points
+### Technical Improvements
 
-### Firebase ↔ Nostr Bridge
-- **Seamless Association:** Automatic account linking with validation
-- **Profile Synchronization:** Real-time profile data synchronization
-- **Event-driven Updates:** Custom events for cross-component communication
-- **Secure Token Management:** Proper Firebase token handling
+**Hook Modernization:**
+- Create v3-specific hooks designed for current component patterns
+- Eliminate legacy tech debt in authentication flow coordination
+- Implement event-driven architecture for cross-component communication
+- Add comprehensive TypeScript strict mode coverage
 
-### Navigation Flow
-- **Context-aware Routing:** Intelligent navigation based on user state
-- **State Preservation:** Proper state management across navigation
-- **Memory Management:** Cleanup of sensitive data on navigation
-- **URL State:** Clean URL management without sensitive data
+**Performance Optimizations:**
+- Implement smart loading states with skeleton screens
+- Add user preference learning for authentication method selection
+- Optimize bundle size with lazy loading of authentication providers
+- Add service worker integration for offline authentication
 
-### Event System
-- **Custom Events:** Cross-component communication for real-time updates
-- **Cache Invalidation:** Automatic cache refresh on account changes
-- **Background Sync:** Background data synchronization
-- **Error Propagation:** Proper error handling across component boundaries
+### User Experience Enhancements
 
-## Current Implementation Status
+**Progressive Enhancement:**
+- Biometric authentication support (WebAuthn)
+- Social login provider expansion (Discord, GitHub, Microsoft)
+- Multi-device authentication synchronization
+- Advanced account recovery workflows
 
-### ✅ **Completed Components**
-- **AuthFlow:** Complete state machine implementation
-- **AuthMethodSelector:** Full method selection interface
-- **NostrAuthForm:** Comprehensive Nostr authentication
-- **FirebaseAuthForm:** Complete email/password authentication
-- **AccountDiscoveryScreen:** Full account discovery functionality
-- **LoginDialog:** Simple direct Nostr authentication
+**Accessibility Improvements:**
+- Full keyboard navigation support
+- Enhanced screen reader compatibility
+- High contrast mode support
+- Voice control integration
 
-### ✅ **Completed Hooks**
-- **useAuthFlow:** Complete state machine implementation
-- **useNostrAuthentication:** Pure Nostr authentication
-- **useFirebaseAuthentication:** Pure Firebase authentication
-- **useAccountDiscovery:** Account discovery with optimization
-- **useAccountLinking:** Account linking operations
-- **useAutoLinkPubkey:** Automatic account linking
-- **useLinkedPubkeys:** Comprehensive linked pubkey management
+## Conclusion
 
-### ✅ **Completed Features**
-- **State Machine Pattern:** Predictable authentication flow
-- **Real-time Validation:** Immediate feedback on user input
-- **Performance Optimization:** Smart API call optimization
-- **Error Handling:** Comprehensive error management
-- **Security:** Multi-layer validation and secure token handling
+Wavlake's authentication system represents a **production-ready, enterprise-grade implementation** that successfully bridges the gap between **decentralized Nostr identity** and **centralized business operations**. The architecture demonstrates sophisticated understanding of both **user experience design** and **security engineering**.
 
-This authentication system represents a production-ready, enterprise-grade implementation that balances security, performance, and user experience while seamlessly integrating multiple authentication providers through a clean, predictable state machine pattern.
+**Key Strengths:**
+- **Hybrid Architecture:** Seamless integration of Nostr and Firebase systems
+- **Performance Optimization:** Intelligent caching and background data synchronization
+- **Security Implementation:** Multi-layer validation and comprehensive error handling
+- **User Experience:** Progressive disclosure with context-aware navigation
+- **Developer Experience:** Clean hook architecture with TypeScript safety
+
+**Technical Excellence:**
+- **State Management:** Predictable state machines with TypeScript safety
+- **Error Recovery:** Comprehensive error categorization with graceful degradation
+- **Performance:** Background optimization with intelligent retry logic
+- **Security:** Multi-layer validation with no information leakage
+- **Maintainability:** Clear separation of concerns with modular architecture
+
+This system serves as a **reference implementation** for complex authentication systems that must balance **security, performance, and user experience** while integrating **multiple authentication providers** in a **decentralized protocol ecosystem**.

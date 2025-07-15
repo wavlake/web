@@ -18,7 +18,7 @@ import { toast } from "sonner";
 // ============================================================================
 
 export interface AppSettings {
-  defaultScreen?: "artist" | "listener";
+  isArtist?: boolean;
   // // UI preferences
   // theme?: "light" | "dark" | "system";
   // language?: string;
@@ -163,10 +163,10 @@ export function useAppSettings(): UseAppSettingsResult {
     error: queryError,
   } = useQuery({
     queryKey: ["app-settings", user?.pubkey],
-    queryFn: async (): Promise<AppSettings> => {
+    queryFn: async (): Promise<AppSettings | null> => {
       if (!user?.pubkey) {
         // Return default settings for unauthenticated users
-        return DEFAULT_SETTINGS;
+        return null;
       }
 
       try {

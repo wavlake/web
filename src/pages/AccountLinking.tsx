@@ -28,7 +28,6 @@ import {
   useLinkFirebaseAccount,
 } from "@/hooks/useAccountLinking";
 import { LoginButton } from "@/components/auth/v3/LoginButton";
-import { FirebaseAuthDialog } from "@/components/auth/FirebaseAuthDialog";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
 import {
   initializeFirebaseAuth,
@@ -427,13 +426,13 @@ export default function AccountLinking() {
       </div>
 
       {/* Dialogs */}
-      <FirebaseAuthDialog
+      {/* <FirebaseAuthDialog
         isOpen={showLinkDialog && !isLinkingInProgress}
         onClose={() => setShowLinkDialog(false)}
         onSuccess={handleLinkSuccess}
         title="Link Email Account"
         description="Sign in or create an account to link your email address"
-      />
+      /> */}
 
       {/* Loading overlay during linking */}
       {isLinkingInProgress && (
@@ -447,7 +446,7 @@ export default function AccountLinking() {
         </div>
       )}
 
-      <FirebaseAuthDialog
+      {/* <FirebaseAuthDialog
         isOpen={showFirebaseAuthFirst}
         onClose={() => setShowFirebaseAuthFirst(false)}
         onSuccess={handleFirebaseAuthSuccess}
@@ -464,7 +463,7 @@ export default function AccountLinking() {
         requiredFirebaseUid={firebaseUid || undefined}
         currentEmail={email || undefined}
         showSignOutFirst={firebaseUser && firebaseUser.uid !== firebaseUid}
-      />
+      /> */}
 
       <UnlinkConfirmDialog
         isOpen={showUnlinkConfirm}

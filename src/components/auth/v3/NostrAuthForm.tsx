@@ -16,10 +16,12 @@ export const NostrAuthForm = ({
   title,
   description,
   expectedPubkey,
+  onComplete,
 }: {
   expectedPubkey?: string;
   title?: string;
   description?: string;
+  onComplete?: () => void;
 }) => {
   // Fetch profile data for the expected pubkey
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +43,7 @@ export const NostrAuthForm = ({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
     } catch (error) {
       console.error("Extension login failed:", error);
     } finally {
@@ -58,6 +61,7 @@ export const NostrAuthForm = ({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
     } catch (error) {
       console.error("Nsec login failed:", error);
     } finally {
@@ -75,6 +79,7 @@ export const NostrAuthForm = ({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
     } catch (error) {
       console.error("Bunker login failed:", error);
     } finally {

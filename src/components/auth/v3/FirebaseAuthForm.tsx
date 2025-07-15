@@ -5,12 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
-import {
-  isValidEmail,
-  isValidPassword,
-  getPasswordStrength,
-} from "@/hooks/auth/useFirebaseAuthentication";
-import { useFirebaseLegacyAuth } from "@/lib/firebaseLegacyAuth";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { User } from "firebase/auth";
 
 interface FirebaseAuthFormProps {
@@ -49,12 +44,14 @@ export function FirebaseAuthForm({
   onComplete,
 }: FirebaseAuthFormProps) {
   const {
-    isLoading: isFirebaseAuthLoading,
+    loginWithEmailAndPassword,
+    registerWithEmailAndPassword,
+    loading,
     error: firebaseError,
-    setError: setFirebaseError,
-    handleFirebaseEmailLogin,
-    handleFirebaseEmailSignup,
-  } = useFirebaseLegacyAuth();
+    isValidEmail,
+    isValidPassword,
+    getPasswordStrength,
+  } = useFirebaseAuth();
 
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
 
@@ -143,20 +140,20 @@ export function FirebaseAuthForm({
     if (hasErrors) return;
 
     try {
-      const newUser =
+      const result =
         mode === "signin"
-          ? await handleFirebaseEmailLogin(formState.email, formState.password)
-          : await handleFirebaseEmailSignup(formState.email, formState.password);
+          ? await loginWithEmailAndPassword({ email: formState.email, password: formState.password })
+          : await registerWithEmailAndPassword({ email: formState.email, password: formState.password });
 
       // Handle onComplete callback with loading state
-      if (onComplete) {
+      if (onComplete && result.user) {
         setIsCompletionLoading(true);
-        await onComplete(newUser);
+        await onComplete(result.user);
         setIsCompletionLoading(false);
       }
     } catch (error) {
       setIsCompletionLoading(false);
-      throw error; // Re-throw to let Firebase hook handle the error
+      // Error is already handled by the hook
     }
   };
 
@@ -191,10 +188,10 @@ export function FirebaseAuthForm({
 
   return (
     <div>
-      {error && (
+      {(error || firebaseError) && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || firebaseError?.message}</AlertDescription>
         </Alert>
       )}
       {/* Form */}
@@ -209,7 +206,7 @@ export function FirebaseAuthForm({
             value={formState.email}
             onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="your@email.com"
-            disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
+            disabled={isLoading || loading || isCompletionLoading}
             autoComplete="email"
             autoCapitalize="none"
             autoCorrect="off"
@@ -234,7 +231,7 @@ export function FirebaseAuthForm({
               value={formState.password}
               onChange={(e) => handlePasswordChange(e.target.value)}
               placeholder="Enter your password"
-              disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
+              disabled={isLoading || loading || isCompletionLoading}
               autoComplete={
                 mode === "signup" ? "new-password" : "current-password"
               }
@@ -252,7 +249,7 @@ export function FirebaseAuthForm({
                 })
               }
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
+              disabled={isLoading || loading || isCompletionLoading}
             >
               {formState.showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -299,7 +296,7 @@ export function FirebaseAuthForm({
                 value={formState.confirmPassword}
                 onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 placeholder="Confirm your password"
-                disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
+                disabled={isLoading || loading || isCompletionLoading}
                 autoComplete="new-password"
                 className={
                   formState.fieldErrors.confirmPassword
@@ -315,7 +312,7 @@ export function FirebaseAuthForm({
                   })
                 }
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading}
+                disabled={isLoading || loading || isCompletionLoading}
               >
                 {formState.showConfirmPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -336,12 +333,12 @@ export function FirebaseAuthForm({
         <Button
           type="submit"
           className="w-full"
-          disabled={isLoading || isFirebaseAuthLoading || isCompletionLoading || !isFormValid}
+          disabled={isLoading || loading || isCompletionLoading || !isFormValid}
         >
-          {(isLoading || isFirebaseAuthLoading || isCompletionLoading) && (
+          {(isLoading || loading || isCompletionLoading) && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           )}
-          {isLoading || isFirebaseAuthLoading
+          {isLoading || loading
             ? "Authenticating..."
             : isCompletionLoading
             ? "Completing setup..."

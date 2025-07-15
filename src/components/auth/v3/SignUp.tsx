@@ -15,6 +15,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useV3CreateAccount } from "./useV3CreateAccount";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
 import { User } from "firebase/auth";
+import useAppSettings from "@/hooks/useAppSettings";
 
 type STATES =
   | "sign-up"
@@ -23,7 +24,9 @@ type STATES =
   | "artist-type"
   | "firebase"
   | "welcome";
+
 export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
+  const { settings, updateSettings } = useAppSettings();
   const { autoLink } = useAutoLinkPubkey();
   const { createAccount, isCreating } = useV3CreateAccount();
   const { user, metadata } = useCurrentUser();
@@ -159,7 +162,15 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
           {metadata ? (
             <EditProfileForm
               // namePlaceholder={getNamePlaceholder()}
-              onComplete={() => SET_STATE(isArtist ? "firebase" : "welcome")}
+              onComplete={() => {
+                if (!settings) {
+                  // save isArtist preference in app settings
+                  updateSettings({
+                    isArtist,
+                  });
+                }
+                SET_STATE(isArtist ? "firebase" : "welcome");
+              }}
               showSkipLink={isArtist ? false : true}
             />
           ) : (

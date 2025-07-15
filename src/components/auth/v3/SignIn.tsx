@@ -4,11 +4,23 @@ import { Button } from "@/components/ui/button";
 import { NostrAuthForm } from "./NostrAuthForm";
 import { FirebaseAuthForm } from "./FirebaseAuthForm";
 import { GenericStep } from "./GenericStep";
+import useAppSettings from "@/hooks/useAppSettings";
+import { useLegacyArtists } from "@/hooks/useLegacyApi";
+import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
 
 type SIGN_IN_STEP = "nostr" | "legacy" | "nostr-legacy" | "welcome";
 
 export function SignIn({ handleBack }: { handleBack: () => void }) {
   const [STATE, SET_STATE] = useState<SIGN_IN_STEP>("nostr");
+  const {
+    settings,
+    updateSettings,
+    isLoading: isLoadingSettings,
+  } = useAppSettings();
+  const { data: legacyArtists, isLoading: isLoadingLegacyArtists } =
+    useLegacyArtists();
+  const artistsList = legacyArtists?.artists ?? [];
+  const { primaryPubkey } = useLinkedPubkeys();
 
   switch (STATE) {
     case "nostr":
@@ -21,7 +33,11 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
           {/* {expectedPubkey && (
             <NostrAvatar pubkey={expectedPubkey || ""} size={64} includeName />
           )} */}
-          <NostrAuthForm />
+          <NostrAuthForm
+            onComplete={() => {
+              SET_STATE("welcome");
+            }}
+          />
           <Button
             className="w-full rounded-full py-6"
             onClick={() => SET_STATE("legacy")}
@@ -40,17 +56,30 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
         >
           <FirebaseAuthForm
             mode="signin"
-            onComplete={() => SET_STATE("nostr-legacy")}
+            onComplete={() => {
+              SET_STATE("nostr-legacy");
+            }}
           />
         </GenericStep>
       );
     case "nostr-legacy":
+      if (isLoadingLegacyArtists) {
+        return <>Loading legacy artists...</>;
+      }
+      const isArtist = artistsList.length > 0;
+
       return (
         <GenericStep
           handleBack={() => SET_STATE("legacy")}
-          title=" Account"
-          description="Link your legacy Wavlake account with your Nostr identity"
+          title="Nostr Setup"
+          description="Lets create a new Nostr identity for you"
         >
+          <NostrAuthForm
+            expectedPubkey={primaryPubkey?.pubkey}
+            onComplete={() => {
+              SET_STATE("welcome");
+            }}
+          />
           <div>
             TODO check pubkey links if one exists, prompt use to sign in with
             it. Allow user to bypass and login with another nostr account, or
@@ -59,6 +88,38 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
             then link their legacy account. When done, redirect to the welcome
             page if they dont have a NIP-78 settings event.
           </div>
+        </GenericStep>
+      );
+
+    case "welcome":
+      if (isLoadingSettings) {
+        return <>Loading settings...</>;
+      }
+      return (
+        <GenericStep
+          title="Welcome to Wavlake!"
+          description={
+            settings?.isArtist
+              ? "You're all set up as an artist. Start creating and sharing your music!"
+              : "You're all set up! Explore artist pages and discover new music."
+          }
+        >
+          <Button
+            className="w-full rounded-full py-6"
+            onClick={() => {
+              if (settings?.isArtist) {
+                updateSettings({ isArtist: true }); // Ensure artist mode is set
+                SET_STATE("welcome");
+              } else {
+                updateSettings({ isArtist: false }); // Ensure listener mode is set
+                SET_STATE("welcome");
+              }
+            }}
+          >
+            {settings?.isArtist
+              ? "Create your artist page"
+              : "Explore artist pages"}
+          </Button>
         </GenericStep>
       );
     default:
