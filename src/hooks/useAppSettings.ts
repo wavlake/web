@@ -54,6 +54,7 @@ interface UseAppSettingsResult {
   error: Error | null;
   updateSettings: (updates: Partial<AppSettings>) => Promise<void>;
   isUpdating: boolean;
+  hasSettingsEvent: boolean;
 }
 
 interface SettingsEvent {
@@ -158,15 +159,15 @@ export function useAppSettings(): UseAppSettingsResult {
   // ============================================================================
 
   const {
-    data: settings,
+    data: queryResult,
     isLoading,
     error: queryError,
   } = useQuery({
     queryKey: ["app-settings", user?.pubkey],
-    queryFn: async (): Promise<AppSettings | null> => {
+    queryFn: async (): Promise<{ settings: AppSettings | null; hasEvent: boolean }> => {
       if (!user?.pubkey) {
         // Return default settings for unauthenticated users
-        return null;
+        return { settings: null, hasEvent: false };
       }
 
       try {
@@ -186,7 +187,7 @@ export function useAppSettings(): UseAppSettingsResult {
 
         if (events.length === 0) {
           // No settings event found, return defaults
-          return DEFAULT_SETTINGS;
+          return { settings: DEFAULT_SETTINGS, hasEvent: false };
         }
 
         const latestEvent = events[0] as SettingsEvent;
@@ -196,10 +197,10 @@ export function useAppSettings(): UseAppSettingsResult {
           console.warn(
             "[useAppSettings] Failed to parse settings, using defaults"
           );
-          return DEFAULT_SETTINGS;
+          return { settings: DEFAULT_SETTINGS, hasEvent: false };
         }
 
-        return parsedSettings;
+        return { settings: parsedSettings, hasEvent: true };
       } catch (error) {
         console.error("[useAppSettings] Failed to fetch settings:", error);
         throw new Error("Failed to load settings");
@@ -226,7 +227,7 @@ export function useAppSettings(): UseAppSettingsResult {
 
       try {
         // Merge with current settings
-        const currentSettings = settings || DEFAULT_SETTINGS;
+        const currentSettings = queryResult?.settings || DEFAULT_SETTINGS;
         const newSettings: AppSettings = {
           ...currentSettings,
           ...updates,
@@ -252,15 +253,15 @@ export function useAppSettings(): UseAppSettingsResult {
       }
     },
     onSuccess: (newSettings) => {
-      toast.success("Draft track saved successfully!");
+      toast.success("Saved app settings!");
 
       // Update the cache with the new settings
-      queryClient.setQueryData(["app-settings", user?.pubkey], newSettings);
+      queryClient.setQueryData(["app-settings", user?.pubkey], { settings: newSettings, hasEvent: true });
       setLastError(null);
     },
     onError: (error) => {
       console.error("[useAppSettings] Settings update failed:", error);
-      toast.error("Failed to save draft track. Please try again.");
+      toast.error("Failed to save app settings. Please try again.");
     },
   });
   // ============================================================================
@@ -288,11 +289,12 @@ export function useAppSettings(): UseAppSettingsResult {
   // ============================================================================
 
   return {
-    settings: settings || null,
+    settings: queryResult?.settings || null,
     isLoading,
     error,
     updateSettings,
     isUpdating: updateSettingsMutation.isPending,
+    hasSettingsEvent: queryResult?.hasEvent || false,
   };
 }
 
