@@ -4,7 +4,7 @@ import { SignUp } from "@/components/auth/v3/SignUp";
 import { Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GenericStep } from "@/components/auth/v3/GenericStep";
-import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNavigate } from "react-router-dom";
 
 type AUTH_STEP = "method-selection" | "sign-up" | "sign-in";
@@ -54,7 +54,7 @@ const AUTH_METHODS: AuthMethodOption[] = [
 export default function Login() {
   const navigate = useNavigate();
 
-  const { currentUser, removeLogin } = useLoggedInAccounts();
+  const { user, logout, metadata } = useCurrentUser();
   const [STATE, SET_STATE] = useState<AUTH_STEP>("method-selection");
 
   const handleBack = () => {
@@ -64,7 +64,7 @@ export default function Login() {
   // Render based on current state
   switch (STATE) {
     case "method-selection":
-      if (currentUser) {
+      if (user) {
         return (
           <GenericStep
             title="Welcome Back"
@@ -72,9 +72,9 @@ export default function Login() {
             header={StartHeader()}
           >
             <div className="flex flex-col gap-4">
-              <div>Signed in as: {currentUser.metadata.name}</div>
+              <div>Signed in as: {metadata?.name || user.pubkey.slice(0, 8)}</div>
               <Button onClick={() => navigate("/groups")}>Back to Home</Button>
-              <Button onClick={() => removeLogin(currentUser.id)}>
+              <Button onClick={logout}>
                 Logout
               </Button>
             </div>

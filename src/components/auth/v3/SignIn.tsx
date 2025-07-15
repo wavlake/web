@@ -7,20 +7,25 @@ import { GenericStep } from "./GenericStep";
 import useAppSettings from "@/hooks/useAppSettings";
 import { useLegacyArtists } from "@/hooks/useLegacyApi";
 import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
+import { useNavigate } from "react-router-dom";
 
 type SIGN_IN_STEP = "nostr" | "legacy" | "nostr-legacy" | "welcome";
 
 export function SignIn({ handleBack }: { handleBack: () => void }) {
+  const navigate = useNavigate();
   const [STATE, SET_STATE] = useState<SIGN_IN_STEP>("nostr");
   const {
     settings,
     updateSettings,
+    hasSettingsEvent,
     isLoading: isLoadingSettings,
   } = useAppSettings();
   const { data: legacyArtists, isLoading: isLoadingLegacyArtists } =
     useLegacyArtists();
   const artistsList = legacyArtists?.artists ?? [];
   const { primaryPubkey } = useLinkedPubkeys();
+  const isLegacyArtist = artistsList.length > 0;
+  const isArtist = settings?.isArtist ?? isLegacyArtist;
 
   switch (STATE) {
     case "nostr":
@@ -62,7 +67,7 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
           />
         </GenericStep>
       );
-    case "nostr-legacy":
+    case "nostr-legacy": {
       if (isLoadingLegacyArtists) {
         return <>Loading legacy artists...</>;
       }
@@ -90,6 +95,7 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
           </div>
         </GenericStep>
       );
+    }
 
     case "welcome":
       if (isLoadingSettings) {
@@ -107,13 +113,12 @@ export function SignIn({ handleBack }: { handleBack: () => void }) {
           <Button
             className="w-full rounded-full py-6"
             onClick={() => {
-              if (settings?.isArtist) {
-                updateSettings({ isArtist: true }); // Ensure artist mode is set
-                SET_STATE("welcome");
-              } else {
-                updateSettings({ isArtist: false }); // Ensure listener mode is set
-                SET_STATE("welcome");
+              if (!hasSettingsEvent) {
+                // if this user doesn't have a settings event, create one
+                updateSettings({ isArtist: isArtist });
               }
+              // Navigate to the appropriate page based on artist status
+              navigate(isArtist ? "/dashboard" : "/groups");
             }}
           >
             {settings?.isArtist

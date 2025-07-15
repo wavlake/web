@@ -28,7 +28,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar.tsx";
-import { useLoggedInAccounts } from "@/hooks/useLoggedInAccounts";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Link, useNavigate } from "react-router-dom";
 import {
   useUnreadNotificationsCount,
@@ -90,8 +90,7 @@ const NotificationBadge = ({ count }: { count: number }) => {
 };
 
 export function UserDropdownMenu() {
-  const { currentUser, otherUsers, setLogin, removeLogin } =
-    useLoggedInAccounts();
+  const { user, logout, metadata } = useCurrentUser();
   const navigate = useNavigate();
   const unreadCount = useUnreadNotificationsCount();
   const markAllAsRead = useMarkAllNotificationsAsRead();
@@ -100,7 +99,7 @@ export function UserDropdownMenu() {
   const { isInstallable, isRunningAsPwa, promptInstall } = usePWA();
   const { isLinked } = useAccountLinkingStatus();
 
-  if (!currentUser) {
+  if (!user) {
     return <LoginButton />;
   }
 
@@ -114,9 +113,7 @@ export function UserDropdownMenu() {
   const handleLogout = async () => {
     navigate("/login", { replace: true });
 
-    if (currentUser) {
-      removeLogin(currentUser.id);
-    }
+    logout();
 
     const wavlakeOnboardingStored = localStorage.getItem("wavlake-onboarding");
     localStorage.clear();
@@ -131,7 +128,7 @@ export function UserDropdownMenu() {
     {
       icon: User,
       label: "View Profile",
-      to: `/profile/${currentUser?.pubkey || ""}`,
+      to: `/profile/${user?.pubkey || ""}`,
     },
     { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
     { icon: Wallet, label: "Wallet", to: "/wallet" },
@@ -153,8 +150,8 @@ export function UserDropdownMenu() {
     { icon: Info, label: "About Wavlake", to: "/about" },
   ];
 
-  const displayName = currentUser?.metadata.name || currentUser?.pubkey || "";
-  const avatarChar = currentUser?.metadata.name?.charAt(0);
+  const displayName = metadata?.name || user?.pubkey || "";
+  const avatarChar = metadata?.name?.charAt(0);
 
   return (
     <>
@@ -167,7 +164,7 @@ export function UserDropdownMenu() {
             <div className="relative">
               <Avatar className="w-8 h-8 rounded-md">
                 <AvatarImage
-                  src={currentUser?.metadata.picture}
+                  src={metadata?.picture}
                   alt={displayName}
                 />
                 <AvatarFallback>

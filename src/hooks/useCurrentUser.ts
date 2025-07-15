@@ -4,12 +4,12 @@ import { useCallback, useMemo } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 import { useAuthor } from './useAuthor.ts';
-import { useLoggedInAccounts } from './useLoggedInAccounts.ts';
+import { useFirebaseAuth } from '@/components/FirebaseAuthProvider';
 
 export function useCurrentUser() {
   const { nostr } = useNostr();
-  const { logins } = useNostrLogin();
-  const { currentUser: loggedInAccount } = useLoggedInAccounts();
+  const { logins, removeLogin } = useNostrLogin();
+  const { logout: logoutFirebase } = useFirebaseAuth();
 
   const loginToUser = useCallback((login: NLoginType): NUser  => {
     switch (login.type) {
@@ -40,40 +40,35 @@ export function useCurrentUser() {
     return users;
   }, [logins, loginToUser]);
 
+  // Use first login as current user (single-user mode)
   const user = users[0] as NUser | undefined;
-  
-  // Fallback to useLoggedInAccounts if no user found through Nostrify
-  const fallbackUser = useMemo(() => {
-    if (user || !loggedInAccount) return null;
-    
-    // Define a type for the window object with nostr extension
-    interface WindowWithNostr extends Window {
-      nostr?: {
-        getPublicKey: () => Promise<string>;
-        signEvent: (event: NostrEvent) => Promise<NostrEvent>;
-        nip44?: {
-          encrypt: (pubkey: string, plaintext: string) => Promise<string>;
-          decrypt: (pubkey: string, ciphertext: string) => Promise<string>;
-        };
-      };
+  const author = useAuthor(user?.pubkey);
+
+  /**
+   * Logout current user from both Nostr and Firebase
+   */
+  const logout = useCallback(() => {
+    if (user && logins[0]) {
+      removeLogin(logins[0].id);
     }
-    
-    const windowWithNostr = window as WindowWithNostr;
-    
-    // Create a compatible user object from loggedInAccount
-    return {
-      pubkey: loggedInAccount.pubkey,
-      signer: typeof window !== 'undefined' && windowWithNostr.nostr ? windowWithNostr.nostr : null,
-      method: 'extension' as const
-    } as NUser;
-  }, [user, loggedInAccount]);
-  
-  const finalUser = user || fallbackUser;
-  const author = useAuthor(finalUser?.pubkey);
+    logoutFirebase();
+  }, [user, logins, removeLogin, logoutFirebase]);
+
+  /**
+   * Check if user is authenticated
+   */
+  const isAuthenticated = !!user;
 
   return {
-    user: finalUser,
-    users: finalUser ? [finalUser] : [],
+    // Core user data
+    user,
+    users: user ? [user] : [],
     ...author.data,
+    
+    // Authentication state
+    isAuthenticated,
+    
+    // Actions
+    logout,
   };
 }

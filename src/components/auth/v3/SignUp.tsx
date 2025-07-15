@@ -105,7 +105,9 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
                   SET_STATE("artist-type");
                 } else {
                   // if no user create user profile for listener
-                  !user && (await handleProfileCreation());
+                  if (!user) {
+                    await handleProfileCreation();
+                  }
                   SET_STATE("profile");
                 }
               }}
@@ -143,7 +145,9 @@ export const SignUp = ({ handleBack }: { handleBack: () => void }) => {
             className="w-full rounded-full py-6"
             onClick={async () => {
               // if no user create user profile for artist
-              !user && (await handleProfileCreation());
+              if (!user) {
+                await handleProfileCreation();
+              }
               SET_STATE("profile");
             }}
           >
