@@ -8,7 +8,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.tsx";
-import { useLoginActions } from "@/hooks/useLoginActions";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { NostrAvatar } from "@/components/NostrAvatar";
 
@@ -25,21 +25,20 @@ export const NostrAuthForm = ({
 }) => {
   // Fetch profile data for the expected pubkey
   const [isLoading, setIsLoading] = useState(false);
-  const [nsec, setNsec] = useState("");
+  const [nsecValue, setNsecValue] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const login = useLoginActions();
+  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
   const { syncProfile } = useProfileSync();
   const handleExtensionLogin = async () => {
     setIsLoading(true);
     try {
-      // Fallback to legacy useLoginActions
       if (!("nostr" in window)) {
         throw new Error(
           "Nostr extension not found. Please install a NIP-07 extension."
         );
       }
-      const loginInfo = await login.extension();
+      const loginInfo = await loginWithExtension();
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
@@ -52,12 +51,11 @@ export const NostrAuthForm = ({
   };
 
   const handleKeyLogin = async () => {
-    if (!nsec.trim()) return;
+    if (!nsecValue.trim()) return;
     setIsLoading(true);
 
     try {
-      // Fallback to legacy useLoginActions
-      const loginInfo = login.nsec(nsec);
+      const loginInfo = loginWithNsec(nsecValue);
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
@@ -74,8 +72,7 @@ export const NostrAuthForm = ({
     setIsLoading(true);
 
     try {
-      // Fallback to legacy useLoginActions
-      const loginInfo = await login.bunker(bunkerUri);
+      const loginInfo = await loginWithBunker(bunkerUri);
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
@@ -94,7 +91,7 @@ export const NostrAuthForm = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setNsec(content.trim());
+      setNsecValue(content.trim());
     };
     reader.readAsText(file);
   };
@@ -144,8 +141,8 @@ export const NostrAuthForm = ({
             </label>
             <Input
               id="nsec"
-              value={nsec}
-              onChange={(e) => setNsec(e.target.value)}
+              value={nsecValue}
+              onChange={(e) => setNsecValue(e.target.value)}
               className="rounded-lg focus-visible:ring-primary"
               placeholder="nsec1..."
             />
@@ -175,7 +172,7 @@ export const NostrAuthForm = ({
           <Button
             className="w-full rounded-full py-6 mt-4"
             onClick={handleKeyLogin}
-            disabled={isLoading || !nsec.trim()}
+            disabled={isLoading || !nsecValue.trim()}
           >
             {isLoading ? "Verifying..." : "Login with Nsec"}
           </Button>

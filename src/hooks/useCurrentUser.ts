@@ -1,4 +1,4 @@
-import { type NLoginType, NUser, useNostrLogin } from '@nostrify/react/login';
+import { type NLoginType, NUser, useNostrLogin, NLogin } from '@nostrify/react/login';
 import { useNostr } from '@nostrify/react';
 import { useCallback, useMemo } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -8,7 +8,7 @@ import { useFirebaseAuth } from '@/components/FirebaseAuthProvider';
 
 export function useCurrentUser() {
   const { nostr } = useNostr();
-  const { logins, removeLogin } = useNostrLogin();
+  const { logins, addLogin, removeLogin } = useNostrLogin();
   const { logout: logoutFirebase } = useFirebaseAuth();
 
   const loginToUser = useCallback((login: NLoginType): NUser  => {
@@ -59,6 +59,41 @@ export function useCurrentUser() {
    */
   const isAuthenticated = !!user;
 
+  /**
+   * Login with a Nostr secret key
+   */
+  const loginWithNsec = useCallback((nsec: string) => {
+    try {
+      const login = NLogin.fromNsec(nsec);
+      addLogin(login);
+      return login;
+    } catch (error) {
+      console.error("[useCurrentUser] Failed to create login from nsec", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }, [addLogin]);
+
+  /**
+   * Login with a NIP-46 "bunker://" URI
+   */
+  const loginWithBunker = useCallback(async (uri: string) => {
+    const login = await NLogin.fromBunker(uri, nostr);
+    addLogin(login);
+    return login;
+  }, [addLogin, nostr]);
+
+  /**
+   * Login with a NIP-07 browser extension
+   */
+  const loginWithExtension = useCallback(async () => {
+    const login = await NLogin.fromExtension();
+    addLogin(login);
+    return login;
+  }, [addLogin]);
+
   return {
     // Core user data
     user,
@@ -70,5 +105,10 @@ export function useCurrentUser() {
     
     // Actions
     logout,
+    
+    // Login methods
+    loginWithNsec,
+    loginWithBunker,
+    loginWithExtension,
   };
 }

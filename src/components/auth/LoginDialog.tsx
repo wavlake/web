@@ -18,7 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs.tsx";
-import { useLoginActions } from "@/hooks/useLoginActions";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { NostrAvatar } from "../NostrAvatar";
 import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
@@ -51,10 +51,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   const navigate = useNavigate();
   // Fetch profile data for the expected pubkey
   const [isLoading, setIsLoading] = useState(false);
-  const [nsec, setNsec] = useState("");
+  const [nsecValue, setNsecValue] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const login = useLoginActions();
+  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
   const { syncProfile } = useProfileSync();
 
   const handleExtensionLogin = async () => {
@@ -66,13 +66,13 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
         onLogin();
         onClose();
       } else {
-        // Fallback to legacy useLoginActions
+        // Use consolidated useCurrentUser
         if (!("nostr" in window)) {
           throw new Error(
             "Nostr extension not found. Please install a NIP-07 extension."
           );
         }
-        const loginInfo = await login.extension();
+        const loginInfo = await loginWithExtension();
 
         // Sync profile after successful login
         await syncProfile(loginInfo.pubkey);
@@ -88,18 +88,18 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   };
 
   const handleKeyLogin = async () => {
-    if (!nsec.trim()) return;
+    if (!nsecValue.trim()) return;
     setIsLoading(true);
 
     try {
       if (handleNostrAuth) {
         // Use new auth flow
-        await handleNostrAuth("nsec", { method: "nsec", nsec });
+        await handleNostrAuth("nsec", { method: "nsec", nsec: nsecValue });
         onLogin();
         onClose();
       } else {
-        // Fallback to legacy useLoginActions
-        const loginInfo = login.nsec(nsec);
+        // Use consolidated useCurrentUser
+        const loginInfo = loginWithNsec(nsecValue);
 
         // Sync profile after successful login
         await syncProfile(loginInfo.pubkey);
@@ -125,8 +125,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
         onLogin();
         onClose();
       } else {
-        // Fallback to legacy useLoginActions
-        const loginInfo = await login.bunker(bunkerUri);
+        // Use consolidated useCurrentUser
+        const loginInfo = await loginWithBunker(bunkerUri);
 
         // Sync profile after successful login
         await syncProfile(loginInfo.pubkey);
@@ -148,7 +148,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setNsec(content.trim());
+      setNsecValue(content.trim());
     };
     reader.readAsText(file);
   };
@@ -209,8 +209,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
                   </label>
                   <Input
                     id="nsec"
-                    value={nsec}
-                    onChange={(e) => setNsec(e.target.value)}
+                    value={nsecValue}
+                    onChange={(e) => setNsecValue(e.target.value)}
                     className="rounded-lg focus-visible:ring-primary"
                     placeholder="nsec1..."
                   />
@@ -240,7 +240,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
                 <Button
                   className="w-full rounded-full py-6 mt-4"
                   onClick={handleKeyLogin}
-                  disabled={isLoading || !nsec.trim()}
+                  disabled={isLoading || !nsecValue.trim()}
                 >
                   {isLoading ? "Verifying..." : "Login with Nsec"}
                 </Button>

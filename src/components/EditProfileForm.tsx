@@ -21,7 +21,6 @@ import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNavigate } from "react-router-dom";
 import { KINDS } from "@/lib/nostr-kinds";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLoginActions } from "@/hooks/useLoginActions";
 
 interface EditProfileFormProps {
   showSkipLink?: boolean;
@@ -49,11 +48,10 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
 
   // Get current user and their complete metadata from relays
   // This ensures we have all existing profile fields to preserve
-  const { user, metadata } = useCurrentUser();
+  const { user, metadata, logout } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
-  const { logout } = useLoginActions();
 
   // Initialize the form with default values
   const form = useForm<NostrMetadata>({
