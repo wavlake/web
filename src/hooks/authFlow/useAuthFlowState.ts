@@ -17,16 +17,17 @@ export type V3AuthStep =
   // Main flow
   | "method-selection"
   // Sign-up path
-  | "sign-up"         // User type selection (artist vs listener)
-  | "artist-type"     // Solo vs Band/Group selection
-  | "profile-setup"   // EditProfileForm step
+  | "sign-up" // User type selection (artist vs listener)
+  | "artist-type" // Solo vs Band/Group selection
+  | "profile-setup" // EditProfileForm step
   | "firebase-backup" // Email backup for artists
   // Sign-in path
-  | "nostr-auth"      // Primary Nostr authentication
-  | "legacy-auth"     // Firebase signin for migration
+  | "nostr-auth" // Primary Nostr authentication
+  | "legacy-auth" // Firebase signin for migration
   | "account-linking" // Link legacy Firebase to Nostr
+  | "account-generation" // Create new Nostr account and link to Firebase
   // Shared completion
-  | "welcome";        // Settings initialization + navigation
+  | "welcome"; // Settings initialization + navigation
 
 export interface V3AuthState {
   // Current step in the flow
@@ -41,6 +42,8 @@ export interface V3AuthState {
   canGoBack: boolean;
   // Error state
   error: string | null;
+  // Track if account was newly generated (needs profile setup)
+  isNewlyGeneratedAccount: boolean;
 }
 
 export type V3AuthAction =
@@ -53,6 +56,7 @@ export type V3AuthAction =
   | { type: "SELECT_SIGNUP" }
   | { type: "SELECT_SIGNIN" }
   | { type: "SELECT_LEGACY_AUTH" }
+  | { type: "SELECT_ACCOUNT_GENERATION" }
   // Sign-up flow actions
   | { type: "SET_USER_TYPE"; isArtist: boolean }
   | { type: "SET_ARTIST_TYPE"; isSoloArtist: boolean }
@@ -63,6 +67,7 @@ export type V3AuthAction =
   | { type: "NOSTR_AUTH_COMPLETE" }
   | { type: "LEGACY_AUTH_COMPLETE" }
   | { type: "ACCOUNT_LINKING_COMPLETE" }
+  | { type: "ACCOUNT_GENERATION_COMPLETE" }
   // Completion
   | { type: "WELCOME_COMPLETE" };
 
@@ -78,6 +83,7 @@ const initialState: V3AuthState = {
   completedSteps: [],
   canGoBack: false,
   error: null,
+  isNewlyGeneratedAccount: false,
 };
 
 // ============================================================================
@@ -117,6 +123,9 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
           return { ...state, step: "nostr-auth", canGoBack: true };
 
         case "account-linking":
+          return { ...state, step: "legacy-auth", canGoBack: true };
+
+        case "account-generation":
           return { ...state, step: "legacy-auth", canGoBack: true };
 
         case "welcome":
@@ -161,6 +170,14 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
         completedSteps: addCompletedStep("nostr-auth"),
       };
 
+    case "SELECT_ACCOUNT_GENERATION":
+      return {
+        ...state,
+        step: "account-generation",
+        canGoBack: true,
+        completedSteps: addCompletedStep("legacy-auth"),
+      };
+
     // Sign-up flow transitions
     case "SET_USER_TYPE":
       return {
@@ -189,8 +206,11 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
     case "PROFILE_CREATED":
       return {
         ...state,
-        step: state.isArtist ? "firebase-backup" : "welcome",
-        canGoBack: state.isArtist,
+        step:
+          state.isArtist && !state.isNewlyGeneratedAccount
+            ? "firebase-backup"
+            : "welcome",
+        canGoBack: state.isArtist && !state.isNewlyGeneratedAccount,
         completedSteps: addCompletedStep("profile-setup"),
       };
 
@@ -227,6 +247,15 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
         completedSteps: addCompletedStep("account-linking"),
       };
 
+    case "ACCOUNT_GENERATION_COMPLETE":
+      return {
+        ...state,
+        step: "welcome",
+        canGoBack: true,
+        isNewlyGeneratedAccount: true,
+        completedSteps: addCompletedStep("account-generation"),
+      };
+
     case "WELCOME_COMPLETE":
       return {
         ...state,
@@ -245,27 +274,29 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
 export interface UseAuthFlowStateResult {
   // Current state
   state: V3AuthState;
-  
+
   // State getters
   step: V3AuthStep;
   isArtist: boolean;
   isSoloArtist: boolean;
   canGoBack: boolean;
   error: string | null;
-  
+  isNewlyGeneratedAccount: boolean;
+
   // Action dispatchers
   dispatch: React.Dispatch<V3AuthAction>;
-  
+
   // Common actions (convenience methods)
   goBack: () => void;
   reset: () => void;
   setError: (error: string) => void;
   clearError: () => void;
-  
+
   // Step transitions
   selectSignup: () => void;
   selectSignin: () => void;
   selectLegacyAuth: () => void;
+  selectAccountGeneration: () => void;
   setUserType: (isArtist: boolean) => void;
   setArtistType: (isSoloArtist: boolean) => void;
   accountCreated: () => void;
@@ -274,6 +305,7 @@ export interface UseAuthFlowStateResult {
   nostrAuthComplete: () => void;
   legacyAuthComplete: () => void;
   accountLinkingComplete: () => void;
+  accountGenerationComplete: () => void;
   welcomeComplete: () => void;
 }
 
@@ -283,18 +315,18 @@ export interface UseAuthFlowStateResult {
 
 /**
  * Pure state machine for V3 authentication flow
- * 
+ *
  * This hook manages state transitions and navigation logic without any side effects.
  * It provides a clean interface for updating state and checking current flow status.
- * 
+ *
  * @example
  * ```tsx
  * const { step, isArtist, selectSignup, setUserType } = useAuthFlowState();
- * 
+ *
  * if (step === "method-selection") {
  *   return <MethodSelection onSignup={selectSignup} />;
  * }
- * 
+ *
  * if (step === "sign-up") {
  *   return <UserTypeSelection onSelect={setUserType} />;
  * }
@@ -335,6 +367,10 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
     dispatch({ type: "SELECT_LEGACY_AUTH" });
   }, []);
 
+  const selectAccountGeneration = useCallback(() => {
+    dispatch({ type: "SELECT_ACCOUNT_GENERATION" });
+  }, []);
+
   const setUserType = useCallback((isArtist: boolean) => {
     dispatch({ type: "SET_USER_TYPE", isArtist });
   }, []);
@@ -367,6 +403,10 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
     dispatch({ type: "ACCOUNT_LINKING_COMPLETE" });
   }, []);
 
+  const accountGenerationComplete = useCallback(() => {
+    dispatch({ type: "ACCOUNT_GENERATION_COMPLETE" });
+  }, []);
+
   const welcomeComplete = useCallback(() => {
     dispatch({ type: "WELCOME_COMPLETE" });
   }, []);
@@ -374,27 +414,29 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
   return {
     // Current state
     state,
-    
+
     // State getters
     step: state.step,
     isArtist: state.isArtist,
     isSoloArtist: state.isSoloArtist,
     canGoBack: state.canGoBack,
     error: state.error,
-    
+    isNewlyGeneratedAccount: state.isNewlyGeneratedAccount,
+
     // Action dispatchers
     dispatch,
-    
+
     // Common actions
     goBack,
     reset,
     setError,
     clearError,
-    
+
     // Step transitions
     selectSignup,
     selectSignin,
     selectLegacyAuth,
+    selectAccountGeneration,
     setUserType,
     setArtistType,
     accountCreated,
@@ -403,6 +445,7 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
     nostrAuthComplete,
     legacyAuthComplete,
     accountLinkingComplete,
+    accountGenerationComplete,
     welcomeComplete,
   };
 }

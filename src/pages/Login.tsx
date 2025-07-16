@@ -11,6 +11,7 @@ import { GenericStep } from "@/components/auth/v3/GenericStep";
 import { NostrAuthForm } from "@/components/auth/v3/NostrAuthForm";
 import { FirebaseAuthForm } from "@/components/auth/v3/FirebaseAuthForm";
 import { EditProfileForm } from "@/components/EditProfileForm";
+import { AccountGeneration } from "@/components/auth/v3/AccountGeneration";
 import { useAuthFlowCoordinator } from "@/hooks/authFlow";
 import { useNavigate } from "react-router-dom";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
@@ -20,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NostrAvatar } from "@/components/NostrAvatar";
 
 const StartHeader = () => {
   return (
@@ -86,11 +88,13 @@ export default function Login() {
     handleSelectSignup,
     handleSelectSignin,
     handleSelectLegacyAuth,
+    handleSelectAccountGeneration,
     handleSetUserType,
     handleSetArtistType,
     handleNostrAuthComplete,
     handleLegacyAuthComplete,
     handleAccountLinkingComplete,
+    handleAccountGenerationComplete,
     handleProfileCreated,
     handleFirebaseBackupComplete,
     handleWelcomeComplete,
@@ -99,7 +103,21 @@ export default function Login() {
     clearError,
     logout,
   } = useAuthFlowCoordinator();
-
+  console.log({
+    step,
+    isArtist,
+    isSoloArtist,
+    canGoBack,
+    error,
+    currentUser,
+    metadata,
+    isLegacyArtist,
+    primaryPubkey,
+    artistsList,
+    isLoadingLegacyArtists,
+    isCreating,
+    hasSettingsEvent,
+  });
   // Helper functions for profile step (from SignUp.tsx)
   const getProfileStepDescription = () => {
     if (isArtist) {
@@ -124,13 +142,13 @@ export default function Login() {
   };
 
   const getLegacyAuthTitle = () => {
-    return firebaseUser ? "Legacy Wavlake Account" : "Link Your Accounts";
+    return firebaseUser ? "Legacy Wavlake Account" : "Legacy Wavlake Account";
   };
 
   const getLegacyAuthDesc = () => {
     return firebaseUser
       ? undefined
-      : "Sign in with your Nostr account to link it with your legacy Wavlake account";
+      : "Sign in with your legacy Wavlake account and we'll get you migrated.";
   };
 
   // Render based on current state
@@ -376,17 +394,44 @@ export default function Login() {
         </GenericStep>
       );
 
-    case "account-linking":
+    case "account-linking": {
+      const expectedPubkey = primaryPubkey?.pubkey;
+
+      // If no expected pubkey, redirect to account generation step
+      if (!expectedPubkey) {
+        handleSelectAccountGeneration();
+        return null;
+      }
+
       return (
         <GenericStep
           handleBack={handleBack}
-          title="Link Your Accounts"
-          description="Sign in with your Nostr account to link it with your legacy Wavlake account"
+          title="Sign in with linked Nostr account"
+          description="You have a nostr account linked to your legacy Wavlake account. Please sign in with that account."
         >
+          <NostrAvatar pubkey={expectedPubkey} size={64} includeName />
           <NostrAuthForm
-            expectedPubkey={primaryPubkey?.pubkey}
+            expectedPubkey={expectedPubkey}
             onComplete={handleAccountLinkingComplete}
           />
+        </GenericStep>
+      );
+    }
+
+    case "account-generation":
+      return (
+        <GenericStep
+          handleBack={handleBack}
+          title={
+            isLegacyArtist ? "Create New Artist Account" : "Create New Account"
+          }
+          description={
+            isLegacyArtist
+              ? "Let's setup your new Artist account."
+              : "Let's setup your new account."
+          }
+        >
+          <AccountGeneration onComplete={handleAccountGenerationComplete} />
         </GenericStep>
       );
 
@@ -427,8 +472,6 @@ export default function Login() {
     }
 
     default:
-      // This shouldn't happen with proper TypeScript, but handle gracefully
-      console.error("Unknown auth flow state:", step);
       return <div>An unexpected error occurred. Please refresh the page.</div>;
   }
 }

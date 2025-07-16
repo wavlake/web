@@ -23,10 +23,8 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import {
-  useUnlinkFirebaseAccount,
-  useLinkFirebaseAccount,
-} from "@/hooks/useAccountLinking";
+import { useLinkAccount } from "@/hooks/useLinkAccount";
+import { useUnlinkAccount } from "@/hooks/useUnlinkAccount";
 import { LoginButton } from "@/components/auth/v3/LoginButton";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
 import {
@@ -51,8 +49,8 @@ export default function AccountLinking() {
     email,
     isLoading: isCheckingStatus,
   } = useAccountLinkingStatus();
-  const unlinkAccount = useUnlinkFirebaseAccount();
-  const linkAccount = useLinkFirebaseAccount();
+  const linkAccountMutation = useLinkAccount();
+  const unlinkAccountMutation = useUnlinkAccount();
 
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -102,7 +100,7 @@ export default function AccountLinking() {
 
   const handleUnlinkConfirm = async () => {
     try {
-      const result = await unlinkAccount.mutateAsync();
+      const result = await unlinkAccountMutation.mutateAsync(user?.pubkey || "");
       toast.success(result.message || "Account unlinked successfully!");
       setShowUnlinkConfirm(false);
     } catch (error: any) {
@@ -135,7 +133,7 @@ export default function AccountLinking() {
     setIsLinkingInProgress(true);
     try {
       // Link the Nostr pubkey to the Firebase account
-      await linkAccount.mutateAsync();
+      await linkAccountMutation.mutateAsync();
       toast.success("Account linked successfully!");
       // The linking status will update automatically via React Query
       // No need for hard refresh - the UI will react to the state change
@@ -256,9 +254,9 @@ export default function AccountLinking() {
                     size="sm"
                     variant="outline"
                     onClick={handleUnlinkClick}
-                    disabled={unlinkAccount.isPending}
+                    disabled={unlinkAccountMutation.isPending}
                   >
-                    {unlinkAccount.isPending ? (
+                    {unlinkAccountMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Unlinking...
@@ -469,7 +467,7 @@ export default function AccountLinking() {
         isOpen={showUnlinkConfirm}
         onClose={() => setShowUnlinkConfirm(false)}
         onConfirm={handleUnlinkConfirm}
-        isLoading={unlinkAccount.isPending}
+        isLoading={unlinkAccountMutation.isPending}
         email={email || undefined}
         linkedFirebaseUid={firebaseUid || undefined}
         currentFirebaseUid={firebaseUser?.uid}

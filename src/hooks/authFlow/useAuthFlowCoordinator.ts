@@ -45,11 +45,13 @@ export interface UseAuthFlowCoordinatorResult {
   handleSelectSignup: () => void;
   handleSelectSignin: () => void;
   handleSelectLegacyAuth: () => void;
+  handleSelectAccountGeneration: () => void;
   handleSetUserType: (isArtist: boolean) => Promise<void>;
   handleSetArtistType: (isSoloArtist: boolean) => Promise<void>;
   handleNostrAuthComplete: () => void;
   handleLegacyAuthComplete: () => void;
   handleAccountLinkingComplete: () => void;
+  handleAccountGenerationComplete: () => void;
   handleProfileCreated: () => void;
   handleFirebaseBackupComplete: () => Promise<void>;
   handleWelcomeComplete: () => Promise<void>;
@@ -67,14 +69,14 @@ export interface UseAuthFlowCoordinatorResult {
 
 /**
  * Coordinates all auth flow hooks and provides unified interface
- * 
+ *
  * This hook maintains backward compatibility with the original useV3AuthFlow
  * interface while using the new modular architecture under the hood.
- * 
+ *
  * @example
  * ```tsx
  * const authFlow = useAuthFlowCoordinator();
- * 
+ *
  * // Same API as original useV3AuthFlow
  * if (authFlow.step === "method-selection") {
  *   return <MethodSelection onSignup={authFlow.handleSelectSignup} />;
@@ -83,7 +85,7 @@ export interface UseAuthFlowCoordinatorResult {
  */
 export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
   const navigate = useNavigate();
-  const { logout } = useCurrentUser();
+  const { logout, user: currentUser } = useCurrentUser();
   const { updateSettings, hasSettingsEvent, settings } = useAppSettings();
 
   // ============================================================================
@@ -104,6 +106,7 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     selectSignup,
     selectSignin,
     selectLegacyAuth,
+    selectAccountGeneration,
     setUserType,
     setArtistType,
     profileCreated,
@@ -111,6 +114,7 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     nostrAuthComplete,
     legacyAuthComplete,
     accountLinkingComplete,
+    accountGenerationComplete,
     welcomeComplete,
   } = stateFlow;
 
@@ -139,7 +143,6 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     selectLegacyAuth,
   });
 
-
   // ============================================================================
   // Completion and Navigation Logic
   // ============================================================================
@@ -151,7 +154,7 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
   const handleWelcomeComplete = useCallback(async () => {
     try {
       let finalIsArtist: boolean;
-      
+
       if (hasSettingsEvent) {
         // Use existing settings
         finalIsArtist = settings?.isArtist ?? false;
@@ -162,11 +165,11 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
           setError("Checking your account settings...");
           return;
         }
-        
+
         // Legacy artists check complete - use results to determine artist status
         const legacyArtists = signinFlow.artistsList || [];
         finalIsArtist = legacyArtists.length > 0;
-        
+
         // Create settings event based on legacy artist results
         await updateSettings({ isArtist: finalIsArtist });
       }
@@ -214,13 +217,23 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     signinFlow.handleSelectLegacyAuth();
   }, [signinFlow]);
 
-  const handleSetUserType = useCallback(async (selectedIsArtist: boolean) => {
-    await signupFlow.handleSetUserType(selectedIsArtist);
-  }, [signupFlow]);
+  const handleSelectAccountGeneration = useCallback(() => {
+    selectAccountGeneration();
+  }, [selectAccountGeneration]);
 
-  const handleSetArtistType = useCallback(async (selectedIsSoloArtist: boolean) => {
-    await signupFlow.handleSetArtistType(selectedIsSoloArtist);
-  }, [signupFlow]);
+  const handleSetUserType = useCallback(
+    async (selectedIsArtist: boolean) => {
+      await signupFlow.handleSetUserType(selectedIsArtist);
+    },
+    [signupFlow]
+  );
+
+  const handleSetArtistType = useCallback(
+    async (selectedIsSoloArtist: boolean) => {
+      await signupFlow.handleSetArtistType(selectedIsSoloArtist);
+    },
+    [signupFlow]
+  );
 
   const handleNostrAuthComplete = useCallback(() => {
     signinFlow.handleNostrAuthComplete();
@@ -238,6 +251,15 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
       setError("Failed to complete account linking. Please try again.");
     }
   }, [accountLinkingComplete, setError]);
+
+  const handleAccountGenerationComplete = useCallback(() => {
+    try {
+      accountGenerationComplete();
+    } catch (error) {
+      console.error("Account generation completion failed:", error);
+      setError("Failed to complete account generation. Please try again.");
+    }
+  }, [accountGenerationComplete, setError]);
 
   const handleProfileCreated = useCallback(() => {
     signupFlow.handleProfileCreated();
@@ -276,11 +298,13 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     handleSelectSignup,
     handleSelectSignin,
     handleSelectLegacyAuth,
+    handleSelectAccountGeneration,
     handleSetUserType,
     handleSetArtistType,
     handleNostrAuthComplete,
     handleLegacyAuthComplete,
     handleAccountLinkingComplete,
+    handleAccountGenerationComplete,
     handleProfileCreated,
     handleFirebaseBackupComplete,
     handleWelcomeComplete,
@@ -300,7 +324,9 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
 /**
  * Get current flow type based on step
  */
-export function getCurrentFlowType(step: V3AuthStep): "signup" | "signin" | "linking" | "welcome" | "selection" {
+export function getCurrentFlowType(
+  step: V3AuthStep
+): "signup" | "signin" | "linking" | "generation" | "welcome" | "selection" {
   switch (step) {
     case "method-selection":
       return "selection";
@@ -314,6 +340,8 @@ export function getCurrentFlowType(step: V3AuthStep): "signup" | "signin" | "lin
       return "signin";
     case "account-linking":
       return "linking";
+    case "account-generation":
+      return "generation";
     case "welcome":
       return "welcome";
     default:
@@ -326,7 +354,7 @@ export function getCurrentFlowType(step: V3AuthStep): "signup" | "signin" | "lin
  */
 export function getFlowProgress(step: V3AuthStep, isArtist: boolean): number {
   const flowType = getCurrentFlowType(step);
-  
+
   switch (flowType) {
     case "signup": {
       const steps = isArtist
@@ -342,6 +370,8 @@ export function getFlowProgress(step: V3AuthStep, isArtist: boolean): number {
     }
     case "linking":
       return 90; // Near completion
+    case "generation":
+      return 85; // Account generation step
     case "welcome":
       return 100;
     default:
@@ -353,8 +383,5 @@ export function getFlowProgress(step: V3AuthStep, isArtist: boolean): number {
  * Check if current step allows going back
  */
 export function canGoBackFromStep(step: V3AuthStep): boolean {
-  return ![
-    "method-selection",
-    "welcome"
-  ].includes(step);
+  return !["method-selection", "welcome"].includes(step);
 }
