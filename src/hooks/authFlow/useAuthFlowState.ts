@@ -1,58 +1,45 @@
 /**
- * V3 Authentication Flow State Machine
+ * Pure Authentication Flow State Machine
  *
- * This hook consolidates the auth flows from Login.tsx, SignIn.tsx, and SignUp.tsx
- * into a single state machine while preserving all existing UX and business logic.
+ * This hook manages the core state transitions and navigation logic
+ * for the V3 authentication flow without any side effects or external API calls.
  */
 
-import { useReducer, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useReducer, useCallback } from "react";
 import { User as FirebaseUser } from "firebase/auth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import useAppSettings from "@/hooks/useAppSettings";
-import { useLegacyArtists } from "@/hooks/useLegacyApi";
-import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
-import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
-import { useV3CreateAccount } from "@/components/auth/v3/useV3CreateAccount";
+import { NUser } from "@nostrify/react/login";
 
 // ============================================================================
-// Types - Based on Current V3 Implementation
+// Types - Extracted from original useV3AuthFlow
 // ============================================================================
 
 export type V3AuthStep =
   // Main flow
   | "method-selection"
-
   // Sign-up path
-  | "sign-up" // User type selection (artist vs listener)
-  | "artist-type" // Solo vs Band/Group selection
-  | "profile-setup" // EditProfileForm step
+  | "sign-up"         // User type selection (artist vs listener)
+  | "artist-type"     // Solo vs Band/Group selection
+  | "profile-setup"   // EditProfileForm step
   | "firebase-backup" // Email backup for artists
-
   // Sign-in path
-  | "nostr-auth" // Primary Nostr authentication
-  | "legacy-auth" // Firebase signin for migration
+  | "nostr-auth"      // Primary Nostr authentication
+  | "legacy-auth"     // Firebase signin for migration
   | "account-linking" // Link legacy Firebase to Nostr
-
   // Shared completion
-  | "welcome"; // Settings initialization + navigation
+  | "welcome";        // Settings initialization + navigation
 
 export interface V3AuthState {
   // Current step in the flow
   step: V3AuthStep;
-
   // User type state (from SignUp.tsx)
   isArtist: boolean;
   isSoloArtist: boolean;
-
   // Current user and Firebase state
-  currentUser: any;
+  currentUser: NUser | null;
   firebaseUser: FirebaseUser | null;
-
   // Navigation and flow tracking
   completedSteps: V3AuthStep[];
   canGoBack: boolean;
-
   // Error state
   error: string | null;
 }
@@ -63,24 +50,20 @@ export type V3AuthAction =
   | { type: "RESET" }
   | { type: "SET_ERROR"; error: string }
   | { type: "CLEAR_ERROR" }
-
   // Main flow actions
   | { type: "SELECT_SIGNUP" }
   | { type: "SELECT_SIGNIN" }
   | { type: "SELECT_LEGACY_AUTH" }
-
-  // Sign-up flow actions (preserving SignUp.tsx logic)
+  // Sign-up flow actions
   | { type: "SET_USER_TYPE"; isArtist: boolean }
   | { type: "SET_ARTIST_TYPE"; isSoloArtist: boolean }
   | { type: "ACCOUNT_CREATED" }
   | { type: "PROFILE_CREATED" }
   | { type: "FIREBASE_BACKUP_COMPLETE" }
-
-  // Sign-in flow actions (preserving SignIn.tsx logic)
+  // Sign-in flow actions
   | { type: "NOSTR_AUTH_COMPLETE" }
   | { type: "LEGACY_AUTH_COMPLETE"; firebaseUser: FirebaseUser }
   | { type: "ACCOUNT_LINKING_COMPLETE" }
-
   // Completion
   | { type: "WELCOME_COMPLETE" };
 
@@ -100,7 +83,7 @@ const initialState: V3AuthState = {
 };
 
 // ============================================================================
-// Reducer - Preserving Current Logic Patterns
+// Reducer - Pure State Transitions
 // ============================================================================
 
 function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
@@ -177,7 +160,7 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
         completedSteps: addCompletedStep("nostr-auth"),
       };
 
-    // Sign-up flow transitions (preserving SignUp.tsx logic)
+    // Sign-up flow transitions
     case "SET_USER_TYPE":
       return {
         ...state,
@@ -200,7 +183,6 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
       return {
         ...state,
         // Stay on current step, but now user is logged in
-        // No need to track account creation as a completed step
       };
 
     case "PROFILE_CREATED":
@@ -219,7 +201,7 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
         completedSteps: addCompletedStep("firebase-backup"),
       };
 
-    // Sign-in flow transitions (preserving SignIn.tsx logic)
+    // Sign-in flow transitions
     case "NOSTR_AUTH_COMPLETE":
       return {
         ...state,
@@ -257,162 +239,82 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
 }
 
 // ============================================================================
-// Main Hook - Encapsulating Side Effects and Business Logic
+// Hook Interface
 // ============================================================================
 
-export function useV3AuthFlow() {
-  const navigate = useNavigate();
+export interface UseAuthFlowStateResult {
+  // Current state
+  state: V3AuthState;
+  
+  // State getters
+  step: V3AuthStep;
+  isArtist: boolean;
+  isSoloArtist: boolean;
+  firebaseUser: FirebaseUser | null;
+  canGoBack: boolean;
+  error: string | null;
+  
+  // Action dispatchers
+  dispatch: React.Dispatch<V3AuthAction>;
+  
+  // Common actions (convenience methods)
+  goBack: () => void;
+  reset: () => void;
+  setError: (error: string) => void;
+  clearError: () => void;
+  
+  // Step transitions
+  selectSignup: () => void;
+  selectSignin: () => void;
+  selectLegacyAuth: () => void;
+  setUserType: (isArtist: boolean) => void;
+  setArtistType: (isSoloArtist: boolean) => void;
+  accountCreated: () => void;
+  profileCreated: () => void;
+  firebaseBackupComplete: () => void;
+  nostrAuthComplete: () => void;
+  legacyAuthComplete: (firebaseUser: FirebaseUser) => void;
+  accountLinkingComplete: () => void;
+  welcomeComplete: () => void;
+}
+
+// ============================================================================
+// Main Hook
+// ============================================================================
+
+/**
+ * Pure state machine for V3 authentication flow
+ * 
+ * This hook manages state transitions and navigation logic without any side effects.
+ * It provides a clean interface for updating state and checking current flow status.
+ * 
+ * @example
+ * ```tsx
+ * const { step, isArtist, selectSignup, setUserType } = useAuthFlowState();
+ * 
+ * if (step === "method-selection") {
+ *   return <MethodSelection onSignup={selectSignup} />;
+ * }
+ * 
+ * if (step === "sign-up") {
+ *   return <UserTypeSelection onSelect={setUserType} />;
+ * }
+ * ```
+ */
+export function useAuthFlowState(): UseAuthFlowStateResult {
   const [state, dispatch] = useReducer(v3AuthReducer, initialState);
 
-  // Existing hooks - reusing all current logic
-  const { user, logout, metadata } = useCurrentUser();
-  const { settings, updateSettings, hasSettingsEvent } = useAppSettings();
-  const { data: legacyArtists, isLoading: isLoadingLegacyArtists } =
-    useLegacyArtists();
-  const { primaryPubkey } = useLinkedPubkeys();
-  const { autoLink } = useAutoLinkPubkey();
-  const { createAccount, isCreating } = useV3CreateAccount();
-
-  // ============================================================================
-  // Business Logic - Preserving Current Implementation
-  // ============================================================================
-
-  // Artist detection logic (from SignIn.tsx)
-  const artistsList = legacyArtists?.artists ?? [];
-  const isLegacyArtist = artistsList.length > 0;
-  const finalIsArtist = settings?.isArtist ?? isLegacyArtist;
-
-  // ============================================================================
-  // Action Handlers - Wrapping Existing Logic
-  // ============================================================================
-
-  const handleBack = useCallback(() => {
+  // Common action helpers
+  const goBack = useCallback(() => {
     if (state.canGoBack) {
       dispatch({ type: "GO_BACK" });
     }
   }, [state.canGoBack]);
 
-  const handleSelectSignup = useCallback(() => {
-    dispatch({ type: "SELECT_SIGNUP" });
-  }, []);
-
-  const handleSelectSignin = useCallback(() => {
-    dispatch({ type: "SELECT_SIGNIN" });
-  }, []);
-
-  const handleSelectLegacyAuth = useCallback(() => {
-    dispatch({ type: "SELECT_LEGACY_AUTH" });
-  }, []);
-
-  const handleSetUserType = useCallback(
-    async (isArtist: boolean) => {
-      dispatch({ type: "SET_USER_TYPE", isArtist });
-
-      // For listeners, create account immediately since they skip artist-type step
-      if (!isArtist) {
-        try {
-          await createAccount();
-          dispatch({ type: "ACCOUNT_CREATED" });
-        } catch (error) {
-          console.error("Account creation failed:", error);
-          dispatch({
-            type: "SET_ERROR",
-            error: "Failed to create account. Please try again.",
-          });
-        }
-      }
-    },
-    [createAccount]
-  );
-
-  const handleSetArtistType = useCallback(
-    async (isSoloArtist: boolean) => {
-      dispatch({ type: "SET_ARTIST_TYPE", isSoloArtist });
-
-      // Create account immediately after artist type selection so EditProfileForm has a user
-      try {
-        await createAccount();
-        dispatch({ type: "ACCOUNT_CREATED" });
-      } catch (error) {
-        console.error("Account creation failed:", error);
-        dispatch({
-          type: "SET_ERROR",
-          error: "Failed to create account. Please try again.",
-        });
-      }
-    },
-    [createAccount]
-  );
-
-  const handleNostrAuthComplete = useCallback(() => {
-    dispatch({ type: "NOSTR_AUTH_COMPLETE" });
-  }, []);
-
-  const handleLegacyAuthComplete = useCallback((firebaseUser: FirebaseUser) => {
-    dispatch({ type: "LEGACY_AUTH_COMPLETE", firebaseUser });
-  }, []);
-
-  const handleAccountLinkingComplete = useCallback(() => {
-    dispatch({ type: "ACCOUNT_LINKING_COMPLETE" });
-  }, []);
-
-  const handleProfileCreated = useCallback(() => {
-    dispatch({ type: "PROFILE_CREATED" });
-  }, []);
-
-  const handleFirebaseBackupComplete = useCallback(
-    async (firebaseUser: FirebaseUser) => {
-      // Auto-link logic from SignUp.tsx
-      if (user && firebaseUser) {
-        try {
-          await autoLink(firebaseUser, user.pubkey);
-        } catch (error) {
-          console.error("Auto-linking failed:", error);
-          // Continue anyway - linking is optional
-        }
-      }
-      dispatch({ type: "FIREBASE_BACKUP_COMPLETE" });
-    },
-    [autoLink, user]
-  );
-
-  const handleWelcomeComplete = useCallback(async () => {
-    // Settings initialization logic (from SignIn.tsx and SignUp.tsx)
-    try {
-      // Create settings event if none exists (from SignIn.tsx welcome logic)
-      if (!hasSettingsEvent) {
-        await updateSettings({ isArtist: state.isArtist || finalIsArtist });
-      }
-
-      // Navigation logic (preserving current patterns)
-      if (state.isArtist || finalIsArtist) {
-        navigate("/dashboard");
-      } else {
-        navigate("/groups");
-      }
-
-      dispatch({ type: "WELCOME_COMPLETE" });
-    } catch (error) {
-      console.error("Welcome completion failed:", error);
-      dispatch({
-        type: "SET_ERROR",
-        error: "Failed to complete setup. Please try again.",
-      });
-    }
-  }, [
-    hasSettingsEvent,
-    updateSettings,
-    state.isArtist,
-    finalIsArtist,
-    navigate,
-  ]);
-
-  // Reset function
   const reset = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
 
-  // Error handling
   const setError = useCallback((error: string) => {
     dispatch({ type: "SET_ERROR", error });
   }, []);
@@ -421,46 +323,88 @@ export function useV3AuthFlow() {
     dispatch({ type: "CLEAR_ERROR" });
   }, []);
 
-  // ============================================================================
-  // Return Interface
-  // ============================================================================
+  // Step transition helpers
+  const selectSignup = useCallback(() => {
+    dispatch({ type: "SELECT_SIGNUP" });
+  }, []);
+
+  const selectSignin = useCallback(() => {
+    dispatch({ type: "SELECT_SIGNIN" });
+  }, []);
+
+  const selectLegacyAuth = useCallback(() => {
+    dispatch({ type: "SELECT_LEGACY_AUTH" });
+  }, []);
+
+  const setUserType = useCallback((isArtist: boolean) => {
+    dispatch({ type: "SET_USER_TYPE", isArtist });
+  }, []);
+
+  const setArtistType = useCallback((isSoloArtist: boolean) => {
+    dispatch({ type: "SET_ARTIST_TYPE", isSoloArtist });
+  }, []);
+
+  const accountCreated = useCallback(() => {
+    dispatch({ type: "ACCOUNT_CREATED" });
+  }, []);
+
+  const profileCreated = useCallback(() => {
+    dispatch({ type: "PROFILE_CREATED" });
+  }, []);
+
+  const firebaseBackupComplete = useCallback(() => {
+    dispatch({ type: "FIREBASE_BACKUP_COMPLETE" });
+  }, []);
+
+  const nostrAuthComplete = useCallback(() => {
+    dispatch({ type: "NOSTR_AUTH_COMPLETE" });
+  }, []);
+
+  const legacyAuthComplete = useCallback((firebaseUser: FirebaseUser) => {
+    dispatch({ type: "LEGACY_AUTH_COMPLETE", firebaseUser });
+  }, []);
+
+  const accountLinkingComplete = useCallback(() => {
+    dispatch({ type: "ACCOUNT_LINKING_COMPLETE" });
+  }, []);
+
+  const welcomeComplete = useCallback(() => {
+    dispatch({ type: "WELCOME_COMPLETE" });
+  }, []);
 
   return {
     // Current state
+    state,
+    
+    // State getters
     step: state.step,
     isArtist: state.isArtist,
     isSoloArtist: state.isSoloArtist,
     firebaseUser: state.firebaseUser,
     canGoBack: state.canGoBack,
     error: state.error,
-
-    // Current user data (from existing hooks)
-    currentUser: user,
-    metadata,
-    isLegacyArtist,
-    primaryPubkey,
-    artistsList,
-    isLoadingLegacyArtists,
-    isCreating,
-
-    // Actions
-    handleBack,
-    handleSelectSignup,
-    handleSelectSignin,
-    handleSelectLegacyAuth,
-    handleSetUserType,
-    handleSetArtistType,
-    handleNostrAuthComplete,
-    handleLegacyAuthComplete,
-    handleAccountLinkingComplete,
-    handleProfileCreated,
-    handleFirebaseBackupComplete,
-    handleWelcomeComplete,
-
-    // Utilities
+    
+    // Action dispatchers
+    dispatch,
+    
+    // Common actions
+    goBack,
     reset,
     setError,
     clearError,
-    logout,
+    
+    // Step transitions
+    selectSignup,
+    selectSignin,
+    selectLegacyAuth,
+    setUserType,
+    setArtistType,
+    accountCreated,
+    profileCreated,
+    firebaseBackupComplete,
+    nostrAuthComplete,
+    legacyAuthComplete,
+    accountLinkingComplete,
+    welcomeComplete,
   };
 }

@@ -4,7 +4,7 @@ import { GenericStep } from "@/components/auth/v3/GenericStep";
 import { NostrAuthForm } from "@/components/auth/v3/NostrAuthForm";
 import { FirebaseAuthForm } from "@/components/auth/v3/FirebaseAuthForm";
 import { EditProfileForm } from "@/components/EditProfileForm";
-import { useV3AuthFlow } from "@/hooks/useV3AuthFlow";
+import { useAuthFlowCoordinator } from "@/hooks/authFlow";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -89,7 +89,7 @@ export default function Login() {
     setError,
     clearError,
     logout,
-  } = useV3AuthFlow();
+  } = useAuthFlowCoordinator();
 
   // Helper functions for profile step (from SignUp.tsx)
   const getProfileStepDescription = () => {
@@ -375,7 +375,7 @@ export default function Login() {
         </GenericStep>
       );
 
-    case "welcome":
+    case "welcome": {
       const finalIsArtist = isArtist || isLegacyArtist;
       return (
         <GenericStep
@@ -392,6 +392,7 @@ export default function Login() {
           </Button>
         </GenericStep>
       );
+    }
 
     default:
       // This shouldn't happen with proper TypeScript, but handle gracefully
