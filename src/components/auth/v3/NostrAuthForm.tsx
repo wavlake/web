@@ -146,10 +146,16 @@ export const NostrAuthForm = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Clear any existing errors
+    setErrors(prev => ({ ...prev, nsec: null }));
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
       handleNsecChange(content.trim());
+    };
+    reader.onerror = () => {
+      setErrors(prev => ({ ...prev, nsec: "Failed to read file. Please try again." }));
     };
     reader.readAsText(file);
   };
@@ -258,7 +264,7 @@ export const NostrAuthForm = ({
             </div>
             <input
               type="file"
-              accept=".txt"
+              accept=".txt,.key"
               className="hidden"
               ref={fileInputRef}
               onChange={handleFileUpload}
