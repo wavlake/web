@@ -1,4 +1,4 @@
-import { Sparkles, Mail, HeadphonesIcon, MicIcon } from "lucide-react";
+import { Sparkles, Mail, HeadphonesIcon, MicIcon, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GenericStep } from "@/components/auth/v3/GenericStep";
 import { NostrAuthForm } from "@/components/auth/v3/NostrAuthForm";
@@ -253,7 +253,7 @@ export default function Login() {
               disabled={isCreating}
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="w-5 h-5 shrink-0 bg-primary rounded-full" />
+                <User className="w-5 h-5 shrink-0 text-primary" />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="font-medium text-base">Solo Artist</div>
                   <div className="text-sm text-muted-foreground mt-1">
@@ -271,7 +271,7 @@ export default function Login() {
               disabled={isCreating}
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="w-5 h-5 shrink-0 bg-primary rounded-full" />
+                <Users className="w-5 h-5 shrink-0 text-primary" />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="font-medium text-base">Band/Group</div>
                   <div className="text-sm text-muted-foreground mt-1">
