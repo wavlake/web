@@ -144,6 +144,11 @@ export function useSignupFlow({
         // Update state first
         setArtistType(selectedIsSoloArtist);
 
+        if (user) {
+          // If user already exists, we can skip account creation
+          accountCreated();
+          return;
+        }
         // Create account immediately after artist type selection
         // so EditProfileForm has a user to work with
         await createAccount();
