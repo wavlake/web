@@ -8,14 +8,12 @@
 
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { User as FirebaseUser } from "firebase/auth";
 import { NUser } from "@nostrify/react/login";
 import useAppSettings from "@/hooks/useAppSettings";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthFlowState, type V3AuthStep } from "./useAuthFlowState";
 import { useSignupFlow } from "./useSignupFlow";
 import { useSigninFlow } from "./useSigninFlow";
-import { useAccountLinkingFlow } from "./useAccountLinkingFlow";
 import type { LinkedPubkey, NostrProfile } from "@/types/auth";
 
 // ============================================================================
@@ -27,7 +25,6 @@ export interface UseAuthFlowCoordinatorResult {
   step: V3AuthStep;
   isArtist: boolean;
   isSoloArtist: boolean;
-  firebaseUser: FirebaseUser | null;
   canGoBack: boolean;
   error: string | null;
 
@@ -51,10 +48,10 @@ export interface UseAuthFlowCoordinatorResult {
   handleSetUserType: (isArtist: boolean) => Promise<void>;
   handleSetArtistType: (isSoloArtist: boolean) => Promise<void>;
   handleNostrAuthComplete: () => void;
-  handleLegacyAuthComplete: (firebaseUser: FirebaseUser) => void;
+  handleLegacyAuthComplete: () => void;
   handleAccountLinkingComplete: () => void;
   handleProfileCreated: () => void;
-  handleFirebaseBackupComplete: (firebaseUser: FirebaseUser) => Promise<void>;
+  handleFirebaseBackupComplete: () => Promise<void>;
   handleWelcomeComplete: () => Promise<void>;
 
   // Utilities - maintaining original API
@@ -98,7 +95,6 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     step,
     isArtist,
     isSoloArtist,
-    firebaseUser,
     canGoBack,
     error,
     goBack,
@@ -137,19 +133,12 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
   const signinFlow = useSigninFlow({
     step,
     isArtist,
-    firebaseUser,
     setError,
     nostrAuthComplete,
     legacyAuthComplete,
     selectLegacyAuth,
   });
 
-  const linkingFlow = useAccountLinkingFlow({
-    step,
-    firebaseUser,
-    setError,
-    accountLinkingComplete,
-  });
 
   // ============================================================================
   // Completion and Navigation Logic
@@ -237,20 +226,25 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     signinFlow.handleNostrAuthComplete();
   }, [signinFlow]);
 
-  const handleLegacyAuthComplete = useCallback((firebaseUser: FirebaseUser) => {
-    signinFlow.handleLegacyAuthComplete(firebaseUser);
+  const handleLegacyAuthComplete = useCallback(() => {
+    signinFlow.handleLegacyAuthComplete();
   }, [signinFlow]);
 
   const handleAccountLinkingComplete = useCallback(() => {
-    linkingFlow.handleAccountLinkingComplete();
-  }, [linkingFlow]);
+    try {
+      accountLinkingComplete();
+    } catch (error) {
+      console.error("Account linking completion failed:", error);
+      setError("Failed to complete account linking. Please try again.");
+    }
+  }, [accountLinkingComplete, setError]);
 
   const handleProfileCreated = useCallback(() => {
     signupFlow.handleProfileCreated();
   }, [signupFlow]);
 
-  const handleFirebaseBackupComplete = useCallback(async (firebaseUser: FirebaseUser) => {
-    await signupFlow.handleFirebaseBackupComplete(firebaseUser);
+  const handleFirebaseBackupComplete = useCallback(async () => {
+    await signupFlow.handleFirebaseBackupComplete();
   }, [signupFlow]);
 
   // ============================================================================
@@ -262,7 +256,6 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     step,
     isArtist,
     isSoloArtist,
-    firebaseUser,
     canGoBack,
     error,
 

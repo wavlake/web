@@ -10,10 +10,10 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { User as FirebaseUser } from "firebase/auth";
 import { useV3CreateAccount } from "@/components/auth/v3/useV3CreateAccount";
 import { useAutoLinkPubkey } from "@/hooks/useAutoLinkPubkey";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import type { V3AuthStep } from "./useAuthFlowState";
 
 // ============================================================================
@@ -45,7 +45,7 @@ export interface UseSignupFlowResult {
   
   // Profile and completion handlers
   handleProfileCreated: () => void;
-  handleFirebaseBackupComplete: (firebaseUser: FirebaseUser) => Promise<void>;
+  handleFirebaseBackupComplete: () => Promise<void>;
   
   // Helper functions for UI
   getProfileStepDescription: () => string;
@@ -100,6 +100,7 @@ export function useSignupFlow({
   const { createAccount, isCreating } = useV3CreateAccount();
   const { autoLink } = useAutoLinkPubkey();
   const { user } = useCurrentUser();
+  const { user: firebaseUser } = useFirebaseAuth();
 
   // ============================================================================
   // User Type Selection Handlers
@@ -167,9 +168,9 @@ export function useSignupFlow({
    * Links Firebase account to Nostr account if possible
    */
   const handleFirebaseBackupComplete = useCallback(
-    async (firebaseUser: FirebaseUser) => {
+    async () => {
       try {
-        // Auto-link logic from original SignUp.tsx
+        // Auto-link logic using global Firebase auth state
         if (user && firebaseUser) {
           try {
             await autoLink(firebaseUser, user.pubkey);
@@ -185,7 +186,7 @@ export function useSignupFlow({
         setError("Failed to complete backup setup. Please try again.");
       }
     },
-    [autoLink, user, firebaseBackupComplete, setError]
+    [autoLink, user, firebaseUser, firebaseBackupComplete, setError]
   );
 
   // ============================================================================

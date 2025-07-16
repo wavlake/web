@@ -6,7 +6,6 @@
  */
 
 import { useReducer, useCallback } from "react";
-import { User as FirebaseUser } from "firebase/auth";
 import { NUser } from "@nostrify/react/login";
 import { logAuthState } from "@/lib/authStateLogger";
 
@@ -35,9 +34,8 @@ export interface V3AuthState {
   // User type state (from SignUp.tsx)
   isArtist: boolean;
   isSoloArtist: boolean;
-  // Current user and Firebase state
+  // Current user state
   currentUser: NUser | null;
-  firebaseUser: FirebaseUser | null;
   // Navigation and flow tracking
   completedSteps: V3AuthStep[];
   canGoBack: boolean;
@@ -63,7 +61,7 @@ export type V3AuthAction =
   | { type: "FIREBASE_BACKUP_COMPLETE" }
   // Sign-in flow actions
   | { type: "NOSTR_AUTH_COMPLETE" }
-  | { type: "LEGACY_AUTH_COMPLETE"; firebaseUser: FirebaseUser }
+  | { type: "LEGACY_AUTH_COMPLETE" }
   | { type: "ACCOUNT_LINKING_COMPLETE" }
   // Completion
   | { type: "WELCOME_COMPLETE" };
@@ -77,7 +75,6 @@ const initialState: V3AuthState = {
   isArtist: true,
   isSoloArtist: true,
   currentUser: null,
-  firebaseUser: null,
   completedSteps: [],
   canGoBack: false,
   error: null,
@@ -217,7 +214,6 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
     case "LEGACY_AUTH_COMPLETE":
       return {
         ...state,
-        firebaseUser: action.firebaseUser,
         step: "account-linking",
         canGoBack: true,
         completedSteps: addCompletedStep("legacy-auth"),
@@ -254,7 +250,6 @@ export interface UseAuthFlowStateResult {
   step: V3AuthStep;
   isArtist: boolean;
   isSoloArtist: boolean;
-  firebaseUser: FirebaseUser | null;
   canGoBack: boolean;
   error: string | null;
   
@@ -277,7 +272,7 @@ export interface UseAuthFlowStateResult {
   profileCreated: () => void;
   firebaseBackupComplete: () => void;
   nostrAuthComplete: () => void;
-  legacyAuthComplete: (firebaseUser: FirebaseUser) => void;
+  legacyAuthComplete: () => void;
   accountLinkingComplete: () => void;
   welcomeComplete: () => void;
 }
@@ -364,8 +359,8 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
     dispatch({ type: "NOSTR_AUTH_COMPLETE" });
   }, []);
 
-  const legacyAuthComplete = useCallback((firebaseUser: FirebaseUser) => {
-    dispatch({ type: "LEGACY_AUTH_COMPLETE", firebaseUser });
+  const legacyAuthComplete = useCallback(() => {
+    dispatch({ type: "LEGACY_AUTH_COMPLETE" });
   }, []);
 
   const accountLinkingComplete = useCallback(() => {
@@ -384,7 +379,6 @@ export function useAuthFlowState(): UseAuthFlowStateResult {
     step: state.step,
     isArtist: state.isArtist,
     isSoloArtist: state.isSoloArtist,
-    firebaseUser: state.firebaseUser,
     canGoBack: state.canGoBack,
     error: state.error,
     

@@ -9,7 +9,6 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { User as FirebaseUser } from "firebase/auth";
 import { NUser } from "@nostrify/react/login";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import useAppSettings from "@/hooks/useAppSettings";
@@ -26,12 +25,11 @@ export interface UseSigninFlowOptions {
   // Current state from state machine
   step: V3AuthStep;
   isArtist: boolean;
-  firebaseUser: FirebaseUser | null;
   
   // State update functions
   setError: (error: string) => void;
   nostrAuthComplete: () => void;
-  legacyAuthComplete: (firebaseUser: FirebaseUser) => void;
+  legacyAuthComplete: () => void;
   selectLegacyAuth: () => void;
 }
 
@@ -50,7 +48,7 @@ export interface UseSigninFlowResult {
   
   // Authentication handlers
   handleNostrAuthComplete: () => void;
-  handleLegacyAuthComplete: (firebaseUser: FirebaseUser) => void;
+  handleLegacyAuthComplete: () => void;
   handleSelectLegacyAuth: () => void;
   
   // Settings and navigation logic
@@ -88,7 +86,6 @@ export interface UseSigninFlowResult {
 export function useSigninFlow({
   step,
   isArtist,
-  firebaseUser,
   setError,
   nostrAuthComplete,
   legacyAuthComplete,
@@ -146,9 +143,9 @@ export function useSigninFlow({
    * Handle legacy Firebase authentication completion
    * Transitions to account linking step
    */
-  const handleLegacyAuthComplete = useCallback((firebaseUser: FirebaseUser) => {
+  const handleLegacyAuthComplete = useCallback(() => {
     try {
-      legacyAuthComplete(firebaseUser);
+      legacyAuthComplete();
     } catch (error) {
       console.error("Legacy auth completion failed:", error);
       setError("Failed to complete legacy authentication. Please try again.");

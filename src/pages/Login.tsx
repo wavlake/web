@@ -70,7 +70,6 @@ export default function Login() {
     step,
     isArtist,
     isSoloArtist,
-    firebaseUser,
     canGoBack,
     error,
     currentUser,

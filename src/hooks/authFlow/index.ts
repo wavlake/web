@@ -27,11 +27,6 @@ export type {
   UseSigninFlowResult 
 } from "./useSigninFlow";
 
-export { useAccountLinkingFlow } from "./useAccountLinkingFlow";
-export type { 
-  UseAccountLinkingFlowOptions, 
-  UseAccountLinkingFlowResult 
-} from "./useAccountLinkingFlow";
 
 // Main coordinator
 export { useAuthFlowCoordinator } from "./useAuthFlowCoordinator";
@@ -52,13 +47,6 @@ export {
   getAuthMethodDescription,
 } from "./useSigninFlow";
 
-export {
-  isAccountLinkingStep,
-  getLinkingStatusDescription,
-  validateLinkingRequirements,
-  getRecommendedAction,
-  formatAccountInfo,
-} from "./useAccountLinkingFlow";
 
 export {
   getCurrentFlowType,
