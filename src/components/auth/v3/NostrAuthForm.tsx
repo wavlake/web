@@ -45,9 +45,10 @@ export const NostrAuthForm = ({
     enteredPubkey: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
+  const { loginWithExtension, loginWithNsec, loginWithBunker } =
+    useCurrentUser();
   const { syncProfile } = useProfileSync();
-  
+
   // Utility function to extract pubkey from nsec
   const extractPubkeyFromNsec = (nsec: string): string | null => {
     try {
@@ -61,19 +62,21 @@ export const NostrAuthForm = ({
   };
 
   // Validation helpers
-  const isNsecValid = nsecValue.trim().length > 0 && nsecValue.startsWith("nsec1");
-  const isBunkerValid = bunkerUri.trim().length > 0 && bunkerUri.startsWith("bunker://");
+  const isNsecValid =
+    nsecValue.trim().length > 0 && nsecValue.startsWith("nsec1");
+  const isBunkerValid =
+    bunkerUri.trim().length > 0 && bunkerUri.startsWith("bunker://");
 
   // Enhanced nsec change handler with mismatch detection
   const handleNsecChange = (value: string) => {
     setNsecValue(value);
-    
+
     if (expectedPubkey && value.trim()) {
       const enteredPubkey = extractPubkeyFromNsec(value.trim());
       if (enteredPubkey && enteredPubkey !== expectedPubkey) {
         setMismatchWarning({
           expectedPubkey,
-          enteredPubkey
+          enteredPubkey,
         });
       } else {
         setMismatchWarning(null);
@@ -83,8 +86,8 @@ export const NostrAuthForm = ({
     }
   };
   const handleExtensionLogin = async () => {
-    setLoadingStates(prev => ({ ...prev, extension: true }));
-    setErrors(prev => ({ ...prev, extension: null }));
+    setLoadingStates((prev) => ({ ...prev, extension: true }));
+    setErrors((prev) => ({ ...prev, extension: null }));
     try {
       if (!("nostr" in window)) {
         throw new Error(
@@ -98,16 +101,20 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Extension login failed:", error);
-      setErrors(prev => ({ ...prev, extension: error instanceof Error ? error.message : "Extension login failed" }));
+      setErrors((prev) => ({
+        ...prev,
+        extension:
+          error instanceof Error ? error.message : "Extension login failed",
+      }));
     } finally {
-      setLoadingStates(prev => ({ ...prev, extension: false }));
+      setLoadingStates((prev) => ({ ...prev, extension: false }));
     }
   };
 
   const handleKeyLogin = async () => {
     if (!nsecValue.trim()) return;
-    setLoadingStates(prev => ({ ...prev, nsec: true }));
-    setErrors(prev => ({ ...prev, nsec: null }));
+    setLoadingStates((prev) => ({ ...prev, nsec: true }));
+    setErrors((prev) => ({ ...prev, nsec: null }));
 
     try {
       const loginInfo = loginWithNsec(nsecValue);
@@ -117,16 +124,19 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Nsec login failed:", error);
-      setErrors(prev => ({ ...prev, nsec: error instanceof Error ? error.message : "Nsec login failed" }));
+      setErrors((prev) => ({
+        ...prev,
+        nsec: error instanceof Error ? error.message : "Nsec login failed",
+      }));
     } finally {
-      setLoadingStates(prev => ({ ...prev, nsec: false }));
+      setLoadingStates((prev) => ({ ...prev, nsec: false }));
     }
   };
 
   const handleBunkerLogin = async () => {
     if (!bunkerUri.trim() || !bunkerUri.startsWith("bunker://")) return;
-    setLoadingStates(prev => ({ ...prev, bunker: true }));
-    setErrors(prev => ({ ...prev, bunker: null }));
+    setLoadingStates((prev) => ({ ...prev, bunker: true }));
+    setErrors((prev) => ({ ...prev, bunker: null }));
 
     try {
       const loginInfo = await loginWithBunker(bunkerUri);
@@ -136,9 +146,12 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Bunker login failed:", error);
-      setErrors(prev => ({ ...prev, bunker: error instanceof Error ? error.message : "Bunker login failed" }));
+      setErrors((prev) => ({
+        ...prev,
+        bunker: error instanceof Error ? error.message : "Bunker login failed",
+      }));
     } finally {
-      setLoadingStates(prev => ({ ...prev, bunker: false }));
+      setLoadingStates((prev) => ({ ...prev, bunker: false }));
     }
   };
 
@@ -147,7 +160,7 @@ export const NostrAuthForm = ({
     if (!file) return;
 
     // Clear any existing errors
-    setErrors(prev => ({ ...prev, nsec: null }));
+    setErrors((prev) => ({ ...prev, nsec: null }));
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -155,18 +168,13 @@ export const NostrAuthForm = ({
       handleNsecChange(content.trim());
     };
     reader.onerror = () => {
-      setErrors(prev => ({ ...prev, nsec: "Failed to read file. Please try again." }));
+      setErrors((prev) => ({
+        ...prev,
+        nsec: "Failed to read file. Please try again.",
+      }));
     };
     reader.readAsText(file);
   };
-
-  // {expectedPubkey && (
-  //   <NostrAvatar
-  //     pubkey={expectedPubkey || ""}
-  //     size={64}
-  //     includeName
-  //   />
-  // )}
   return (
     <Tabs
       defaultValue={"nostr" in window ? "extension" : "key"}
@@ -196,7 +204,9 @@ export const NostrAuthForm = ({
           onClick={handleExtensionLogin}
           disabled={loadingStates.extension}
         >
-          {loadingStates.extension ? "Connecting to extension..." : "Login with Extension"}
+          {loadingStates.extension
+            ? "Connecting to extension..."
+            : "Login with Extension"}
         </Button>
       </TabsContent>
 
@@ -209,9 +219,7 @@ export const NostrAuthForm = ({
         )}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nsec">
-              Enter your nsec
-            </Label>
+            <Label htmlFor="nsec">Enter your nsec</Label>
             <div className="relative">
               <Input
                 id="nsec"
@@ -246,11 +254,16 @@ export const NostrAuthForm = ({
                   <div className="space-y-2">
                     <p className="font-medium">Account Mismatch Detected</p>
                     <p className="text-sm">
-                      The private key you entered belongs to a different account than expected.
+                      The private key you entered belongs to a different account
+                      than expected.
                     </p>
                     <div className="text-xs space-y-1 font-mono">
-                      <div>Expected: ...{mismatchWarning.expectedPubkey.slice(-8)}</div>
-                      <div>Entered: ...{mismatchWarning.enteredPubkey.slice(-8)}</div>
+                      <div>
+                        Expected: ...{mismatchWarning.expectedPubkey.slice(-8)}
+                      </div>
+                      <div>
+                        Entered: ...{mismatchWarning.enteredPubkey.slice(-8)}
+                      </div>
                     </div>
                   </div>
                 </AlertDescription>
@@ -284,12 +297,11 @@ export const NostrAuthForm = ({
             onClick={handleKeyLogin}
             disabled={loadingStates.nsec || !isNsecValid}
           >
-            {loadingStates.nsec 
-              ? "Verifying private key..." 
-              : mismatchWarning 
-                ? "Proceed with This Account" 
-                : "Login with Nsec"
-            }
+            {loadingStates.nsec
+              ? "Verifying private key..."
+              : mismatchWarning
+              ? "Proceed with This Account"
+              : "Login with Nsec"}
           </Button>
         </div>
       </TabsContent>
@@ -302,9 +314,7 @@ export const NostrAuthForm = ({
           </Alert>
         )}
         <div className="space-y-2">
-          <Label htmlFor="bunkerUri">
-            Bunker URI
-          </Label>
+          <Label htmlFor="bunkerUri">Bunker URI</Label>
           <Input
             id="bunkerUri"
             value={bunkerUri}
@@ -324,7 +334,9 @@ export const NostrAuthForm = ({
           onClick={handleBunkerLogin}
           disabled={loadingStates.bunker || !isBunkerValid}
         >
-          {loadingStates.bunker ? "Connecting to bunker..." : "Login with Bunker"}
+          {loadingStates.bunker
+            ? "Connecting to bunker..."
+            : "Login with Bunker"}
         </Button>
       </TabsContent>
     </Tabs>
