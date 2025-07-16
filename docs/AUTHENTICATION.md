@@ -380,18 +380,80 @@ await fetch("/v1/auth/link-pubkey", {
 
 ## 5. Technical Implementation
 
-### 5.1 Core Hooks System
+### 5.1 Decomposed Auth Architecture (2025 Refactor)
+
+The authentication system was completely refactored in 2025 to use a **modular, decomposed architecture** that replaced the monolithic auth flow with focused, single-responsibility hooks.
+
+#### Core State Management
+
+**useAuthFlowState Hook**
+
+```typescript
+const { step, isArtist, selectSignup, setUserType, goBack } =
+  useAuthFlowState();
+// Pure state machine managing auth flow transitions
+// Uses useReducer for predictable state management
+```
+
+**useAuthFlowCoordinator Hook**
+
+```typescript
+const authFlow = useAuthFlowCoordinator();
+// Main orchestrator coordinating all auth flows
+// Maintains backward compatibility with v3 interface
+// Handles navigation and completion logic
+```
+
+#### Business Logic Hooks
+
+**useSignupFlow Hook**
+
+```typescript
+const signupFlow = useSignupFlow({ step, isArtist, setError, ... });
+// Handles signup-specific logic (user type, account creation)
+// Manages profile creation and Firebase backup flows
+```
+
+**useSigninFlow Hook**
+
+```typescript
+const signinFlow = useSigninFlow({ step, setError, ... });
+// Manages signin flows including legacy account migration
+// Handles Nostr auth completion and Firebase integration
+```
+
+#### Legacy Account Management
+
+**useAccountLinkingStatus Hook**
+
+```typescript
+const { isLinked, firebaseUid, email, isLoading, error } =
+  useAccountLinkingStatus();
+```
+
+**useLinkAccount & useUnlinkAccount Hooks**
+
+```typescript
+const linkAccount = useLinkAccount();
+const unlinkAccount = useUnlinkAccount();
+// Enhanced with dual authentication and error handling
+// Uses import.meta.env for Vite compatibility
+```
+
+#### Enhanced User Management
+
+**useCurrentUser Hook**
 
 #### useCurrentUser Hook
 
 ```typescript
 const { user, users, metadata } = useCurrentUser();
-// user: NUser | undefined
+// user: NUser | undefined (Nostr user from Nostrify)
 // users: NUser[] (for multi-account scenarios)
 // metadata: NostrMetadata from kind 0 events
 ```
 
-**Purpose:** Primary interface for accessing authenticated user data
+**useLegacyMetadata Hook**
 
 #### useAccountLinkingStatus Hook
 
@@ -400,18 +462,91 @@ const { isLinked, firebaseUid, email, isLoading, error } =
   useAccountLinkingStatus();
 ```
 
-**Purpose:** Checks if current Nostr pubkey is linked to Firebase account
+### 5.2 UI Components (Current Architecture)
+
+#### Login Page (Central Auth Hub)
+
+**`src/pages/Login.tsx`**
+
+- **Step-based rendering** using useAuthFlowCoordinator
+- **Single page** handling all auth flows (signup, signin, account generation)
+- **Dynamic titles and descriptions** based on current step and user state
+- **Context-aware navigation** with smart back button functionality
+
+#### Core Auth Components
+
+**`src/components/auth/GenericStep.tsx`**
+
+- **Reusable step wrapper** for consistent UI across auth flows
+- **Navigation controls** with context-aware back button
+- **Error boundary integration** for graceful error handling
+
+**`src/components/auth/NostrAuthForm.tsx`**
+
+- **Tabbed interface** for Nostr authentication (Extension/Nsec/Bunker)
+- **Method detection** with automatic default selection
+- **File upload support** for private key import
+- **Real-time validation** with user feedback
+
+**`src/components/auth/FirebaseAuthForm.tsx`** (Enhanced)
+
+- **Legacy metadata integration** showing rich Wavlake profile data
+- **Progressive enhancement** (Firebase data → enhanced with legacy metadata)
+- **Dual mode** support (signin/signup) with dynamic UI
+- **Password strength indicators** and comprehensive validation
+
+**`src/components/auth/AccountGeneration.tsx`**
+
+- **Automatic account creation** for legacy users without Nostr accounts
+- **Auto-linking** integration with Firebase accounts
+- **Profile setup integration** using EditProfileForm
+- **Loading states** and error handling
+
+#### Guard Components
+
+**`src/components/auth/FirebaseActionGuard.tsx`**
+
+- **Protects owner-specific features** requiring Firebase authentication
+- **Graceful redirects** to account linking flows
+- **Role-aware enforcement** based on user permissions
+
+### 5.3 Dual Authentication System
+
+#### Intelligent API Authentication
+
+**`src/hooks/useLegacyApi.ts`** - Smart Authentication Routing
 
 #### useAccountLinking Hooks
 
 ```typescript
-const linkAccount = useLinkFirebaseAccount();
-const unlinkAccount = useUnlinkFirebaseAccount();
+// Automatic auth method selection for all legacy API calls
+async function fetchLegacyApi<T>(
+  endpoint: string,
+  signer: unknown,
+  getAuthToken?: () => Promise<string | null>
+): Promise<T> {
+  // 1. Try Firebase auth token first (preferred)
+  if (getAuthToken) {
+    try {
+      const firebaseToken = await getAuthToken();
+      if (firebaseToken) {
+        authHeader = `Bearer ${firebaseToken}`;
+      }
+    } catch (error) {
+      // 2. Fall back to NIP-98 if Firebase auth fails
+      authHeader = await createNip98AuthHeader(url, method, {}, signer);
+    }
+  }
+  // 3. Make authenticated request with optimal auth method
+}
 ```
 
-**Purpose:** Handles linking/unlinking operations with dual authentication
+**Key Features:**
 
-### 5.2 UI Components
+- **Firebase tokens preferred** for better performance and security
+- **NIP-98 fallback** when Firebase unavailable or expired
+- **Transparent switching** handled automatically by hooks
+- **Error resilience** with graceful degradation
 
 #### LoginButton Component
 
@@ -434,7 +569,7 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 - Role-aware enforcement
 - Non-blocking for basic features
 
-### 5.3 API Endpoints
+#### Account Unlinking
 
 #### Account Linking Status
 
@@ -454,11 +589,18 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 - **Auth**: Firebase token only
 - **Purpose**: Remove association between pubkey and Firebase UID
 
+#### Legacy Metadata
+
+- **Endpoint**: Legacy API endpoints via `useLegacyMetadata()`
+- **Auth**: Dual (Firebase preferred, NIP-98 fallback)
+- **Purpose**: Fetch rich user profile data from PostgreSQL backend
+- **Features**: Artwork, name, balance, creation date, profile URL
+
 ---
 
 ## 6. Current State & Analysis
 
-### 6.1 Current Implementation Status
+### 6.1 Current Implementation Status (Updated 2025)
 
 #### ✅ Working Well:
 
@@ -525,7 +667,7 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 
 ---
 
-## 7. File Reference
+## 7. File Reference (Updated 2025)
 
 ### Core Authentication Files:
 
@@ -543,7 +685,7 @@ const unlinkAccount = useUnlinkFirebaseAccount();
 - `/src/hooks/useAccountLinking.ts` - Link/unlink operations
 - `/src/hooks/useAccountLinkingStatus.ts` - Linking status checks
 - `/src/pages/AccountLinking.tsx` - Account management page
-- `/src/pages/LinkFirebase.tsx` - Firebase linking onboarding
+- `/src/components/auth/FirebaseActionGuard.tsx` - Access control for protected features
 
 ### Supporting Files:
 
