@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
-import { Shield, Upload, AlertCircle } from "lucide-react";
+import { Shield, Upload, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import {
   Tabs,
@@ -25,7 +26,11 @@ export const NostrAuthForm = ({
   onComplete?: () => void;
 }) => {
   // Fetch profile data for the expected pubkey
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({
+    extension: false,
+    nsec: false,
+    bunker: false,
+  });
   const [nsecValue, setNsecValue] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
   const [errors, setErrors] = useState({
@@ -33,11 +38,16 @@ export const NostrAuthForm = ({
     nsec: null as string | null,
     bunker: null as string | null,
   });
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
   const { syncProfile } = useProfileSync();
+  
+  // Validation helpers
+  const isNsecValid = nsecValue.trim().length > 0 && nsecValue.startsWith("nsec1");
+  const isBunkerValid = bunkerUri.trim().length > 0 && bunkerUri.startsWith("bunker://");
   const handleExtensionLogin = async () => {
-    setIsLoading(true);
+    setLoadingStates(prev => ({ ...prev, extension: true }));
     setErrors(prev => ({ ...prev, extension: null }));
     try {
       if (!("nostr" in window)) {
@@ -54,13 +64,13 @@ export const NostrAuthForm = ({
       console.error("Extension login failed:", error);
       setErrors(prev => ({ ...prev, extension: error instanceof Error ? error.message : "Extension login failed" }));
     } finally {
-      setIsLoading(false);
+      setLoadingStates(prev => ({ ...prev, extension: false }));
     }
   };
 
   const handleKeyLogin = async () => {
     if (!nsecValue.trim()) return;
-    setIsLoading(true);
+    setLoadingStates(prev => ({ ...prev, nsec: true }));
     setErrors(prev => ({ ...prev, nsec: null }));
 
     try {
@@ -73,13 +83,13 @@ export const NostrAuthForm = ({
       console.error("Nsec login failed:", error);
       setErrors(prev => ({ ...prev, nsec: error instanceof Error ? error.message : "Nsec login failed" }));
     } finally {
-      setIsLoading(false);
+      setLoadingStates(prev => ({ ...prev, nsec: false }));
     }
   };
 
   const handleBunkerLogin = async () => {
     if (!bunkerUri.trim() || !bunkerUri.startsWith("bunker://")) return;
-    setIsLoading(true);
+    setLoadingStates(prev => ({ ...prev, bunker: true }));
     setErrors(prev => ({ ...prev, bunker: null }));
 
     try {
@@ -92,7 +102,7 @@ export const NostrAuthForm = ({
       console.error("Bunker login failed:", error);
       setErrors(prev => ({ ...prev, bunker: error instanceof Error ? error.message : "Bunker login failed" }));
     } finally {
-      setIsLoading(false);
+      setLoadingStates(prev => ({ ...prev, bunker: false }));
     }
   };
 
@@ -142,9 +152,9 @@ export const NostrAuthForm = ({
         <Button
           className="w-full rounded-full py-6"
           onClick={handleExtensionLogin}
-          disabled={isLoading}
+          disabled={loadingStates.extension}
         >
-          {isLoading ? "Logging in..." : "Login with Extension"}
+          {loadingStates.extension ? "Connecting to extension..." : "Login with Extension"}
         </Button>
       </TabsContent>
 
@@ -157,19 +167,36 @@ export const NostrAuthForm = ({
         )}
         <div className="space-y-4">
           <div className="space-y-2">
-            <label
-              htmlFor="nsec"
-              className="text-sm font-medium text-foreground"
-            >
+            <Label htmlFor="nsec">
               Enter your nsec
-            </label>
-            <Input
-              id="nsec"
-              value={nsecValue}
-              onChange={(e) => setNsecValue(e.target.value)}
-              className="rounded-lg focus-visible:ring-primary"
-              placeholder="nsec1..."
-            />
+            </Label>
+            <div className="relative">
+              <Input
+                id="nsec"
+                type={showPassword ? "text" : "password"}
+                value={nsecValue}
+                onChange={(e) => setNsecValue(e.target.value)}
+                className="rounded-lg focus-visible:ring-primary pr-10"
+                placeholder="nsec1..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={loadingStates.nsec}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {nsecValue && !isNsecValid && (
+              <div className="text-destructive text-xs">
+                Invalid nsec format. Must start with "nsec1"
+              </div>
+            )}
           </div>
 
           <div className="text-center">
@@ -196,9 +223,9 @@ export const NostrAuthForm = ({
           <Button
             className="w-full rounded-full py-6 mt-4"
             onClick={handleKeyLogin}
-            disabled={isLoading || !nsecValue.trim()}
+            disabled={loadingStates.nsec || !isNsecValid}
           >
-            {isLoading ? "Verifying..." : "Login with Nsec"}
+            {loadingStates.nsec ? "Verifying private key..." : "Login with Nsec"}
           </Button>
         </div>
       </TabsContent>
@@ -211,12 +238,9 @@ export const NostrAuthForm = ({
           </Alert>
         )}
         <div className="space-y-2">
-          <label
-            htmlFor="bunkerUri"
-            className="text-sm font-medium text-foreground"
-          >
+          <Label htmlFor="bunkerUri">
             Bunker URI
-          </label>
+          </Label>
           <Input
             id="bunkerUri"
             value={bunkerUri}
@@ -234,11 +258,9 @@ export const NostrAuthForm = ({
         <Button
           className="w-full rounded-full py-6"
           onClick={handleBunkerLogin}
-          disabled={
-            isLoading || !bunkerUri.trim() || !bunkerUri.startsWith("bunker://")
-          }
+          disabled={loadingStates.bunker || !isBunkerValid}
         >
-          {isLoading ? "Connecting..." : "Login with Bunker"}
+          {loadingStates.bunker ? "Connecting to bunker..." : "Login with Bunker"}
         </Button>
       </TabsContent>
     </Tabs>
