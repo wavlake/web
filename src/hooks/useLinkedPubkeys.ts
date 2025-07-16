@@ -52,20 +52,3 @@ export function useLinkedPubkeys() {
   });
 }
 
-/**
- * Utility hook for getting account linking status
- */
-export function useAccountLinkingStatus() {
-  const { data: linkedPubkeys, isLoading, error, refetch } = useLinkedPubkeys();
-
-  return {
-    hasLinkedPubkeys: (linkedPubkeys || []).length > 0,
-    linkedCount: (linkedPubkeys || []).length,
-    linkedPubkeys: linkedPubkeys || [],
-    isLoading,
-    error,
-    refresh: refetch,
-    hasMultipleAccounts: (linkedPubkeys || []).length > 1,
-    primaryPubkey: (linkedPubkeys || [])[0],
-  };
-}

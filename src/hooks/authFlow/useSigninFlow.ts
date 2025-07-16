@@ -13,7 +13,7 @@ import { NUser } from "@nostrify/react/login";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import useAppSettings from "@/hooks/useAppSettings";
 import { useLegacyArtists } from "@/hooks/useLegacyApi";
-import { useAccountLinkingStatus } from "@/hooks/useLinkedPubkeys";
+import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
 import type { V3AuthStep } from "./useAuthFlowState";
 import type { LinkedPubkey, NostrProfile } from "@/types/auth";
 
@@ -25,7 +25,7 @@ export interface UseSigninFlowOptions {
   // Current state from state machine
   step: V3AuthStep;
   isArtist: boolean;
-  
+
   // State update functions
   setError: (error: string) => void;
   nostrAuthComplete: () => void;
@@ -37,20 +37,20 @@ export interface UseSigninFlowResult {
   // Current user data
   currentUser: NUser | undefined;
   metadata: NostrProfile | undefined;
-  
+
   // Legacy artist detection
   isLegacyArtist: boolean;
   artistsList: unknown[];
   isLoadingLegacyArtists: boolean;
-  
+
   // Account linking data
   primaryPubkey: LinkedPubkey | null;
-  
+
   // Authentication handlers
   handleNostrAuthComplete: () => void;
   handleLegacyAuthComplete: () => void;
   handleSelectLegacyAuth: () => void;
-  
+
   // Settings and navigation logic
   finalIsArtist: boolean;
   hasSettingsEvent: boolean;
@@ -62,11 +62,11 @@ export interface UseSigninFlowResult {
 
 /**
  * Manages signin flow business logic
- * 
+ *
  * This hook handles all the business logic for the signin flow including
  * Nostr authentication, legacy account migration, and artist detection.
  * It coordinates with external hooks to provide authentication data.
- * 
+ *
  * @example
  * ```tsx
  * const signinFlow = useSigninFlow({
@@ -78,7 +78,7 @@ export interface UseSigninFlowResult {
  *   legacyAuthComplete,
  *   selectLegacyAuth,
  * });
- * 
+ *
  * // In nostr-auth step
  * <NostrAuthForm onComplete={signinFlow.handleNostrAuthComplete} />
  * ```
@@ -91,12 +91,15 @@ export function useSigninFlow({
   legacyAuthComplete,
   selectLegacyAuth,
 }: UseSigninFlowOptions): UseSigninFlowResult {
-  
   // External hooks for authentication and user data
   const { user, metadata } = useCurrentUser();
   const { settings, hasSettingsEvent } = useAppSettings();
-  const { data: legacyArtists, isLoading: isLoadingLegacyArtists } = useLegacyArtists();
-  const { primaryPubkey } = useAccountLinkingStatus();
+  const { data: legacyArtists, isLoading: isLoadingLegacyArtists } =
+    useLegacyArtists();
+  const { data: linkedPubkeys } = useLinkedPubkeys();
+  const primaryPubkey = useMemo(() => {
+    return linkedPubkeys?.find((pubkey) => pubkey.isMostRecentlyLinked);
+  }, [linkedPubkeys]);
 
   // ============================================================================
   // Artist Detection Logic
@@ -173,20 +176,20 @@ export function useSigninFlow({
     // Current user data
     currentUser: user,
     metadata,
-    
+
     // Legacy artist detection
     isLegacyArtist,
     artistsList,
     isLoadingLegacyArtists,
-    
+
     // Account linking data
     primaryPubkey: primaryPubkey || null,
-    
+
     // Authentication handlers
     handleNostrAuthComplete,
     handleLegacyAuthComplete,
     handleSelectLegacyAuth,
-    
+
     // Settings and navigation logic
     finalIsArtist,
     hasSettingsEvent,
@@ -201,11 +204,7 @@ export function useSigninFlow({
  * Check if current step is part of signin flow
  */
 export function isSigninStep(step: V3AuthStep): boolean {
-  return [
-    "nostr-auth",
-    "legacy-auth",
-    "account-linking"
-  ].includes(step);
+  return ["nostr-auth", "legacy-auth", "account-linking"].includes(step);
 }
 
 /**
@@ -240,10 +239,10 @@ export function getSigninProgress(
   const steps = isLegacyFlow
     ? ["nostr-auth", "legacy-auth", "account-linking"]
     : ["nostr-auth"];
-  
+
   const currentIndex = steps.indexOf(step);
   if (currentIndex === -1) return 0;
-  
+
   return ((currentIndex + 1) / steps.length) * 100;
 }
 
