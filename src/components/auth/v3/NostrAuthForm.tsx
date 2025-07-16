@@ -13,6 +13,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
 import { NostrAvatar } from "@/components/NostrAvatar";
+import { nip19, getPublicKey } from "nostr-tools";
 
 export const NostrAuthForm = ({
   title,
@@ -39,13 +40,48 @@ export const NostrAuthForm = ({
     bunker: null as string | null,
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [mismatchWarning, setMismatchWarning] = useState<{
+    expectedPubkey: string;
+    enteredPubkey: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
   const { syncProfile } = useProfileSync();
   
+  // Utility function to extract pubkey from nsec
+  const extractPubkeyFromNsec = (nsec: string): string | null => {
+    try {
+      if (!nsec.startsWith("nsec1")) return null;
+      const { data: privateKey } = nip19.decode(nsec);
+      const publicKey = getPublicKey(privateKey as Uint8Array);
+      return publicKey;
+    } catch (error) {
+      return null;
+    }
+  };
+
   // Validation helpers
   const isNsecValid = nsecValue.trim().length > 0 && nsecValue.startsWith("nsec1");
   const isBunkerValid = bunkerUri.trim().length > 0 && bunkerUri.startsWith("bunker://");
+
+  // Enhanced nsec change handler with mismatch detection
+  const handleNsecChange = (value: string) => {
+    setNsecValue(value);
+    
+    if (expectedPubkey && value.trim()) {
+      const enteredPubkey = extractPubkeyFromNsec(value.trim());
+      if (enteredPubkey && enteredPubkey !== expectedPubkey) {
+        setMismatchWarning({
+          expectedPubkey,
+          enteredPubkey
+        });
+      } else {
+        setMismatchWarning(null);
+      }
+    } else {
+      setMismatchWarning(null);
+    }
+  };
   const handleExtensionLogin = async () => {
     setLoadingStates(prev => ({ ...prev, extension: true }));
     setErrors(prev => ({ ...prev, extension: null }));
@@ -113,7 +149,7 @@ export const NostrAuthForm = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setNsecValue(content.trim());
+      handleNsecChange(content.trim());
     };
     reader.readAsText(file);
   };
@@ -175,7 +211,7 @@ export const NostrAuthForm = ({
                 id="nsec"
                 type={showPassword ? "text" : "password"}
                 value={nsecValue}
-                onChange={(e) => setNsecValue(e.target.value)}
+                onChange={(e) => handleNsecChange(e.target.value)}
                 className="rounded-lg focus-visible:ring-primary pr-10"
                 placeholder="nsec1..."
               />
@@ -196,6 +232,23 @@ export const NostrAuthForm = ({
               <div className="text-destructive text-xs">
                 Invalid nsec format. Must start with "nsec1"
               </div>
+            )}
+            {mismatchWarning && (
+              <Alert className="mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p className="font-medium">Account Mismatch Detected</p>
+                    <p className="text-sm">
+                      The private key you entered belongs to a different account than expected.
+                    </p>
+                    <div className="text-xs space-y-1 font-mono">
+                      <div>Expected: ...{mismatchWarning.expectedPubkey.slice(-8)}</div>
+                      <div>Entered: ...{mismatchWarning.enteredPubkey.slice(-8)}</div>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
           </div>
 
@@ -225,7 +278,12 @@ export const NostrAuthForm = ({
             onClick={handleKeyLogin}
             disabled={loadingStates.nsec || !isNsecValid}
           >
-            {loadingStates.nsec ? "Verifying private key..." : "Login with Nsec"}
+            {loadingStates.nsec 
+              ? "Verifying private key..." 
+              : mismatchWarning 
+                ? "Proceed with This Account" 
+                : "Login with Nsec"
+            }
           </Button>
         </div>
       </TabsContent>
