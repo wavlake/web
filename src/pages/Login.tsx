@@ -57,7 +57,7 @@ const AUTH_METHODS: AuthMethodOption[] = [
 ];
 export default function Login() {
   const navigate = useNavigate();
-  
+
   // Use the consolidated auth flow
   const {
     step,
@@ -125,11 +125,11 @@ export default function Login() {
             header={StartHeader()}
           >
             <div className="flex flex-col gap-4">
-              <div>Signed in as: {metadata?.name || currentUser.pubkey.slice(0, 8)}</div>
+              <div>
+                Signed in as: {metadata?.name || currentUser.pubkey.slice(0, 8)}
+              </div>
               <Button onClick={() => navigate("/groups")}>Back to Home</Button>
-              <Button onClick={logout}>
-                Logout
-              </Button>
+              <Button onClick={logout}>Logout</Button>
             </div>
           </GenericStep>
         );
@@ -142,7 +142,10 @@ export default function Login() {
         >
           {AUTH_METHODS.map((method) => {
             const IconComponent = method.icon;
-            const handleClick = method.method === "sign-up" ? handleSelectSignup : handleSelectSignin;
+            const handleClick =
+              method.method === "sign-up"
+                ? handleSelectSignup
+                : handleSelectSignin;
 
             return (
               <Button
@@ -206,7 +209,7 @@ export default function Login() {
                   </div>
                 </div>
               </Button>
-              
+
               <Button
                 onClick={() => handleSetUserType(false)}
                 variant="outline"
@@ -259,7 +262,7 @@ export default function Login() {
                 </div>
               </div>
             </Button>
-            
+
             <Button
               onClick={() => handleSetArtistType(false)}
               variant="outline"
@@ -331,6 +334,7 @@ export default function Login() {
         >
           <NostrAuthForm onComplete={handleNostrAuthComplete} />
           <Button
+            variant="brand-purple"
             className="w-full rounded-full py-6"
             onClick={handleSelectLegacyAuth}
           >
@@ -357,16 +361,16 @@ export default function Login() {
       if (isLoadingLegacyArtists) {
         return <div>Loading legacy artists...</div>;
       }
-      
+
       return (
         <GenericStep
           handleBack={handleBack}
           title="Nostr Setup"
           description="Let's create a new Nostr identity for you"
         >
-          <NostrAuthForm 
+          <NostrAuthForm
             expectedPubkey={primaryPubkey?.pubkey}
-            onComplete={handleAccountLinkingComplete} 
+            onComplete={handleAccountLinkingComplete}
           />
         </GenericStep>
       );
@@ -376,7 +380,9 @@ export default function Login() {
       return (
         <GenericStep
           title="Welcome to Wavlake!"
-          description={`You're all set up as ${finalIsArtist ? 'an artist' : 'a listener'}. Let's get started!`}
+          description={`You're all set up as ${
+            finalIsArtist ? "an artist" : "a listener"
+          }. Let's get started!`}
         >
           <Button
             className="w-full rounded-full py-6"
