@@ -33,7 +33,7 @@ The project uses shadcn/ui components located in `@/components/ui`. These are un
 - **Badge**: Small status descriptors for UI elements
 - **Breadcrumb**: Navigation aid showing current location in hierarchy
 - **Button**: Customizable button with multiple variants and sizes
-- **Calendar**: Date picker component 
+- **Calendar**: Date picker component
 - **Card**: Container with header, content, and footer sections
 - **Carousel**: Slideshow for cycling through elements
 - **Chart**: Data visualization component
@@ -84,7 +84,7 @@ This project comes with custom hooks for querying and publishing events on the N
 The `useNostr` hook returns an object containing a `nostr` property, with `.query()` and `.event()` methods for querying and publishing Nostr events respectively.
 
 ```typescript
-import { useNostr } from '@nostrify/react';
+import { useNostr } from "@nostrify/react";
 
 function useCustomHook() {
   const { nostr } = useNostr();
@@ -98,14 +98,14 @@ function useCustomHook() {
 When querying Nostr, the best practice is to create custom hooks that combine `useNostr` and `useQuery` to get the required data.
 
 ```typescript
-import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/query';
+import { useNostr } from "@nostrify/react";
+import { useQuery } from "@tanstack/query";
 
 function usePosts() {
   const { nostr } = useNostr();
 
   return useQuery({
-    queryKey: ['posts'],
+    queryKey: ["posts"],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(1500)]);
       const events = await nostr.query([{ kinds: [1], limit: 20 }], { signal });
@@ -122,8 +122,8 @@ The data may be transformed into a more appropriate format if needed, and multip
 To display profile data for a user by their Nostr pubkey (such as an event author), use the `useAuthor` hook.
 
 ```tsx
-import { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
-import { useAuthor } from '@/hooks/useAuthor';
+import { NostrEvent, NostrMetadata } from "@nostrify/nostrify";
+import { useAuthor } from "@/hooks/useAuthor";
 
 function Post({ event }: { event: NostrEvent }) {
   const author = useAuthor(event.pubkey);
@@ -169,13 +169,13 @@ interface NostrMetadata {
 To publish events, use the `useNostrPublish` hook in this project.
 
 ```tsx
-import { useState } from 'react';
+import { useState } from "react";
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useNostrPublish } from "@/hooks/useNostrPublish";
 
 export function MyComponent() {
-  const [ data, setData] = useState<Record<string, string>>({});
+  const [data, setData] = useState<Record<string, string>>({});
 
   const { user } = useCurrentUser();
   const { mutate: createEvent } = useNostrPublish();
@@ -200,23 +200,23 @@ The `useCurrentUser` hook should be used to ensure that the user is logged in be
 
 ### Nostr Login
 
-To enable login with Nostr, simply use the `LoginArea` component already included in this project.
+To enable login with Nostr, simply use the `LoginButton` component already included in this project.
 
 ```tsx
-import { LoginArea } from "@/components/auth/LoginArea";
+import { LoginButton } from "@/components/auth/LoginButton";
 
 function MyComponent() {
   return (
     <div>
       {/* other components ... */}
 
-      <LoginArea />
+      <LoginButton />
     </div>
   );
 }
 ```
 
-The `LoginArea` component displays a "Log in" button when the user is logged out, and changes to an account switcher once the user is logged in. It handles all the login-related UI and interactions internally, including displaying login dialogs and switching between accounts. It should not be wrapped in any conditional logic.
+The `LoginButton` component displays a "Log in" button when the user is logged out, and changes to an account switcher once the user is logged in. It handles all the login-related UI and interactions internally, including displaying login dialogs and switching between accounts. It should not be wrapped in any conditional logic.
 
 ### `npub`, `naddr`, and other Nostr addresses
 
@@ -238,24 +238,21 @@ The base Nostr protocol uses hex string identifiers when filtering by event IDs 
 
 ```ts
 // ❌ Wrong: naddr is not decoded
-const events = await nostr.query(
-  [{ ids: [naddr] }],
-  { signal }
-);
+const events = await nostr.query([{ ids: [naddr] }], { signal });
 ```
 
 Corrected example:
 
 ```ts
 // Import nip19 from nostr-tools
-import { nip19 } from 'nostr-tools';
+import { nip19 } from "nostr-tools";
 
 // Decode a NIP-19 identifier
 const decoded = nip19.decode(value);
 
 // Optional: guard certain types (depending on the use-case)
-if (decoded.type !== 'naddr') {
-  throw new Error('Unsupported Nostr identifier');
+if (decoded.type !== "naddr") {
+  throw new Error("Unsupported Nostr identifier");
 }
 
 // Get the addr object
@@ -263,11 +260,13 @@ const naddr = decoded.data;
 
 // ✅ Correct: naddr is expanded into the correct filter
 const events = await nostr.query(
-  [{
-    kinds: [naddr.kind],
-    authors: [naddr.pubkey],
-    '#d': [naddr.identifier],
-  }],
+  [
+    {
+      kinds: [naddr.kind],
+      authors: [naddr.pubkey],
+      "#d": [naddr.identifier],
+    },
+  ],
   { signal }
 );
 ```
@@ -329,13 +328,15 @@ const { user } = useCurrentUser();
 
 // Optional guard to check that nip44 is available
 if (!user.signer.nip44) {
-  throw new Error("Please upgrade your signer extension to a version that supports NIP-44 encryption");
+  throw new Error(
+    "Please upgrade your signer extension to a version that supports NIP-44 encryption"
+  );
 }
 
 // Encrypt message to self
 const encrypted = await user.signer.nip44.encrypt(user.pubkey, "hello world");
 // Decrypt message to self
-const decrypted = await user.signer.nip44.decrypt(user.pubkey, encrypted) // "hello world"
+const decrypted = await user.signer.nip44.decrypt(user.pubkey, encrypted); // "hello world"
 ```
 
 ## Development Practices

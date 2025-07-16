@@ -1,14 +1,14 @@
-import { useMutation } from '@tanstack/react-query';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useCashuWallet } from '@/hooks/useCashuWallet';
-import { useCashuStore } from '@/stores/cashuStore';
-import { defaultMints } from '@/lib/cashu';
-import { generateSecretKey } from 'nostr-tools';
+import { useMutation } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCashuWallet } from "@/hooks/useCashuWallet";
+import { useCashuStore } from "@/stores/cashuStore";
+import { defaultMints } from "@/lib/cashu";
+import { generateSecretKey } from "nostr-tools";
 import { bytesToHex } from "@noble/hashes/utils";
 
 /**
  * Hook for creating a Cashu wallet using the user's Nostr identity
- * 
+ *
  * @returns A mutation for creating a Cashu wallet
  */
 export function useCreateCashuWallet() {
@@ -19,7 +19,7 @@ export function useCreateCashuWallet() {
   return useMutation({
     mutationFn: async () => {
       if (!user) {
-        throw new Error('You must be logged in to create a wallet');
+        throw new Error("You must be logged in to create a wallet");
       }
 
       try {
@@ -38,9 +38,9 @@ export function useCreateCashuWallet() {
 
         return { success: true };
       } catch (error) {
-        console.error('Failed to derive private key:', error);
-        throw new Error('Failed to create wallet. Please try again.');
+        console.error("Failed to derive private key:", error);
+        throw new Error("Failed to create wallet. Please try again.");
       }
-    }
+    },
   });
 }

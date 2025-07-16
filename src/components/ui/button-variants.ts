@@ -14,6 +14,11 @@ export const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Brand color variants
+        "brand-purple": "bg-[var(--brand-purple)] text-[var(--brand-black)] hover:opacity-90",
+        "brand-pink": "bg-[var(--brand-pink)] text-[var(--brand-black)] hover:opacity-90",
+        "brand-orange": "bg-[var(--brand-orange)] text-[var(--brand-black)] hover:opacity-90",
+        "brand-mint": "bg-[var(--brand-mint)] text-[var(--brand-black)] hover:opacity-90",
       },
       size: {
         default: "h-10 px-4 py-2",

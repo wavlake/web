@@ -1,59 +1,44 @@
-/**
- * Firebase Authentication Form Component
- *
- * Pure UI component for Firebase email/password authentication.
- * All business logic is provided via props - no internal state management.
- */
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ArrowLeft, AlertCircle, Eye, EyeOff } from "lucide-react";
-import {
-  isValidEmail,
-  isValidPassword,
-  getPasswordStrength,
-} from "@/hooks/auth/useFirebaseAuthentication";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
-// ============================================================================
-// Types
-// ============================================================================
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  User as UserIcon,
+  CheckCircle,
+  XCircle,
+  LogOut,
+} from "lucide-react";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
+import { useLegacyMetadata } from "@/hooks/useLegacyApi";
+import { User } from "firebase/auth";
 
 interface FirebaseAuthFormProps {
-  /** Called when authentication is attempted */
-  onAuthenticate: (
-    email: string,
-    password: string,
-    isSignUp: boolean
-  ) => Promise<void>;
-  /** Called when user wants to go back */
-  onBack: () => void;
   /** Whether authentication is in progress */
   isLoading?: boolean;
   /** Error message to display */
   error?: string;
   /** Initial mode (signin or signup) */
-  initialMode?: "signin" | "signup";
+  mode: "signin" | "signup";
   /** Custom title */
   title?: string;
   /** Custom description */
   description?: string;
+  onComplete?: (user: User) => void | Promise<void>;
 }
 
 interface FormState {
   email: string;
   password: string;
   confirmPassword: string;
-  mode: "signin" | "signup";
   showPassword: boolean;
   showConfirmPassword: boolean;
   fieldErrors: {
@@ -63,67 +48,159 @@ interface FormState {
   };
 }
 
-// ============================================================================
-// Component
-// ============================================================================
-
-/**
- * FirebaseAuthForm Component
- *
- * A clean, focused component for Firebase email/password authentication.
- * This extracts the form logic from the legacy FirebaseAuthForm and provides
- * a pure presentation component.
- *
- * Features:
- * - Pure presentation component (no business logic)
- * - Sign-in and sign-up modes
- * - Real-time validation feedback
- * - Password strength indicator
- * - Show/hide password functionality
- * - Responsive design
- *
- * @example
- * ```tsx
- * function FirebaseAuthScreen() {
- *   const { signIn, signUp, isLoading, error } = useFirebaseAuthentication();
- *
- *   return (
- *     <FirebaseAuthForm
- *       onAuthenticate={async (email, password, isSignUp) => {
- *         const result = isSignUp ? await signUp(email, password) : await signIn(email, password);
- *         onSuccess(result.user, result.isNewUser);
- *       }}
- *       onBack={() => send({ type: 'BACK' })}
- *       isLoading={isLoading}
- *       error={error}
- *     />
- *   );
- * }
- * ```
- */
 export function FirebaseAuthForm({
-  onAuthenticate,
-  onBack,
   isLoading = false,
   error,
-  initialMode = "signin",
+  mode = "signin",
   title,
   description,
+  onComplete,
 }: FirebaseAuthFormProps) {
+  const {
+    user,
+    loginWithEmailAndPassword,
+    registerWithEmailAndPassword,
+    logout,
+    loading,
+    error: firebaseError,
+    isValidEmail,
+    isValidPassword,
+    getPasswordStrength,
+  } = useFirebaseAuth();
+
+  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+
   const [formState, setFormState] = useState<FormState>({
     email: "",
     password: "",
     confirmPassword: "",
-    mode: initialMode,
     showPassword: false,
     showConfirmPassword: false,
     fieldErrors: {},
   });
 
+  // Helper function to get user initials for avatar
+  const getUserInitials = (
+    name: string | null,
+    email: string | null
+  ): string => {
+    if (name) {
+      return name
+        .split(" ")
+        .map((word) => word.charAt(0))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "Unknown";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   // Update form state
   const updateFormState = (updates: Partial<FormState>) => {
     setFormState((prev) => ({ ...prev, ...updates }));
   };
+
+  // Use legacy metadata hook
+  const { data: legacyMetadata, isLoading: isLegacyLoading } =
+    useLegacyMetadata();
+
+  // If user is logged in, show the logged-in state
+  if (user) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          Signed in
+        </div>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage
+              src={
+                legacyMetadata?.user?.artwork_url || user.photoURL || undefined
+              }
+              alt={legacyMetadata?.user?.name || user.displayName || "User"}
+            />
+            <AvatarFallback>
+              {getUserInitials(
+                legacyMetadata?.user?.name || user.displayName,
+                user.email
+              )}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            {legacyMetadata?.user?.name && (
+              <div className="font-medium">{legacyMetadata?.user?.name}</div>
+            )}
+            <div className="text-sm text-muted-foreground">{user.email}</div>
+          </div>
+        </div>
+        {/* Account Status */}
+        <div className="flex items-center gap-2">
+          <Badge variant={user.emailVerified ? "default" : "secondary"}>
+            {user.emailVerified ? (
+              <>
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Email Verified
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3 w-3 mr-1" />
+                Unverified Email
+              </>
+            )}
+          </Badge>
+          <Badge variant="outline">
+            {user.providerData.length > 0
+              ? user.providerData[0].providerId
+              : "password"}
+          </Badge>
+        </div>
+        {/* Actions */}
+        <div className="flex flex-col gap-2 pt-2">
+          {onComplete && (
+            <Button
+              onClick={() => onComplete(user)}
+              className="w-full rounded-full py-6"
+              disabled={loading}
+            >
+              Continue
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={logout}
+            className="w-full rounded-full py-6"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing out...
+              </>
+            ) : (
+              <>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Real-time validation
   const validateField = (
@@ -139,14 +216,14 @@ export function FirebaseAuthForm({
         }
         break;
       case "password":
-        if (formState.mode === "signup" && !isValidPassword(value, true)) {
+        if (mode === "signup" && !isValidPassword(value, true)) {
           error = "Password must be at least 6 characters long";
-        } else if (formState.mode === "signin" && !value.trim()) {
+        } else if (mode === "signin" && !value.trim()) {
           error = "Password is required";
         }
         break;
       case "confirmPassword":
-        if (formState.mode === "signup" && value !== formState.password) {
+        if (mode === "signup" && value !== formState.password) {
           error = "Passwords do not match";
         }
         break;
@@ -168,7 +245,7 @@ export function FirebaseAuthForm({
     validateField("password", value);
 
     // Revalidate confirm password if it was entered
-    if (formState.mode === "signup" && formState.confirmPassword) {
+    if (mode === "signup" && formState.confirmPassword) {
       validateField("confirmPassword", formState.confirmPassword);
     }
   };
@@ -185,7 +262,7 @@ export function FirebaseAuthForm({
     // Validate all fields
     validateField("email", formState.email);
     validateField("password", formState.password);
-    if (formState.mode === "signup") {
+    if (mode === "signup") {
       validateField("confirmPassword", formState.confirmPassword);
     }
 
@@ -195,27 +272,35 @@ export function FirebaseAuthForm({
     );
     if (hasErrors) return;
 
-    await onAuthenticate(
-      formState.email,
-      formState.password,
-      formState.mode === "signup"
-    );
-  };
+    try {
+      const result =
+        mode === "signin"
+          ? await loginWithEmailAndPassword({
+              email: formState.email,
+              password: formState.password,
+            })
+          : await registerWithEmailAndPassword({
+              email: formState.email,
+              password: formState.password,
+            });
 
-  // Toggle mode
-  const toggleMode = () => {
-    updateFormState({
-      mode: formState.mode === "signin" ? "signup" : "signin",
-      fieldErrors: {}, // Clear errors when switching modes
-    });
+      // Handle onComplete callback with loading state
+      if (onComplete && result.user) {
+        setIsCompletionLoading(true);
+        await onComplete(result.user);
+        setIsCompletionLoading(false);
+      }
+    } catch (error) {
+      setIsCompletionLoading(false);
+      // Error is already handled by the hook
+    }
   };
 
   // Check if form is valid
   const isFormValid =
     isValidEmail(formState.email) &&
-    isValidPassword(formState.password, formState.mode === "signup") &&
-    (formState.mode === "signin" ||
-      formState.password === formState.confirmPassword);
+    isValidPassword(formState.password, mode === "signup") &&
+    (mode === "signin" || formState.password === formState.confirmPassword);
 
   // Get password strength for display
   const passwordStrength = getPasswordStrength(formState.password);
@@ -238,211 +323,167 @@ export function FirebaseAuthForm({
     },
   };
 
-  const content = modeContent[formState.mode];
+  const content = modeContent[mode];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="flex-1 flex flex-col justify-center p-4 sm:p-6 md:p-8">
-        <div className="w-full max-w-md mx-auto">
-          <Card className="border-0 shadow-lg sm:border sm:shadow-sm">
-            <CardHeader className="pb-6">
-              <div className="flex items-center justify-between mb-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onBack}
-                  className="p-2 h-8 w-8"
-                  disabled={isLoading}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex-1" />
-              </div>
-
-              <CardTitle className="text-center text-xl">
-                {content.title}
-              </CardTitle>
-              <CardDescription className="text-center">
-                {content.description}
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Error Display */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formState.email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="your@email.com"
-                    disabled={isLoading}
-                    autoComplete="email"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck="false"
-                    className={
-                      formState.fieldErrors.email ? "border-destructive" : ""
-                    }
-                  />
-                  {formState.fieldErrors.email && (
-                    <p className="text-sm text-destructive">
-                      {formState.fieldErrors.email}
-                    </p>
-                  )}
-                </div>
-
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type={formState.showPassword ? "text" : "password"}
-                      value={formState.password}
-                      onChange={(e) => handlePasswordChange(e.target.value)}
-                      placeholder="Enter your password"
-                      disabled={isLoading}
-                      autoComplete={formState.mode === "signup" ? "new-password" : "current-password"}
-                      className={
-                        formState.fieldErrors.password
-                          ? "border-destructive pr-10"
-                          : "pr-10"
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateFormState({
-                          showPassword: !formState.showPassword,
-                        })
-                      }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      disabled={isLoading}
-                    >
-                      {formState.showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  {formState.fieldErrors.password && (
-                    <p className="text-sm text-destructive">
-                      {formState.fieldErrors.password}
-                    </p>
-                  )}
-
-                  {/* Password Strength Indicator */}
-                  {formState.mode === "signup" && formState.password && (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span>Strength:</span>
-                      <span
-                        className={`font-medium ${
-                          passwordStrength === "weak"
-                            ? "text-destructive"
-                            : passwordStrength === "medium"
-                            ? "text-yellow-500"
-                            : "text-green-500"
-                        }`}
-                      >
-                        {passwordStrength.charAt(0).toUpperCase() +
-                          passwordStrength.slice(1)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Confirm Password Field (Sign Up Only) */}
-                {formState.mode === "signup" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={
-                          formState.showConfirmPassword ? "text" : "password"
-                        }
-                        value={formState.confirmPassword}
-                        onChange={(e) =>
-                          handleConfirmPasswordChange(e.target.value)
-                        }
-                        placeholder="Confirm your password"
-                        disabled={isLoading}
-                        autoComplete="new-password"
-                        className={
-                          formState.fieldErrors.confirmPassword
-                            ? "border-destructive pr-10"
-                            : "pr-10"
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateFormState({
-                            showConfirmPassword: !formState.showConfirmPassword,
-                          })
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        disabled={isLoading}
-                      >
-                        {formState.showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                    {formState.fieldErrors.confirmPassword && (
-                      <p className="text-sm text-destructive">
-                        {formState.fieldErrors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading || !isFormValid}
-                >
-                  {isLoading ? "Please wait..." : content.submitText}
-                </Button>
-              </form>
-
-              {/* Mode Toggle */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {content.switchText}
-                </p>
-                <Button
-                  variant="link"
-                  onClick={toggleMode}
-                  disabled={isLoading}
-                  className="p-0 h-auto font-normal"
-                >
-                  {content.switchAction}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+    <div>
+      {(error || firebaseError) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error || firebaseError?.message}</AlertDescription>
+        </Alert>
+      )}
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {/* Email Field */}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={formState.email}
+            onChange={(e) => handleEmailChange(e.target.value)}
+            placeholder="your@email.com"
+            disabled={isLoading || loading || isCompletionLoading}
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            className={formState.fieldErrors.email ? "border-destructive" : ""}
+          />
+          {formState.fieldErrors.email && (
+            <p className="text-sm text-destructive">
+              {formState.fieldErrors.email}
+            </p>
+          )}
         </div>
-      </div>
+
+        {/* Password Field */}
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={formState.showPassword ? "text" : "password"}
+              value={formState.password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              placeholder="Enter your password"
+              disabled={isLoading || loading || isCompletionLoading}
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
+              className={
+                formState.fieldErrors.password
+                  ? "border-destructive pr-10"
+                  : "pr-10"
+              }
+            />
+            <button
+              type="button"
+              onClick={() =>
+                updateFormState({
+                  showPassword: !formState.showPassword,
+                })
+              }
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={isLoading || loading || isCompletionLoading}
+            >
+              {formState.showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {formState.fieldErrors.password && (
+            <p className="text-sm text-destructive">
+              {formState.fieldErrors.password}
+            </p>
+          )}
+
+          {/* Password Strength Indicator */}
+          {mode === "signup" && formState.password && (
+            <div className="flex items-center gap-2 text-xs">
+              <span>Strength:</span>
+              <span
+                className={`font-medium ${
+                  passwordStrength === "weak"
+                    ? "text-destructive"
+                    : passwordStrength === "medium"
+                    ? "text-yellow-500"
+                    : "text-green-500"
+                }`}
+              >
+                {passwordStrength.charAt(0).toUpperCase() +
+                  passwordStrength.slice(1)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Confirm Password Field (Sign Up Only) */}
+        {mode === "signup" && (
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={formState.showConfirmPassword ? "text" : "password"}
+                value={formState.confirmPassword}
+                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                placeholder="Confirm your password"
+                disabled={isLoading || loading || isCompletionLoading}
+                autoComplete="new-password"
+                className={
+                  formState.fieldErrors.confirmPassword
+                    ? "border-destructive pr-10"
+                    : "pr-10"
+                }
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  updateFormState({
+                    showConfirmPassword: !formState.showConfirmPassword,
+                  })
+                }
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={isLoading || loading || isCompletionLoading}
+              >
+                {formState.showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {formState.fieldErrors.confirmPassword && (
+              <p className="text-sm text-destructive">
+                {formState.fieldErrors.confirmPassword}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading || loading || isCompletionLoading || !isFormValid}
+        >
+          {(isLoading || loading || isCompletionLoading) && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
+          {isLoading || loading
+            ? "Authenticating..."
+            : isCompletionLoading
+            ? "Completing setup..."
+            : content.submitText}
+        </Button>
+      </form>
     </div>
   );
 }

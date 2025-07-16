@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { FirebaseUser } from "@/types/auth";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 
 /**
  * Legacy API response structure from /legacy/metadata endpoint
@@ -102,22 +103,28 @@ const getApiBaseUrl = (): string => {
  * @returns React Query result with legacy profile data or null
  */
 export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
+  const { getAuthToken, user: currentUser } = useFirebaseAuth();
+  
   return useQuery({
-    queryKey: ["legacy-profile", firebaseUser?.uid, firebaseUser?.email],
+    queryKey: ["legacy-profile", firebaseUser?.uid || currentUser?.uid, firebaseUser?.email || currentUser?.email],
     queryFn: async (): Promise<LegacyProfile | null> => {
-      if (!firebaseUser) return null;
+      // Use provided firebaseUser or fall back to current auth user
+      const userToUse = firebaseUser || currentUser;
+      if (!userToUse) return null;
 
       // Validate Firebase user has required properties
-      if (!firebaseUser.uid || !firebaseUser.getIdToken) {
+      if (!userToUse.uid) {
         throw new Error("Invalid Firebase user: missing required properties");
       }
 
       try {
         const API_BASE_URL = getApiBaseUrl();
+        const authToken = await getAuthToken();
+        
         const response = await fetch(`${API_BASE_URL}/legacy/metadata`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${await firebaseUser.getIdToken()}`,
+            Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
         });
@@ -155,7 +162,7 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         const userData = data.user;
         const finalName =
           userData.name?.trim() ||
-          firebaseUser.email?.split("@")[0] ||
+          userToUse.email?.split("@")[0] ||
           "Anonymous";
         const finalNip05 = userData.lightning_address || "";
 
@@ -175,12 +182,12 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         return profile;
       } catch (error) {
         console.warn("Failed to fetch legacy profile", {
-          userId: firebaseUser?.uid,
+          userId: userToUse?.uid,
           errorType:
             error instanceof Error ? error.constructor.name : "Unknown",
           errorMessage:
             error instanceof Error ? error.message : "Unknown error",
-          hasAuth: !!firebaseUser,
+          hasAuth: !!userToUse,
         });
 
         // Re-throw to let React Query handle retry logic
@@ -188,7 +195,7 @@ export function useLegacyProfile(firebaseUser?: FirebaseUser | null) {
         throw error;
       }
     },
-    enabled: !!firebaseUser,
+    enabled: !!(firebaseUser || currentUser),
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
   });

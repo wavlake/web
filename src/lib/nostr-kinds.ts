@@ -23,4 +23,6 @@ export const KINDS = {
   GROUP: 34550,
   MUSIC_TRACK: 31337,
   MUSIC_ALBUM: 31338,
+  // NIP-78 Application-specific data
+  APP_SETTINGS: 30078,
 } as const;

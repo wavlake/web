@@ -1,29 +1,16 @@
-/**
- * New Authentication System Entry Point
- *
- * This replaces the complex 312-line legacy Index.tsx with a clean,
- * state machine-driven authentication flow.
- */
-
-import React from "react";
-import { AuthFlow } from "@/components/auth/AuthFlow";
-
-/**
- * Index Page Component
- *
- * The main entry point for authentication, now dramatically simplified
- * thanks to the new architecture. This component is now just a wrapper
- * around the AuthFlow component.
- *
- * Improvements over legacy system:
- * - Reduced from 312 lines to ~20 lines
- * - No scattered state management
- * - No complex conditional rendering
- * - Clean separation of concerns
- * - Predictable state transitions
- *
- * The legacy system is preserved at /legacy-login for reference.
- */
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 export default function Index() {
-  return <AuthFlow />;
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex flex-col items-center py-10">
+      <h1>Welcome to the placeholder for the new homepage.</h1>
+      <div className="flex flex-col gap-2 py-2 w-40">
+        <Button onClick={() => navigate("/groups")}>Groups List</Button>
+        <Button onClick={() => navigate("/login")}>Login</Button>
+        <Button onClick={() => navigate("/dashboard")}>Artist Dashboard</Button>
+      </div>
+    </div>
+  );
 }

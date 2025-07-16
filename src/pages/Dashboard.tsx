@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoginArea } from "@/components/auth/LoginArea";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { DashboardList } from "@/components/DashboardList";
 import { CommunityProvider } from "@/contexts/CommunityContext";
 
@@ -25,7 +25,7 @@ function DashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginArea showWavlakeLegacyLoginButton={true} />
+            <LoginButton />
           </CardContent>
         </Card>
       </div>

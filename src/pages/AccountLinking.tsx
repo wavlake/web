@@ -1,27 +1,36 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Link as LinkIcon, 
-  Unlink, 
-  User, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Link as LinkIcon,
+  Unlink,
+  User,
+  AlertTriangle,
+  CheckCircle,
   Loader2,
   Database,
-  Mail
+  Mail,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { useUnlinkFirebaseAccount, useLinkFirebaseAccount } from "@/hooks/useAccountLinking";
-import { LoginArea } from "@/components/auth/LoginArea";
-import { FirebaseAuthDialog } from "@/components/auth/FirebaseAuthDialog";
+import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
+import { useUnlinkAccount } from "@/hooks/auth/useUnlinkAccount";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
-import { initializeFirebaseAuth, isFirebaseAuthConfigured } from "@/lib/firebaseAuth";
+import {
+  initializeFirebaseAuth,
+  isFirebaseAuthConfigured,
+} from "@/lib/firebaseAuth";
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
 
@@ -29,10 +38,19 @@ export default function AccountLinking() {
   const { user } = useCurrentUser();
   const author = useAuthor(user?.pubkey);
   const metadata = author.data?.metadata;
-  const displayName = metadata?.name || metadata?.display_name || user?.pubkey.slice(0, 8) || "Unnamed";
-  const { isLinked, firebaseUid, email, isLoading: isCheckingStatus } = useAccountLinkingStatus();
-  const unlinkAccount = useUnlinkFirebaseAccount();
-  const linkAccount = useLinkFirebaseAccount();
+  const displayName =
+    metadata?.name ||
+    metadata?.display_name ||
+    user?.pubkey.slice(0, 8) ||
+    "Unnamed";
+  const {
+    isLinked,
+    firebaseUid,
+    email,
+    isLoading: isCheckingStatus,
+  } = useAccountLinkingStatus();
+  const linkAccountMutation = useLinkAccount();
+  const unlinkAccountMutation = useUnlinkAccount();
 
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -71,7 +89,9 @@ export default function AccountLinking() {
     const currentFirebaseUid = firebaseUser.uid;
     if (firebaseUid && currentFirebaseUid !== firebaseUid) {
       // There's a mismatch - show this in the confirmation dialog
-      toast.warning("You're signed in with a different Firebase account than the one linked to this Nostr identity.");
+      toast.warning(
+        "You're signed in with a different Firebase account than the one linked to this Nostr identity."
+      );
     }
 
     // Show confirmation dialog (it will handle the mismatch display)
@@ -80,21 +100,27 @@ export default function AccountLinking() {
 
   const handleUnlinkConfirm = async () => {
     try {
-      const result = await unlinkAccount.mutateAsync();
+      const result = await unlinkAccountMutation.mutateAsync(
+        user?.pubkey || ""
+      );
       toast.success(result.message || "Account unlinked successfully!");
       setShowUnlinkConfirm(false);
     } catch (error: any) {
       console.error("Unlink account error:", error);
-      
+
       // Check for specific authentication mismatch error
-      if (error.message?.includes("pubkey does not belong to this user") || 
-          error.message?.includes("not authorized") ||
-          error.message?.includes("Authentication mismatch")) {
-        toast.error("Authentication mismatch: You're signed in with the wrong Firebase account. Please sign in with the correct account and try again.");
+      if (
+        error.message?.includes("pubkey does not belong to this user") ||
+        error.message?.includes("not authorized") ||
+        error.message?.includes("Authentication mismatch")
+      ) {
+        toast.error(
+          "Authentication mismatch: You're signed in with the wrong Firebase account. Please sign in with the correct account and try again."
+        );
         // Keep the dialog open so user can see the mismatch information
         return;
       }
-      
+
       toast.error(error.message || "Failed to unlink account");
     }
   };
@@ -109,14 +135,16 @@ export default function AccountLinking() {
     setIsLinkingInProgress(true);
     try {
       // Link the Nostr pubkey to the Firebase account
-      await linkAccount.mutateAsync();
+      await linkAccountMutation.mutateAsync();
       toast.success("Account linked successfully!");
       // The linking status will update automatically via React Query
       // No need for hard refresh - the UI will react to the state change
       setShowLinkDialog(false);
     } catch (error) {
       console.error("Account linking error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to link account");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to link account"
+      );
     } finally {
       setIsLinkingInProgress(false);
     }
@@ -125,18 +153,18 @@ export default function AccountLinking() {
   if (!user) {
     return (
       <div className="my-6 space-y-6">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>Account Linking</CardTitle>
-              <CardDescription>
-                Please log in with Nostr to manage your account linking
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LoginArea />
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Account Linking</CardTitle>
+            <CardDescription>
+              Please log in with Nostr to manage your account linking
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginButton />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -151,7 +179,8 @@ export default function AccountLinking() {
               Account Linking Management
             </CardTitle>
             <CardDescription>
-              Link your Nostr identity with an email to access legacy features and data backup
+              Link your Nostr identity with an email to access legacy features
+              and data backup
             </CardDescription>
           </CardHeader>
         </Card>
@@ -172,7 +201,10 @@ export default function AccountLinking() {
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200"
+              >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Connected
               </Badge>
@@ -204,7 +236,9 @@ export default function AccountLinking() {
                 <div className="flex items-center gap-3">
                   <Mail className="h-8 w-8 text-green-600" />
                   <div>
-                    <h3 className="font-medium text-green-800">Email Account</h3>
+                    <h3 className="font-medium text-green-800">
+                      Email Account
+                    </h3>
                     <p className="text-sm text-green-700">
                       {email || "Email address available"}
                     </p>
@@ -222,9 +256,9 @@ export default function AccountLinking() {
                     size="sm"
                     variant="outline"
                     onClick={handleUnlinkClick}
-                    disabled={unlinkAccount.isPending}
+                    disabled={unlinkAccountMutation.isPending}
                   >
-                    {unlinkAccount.isPending ? (
+                    {unlinkAccountMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Unlinking...
@@ -242,8 +276,9 @@ export default function AccountLinking() {
               <Alert className="border-green-200 bg-green-50">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  <strong>Your account is backed up!</strong> You can access your Wavlake account 
-                  and upload music. Your data is securely linked to your email address.
+                  <strong>Your account is backed up!</strong> You can access
+                  your Wavlake account and upload music. Your data is securely
+                  linked to your email address.
                 </AlertDescription>
               </Alert>
 
@@ -252,13 +287,23 @@ export default function AccountLinking() {
                 <Alert className="border-orange-200 bg-orange-50">
                   <AlertTriangle className="h-4 w-4 text-orange-600" />
                   <AlertDescription className="text-orange-800">
-                    <strong>Note:</strong> You're currently signed in with a different Firebase account.
+                    <strong>Note:</strong> You're currently signed in with a
+                    different Firebase account.
                     <div className="mt-2 text-sm">
-                      <p><strong>Currently signed in as:</strong> {firebaseUser.email} ({firebaseUser.uid.slice(0, 8)}...)</p>
-                      <p><strong>This Nostr identity is linked to:</strong> {email} ({firebaseUid?.slice(0, 8)}...)</p>
+                      <p>
+                        <strong>Currently signed in as:</strong>{" "}
+                        {firebaseUser.email} ({firebaseUser.uid.slice(0, 8)}...)
+                      </p>
+                      <p>
+                        <strong>This Nostr identity is linked to:</strong>{" "}
+                        {email} ({firebaseUid?.slice(0, 8)}...)
+                      </p>
                     </div>
                     <div className="mt-3 flex items-center gap-2">
-                      <p className="text-sm">To unlink this account, you'll need to sign in with the correct Firebase account first.</p>
+                      <p className="text-sm">
+                        To unlink this account, you'll need to sign in with the
+                        correct Firebase account first.
+                      </p>
                       <Button
                         size="sm"
                         variant="outline"
@@ -319,10 +364,22 @@ export default function AccountLinking() {
                   Why link an email address?
                 </h4>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• <strong>Account Recovery:</strong> Regain access if you lose your Nostr keys</li>
-                  <li>• <strong>Music Uploads:</strong> Create and publish music content</li>
-                  <li>• <strong>Legacy Features:</strong> Access historical data and advanced tools</li>
-                  <li>• <strong>Payment Processing:</strong> Receive payments and royalties</li>
+                  <li>
+                    • <strong>Account Recovery:</strong> Regain access if you
+                    lose your Nostr keys
+                  </li>
+                  <li>
+                    • <strong>Music Uploads:</strong> Create and publish music
+                    content
+                  </li>
+                  <li>
+                    • <strong>Legacy Features:</strong> Access historical data
+                    and advanced tools
+                  </li>
+                  <li>
+                    • <strong>Payment Processing:</strong> Receive payments and
+                    royalties
+                  </li>
                 </ul>
               </div>
             </CardContent>
@@ -336,12 +393,15 @@ export default function AccountLinking() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <strong>Account linking</strong> connects your Nostr identity with an email-based 
-              Wavlake account for enhanced functionality and data backup.
+              <strong>Account linking</strong> connects your Nostr identity with
+              an email-based Wavlake account for enhanced functionality and data
+              backup.
             </p>
             <Separator />
             <div className="space-y-2">
-              <p><strong>When linked:</strong></p>
+              <p>
+                <strong>When linked:</strong>
+              </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Upload and publish music tracks</li>
                 <li>Access legacy artist pages and historical data</li>
@@ -351,7 +411,9 @@ export default function AccountLinking() {
             </div>
             <Separator />
             <div className="space-y-2">
-              <p><strong>When not linked:</strong></p>
+              <p>
+                <strong>When not linked:</strong>
+              </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Limited to Nostr social features only</li>
                 <li>Cannot upload music or create content</li>
@@ -364,14 +426,14 @@ export default function AccountLinking() {
       </div>
 
       {/* Dialogs */}
-      <FirebaseAuthDialog
+      {/* <FirebaseAuthDialog
         isOpen={showLinkDialog && !isLinkingInProgress}
         onClose={() => setShowLinkDialog(false)}
         onSuccess={handleLinkSuccess}
         title="Link Email Account"
         description="Sign in or create an account to link your email address"
-      />
-      
+      /> */}
+
       {/* Loading overlay during linking */}
       {isLinkingInProgress && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -384,11 +446,15 @@ export default function AccountLinking() {
         </div>
       )}
 
-      <FirebaseAuthDialog
+      {/* <FirebaseAuthDialog
         isOpen={showFirebaseAuthFirst}
         onClose={() => setShowFirebaseAuthFirst(false)}
         onSuccess={handleFirebaseAuthSuccess}
-        title={firebaseUser && firebaseUser.uid !== firebaseUid ? "Switch Firebase Account" : "Sign in to Firebase"}
+        title={
+          firebaseUser && firebaseUser.uid !== firebaseUid
+            ? "Switch Firebase Account"
+            : "Sign in to Firebase"
+        }
         description={
           firebaseUser && firebaseUser.uid !== firebaseUid
             ? "Sign out and sign in with the correct Firebase account to unlink this Nostr identity"
@@ -397,13 +463,13 @@ export default function AccountLinking() {
         requiredFirebaseUid={firebaseUid || undefined}
         currentEmail={email || undefined}
         showSignOutFirst={firebaseUser && firebaseUser.uid !== firebaseUid}
-      />
+      /> */}
 
       <UnlinkConfirmDialog
         isOpen={showUnlinkConfirm}
         onClose={() => setShowUnlinkConfirm(false)}
         onConfirm={handleUnlinkConfirm}
-        isLoading={unlinkAccount.isPending}
+        isLoading={unlinkAccountMutation.isPending}
         email={email || undefined}
         linkedFirebaseUid={firebaseUid || undefined}
         currentFirebaseUid={firebaseUser?.uid}

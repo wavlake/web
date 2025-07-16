@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoginArea } from "@/components/auth/LoginArea";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
 import {
   CommunityProvider,
@@ -40,7 +40,7 @@ function DashboardDetailContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginArea showWavlakeLegacyLoginButton={true} />
+            <LoginButton />
           </CardContent>
         </Card>
       </div>

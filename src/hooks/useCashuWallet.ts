@@ -109,8 +109,6 @@ export function useCashuWallet() {
       // log wallet data
       console.log("walletData", walletData);
 
-      // call getNip60TokensQuery
-      await getNip60TokensQuery.refetch();
       return {
         id: event.id,
         wallet: walletData,
@@ -243,7 +241,7 @@ export function useCashuWallet() {
 
       return nip60TokenEvents;
     },
-    enabled: !!user,
+    enabled: !!user && !!walletQuery.data?.wallet,
   });
 
   const updateProofsMutation = useMutation({
@@ -365,7 +363,7 @@ export function useCashuWallet() {
     wallet: walletQuery.data?.wallet,
     walletId: walletQuery.data?.id,
     tokens: getNip60TokensQuery.data || [],
-    isLoading: walletQuery.isFetching || getNip60TokensQuery.isFetching,
+    isLoading: walletQuery.isLoading || getNip60TokensQuery.isLoading,
     createWallet: createWalletMutation.mutate,
     updateProofs: updateProofsMutation.mutateAsync,
   };

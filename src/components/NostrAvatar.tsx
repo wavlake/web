@@ -41,7 +41,7 @@ export const NostrAvatar = ({
   const displayName =
     profile.data?.metadata?.name ||
     profile.data?.metadata?.display_name ||
-    pubkey;
+    npubKey.slice(0, 10) + "..." + npubKey.slice(-4);
 
   return (
     <div className="flex flex-col items-center mt-4 space-y-3">

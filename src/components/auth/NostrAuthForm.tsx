@@ -1,392 +1,344 @@
-/**
- * Nostr Authentication Form Component
- *
- * Pure UI component for Nostr authentication.
- * All business logic is provided via props - no internal state management.
- */
-
-import React, { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useRef, useState } from "react";
+import { Shield, Upload, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Upload, ArrowLeft, AlertCircle } from "lucide-react";
-import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
-import {
-  getMethodDisplayName,
-  getMethodDescription,
-  extractPubkeyFromNsec,
-} from "@/hooks/auth/useNostrAuthentication";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs.tsx";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useProfileSync } from "@/hooks/useProfileSync";
+import { NostrAvatar } from "@/components/NostrAvatar";
+import { nip19, getPublicKey } from "nostr-tools";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-interface NostrAuthFormProps {
-  /** Called when authentication is attempted */
-  onAuthenticate: (
-    method: NostrAuthMethod,
-    credentials: NostrCredentials
-  ) => Promise<void>;
-  /** Called when user wants to go back */
-  onBack: () => void;
-  /** Whether authentication is in progress */
-  isLoading?: boolean;
-  /** Error message to display */
-  error?: string;
-  /** Methods available for authentication */
-  supportedMethods: NostrAuthMethod[];
-  /** Expected pubkey for validation (optional) */
+export const NostrAuthForm = ({
+  title,
+  description,
+  expectedPubkey,
+  onComplete,
+}: {
   expectedPubkey?: string;
-  /** Whether to show mismatch warnings */
-  showMismatchWarning?: boolean;
-  /** Custom title */
   title?: string;
-  /** Custom description */
   description?: string;
-}
-
-interface FormState {
-  nsec: string;
-  bunkerUri: string;
-  activeTab: NostrAuthMethod;
-  mismatchWarning: {
-    show: boolean;
+  onComplete?: () => void;
+}) => {
+  // Fetch profile data for the expected pubkey
+  const [loadingStates, setLoadingStates] = useState({
+    extension: false,
+    nsec: false,
+    bunker: false,
+  });
+  const [nsecValue, setNsecValue] = useState("");
+  const [bunkerUri, setBunkerUri] = useState("");
+  const [errors, setErrors] = useState({
+    extension: null as string | null,
+    nsec: null as string | null,
+    bunker: null as string | null,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [mismatchWarning, setMismatchWarning] = useState<{
     expectedPubkey: string;
     enteredPubkey: string;
-  } | null;
-}
-
-// ============================================================================
-// Component
-// ============================================================================
-
-/**
- * NostrAuthForm Component
- *
- * A clean, focused component for Nostr authentication that replaces the
- * complex 920-line NostrAuthStep component from the legacy system.
- *
- * Features:
- * - Pure presentation component (no business logic)
- * - Support for extension, nsec, and bunker authentication
- * - Real-time validation feedback
- * - File upload support for private keys
- * - Mismatch detection and warnings
- * - Responsive design
- *
- * @example
- * ```tsx
- * function NostrAuthScreen() {
- *   const { authenticate, isLoading, error, supportedMethods } = useNostrAuthentication();
- *
- *   return (
- *     <NostrAuthForm
- *       onAuthenticate={authenticate}
- *       onBack={() => send({ type: 'BACK' })}
- *       isLoading={isLoading}
- *       error={error}
- *       supportedMethods={supportedMethods}
- *     />
- *   );
- * }
- * ```
- */
-export function NostrAuthForm({
-  onAuthenticate,
-  onBack,
-  isLoading = false,
-  error,
-  supportedMethods,
-  expectedPubkey,
-  showMismatchWarning = true,
-  title = "Sign in with Nostr",
-  description = "Access your account securely with Nostr",
-}: NostrAuthFormProps) {
-  const [formState, setFormState] = useState<FormState>({
-    nsec: "",
-    bunkerUri: "",
-    activeTab: supportedMethods[0] || "extension",
-    mismatchWarning: null,
-  });
-
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { loginWithExtension, loginWithNsec, loginWithBunker } =
+    useCurrentUser();
+  const { syncProfile } = useProfileSync();
 
-  // Update form state
-  const updateFormState = (updates: Partial<FormState>) => {
-    setFormState((prev) => ({ ...prev, ...updates }));
-  };
-
-  // Handle nsec input change with real-time mismatch detection
-  const handleNsecChange = (value: string) => {
-    updateFormState({ nsec: value });
-
-    if (showMismatchWarning && expectedPubkey && value.trim()) {
-      const enteredPubkey = extractPubkeyFromNsec(value.trim());
-
-      if (enteredPubkey && enteredPubkey !== expectedPubkey) {
-        updateFormState({
-          mismatchWarning: {
-            show: true,
-            expectedPubkey,
-            enteredPubkey,
-          },
-        });
-      } else {
-        updateFormState({ mismatchWarning: null });
-      }
+  // Utility function to extract pubkey from nsec
+  const extractPubkeyFromNsec = (nsec: string): string | null => {
+    try {
+      if (!nsec.startsWith("nsec1")) return null;
+      const { data: privateKey } = nip19.decode(nsec);
+      const publicKey = getPublicKey(privateKey as Uint8Array);
+      return publicKey;
+    } catch (error) {
+      return null;
     }
-  };
-
-  // Handle file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      const trimmedContent = content.trim();
-      handleNsecChange(trimmedContent);
-    };
-    reader.readAsText(file);
-  };
-
-  // Handle authentication attempts
-  const handleExtensionAuth = async () => {
-    await onAuthenticate("extension", { method: "extension" });
-  };
-
-  const handleNsecAuth = async () => {
-    if (!formState.nsec.trim()) return;
-    await onAuthenticate("nsec", {
-      method: "nsec",
-      nsec: formState.nsec.trim(),
-    });
-  };
-
-  const handleBunkerAuth = async () => {
-    if (!formState.bunkerUri.trim()) return;
-    await onAuthenticate("bunker", {
-      method: "bunker",
-      bunkerUri: formState.bunkerUri.trim(),
-    });
   };
 
   // Validation helpers
   const isNsecValid =
-    formState.nsec.trim().length > 0 && formState.nsec.startsWith("nsec1");
+    nsecValue.trim().length > 0 && nsecValue.startsWith("nsec1");
   const isBunkerValid =
-    formState.bunkerUri.trim().length > 0 &&
-    formState.bunkerUri.startsWith("bunker://");
+    bunkerUri.trim().length > 0 && bunkerUri.startsWith("bunker://");
 
+  // Enhanced nsec change handler with mismatch detection
+  const handleNsecChange = (value: string) => {
+    setNsecValue(value);
+
+    if (expectedPubkey && value.trim()) {
+      const enteredPubkey = extractPubkeyFromNsec(value.trim());
+      if (enteredPubkey && enteredPubkey !== expectedPubkey) {
+        setMismatchWarning({
+          expectedPubkey,
+          enteredPubkey,
+        });
+      } else {
+        setMismatchWarning(null);
+      }
+    } else {
+      setMismatchWarning(null);
+    }
+  };
+  const handleExtensionLogin = async () => {
+    setLoadingStates((prev) => ({ ...prev, extension: true }));
+    setErrors((prev) => ({ ...prev, extension: null }));
+    try {
+      if (!("nostr" in window)) {
+        throw new Error(
+          "Nostr extension not found. Please install a NIP-07 extension."
+        );
+      }
+      const loginInfo = await loginWithExtension();
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
+    } catch (error) {
+      console.error("Extension login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        extension:
+          error instanceof Error ? error.message : "Extension login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, extension: false }));
+    }
+  };
+
+  const handleKeyLogin = async () => {
+    if (!nsecValue.trim()) return;
+    setLoadingStates((prev) => ({ ...prev, nsec: true }));
+    setErrors((prev) => ({ ...prev, nsec: null }));
+
+    try {
+      const loginInfo = loginWithNsec(nsecValue);
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
+    } catch (error) {
+      console.error("Nsec login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        nsec: error instanceof Error ? error.message : "Nsec login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, nsec: false }));
+    }
+  };
+
+  const handleBunkerLogin = async () => {
+    if (!bunkerUri.trim() || !bunkerUri.startsWith("bunker://")) return;
+    setLoadingStates((prev) => ({ ...prev, bunker: true }));
+    setErrors((prev) => ({ ...prev, bunker: null }));
+
+    try {
+      const loginInfo = await loginWithBunker(bunkerUri);
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await onComplete?.();
+    } catch (error) {
+      console.error("Bunker login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        bunker: error instanceof Error ? error.message : "Bunker login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, bunker: false }));
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Clear any existing errors
+    setErrors((prev) => ({ ...prev, nsec: null }));
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      handleNsecChange(content.trim());
+    };
+    reader.onerror = () => {
+      setErrors((prev) => ({
+        ...prev,
+        nsec: "Failed to read file. Please try again.",
+      }));
+    };
+    reader.readAsText(file);
+  };
   return (
-    <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl">
-      <DialogHeader className="px-6 pt-6 pb-0 relative">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="p-2 h-8 w-8"
-            disabled={isLoading}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
-          <div className="w-8" /> {/* Spacer for centering */}
-        </div>
+    <Tabs
+      defaultValue={"nostr" in window ? "extension" : "key"}
+      className="w-full"
+    >
+      <TabsList className="grid grid-cols-3 mb-6">
+        <TabsTrigger value="extension">Extension</TabsTrigger>
+        <TabsTrigger value="key">Nsec</TabsTrigger>
+        <TabsTrigger value="bunker">Bunker</TabsTrigger>
+      </TabsList>
 
-        <DialogDescription className="text-center text-muted-foreground mt-2">
-          {description}
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="px-6 py-6 space-y-6">
-        {/* Error Display */}
-        {error && (
+      <TabsContent value="extension" className="space-y-4">
+        {errors.extension && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{errors.extension}</AlertDescription>
           </Alert>
         )}
-
-        {/* Mismatch Warning */}
-        {formState.mismatchWarning?.show && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Account Mismatch Detected</p>
-                <p className="text-sm">
-                  The private key you entered belongs to a different account
-                  than expected.
-                </p>
-                <div className="text-xs space-y-1 font-mono">
-                  <div>
-                    Expected: ...
-                    {formState.mismatchWarning.expectedPubkey.slice(-8)}
-                  </div>
-                  <div>
-                    Entered: ...
-                    {formState.mismatchWarning.enteredPubkey.slice(-8)}
-                  </div>
-                </div>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Authentication Methods */}
-        <Tabs
-          value={formState.activeTab}
-          onValueChange={(value) =>
-            updateFormState({ activeTab: value as NostrAuthMethod })
-          }
-          className="w-full"
+        <div className="text-center p-4 rounded-lg bg-muted">
+          <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
+          <div className="text-sm text-muted-foreground mb-4">
+            Login with one click using the browser extension
+          </div>
+        </div>
+        <Button
+          className="w-full rounded-full py-6"
+          onClick={handleExtensionLogin}
+          disabled={loadingStates.extension}
         >
-          <TabsList
-            className="grid w-full"
-            style={{
-              gridTemplateColumns: `repeat(${supportedMethods.length}, 1fr)`,
-            }}
-          >
-            {supportedMethods.map((method) => (
-              <TabsTrigger key={method} value={method}>
-                {getMethodDisplayName(method).replace(" ", "")}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {loadingStates.extension
+            ? "Connecting to extension..."
+            : "Login with Extension"}
+        </Button>
+      </TabsContent>
 
-          {/* Extension Authentication */}
-          {supportedMethods.includes("extension") && (
-            <TabsContent value="extension" className="space-y-4">
-              <div className="text-center p-4 rounded-lg bg-muted">
-                <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
-                <div className="text-sm text-muted-foreground mb-4">
-                  {getMethodDescription("extension")}
-                </div>
-                <Button
-                  className="w-full rounded-full py-6"
-                  onClick={handleExtensionAuth}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Connecting..." : "Login with Extension"}
-                </Button>
-                <div className="text-xs text-muted-foreground mt-2">
-                  Supports Alby, nos2x, and other NIP-07 extensions
-                </div>
-              </div>
-            </TabsContent>
-          )}
-
-          {/* Nsec Authentication */}
-          {supportedMethods.includes("nsec") && (
-            <TabsContent value="nsec" className="space-y-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="nsec"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Enter your private key (nsec)
-                  </label>
-                  <Input
-                    id="nsec"
-                    type="password"
-                    value={formState.nsec}
-                    onChange={(e) => handleNsecChange(e.target.value)}
-                    className="rounded-lg focus-visible:ring-primary"
-                    placeholder="nsec1..."
-                    disabled={isLoading}
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Your private key is never stored and remains secure
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <input
-                    type="file"
-                    accept=".txt,.key"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    disabled={isLoading}
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Private Key File
-                  </Button>
-                </div>
-
-                <Button
-                  className="w-full rounded-full py-6 mt-4"
-                  onClick={handleNsecAuth}
-                  disabled={isLoading || !isNsecValid}
-                >
-                  {isLoading
-                    ? "Verifying..."
-                    : formState.mismatchWarning?.show
-                    ? "Proceed with This Account"
-                    : "Login with Private Key"}
-                </Button>
-              </div>
-            </TabsContent>
-          )}
-
-          {/* Bunker Authentication */}
-          {supportedMethods.includes("bunker") && (
-            <TabsContent value="bunker" className="space-y-4">
-              <div className="space-y-2">
-                <label
-                  htmlFor="bunkerUri"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Bunker URI (NIP-46)
-                </label>
-                <Input
-                  id="bunkerUri"
-                  value={formState.bunkerUri}
-                  onChange={(e) =>
-                    updateFormState({ bunkerUri: e.target.value })
-                  }
-                  className="rounded-lg focus-visible:ring-primary"
-                  placeholder="bunker://..."
-                  disabled={isLoading}
-                />
-                {formState.bunkerUri && !isBunkerValid && (
-                  <div className="text-destructive text-xs">
-                    Invalid bunker URI format. Must be a valid bunker:// URL.
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  {getMethodDescription("bunker")}
-                </div>
-              </div>
-
-              <Button
-                className="w-full rounded-full py-6"
-                onClick={handleBunkerAuth}
-                disabled={isLoading || !isBunkerValid}
+      <TabsContent value="key" className="space-y-4">
+        {errors.nsec && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.nsec}</AlertDescription>
+          </Alert>
+        )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="nsec">Enter your nsec</Label>
+            <div className="relative">
+              <Input
+                id="nsec"
+                type={showPassword ? "text" : "password"}
+                value={nsecValue}
+                onChange={(e) => handleNsecChange(e.target.value)}
+                className="rounded-lg focus-visible:ring-primary pr-10"
+                placeholder="nsec1..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                disabled={loadingStates.nsec}
               >
-                {isLoading ? "Connecting..." : "Connect with Bunker"}
-              </Button>
-            </TabsContent>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {nsecValue && !isNsecValid && (
+              <div className="text-destructive text-xs">
+                Invalid nsec format. Must start with "nsec1"
+              </div>
+            )}
+            {mismatchWarning && (
+              <Alert className="mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p className="font-medium">Account Mismatch Detected</p>
+                    <p className="text-sm">
+                      The private key you entered belongs to a different account
+                      than expected.
+                    </p>
+                    <div className="text-xs space-y-1 font-mono">
+                      <div>
+                        Expected: ...{mismatchWarning.expectedPubkey.slice(-8)}
+                      </div>
+                      <div>
+                        Entered: ...{mismatchWarning.enteredPubkey.slice(-8)}
+                      </div>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <div className="text-center">
+            <div className="text-sm mb-2 text-muted-foreground">
+              Or upload a key file
+            </div>
+            <input
+              type="file"
+              accept=".txt,.key"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+            />
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Nsec File
+            </Button>
+          </div>
+
+          <Button
+            className="w-full rounded-full py-6 mt-4"
+            onClick={handleKeyLogin}
+            disabled={loadingStates.nsec || !isNsecValid}
+          >
+            {loadingStates.nsec
+              ? "Verifying private key..."
+              : mismatchWarning
+              ? "Proceed with This Account"
+              : "Login with Nsec"}
+          </Button>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="bunker" className="space-y-4">
+        {errors.bunker && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.bunker}</AlertDescription>
+          </Alert>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="bunkerUri">Bunker URI</Label>
+          <Input
+            id="bunkerUri"
+            value={bunkerUri}
+            onChange={(e) => setBunkerUri(e.target.value)}
+            className="rounded-lg focus-visible:ring-primary"
+            placeholder="bunker://"
+          />
+          {bunkerUri && !bunkerUri.startsWith("bunker://") && (
+            <div className="text-destructive text-xs">
+              URI must start with bunker://
+            </div>
           )}
-        </Tabs>
-      </div>
-    </DialogContent>
+        </div>
+
+        <Button
+          className="w-full rounded-full py-6"
+          onClick={handleBunkerLogin}
+          disabled={loadingStates.bunker || !isBunkerValid}
+        >
+          {loadingStates.bunker
+            ? "Connecting to bunker..."
+            : "Login with Bunker"}
+        </Button>
+      </TabsContent>
+    </Tabs>
   );
-}
+};
