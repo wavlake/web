@@ -115,6 +115,12 @@ export function useSignupFlow({
         // Update state first
         setUserType(selectedIsArtist);
 
+        if (user) {
+          // If user already exists, we can skip account creation
+          accountCreated();
+          return;
+        }
+
         // For listeners, create account immediately since they skip artist-type step
         if (!selectedIsArtist) {
           await createAccount();
