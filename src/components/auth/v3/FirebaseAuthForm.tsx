@@ -3,9 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  User as UserIcon,
+  CheckCircle,
+  XCircle,
+  LogOut,
+} from "lucide-react";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
+import { useLegacyMetadata } from "@/hooks/useLegacyApi";
 import { User } from "firebase/auth";
 
 interface FirebaseAuthFormProps {
@@ -44,8 +57,10 @@ export function FirebaseAuthForm({
   onComplete,
 }: FirebaseAuthFormProps) {
   const {
+    user,
     loginWithEmailAndPassword,
     registerWithEmailAndPassword,
+    logout,
     loading,
     error: firebaseError,
     isValidEmail,
@@ -64,10 +79,143 @@ export function FirebaseAuthForm({
     fieldErrors: {},
   });
 
+  // Helper function to get user initials for avatar
+  const getUserInitials = (
+    name: string | null,
+    email: string | null
+  ): string => {
+    if (name) {
+      return name
+        .split(" ")
+        .map((word) => word.charAt(0))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "Unknown";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   // Update form state
   const updateFormState = (updates: Partial<FormState>) => {
     setFormState((prev) => ({ ...prev, ...updates }));
   };
+
+  // Use legacy metadata hook
+  const { data: legacyMetadata, isLoading: isLegacyLoading } =
+    useLegacyMetadata();
+
+  // If user is logged in, show the logged-in state
+  if (user) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Wavlake Account Connected
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* User Profile Section */}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage
+                  src={
+                    legacyMetadata?.user?.artwork_url ||
+                    user.photoURL ||
+                    undefined
+                  }
+                  alt={legacyMetadata?.user?.name || user.displayName || "User"}
+                />
+                <AvatarFallback>
+                  {getUserInitials(
+                    legacyMetadata?.user?.name || user.displayName,
+                    user.email
+                  )}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                {legacyMetadata?.user?.name && (
+                  <div className="font-medium">
+                    {legacyMetadata?.user?.name}
+                  </div>
+                )}
+                <div className="text-sm text-muted-foreground">
+                  {user.email}
+                </div>
+              </div>
+            </div>
+
+            {/* Account Status */}
+            <div className="flex items-center gap-2">
+              <Badge variant={user.emailVerified ? "default" : "secondary"}>
+                {user.emailVerified ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Email Verified
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-3 w-3 mr-1" />
+                    Unverified Email
+                  </>
+                )}
+              </Badge>
+              <Badge variant="outline">
+                {user.providerData.length > 0
+                  ? user.providerData[0].providerId
+                  : "password"}
+              </Badge>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={logout}
+                className="flex-1"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </>
+                )}
+              </Button>
+              {onComplete && (
+                <Button
+                  onClick={() => onComplete(user)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Continue
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Real-time validation
   const validateField = (
@@ -142,8 +290,14 @@ export function FirebaseAuthForm({
     try {
       const result =
         mode === "signin"
-          ? await loginWithEmailAndPassword({ email: formState.email, password: formState.password })
-          : await registerWithEmailAndPassword({ email: formState.email, password: formState.password });
+          ? await loginWithEmailAndPassword({
+              email: formState.email,
+              password: formState.password,
+            })
+          : await registerWithEmailAndPassword({
+              email: formState.email,
+              password: formState.password,
+            });
 
       // Handle onComplete callback with loading state
       if (onComplete && result.user) {

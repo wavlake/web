@@ -48,24 +48,6 @@ import {
 import { handleFirebaseError } from "@/lib/firebase-auth-errors";
 
 // Types
-export interface FirebaseUserMetadata {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
-  emailVerified: boolean;
-  phoneNumber: string | null;
-  creationTime: string | null;
-  lastSignInTime: string | null;
-  providerData: Array<{
-    providerId: string;
-    uid: string;
-    displayName: string | null;
-    email: string | null;
-    phoneNumber: string | null;
-    photoURL: string | null;
-  }>;
-}
 
 export interface AuthError {
   code?: string;
@@ -93,7 +75,6 @@ export interface PasswordlessLoginOptions {
 export interface AuthContextType {
   // Auth state
   user: User | null;
-  userMetadata: FirebaseUserMetadata | null;
   loading: boolean;
   error: AuthError | null;
   isConfigured: boolean;
@@ -170,9 +151,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userMetadata, setUserMetadata] = useState<FirebaseUserMetadata | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [isConfigured] = useState(() => isFirebaseAuthConfigured());
@@ -185,28 +163,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     return initializeFirebaseAuth().auth;
   }, [isConfigured]);
 
-  // Helper to create user metadata
-  const createUserMetadata = useCallback(
-    (user: User): FirebaseUserMetadata => ({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      emailVerified: user.emailVerified,
-      phoneNumber: user.phoneNumber,
-      creationTime: user.metadata.creationTime || null,
-      lastSignInTime: user.metadata.lastSignInTime || null,
-      providerData: user.providerData.map((provider) => ({
-        providerId: provider.providerId,
-        uid: provider.uid,
-        displayName: provider.displayName,
-        email: provider.email,
-        phoneNumber: provider.phoneNumber,
-        photoURL: provider.photoURL,
-      })),
-    }),
-    []
-  );
 
   // Error handler
   const handleError = useCallback((error: unknown, defaultMessage: string) => {
@@ -537,7 +493,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setUserMetadata(user ? createUserMetadata(user) : null);
       setLoading(false);
     });
 
@@ -547,13 +502,12 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     });
 
     return unsubscribe;
-  }, [isConfigured, getAuth, createUserMetadata, handleError]);
+  }, [isConfigured, getAuth, handleError]);
 
   // Context value
   const contextValue: AuthContextType = {
     // Auth state
     user,
-    userMetadata,
     loading,
     error,
     isConfigured,
