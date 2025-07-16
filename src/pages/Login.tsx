@@ -333,10 +333,7 @@ export default function Login() {
           title={getProfileTitle()}
           description={getProfileStepDescription()}
         >
-          <EditProfileForm
-            onComplete={handleProfileCreation}
-            showSkipLink={true}
-          />
+          <EditProfileForm onComplete={handleProfileCreation} />
           <Button
             variant="ghost"
             onClick={handleProfileCreated}

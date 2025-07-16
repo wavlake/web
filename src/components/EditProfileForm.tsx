@@ -39,7 +39,6 @@ interface EditProfileFormProps {
  * other profile information that may have been set elsewhere.
  */
 export const EditProfileForm: FC<EditProfileFormProps> = ({
-  showSkipLink = false,
   initialName = null,
   onComplete,
 }) => {
@@ -288,17 +287,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
               )}
               Save
             </Button>
-
-            {showSkipLink && (
-              <Button
-                type="button"
-                variant="link"
-                className="text-muted-foreground"
-                onClick={() => navigate("/groups")}
-              >
-                Skip for now
-              </Button>
-            )}
           </div>
         </form>
       </Form>
