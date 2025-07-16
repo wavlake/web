@@ -125,7 +125,7 @@ export function FirebaseAuthForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              Wavlake Account Connected
+              Legacy Wavlake Account
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
