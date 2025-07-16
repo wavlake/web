@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCurrentUser } from "./useCurrentUser";
+import { useCurrentUser } from "../useCurrentUser";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { createNip98AuthHeader } from "@/lib/nip98Auth";
 

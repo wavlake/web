@@ -39,7 +39,7 @@ import { useState } from "react";
 import { PWAInstallInstructions } from "@/components/PWAInstallInstructions";
 import { usePWA } from "@/hooks/usePWA";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { LoginButton } from "./auth/v3/LoginButton";
+import { LoginButton } from "./auth/LoginButton";
 
 // Menu item configuration
 interface MenuItem {
@@ -163,10 +163,7 @@ export function UserDropdownMenu() {
           >
             <div className="relative">
               <Avatar className="w-8 h-8 rounded-md">
-                <AvatarImage
-                  src={metadata?.picture}
-                  alt={displayName}
-                />
+                <AvatarImage src={metadata?.picture} alt={displayName} />
                 <AvatarFallback>
                   {avatarChar || <UserIcon className="w-4 h-4" />}
                 </AvatarFallback>

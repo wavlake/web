@@ -23,9 +23,9 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { useLinkAccount } from "@/hooks/useLinkAccount";
-import { useUnlinkAccount } from "@/hooks/useUnlinkAccount";
-import { LoginButton } from "@/components/auth/v3/LoginButton";
+import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
+import { useUnlinkAccount } from "@/hooks/auth/useUnlinkAccount";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
 import {
   initializeFirebaseAuth,
@@ -100,7 +100,9 @@ export default function AccountLinking() {
 
   const handleUnlinkConfirm = async () => {
     try {
-      const result = await unlinkAccountMutation.mutateAsync(user?.pubkey || "");
+      const result = await unlinkAccountMutation.mutateAsync(
+        user?.pubkey || ""
+      );
       toast.success(result.message || "Account unlinked successfully!");
       setShowUnlinkConfirm(false);
     } catch (error: any) {

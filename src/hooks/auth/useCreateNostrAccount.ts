@@ -12,7 +12,7 @@ interface UseCreateAccountReturn {
   createAccount: () => Promise<void>;
 }
 
-export const useV3CreateAccount = (): UseCreateAccountReturn => {
+export const useCreateNostrAccount = (): UseCreateAccountReturn => {
   const [isCreating, setIsCreating] = useState(false);
   const [generatedName, setGeneratedName] = useState<string | null>(null);
 

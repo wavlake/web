@@ -1,6 +1,6 @@
-import { useV3CreateAccount } from "./useV3CreateAccount";
+import { useCreateNostrAccount } from "../../hooks/auth/useCreateNostrAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
-import { useLinkAccount } from "@/hooks/useLinkAccount";
+import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { useLegacyArtists } from "@/hooks/useLegacyApi";
@@ -11,7 +11,7 @@ interface AccountGenerationProps {
 }
 
 export function AccountGeneration({ onComplete }: AccountGenerationProps) {
-  const { isCreating, createAccount } = useV3CreateAccount();
+  const { isCreating, createAccount } = useCreateNostrAccount();
   const { user: firebaseUser } = useFirebaseAuth();
   const linkAccountMutation = useLinkAccount();
   const { user: currentUser } = useCurrentUser();

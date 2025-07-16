@@ -10,8 +10,8 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { useV3CreateAccount } from "@/components/auth/v3/useV3CreateAccount";
-import { useLinkAccount } from "@/hooks/useLinkAccount";
+import { useCreateNostrAccount } from "@/hooks/auth/useCreateNostrAccount";
+import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import type { V3AuthStep } from "./useAuthFlowState";
@@ -96,7 +96,7 @@ export function useSignupFlow({
   firebaseBackupComplete,
 }: UseSignupFlowOptions): UseSignupFlowResult {
   // External hooks
-  const { createAccount, isCreating } = useV3CreateAccount();
+  const { createAccount, isCreating } = useCreateNostrAccount();
   const linkAccountMutation = useLinkAccount();
   const { user } = useCurrentUser();
   const { user: firebaseUser } = useFirebaseAuth();

@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoginButton } from "@/components/auth/v3/LoginButton";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
 import {
   CommunityProvider,

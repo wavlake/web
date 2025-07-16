@@ -7,12 +7,12 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GenericStep } from "@/components/auth/v3/GenericStep";
-import { NostrAuthForm } from "@/components/auth/v3/NostrAuthForm";
-import { FirebaseAuthForm } from "@/components/auth/v3/FirebaseAuthForm";
+import { GenericStep } from "@/components/auth/GenericStep";
+import { NostrAuthForm } from "@/components/auth/NostrAuthForm";
+import { FirebaseAuthForm } from "@/components/auth/FirebaseAuthForm";
 import { EditProfileForm } from "@/components/EditProfileForm";
-import { AccountGeneration } from "@/components/auth/v3/AccountGeneration";
-import { useAuthFlowCoordinator } from "@/hooks/authFlow";
+import { AccountGeneration } from "@/components/auth/AccountGeneration";
+import { useAuthFlowCoordinator } from "@/hooks/auth";
 import { useNavigate } from "react-router-dom";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import {
