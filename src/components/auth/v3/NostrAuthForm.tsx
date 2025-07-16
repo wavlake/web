@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
-import { Shield, Upload } from "lucide-react";
+import { Shield, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
 import {
   Tabs,
   TabsContent,
@@ -27,11 +28,17 @@ export const NostrAuthForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [nsecValue, setNsecValue] = useState("");
   const [bunkerUri, setBunkerUri] = useState("");
+  const [errors, setErrors] = useState({
+    extension: null as string | null,
+    nsec: null as string | null,
+    bunker: null as string | null,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
   const { syncProfile } = useProfileSync();
   const handleExtensionLogin = async () => {
     setIsLoading(true);
+    setErrors(prev => ({ ...prev, extension: null }));
     try {
       if (!("nostr" in window)) {
         throw new Error(
@@ -45,6 +52,7 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Extension login failed:", error);
+      setErrors(prev => ({ ...prev, extension: error instanceof Error ? error.message : "Extension login failed" }));
     } finally {
       setIsLoading(false);
     }
@@ -53,6 +61,7 @@ export const NostrAuthForm = ({
   const handleKeyLogin = async () => {
     if (!nsecValue.trim()) return;
     setIsLoading(true);
+    setErrors(prev => ({ ...prev, nsec: null }));
 
     try {
       const loginInfo = loginWithNsec(nsecValue);
@@ -62,6 +71,7 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Nsec login failed:", error);
+      setErrors(prev => ({ ...prev, nsec: error instanceof Error ? error.message : "Nsec login failed" }));
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +80,7 @@ export const NostrAuthForm = ({
   const handleBunkerLogin = async () => {
     if (!bunkerUri.trim() || !bunkerUri.startsWith("bunker://")) return;
     setIsLoading(true);
+    setErrors(prev => ({ ...prev, bunker: null }));
 
     try {
       const loginInfo = await loginWithBunker(bunkerUri);
@@ -79,6 +90,7 @@ export const NostrAuthForm = ({
       await onComplete?.();
     } catch (error) {
       console.error("Bunker login failed:", error);
+      setErrors(prev => ({ ...prev, bunker: error instanceof Error ? error.message : "Bunker login failed" }));
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +127,12 @@ export const NostrAuthForm = ({
       </TabsList>
 
       <TabsContent value="extension" className="space-y-4">
+        {errors.extension && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.extension}</AlertDescription>
+          </Alert>
+        )}
         <div className="text-center p-4 rounded-lg bg-muted">
           <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
           <div className="text-sm text-muted-foreground mb-4">
@@ -131,6 +149,12 @@ export const NostrAuthForm = ({
       </TabsContent>
 
       <TabsContent value="key" className="space-y-4">
+        {errors.nsec && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.nsec}</AlertDescription>
+          </Alert>
+        )}
         <div className="space-y-4">
           <div className="space-y-2">
             <label
@@ -180,6 +204,12 @@ export const NostrAuthForm = ({
       </TabsContent>
 
       <TabsContent value="bunker" className="space-y-4">
+        {errors.bunker && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.bunker}</AlertDescription>
+          </Alert>
+        )}
         <div className="space-y-2">
           <label
             htmlFor="bunkerUri"
