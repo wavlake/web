@@ -125,7 +125,7 @@ export function FirebaseAuthForm({
           <CheckCircle className="h-5 w-5 text-green-500" />
           Signed in
         </div>
-        <div className="flex items-center gap-3 space-y-4">
+        <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage
               src={
