@@ -13,7 +13,7 @@ import { NUser } from "@nostrify/react/login";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import useAppSettings from "@/hooks/useAppSettings";
 import { useLegacyArtists } from "@/hooks/useLegacyApi";
-import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
+import { useAccountLinkingStatus } from "@/hooks/useLinkedPubkeys";
 import type { V3AuthStep } from "./useAuthFlowState";
 import type { LinkedPubkey, NostrProfile } from "@/types/auth";
 
@@ -96,7 +96,7 @@ export function useSigninFlow({
   const { user, metadata } = useCurrentUser();
   const { settings, hasSettingsEvent } = useAppSettings();
   const { data: legacyArtists, isLoading: isLoadingLegacyArtists } = useLegacyArtists();
-  const { primaryPubkey } = useLinkedPubkeys();
+  const { primaryPubkey } = useAccountLinkingStatus();
 
   // ============================================================================
   // Artist Detection Logic

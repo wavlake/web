@@ -139,7 +139,7 @@ export function useAccountDiscovery(
   const [manualRefreshCount, setManualRefreshCount] = useState(0);
 
   // Fetch linked pubkeys (skip for new users for performance)
-  const linkedPubkeysQuery = useLinkedPubkeys(firebaseUser);
+  const linkedPubkeysQuery = useLinkedPubkeys();
 
   // Fetch legacy profile data (skip for new users for performance)
   const legacyProfileQuery = useLegacyProfile(firebaseUser);

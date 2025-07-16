@@ -121,98 +121,83 @@ export function FirebaseAuthForm({
   if (user) {
     return (
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              Legacy Wavlake Account
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* User Profile Section */}
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage
-                  src={
-                    legacyMetadata?.user?.artwork_url ||
-                    user.photoURL ||
-                    undefined
-                  }
-                  alt={legacyMetadata?.user?.name || user.displayName || "User"}
-                />
-                <AvatarFallback>
-                  {getUserInitials(
-                    legacyMetadata?.user?.name || user.displayName,
-                    user.email
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                {legacyMetadata?.user?.name && (
-                  <div className="font-medium">
-                    {legacyMetadata?.user?.name}
-                  </div>
-                )}
-                <div className="text-sm text-muted-foreground">
-                  {user.email}
-                </div>
-              </div>
-            </div>
-
-            {/* Account Status */}
-            <div className="flex items-center gap-2">
-              <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                {user.emailVerified ? (
-                  <>
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Email Verified
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Unverified Email
-                  </>
-                )}
-              </Badge>
-              <Badge variant="outline">
-                {user.providerData.length > 0
-                  ? user.providerData[0].providerId
-                  : "password"}
-              </Badge>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={logout}
-                className="flex-1"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing out...
-                  </>
-                ) : (
-                  <>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </>
-                )}
-              </Button>
-              {onComplete && (
-                <Button
-                  onClick={() => onComplete(user)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Continue
-                </Button>
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          Signed in
+        </div>
+        <div className="flex items-center gap-3 space-y-4">
+          <Avatar className="h-10 w-10">
+            <AvatarImage
+              src={
+                legacyMetadata?.user?.artwork_url || user.photoURL || undefined
+              }
+              alt={legacyMetadata?.user?.name || user.displayName || "User"}
+            />
+            <AvatarFallback>
+              {getUserInitials(
+                legacyMetadata?.user?.name || user.displayName,
+                user.email
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            {legacyMetadata?.user?.name && (
+              <div className="font-medium">{legacyMetadata?.user?.name}</div>
+            )}
+            <div className="text-sm text-muted-foreground">{user.email}</div>
+          </div>
+        </div>
+        {/* Account Status */}
+        <div className="flex items-center gap-2">
+          <Badge variant={user.emailVerified ? "default" : "secondary"}>
+            {user.emailVerified ? (
+              <>
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Email Verified
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3 w-3 mr-1" />
+                Unverified Email
+              </>
+            )}
+          </Badge>
+          <Badge variant="outline">
+            {user.providerData.length > 0
+              ? user.providerData[0].providerId
+              : "password"}
+          </Badge>
+        </div>
+        {/* Actions */}
+        <div className="flex flex-col gap-2 pt-2">
+          {onComplete && (
+            <Button
+              onClick={() => onComplete(user)}
+              className="w-full rounded-full py-6"
+              disabled={loading}
+            >
+              Continue
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={logout}
+            className="w-full rounded-full py-6"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing out...
+              </>
+            ) : (
+              <>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     );
   }

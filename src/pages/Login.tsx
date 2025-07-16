@@ -13,6 +13,7 @@ import { FirebaseAuthForm } from "@/components/auth/v3/FirebaseAuthForm";
 import { EditProfileForm } from "@/components/EditProfileForm";
 import { useAuthFlowCoordinator } from "@/hooks/authFlow";
 import { useNavigate } from "react-router-dom";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import {
   Tooltip,
   TooltipContent,
@@ -64,6 +65,7 @@ const AUTH_METHODS: AuthMethodOption[] = [
 ];
 export default function Login() {
   const navigate = useNavigate();
+  const { user: firebaseUser } = useFirebaseAuth();
 
   // Use the consolidated auth flow
   const {
@@ -119,6 +121,16 @@ export default function Login() {
 
   const handleProfileCreation = () => {
     handleProfileCreated();
+  };
+
+  const getLegacyAuthTitle = () => {
+    return firebaseUser ? "Legacy Wavlake Account" : "Link Your Accounts";
+  };
+
+  const getLegacyAuthDesc = () => {
+    return firebaseUser
+      ? undefined
+      : "Sign in with your Nostr account to link it with your legacy Wavlake account";
   };
 
   // Render based on current state
@@ -354,8 +366,8 @@ export default function Login() {
       return (
         <GenericStep
           handleBack={handleBack}
-          title="Sign In"
-          description="Sign in to Wavlake"
+          title={getLegacyAuthTitle()}
+          description={getLegacyAuthDesc()}
         >
           <FirebaseAuthForm
             mode="signin"
@@ -406,7 +418,9 @@ export default function Login() {
             onClick={handleWelcomeComplete}
             disabled={isLoadingLegacyArtists && !hasSettingsEvent}
           >
-            {isLoadingLegacyArtists && !hasSettingsEvent ? "Setting up..." : "Continue to Wavlake"}
+            {isLoadingLegacyArtists && !hasSettingsEvent
+              ? "Setting up..."
+              : "Continue to Wavlake"}
           </Button>
         </GenericStep>
       );
