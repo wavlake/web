@@ -89,7 +89,7 @@ export function useLegacyArtists() {
       fetchLegacyApi<LegacyArtistsResponse>("/artists", user?.signer),
     enabled: !!user?.signer,
     staleTime: 5 * 60 * 1000,
-    retry: 2,
+    retry: 1,
   });
 }
 
