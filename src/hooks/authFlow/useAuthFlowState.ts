@@ -8,6 +8,7 @@
 import { useReducer, useCallback } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { NUser } from "@nostrify/react/login";
+import { logAuthState } from "@/lib/authStateLogger";
 
 // ============================================================================
 // Types - Extracted from original useV3AuthFlow
@@ -91,6 +92,9 @@ function v3AuthReducer(state: V3AuthState, action: V3AuthAction): V3AuthState {
     ...state.completedSteps.filter((s) => s !== step),
     step,
   ];
+
+  // Log state transitions
+  logAuthState(state.step, { action: action.type, currentState: state });
 
   switch (action.type) {
     case "GO_BACK":

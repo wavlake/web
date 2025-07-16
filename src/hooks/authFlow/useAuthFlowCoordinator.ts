@@ -40,6 +40,9 @@ export interface UseAuthFlowCoordinatorResult {
   isLoadingLegacyArtists: boolean;
   isCreating: boolean;
 
+  // Settings data
+  hasSettingsEvent: boolean;
+
   // Action handlers - maintaining original API
   handleBack: () => void;
   handleSelectSignup: () => void;
@@ -84,7 +87,7 @@ export interface UseAuthFlowCoordinatorResult {
 export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
   const navigate = useNavigate();
   const { logout } = useCurrentUser();
-  const { updateSettings, hasSettingsEvent } = useAppSettings();
+  const { updateSettings, hasSettingsEvent, settings } = useAppSettings();
 
   // ============================================================================
   // Core State Management
@@ -158,19 +161,32 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
    */
   const handleWelcomeComplete = useCallback(async () => {
     try {
-      // Settings initialization logic (from original SignIn.tsx and SignUp.tsx)
-      if (!hasSettingsEvent) {
-        await updateSettings({ 
-          isArtist: isArtist || signinFlow.finalIsArtist 
-        });
+      let finalIsArtist: boolean;
+      
+      if (hasSettingsEvent) {
+        // Use existing settings
+        finalIsArtist = settings?.isArtist ?? false;
+      } else {
+        // No settings found - need to check legacy artists first
+        if (signinFlow.isLoadingLegacyArtists) {
+          // Still loading legacy artists - show loading state instead of proceeding
+          setError("Checking your account settings...");
+          return;
+        }
+        
+        // Legacy artists check complete - use results to determine artist status
+        const legacyArtists = signinFlow.artistsList || [];
+        finalIsArtist = legacyArtists.length > 0;
+        
+        // Create settings event based on legacy artist results
+        await updateSettings({ isArtist: finalIsArtist });
       }
 
-      // Navigation logic (preserving current patterns)
-      if (isArtist || signinFlow.finalIsArtist) {
-        navigate("/dashboard");
-      } else {
-        navigate("/groups");
-      }
+      // Clear any loading messages
+      clearError();
+
+      // Navigation logic based on final artist status
+      navigate(finalIsArtist ? "/dashboard" : "/groups");
 
       welcomeComplete();
     } catch (error) {
@@ -179,12 +195,14 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     }
   }, [
     hasSettingsEvent,
+    settings?.isArtist,
     updateSettings,
-    isArtist,
-    signinFlow.finalIsArtist,
+    signinFlow.artistsList,
+    signinFlow.isLoadingLegacyArtists,
     navigate,
     welcomeComplete,
     setError,
+    clearError,
   ]);
 
   // ============================================================================
@@ -256,6 +274,9 @@ export function useAuthFlowCoordinator(): UseAuthFlowCoordinatorResult {
     artistsList: signinFlow.artistsList,
     isLoadingLegacyArtists: signinFlow.isLoadingLegacyArtists,
     isCreating: signupFlow.isCreating,
+
+    // Settings data
+    hasSettingsEvent,
 
     // Action handlers
     handleBack,

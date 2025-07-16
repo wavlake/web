@@ -1,4 +1,11 @@
-import { Sparkles, Mail, HeadphonesIcon, MicIcon, User, Users } from "lucide-react";
+import {
+  Sparkles,
+  Mail,
+  HeadphonesIcon,
+  MicIcon,
+  User,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GenericStep } from "@/components/auth/v3/GenericStep";
 import { NostrAuthForm } from "@/components/auth/v3/NostrAuthForm";
@@ -73,6 +80,7 @@ export default function Login() {
     artistsList,
     isLoadingLegacyArtists,
     isCreating,
+    hasSettingsEvent,
     handleBack,
     handleSelectSignup,
     handleSelectSignin,
@@ -358,15 +366,11 @@ export default function Login() {
       );
 
     case "account-linking":
-      if (isLoadingLegacyArtists) {
-        return <div>Loading legacy artists...</div>;
-      }
-
       return (
         <GenericStep
           handleBack={handleBack}
-          title="Nostr Setup"
-          description="Let's create a new Nostr identity for you"
+          title="Link Your Accounts"
+          description="Sign in with your Nostr account to link it with your legacy Wavlake account"
         >
           <NostrAuthForm
             expectedPubkey={primaryPubkey?.pubkey}
@@ -376,6 +380,20 @@ export default function Login() {
       );
 
     case "welcome": {
+      // Show loading state if we're still checking legacy artists and no settings exist
+      if (isLoadingLegacyArtists && !hasSettingsEvent) {
+        return (
+          <GenericStep
+            title="Setting up your account..."
+            description="We're checking your account settings."
+          >
+            <div className="text-center text-sm text-muted-foreground">
+              This will just take a moment...
+            </div>
+          </GenericStep>
+        );
+      }
+
       const finalIsArtist = isArtist || isLegacyArtist;
       return (
         <GenericStep
@@ -387,8 +405,9 @@ export default function Login() {
           <Button
             className="w-full rounded-full py-6"
             onClick={handleWelcomeComplete}
+            disabled={isLoadingLegacyArtists && !hasSettingsEvent}
           >
-            Continue to Wavlake
+            {isLoadingLegacyArtists && !hasSettingsEvent ? "Setting up..." : "Continue to Wavlake"}
           </Button>
         </GenericStep>
       );
