@@ -15,7 +15,7 @@ import {
   encryptDraftContent, 
   createFutureTrackEvent, 
   createFutureAlbumEvent 
-} from "@/lib/draftUtils";
+, Nip44Signer } from "@/lib/draftUtils";
 import { toast } from "sonner";
 
 // Published track interface for conversion to draft
@@ -23,12 +23,13 @@ interface PublishedTrack {
   id: string;
   title: string;
   genre?: string;
-  audioUrl: string;
-  explicit: boolean;
+  audioUrl?: string;
+  explicit?: boolean;
   description?: string;
   price?: number;
   coverUrl?: string;
   tags?: string[];
+  event?: any; // NostrEvent
 }
 
 // Published album interface for conversion to draft
@@ -37,7 +38,7 @@ interface PublishedAlbum {
   title: string;
   artist: string;
   genre?: string;
-  explicit: boolean;
+  explicit?: boolean;
   description?: string;
   price?: number;
   coverUrl?: string;
@@ -46,13 +47,14 @@ interface PublishedAlbum {
   label?: string;
   tags?: string[];
   tracks: AlbumTrack[];
+  event?: any; // NostrEvent
 }
 
 // Track within an album
 interface AlbumTrack {
   id: string;
   title: string;
-  trackNumber: number;
+  trackNumber?: number;
 }
 
 export function useDraftPublish() {
@@ -70,9 +72,14 @@ export function useDraftPublish() {
       // Create the future track event structure
       const futureEvent = createFutureTrackEvent(data);
       
+      // Check if signer supports NIP-44 encryption
+      if (!user.signer.nip44) {
+        throw new Error("NIP-44 encryption not supported by current signer");
+      }
+
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer,
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -113,9 +120,14 @@ export function useDraftPublish() {
       // Create the future album event structure
       const futureEvent = createFutureAlbumEvent(data);
       
+      // Check if signer supports NIP-44 encryption
+      if (!user.signer.nip44) {
+        throw new Error("NIP-44 encryption not supported by current signer");
+      }
+
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer,
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -296,8 +308,8 @@ export function useDraftPublish() {
           ["d", track.id.replace('track-', 'track-')], // Keep same identifier
           ["title", track.title],
           ...(track.genre ? [["genre", track.genre]] : []),
-          ["url", track.audioUrl],
-          ["explicit", track.explicit.toString()],
+          ...(track.audioUrl ? [["url", track.audioUrl]] : []),
+          ...(track.explicit !== undefined ? [["explicit", track.explicit.toString()]] : []),
           ...(track.description ? [["description", track.description]] : []),
           ...(track.price && track.price > 0 ? [["price", track.price.toString(), "sat"]] : []),
           ...(track.coverUrl ? [["image", track.coverUrl]] : []),
@@ -308,9 +320,14 @@ export function useDraftPublish() {
         sig: "",
       };
 
+      // Check if signer supports NIP-44 encryption
+      if (!user.signer.nip44) {
+        throw new Error("NIP-44 encryption not supported by current signer");
+      }
+
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer,
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -337,7 +354,7 @@ export function useDraftPublish() {
         kind: 5,
         content: "Track converted to draft",
         tags: [
-          ["e", track.event.id],
+          ...(track.event?.id ? [["e", track.event.id]] : []),
           ["k", TRACK_KIND.toString()]
         ]
       };
@@ -375,7 +392,7 @@ export function useDraftPublish() {
           ["title", album.title],
           ["artist", album.artist],
           ...(album.genre ? [["genre", album.genre]] : []),
-          ["explicit", album.explicit.toString()],
+          ...(album.explicit !== undefined ? [["explicit", album.explicit.toString()]] : []),
           ...(album.description ? [["description", album.description]] : []),
           ...(album.price && album.price > 0 ? [["price", album.price.toString(), "sat"]] : []),
           ...(album.coverUrl ? [["image", album.coverUrl]] : []),
@@ -384,10 +401,10 @@ export function useDraftPublish() {
           ...(album.label ? [["label", album.label]] : []),
           // Add track references
           ...album.tracks
-            .sort((a, b) => a.trackNumber - b.trackNumber)
+            .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0))
             .flatMap((track) => [
               ["e", track.id, "", track.title],
-              ["track", track.trackNumber.toString(), track.id]
+              ...(track.trackNumber ? [["track", track.trackNumber.toString(), track.id]] : [])
             ]),
           // Add custom tags
           ...(album.tags || []).map((tag: string) => ["t", tag]),
@@ -397,9 +414,14 @@ export function useDraftPublish() {
         sig: "",
       };
 
+      // Check if signer supports NIP-44 encryption
+      if (!user.signer.nip44) {
+        throw new Error("NIP-44 encryption not supported by current signer");
+      }
+
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer,
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -426,7 +448,7 @@ export function useDraftPublish() {
         kind: 5,
         content: "Album converted to draft",
         tags: [
-          ["e", album.event.id],
+          ...(album.event?.id ? [["e", album.event.id]] : []),
           ["k", ALBUM_KIND.toString()]
         ]
       };
