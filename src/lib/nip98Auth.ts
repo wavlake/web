@@ -19,14 +19,17 @@ declare global {
  * @param signer - Signer object with signEvent method
  * @returns Promise<string> - Authorization header value
  */
+// Signer interface for NIP-98 authentication
+interface Nip98Signer {
+  signEvent: (event: NostrEvent) => Promise<NostrEvent>;
+  getPublicKey?: () => Promise<string>;
+}
+
 export async function createNip98AuthHeader(
   url: string,
   method: string,
-  body?: Record<string, any> | string | undefined,
-  signer?: {
-    signEvent: (event: NostrEvent) => Promise<NostrEvent>;
-    getPublicKey?: () => Promise<string>;
-  } | any
+  body?: Record<string, unknown> | string | undefined,
+  signer?: Nip98Signer
 ): Promise<string> {
   if (!signer?.signEvent) {
     throw new Error("Signer with signEvent method is required for NIP-98 authentication");
@@ -40,7 +43,7 @@ export async function createNip98AuthHeader(
   // Use nip98.getToken which handles everything internally
   // This includes creating the auth event, signing it, and packing it into a token
   // The payload should be an object - nip98.getToken handles stringification internally
-  let payload: Record<string, any> | undefined;
+  let payload: Record<string, unknown> | undefined;
   if (body !== undefined) {
     if (typeof body === 'string') {
       try {

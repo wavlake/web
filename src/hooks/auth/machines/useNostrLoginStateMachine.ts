@@ -85,7 +85,7 @@ export function useNostrLoginStateMachine(
       dispatch({ type: "AUTH_COMPLETED" });
       
       return { authResult };
-    }, dispatch), [dependencies.authenticate, dependencies.syncProfile]);
+    }, dispatch), [dependencies]);
 
   // Navigation helpers
   const reset = useCallback(() => {

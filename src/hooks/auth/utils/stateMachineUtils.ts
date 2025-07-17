@@ -5,10 +5,20 @@
  * across all authentication flows.
  */
 
-import { BaseStateMachineState, ActionResult, AsyncActionHandler } from '../machines/types';
+import React from 'react';
+import { BaseStateMachineState, ActionResult, AsyncActionHandler, AsyncStartAction, AsyncSuccessAction, AsyncErrorAction, ResetAction, GoBackAction } from '../machines/types';
+
+// Base action types for dispatch
+type BaseAction = AsyncStartAction | AsyncSuccessAction | AsyncErrorAction | ResetAction | GoBackAction;
+
+// Generic action interface for any action
+interface GenericAction {
+  type: string;
+  [key: string]: any;
+}
 
 // Helper to create async action wrapper
-export function createAsyncAction<TArgs extends any[], TResult>(
+export function createAsyncAction<TArgs extends unknown[], TResult>(
   operation: string,
   asyncFn: (...args: TArgs) => Promise<TResult>,
   dispatch: React.Dispatch<any>

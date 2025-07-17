@@ -84,6 +84,36 @@ import { nip19 } from "nostr-tools";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useCommunityContext } from "@/contexts/CommunityContext";
 
+// Upload history item types
+interface BaseUploadItem {
+  id: string;
+  date: string;
+  title: string;
+  status: string;
+  isDraft?: boolean;
+}
+
+interface TrackUploadItem extends BaseUploadItem {
+  type: "track";
+  isDraft: boolean;
+  draftData?: DraftTrack;
+}
+
+interface AlbumUploadItem extends BaseUploadItem {
+  type: "album";
+  trackCount?: number;
+  isDraft: boolean;
+  draftData?: DraftAlbum;
+}
+
+// Legacy upload item (from upload history)
+interface LegacyUploadItem extends BaseUploadItem {
+  type?: "track" | "album";
+  trackCount?: number;
+}
+
+type UploadItem = TrackUploadItem | AlbumUploadItem | LegacyUploadItem;
+
 interface MusicPublisherProps {
   artistId?: string;
   communityId?: string;
@@ -212,7 +242,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
   } = useAllDrafts();
 
   // Combine upload history with drafts for complete upload history
-  const combinedUploadHistory = [
+  const combinedUploadHistory: UploadItem[] = [
     ...uploadHistory,
     // Add draft tracks
     ...draftTracks.map((draft) => ({
@@ -1307,8 +1337,8 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                           <TableCell>
                             {upload.type === "album"
                               ? `Album${
-                                  (upload as any).trackCount
-                                    ? ` (${(upload as any).trackCount} tracks)`
+                                  upload.trackCount
+                                    ? ` (${upload.trackCount} tracks)`
                                     : ""
                                 }`
                               : "Single Track"}
@@ -1316,7 +1346,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                           <TableCell>
                             <Badge
                               className={
-                                (upload as any).isDraft
+                                upload.isDraft === true
                                   ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
                                   : "bg-green-100 text-green-800 hover:bg-green-100"
                               }
@@ -1325,19 +1355,19 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {(upload as any).isDraft ? (
+                            {upload.isDraft === true ? (
                               <div className="flex items-center gap-2">
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => {
-                                    if (upload.type === "track") {
+                                    if (upload.type === "track" && upload.draftData) {
                                       setEditingDraftTrack(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftTrack
                                       );
-                                    } else {
+                                    } else if (upload.draftData) {
                                       setEditingDraftAlbum(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftAlbum
                                       );
                                     }
                                   }}
@@ -1348,13 +1378,13 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                                   size="sm"
                                   variant="default"
                                   onClick={() => {
-                                    if (upload.type === "track") {
+                                    if (upload.type === "track" && upload.draftData) {
                                       publishDraftTrack.mutateAsync(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftTrack
                                       );
-                                    } else {
+                                    } else if (upload.draftData) {
                                       publishDraftAlbum.mutateAsync(
-                                        (upload as any).draftData
+                                        upload.draftData as DraftAlbum
                                       );
                                     }
                                   }}

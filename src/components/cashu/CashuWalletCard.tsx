@@ -106,7 +106,7 @@ export function CashuWalletCard() {
     }
   }, [createWalletError]);
 
-  const handleAddMint = () => {
+  const handleAddMint = async () => {
     if (!wallet || !wallet.mints) return;
 
     try {
@@ -114,7 +114,7 @@ export function CashuWalletCard() {
       new URL(newMint);
 
       // Add mint to wallet
-      createWallet({
+      await createWallet({
         ...wallet,
         mints: [...wallet.mints, newMint],
       });
@@ -127,7 +127,7 @@ export function CashuWalletCard() {
     }
   };
 
-  const handleRemoveMint = (mintUrl: string) => {
+  const handleRemoveMint = async (mintUrl: string) => {
     if (!wallet || !wallet.mints) {
       setError("No mints found");
       return;
@@ -141,28 +141,28 @@ export function CashuWalletCard() {
 
     try {
       // Remove mint from wallet
-      createWallet({
+      await createWallet({
         ...wallet,
         mints: wallet.mints.filter((m) => m !== mintUrl),
       });
+
+      // If removing the active mint, set the first available mint as active
+      if (cashuStore.activeMintUrl === mintUrl) {
+        const remainingMints = wallet.mints.filter((m) => m !== mintUrl);
+        if (remainingMints.length > 0) {
+          cashuStore.setActiveMintUrl(remainingMints[0]);
+        }
+      }
+
+      // remove the mint from the cashuStore.mints array
+      cashuStore.mints = cashuStore.mints.filter((m) => m.url !== mintUrl);
+
+      // Close expanded view if open
+      if (expandedMint === mintUrl) {
+        setExpandedMint(null);
+      }
     } catch (e) {
       setError("Failed to remove mint");
-    }
-
-    // If removing the active mint, set the first available mint as active
-    if (cashuStore.activeMintUrl === mintUrl) {
-      const remainingMints = wallet.mints.filter((m) => m !== mintUrl);
-      if (remainingMints.length > 0) {
-        cashuStore.setActiveMintUrl(remainingMints[0]);
-      }
-    }
-
-    // remove the mint from the cashuStore.mints array
-    cashuStore.mints = cashuStore.mints.filter((m) => m.url !== mintUrl);
-
-    // Close expanded view if open
-    if (expandedMint === mintUrl) {
-      setExpandedMint(null);
     }
   };
 

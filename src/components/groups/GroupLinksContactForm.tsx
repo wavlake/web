@@ -102,7 +102,7 @@ export function GroupLinksContactForm({ group, communityId }: GroupLinksContactF
   useEffect(() => {
     const metadata = extractCurrentMetadata();
     form.reset(metadata);
-  }, [group.id, form]);
+  }, [group.id, form, extractCurrentMetadata]);
 
   const addLink = () => {
     const currentLinks = form.getValues("links");

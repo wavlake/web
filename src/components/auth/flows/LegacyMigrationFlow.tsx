@@ -16,8 +16,13 @@ import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
+interface AuthFlowResult {
+  success: boolean;
+  error?: string;
+}
+
 interface LegacyMigrationFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: AuthFlowResult) => void;
   onCancel?: () => void;
 }
 
@@ -91,7 +96,9 @@ export function LegacyMigrationFlow({
       case "bring-own-keypair":
         return (
           <BringKeypairStep
-            onComplete={handleBringOwnKeypairWithCredentials}
+            onComplete={async (privateKey: string) => {
+              await handleBringOwnKeypairWithCredentials({ method: "nsec", nsec: privateKey });
+            }}
             isLoading={stateMachine.isLoading("bringOwnKeypair")}
             error={errorToString(stateMachine.getError("bringOwnKeypair"))}
           />

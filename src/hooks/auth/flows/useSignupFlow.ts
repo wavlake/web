@@ -13,6 +13,8 @@ import {
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
 import { useLinkAccount } from "../useLinkAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { type ProfileData } from "@/types/profile";
 
 export interface UseSignupFlowResult {
   // State machine interface
@@ -21,9 +23,10 @@ export interface UseSignupFlowResult {
   // Step-specific handlers
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
-  handleProfileCompletion: (profileData: unknown) => Promise<void>;
+  handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
+  handleSignupCompletion: () => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -33,22 +36,24 @@ export interface UseSignupFlowResult {
 
 export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
-  const { createAccount } = useCreateNostrAccount();
+  const { createAccount, setupAccount } = useCreateNostrAccount();
   const { mutateAsync: linkAccounts } = useLinkAccount();
   const { registerWithEmailAndPassword } = useFirebaseAuth();
+  const { addLogin } = useCurrentUser();
 
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
-    saveProfile: async (data: unknown) => {
-      // TODO: Implementation for saving profile
-      console.log("Saving profile:", data);
+    saveProfile: async (data: ProfileData) => {
+      // Profile data is now properly stored in state machine and passed to setupAccount
     },
     createFirebaseAccount: async (email: string, password: string) => {
       const result = await registerWithEmailAndPassword({ email, password });
       return result.user;
     },
     linkAccounts,
+    addLogin,
+    setupAccount: (profileData: ProfileData | null, generatedName: string) => setupAccount(profileData, generatedName),
   });
 
   // Step handlers that integrate with UI
@@ -56,7 +61,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     async (isArtist: boolean) => {
       const result = await stateMachine.actions.setUserType(isArtist);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to set user type");
       }
     },
     [stateMachine.actions]
@@ -66,17 +71,18 @@ export function useSignupFlow(): UseSignupFlowResult {
     async (isSolo: boolean) => {
       const result = await stateMachine.actions.setArtistType(isSolo);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to set artist type");
       }
     },
     [stateMachine.actions]
   );
 
   const handleProfileCompletion = useCallback(
-    async (profileData: unknown) => {
+    async (profileData: ProfileData) => {
       const result = await stateMachine.actions.completeProfile(profileData);
+      
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to complete profile");
       }
     },
     [stateMachine.actions]
@@ -89,7 +95,7 @@ export function useSignupFlow(): UseSignupFlowResult {
         password
       );
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to setup Firebase backup");
       }
     },
     [stateMachine.actions]
@@ -97,6 +103,14 @@ export function useSignupFlow(): UseSignupFlowResult {
 
   const handleFirebaseBackupSkip = useCallback(async () => {
     stateMachine.actions.skipFirebaseBackup();
+  }, [stateMachine.actions]);
+
+  const handleSignupCompletion = useCallback(async () => {
+    const result = await stateMachine.actions.completeLogin();
+    
+    if (!result.success) {
+      throw new Error(result.error?.message || "Failed to complete signup");
+    }
   }, [stateMachine.actions]);
 
   // Helper functions for UI
@@ -139,7 +153,7 @@ export function useSignupFlow(): UseSignupFlowResult {
       default:
         return "";
     }
-  }, [stateMachine.step]);
+  }, [stateMachine.step, stateMachine.isArtist, stateMachine.isSoloArtist]);
 
   const shouldShowFirebaseBackup = useCallback(() => {
     return stateMachine.isArtist;
@@ -152,6 +166,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleProfileCompletion,
     handleFirebaseBackupSetup,
     handleFirebaseBackupSkip,
+    handleSignupCompletion,
     getStepTitle,
     getStepDescription,
     shouldShowFirebaseBackup,

@@ -135,7 +135,7 @@ export function useCashuToken() {
       throw new Error('Wallet not found');
     }
     // Add mint to wallet
-    createWallet({
+    await createWallet({
       ...wallet,
       mints: [...wallet.mints, mintUrl],
     });

@@ -8,6 +8,7 @@
 import { useReducer, useCallback, useMemo } from 'react';
 import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationError } from '../utils/stateMachineUtils';
 import { ActionResult, SignupState, SignupAction, SignupStep } from './types';
+import { type ProfileData } from '@/types/profile';
 
 const initialState: SignupState = {
   step: "user-type",
@@ -17,6 +18,9 @@ const initialState: SignupState = {
   errors: {},
   canGoBack: false,
   account: null,
+  createdLogin: null,
+  generatedName: null,
+  profileData: null,
 };
 
 function signupReducer(state: SignupState, action: SignupAction): SignupState {
@@ -43,11 +47,26 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: true,
       };
 
+    case "ACCOUNT_CREATED":
+      return {
+        ...state,
+        createdLogin: action.login,
+        generatedName: action.generatedName,
+      };
+
     case "PROFILE_COMPLETED":
       return {
         ...state,
         step: state.isArtist ? "firebase-backup" : "complete",
         canGoBack: state.isArtist,
+        profileData: action.profileData,
+      };
+
+    case "LOGIN_COMPLETED":
+      return {
+        ...state,
+        step: "complete",
+        canGoBack: false,
       };
 
     case "FIREBASE_BACKUP_COMPLETED":
@@ -64,13 +83,14 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
-    case "GO_BACK":
+    case "GO_BACK": {
       const previousStep = getPreviousStep(state.step, state.isArtist);
       return {
         ...state,
         step: previousStep,
         canGoBack: previousStep !== "user-type",
       };
+    }
 
     case "RESET":
       return initialState;
@@ -101,6 +121,9 @@ export interface UseSignupStateMachineResult {
   isSoloArtist: boolean;
   canGoBack: boolean;
   account: unknown | null;
+  createdLogin: import("@nostrify/react/login").NLoginType | null;
+  generatedName: string | null;
+  profileData: ProfileData | null;
   
   // Loading helpers
   isLoading: (operation: string) => boolean;
@@ -110,9 +133,10 @@ export interface UseSignupStateMachineResult {
   actions: {
     setUserType: (isArtist: boolean) => Promise<ActionResult>;
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
-    completeProfile: (profileData: unknown) => Promise<ActionResult>;
+    completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
     setupFirebaseBackup: (email: string, password: string) => Promise<ActionResult>;
     skipFirebaseBackup: () => void;
+    completeLogin: () => Promise<ActionResult>;
   };
   
   // Navigation
@@ -121,10 +145,12 @@ export interface UseSignupStateMachineResult {
 }
 
 export interface SignupStateMachineDependencies {
-  createAccount: () => Promise<unknown>;
-  saveProfile: (data: unknown) => Promise<void>;
+  createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
+  saveProfile: (data: ProfileData) => Promise<void>;
   createFirebaseAccount: (email: string, password: string) => Promise<unknown>;
   linkAccounts: () => Promise<void>;
+  addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
+  setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
 }
 
 export function useSignupStateMachine(
@@ -140,12 +166,13 @@ export function useSignupStateMachine(
       
       // For listeners, create account immediately
       if (!isArtist) {
-        const account = await dependencies.createAccount();
-        return { account };
+        const { login, generatedName } = await dependencies.createAccount();
+        dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
+        return { login, generatedName };
       }
       
       return {};
-    }, dispatch), [dependencies.createAccount]);
+    }, dispatch), [dependencies]);
 
   const setArtistType = useMemo(() =>
     createAsyncAction("setArtistType", async (isSolo: boolean) => {
@@ -153,16 +180,18 @@ export function useSignupStateMachine(
       dispatch({ type: "SET_ARTIST_TYPE", isSolo });
       
       // Create account for profile setup
-      const account = await dependencies.createAccount();
-      return { account };
-    }, dispatch), [dependencies.createAccount]);
+      const { login, generatedName } = await dependencies.createAccount();
+      dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
+      return { login, generatedName };
+    }, dispatch), [dependencies]);
 
   const completeProfile = useMemo(() =>
-    createAsyncAction("completeProfile", async (profileData: unknown) => {
+    createAsyncAction("completeProfile", async (profileData: ProfileData) => {
       await dependencies.saveProfile(profileData);
-      dispatch({ type: "PROFILE_COMPLETED" });
+      dispatch({ type: "PROFILE_COMPLETED", profileData });
+      
       return {};
-    }, dispatch), [dependencies.saveProfile]);
+    }, dispatch), [dependencies]);
 
   const setupFirebaseBackup = useMemo(() =>
     createAsyncAction("setupFirebaseBackup", async (email: string, password: string) => {
@@ -170,11 +199,27 @@ export function useSignupStateMachine(
       await dependencies.linkAccounts();
       dispatch({ type: "FIREBASE_BACKUP_COMPLETED" });
       return { firebaseUser };
-    }, dispatch), [dependencies.createFirebaseAccount, dependencies.linkAccounts]);
+    }, dispatch), [dependencies]);
 
   const skipFirebaseBackup = useCallback(() => {
     dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
   }, []);
+
+  const completeLogin = useMemo(() =>
+    createAsyncAction("completeLogin", async () => {
+      if (state.createdLogin && state.generatedName) {
+        // Add the login to actually log the user in
+        dependencies.addLogin(state.createdLogin);
+        
+        // Setup account (create wallet, publish profile)
+        await dependencies.setupAccount(state.profileData, state.generatedName);
+        
+        dispatch({ type: "LOGIN_COMPLETED" });
+        return { success: true };
+      }
+      
+      throw new Error("No login or generated name available");
+    }, dispatch), [dependencies, state.createdLogin, state.generatedName, state.profileData]);
 
   // Navigation helpers
   const goBack = useCallback(() => {
@@ -201,6 +246,9 @@ export function useSignupStateMachine(
     isSoloArtist: state.isSoloArtist,
     canGoBack: state.canGoBack,
     account: state.account,
+    createdLogin: state.createdLogin,
+    generatedName: state.generatedName,
+    profileData: state.profileData,
     
     // Helpers
     isLoading,
@@ -213,6 +261,7 @@ export function useSignupStateMachine(
       completeProfile,
       setupFirebaseBackup,
       skipFirebaseBackup,
+      completeLogin,
     },
     
     // Navigation

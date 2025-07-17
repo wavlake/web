@@ -247,9 +247,9 @@ export function formatCredentialsForDisplay(method: NostrAuthMethod, credentials
     case "extension":
       return "Browser Extension";
     case "nsec":
-      return `Private Key (${credentials.nsec ? "nsec1..." : "Not provided"})`;
+      return `Private Key (${"nsec" in credentials && credentials.nsec ? "nsec1..." : "Not provided"})`;
     case "bunker":
-      return `Bunker (${credentials.bunkerUri ? "bunker://..." : "Not provided"})`;
+      return `Bunker (${"bunkerUri" in credentials && credentials.bunkerUri ? "bunker://..." : "Not provided"})`;
     default:
       return method;
   }
