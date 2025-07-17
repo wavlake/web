@@ -6,8 +6,6 @@
  */
 
 // Core authentication forms
-export { NostrAuthForm } from "./NostrAuthForm";
-export { FirebaseAuthForm } from "./FirebaseAuthForm";
 export { LoginButton } from "./ui/LoginButton";
 
 // Flow components
@@ -17,12 +15,8 @@ export { NostrLoginFlow } from "./flows/NostrLoginFlow";
 export { NostrAuthStep } from "./steps/shared/NostrAuthStep";
 
 // Utility components
-export { AccountDiscoveryScreen } from "./AccountDiscoveryScreen";
-export { LinkedAccountCard } from "./LinkedAccountCard";
 export { PubkeyMismatchAlert } from "./PubkeyMismatchAlert";
 export { UnlinkConfirmDialog } from "./UnlinkConfirmDialog";
 export { FirebaseActionGuard } from "./FirebaseActionGuard";
-export { GenericStep } from "./GenericStep";
 
 // Legacy/Migration components
-export { AccountGeneration } from "./AccountGeneration";
