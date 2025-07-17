@@ -9,18 +9,18 @@ import { generateFakeName } from "@/lib/utils";
 interface UseCreateAccountReturn {
   isCreating: boolean;
   generatedName: string | null;
-  createAccount: () => Promise<void>;
+  createAccount: () => Promise<{ login: NLogin; generatedName: string }>;
+  setupAccount: (generatedName: string) => Promise<void>;
 }
 
 export const useCreateNostrAccount = (): UseCreateAccountReturn => {
   const [isCreating, setIsCreating] = useState(false);
   const [generatedName, setGeneratedName] = useState<string | null>(null);
 
-  const { addLogin } = useNostrLogin();
   const { mutateAsync: publishEvent } = useNostrPublish();
   const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
 
-  const createAccount = async () => {
+  const createAccount = async (): Promise<{ login: NLogin; generatedName: string }> => {
     setIsCreating(true);
 
     try {
@@ -28,30 +28,15 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
       const sk = generateSecretKey();
       const nsec = nip19.nsecEncode(sk);
 
-      // Create login and sign in
+      // Create login but don't add it yet - let the flow handle login timing
       const login = NLogin.fromNsec(nsec);
-      addLogin(login);
 
       // Generate fake name
       const fakeName = generateFakeName();
       setGeneratedName(fakeName);
 
-      // Wait for login to be available (since addLogin is sync but state update is async)
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      try {
-        // Create Cashu wallet
-        await createCashuWallet();
-
-        // Publish kind:0 metadata
-        await publishEvent({
-          kind: 0,
-          content: JSON.stringify({ name: fakeName }),
-        });
-      } catch (error) {
-        // Non-critical errors - continue anyway
-        console.error("Error during account setup:", error);
-      }
+      // Return the login and generated name for the flow to handle
+      return { login, generatedName: fakeName };
     } catch (error) {
       toast({
         title: "Error",
@@ -64,9 +49,26 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
     }
   };
 
+  const setupAccount = async (generatedName: string): Promise<void> => {
+    try {
+      // Create Cashu wallet
+      await createCashuWallet();
+
+      // Publish kind:0 metadata
+      await publishEvent({
+        kind: 0,
+        content: JSON.stringify({ name: generatedName }),
+      });
+    } catch (error) {
+      // Non-critical errors - continue anyway
+      console.error("Error during account setup:", error);
+    }
+  };
+
   return {
     isCreating,
     generatedName,
     createAccount,
+    setupAccount,
   };
 };

@@ -7,6 +7,7 @@
 
 import { User as FirebaseUser } from 'firebase/auth';
 import { NostrCredentials } from '@/types/authFlow';
+import { type NLoginType } from "@nostrify/react/login";
 
 // Base interfaces that all state machines extend
 export interface BaseStateMachineState {
@@ -68,14 +69,18 @@ export interface SignupState extends BaseStateMachineState {
   isArtist: boolean;
   isSoloArtist: boolean;
   account: NostrAccount | null;
+  createdLogin: NLoginType | null;
+  generatedName: string | null;
 }
 
 export type SignupAction = 
   | { type: "SET_USER_TYPE"; isArtist: boolean }
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
+  | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName: string }
   | { type: "PROFILE_COMPLETED" }
   | { type: "FIREBASE_BACKUP_COMPLETED" }
   | { type: "FIREBASE_BACKUP_SKIPPED" }
+  | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction
   | AsyncSuccessAction
   | AsyncErrorAction
@@ -139,6 +144,8 @@ export interface LegacyMigrationState extends BaseStateMachineState {
   linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
   generatedAccount: NostrAccount | null;
+  createdLogin: NLoginType | null;
+  generatedName: string | null;
 }
 
 export type LegacyMigrationAction = 
@@ -147,7 +154,9 @@ export type LegacyMigrationAction =
   | { type: "ACCOUNT_CHOICE_MADE"; choice: "generate" | "bring-own" }
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }
   | { type: "KEYPAIR_AUTHENTICATED"; account: NostrAccount }
+  | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName?: string }
   | { type: "LINKING_COMPLETED" }
+  | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction
   | AsyncSuccessAction
   | AsyncErrorAction

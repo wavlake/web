@@ -31,6 +31,7 @@ export interface UseLegacyMigrationFlowResult {
   handleAccountGeneration: () => Promise<void>;
   handleBringOwnKeypair: () => Promise<void>;
   handleBringOwnKeypairWithCredentials: (credentials: NostrCredentials) => Promise<void>;
+  handleMigrationCompletion: () => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -44,8 +45,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { data: linkedPubkeys, refetch: checkLinkedPubkeys } =
     useLinkedPubkeys();
-  const { loginWithExtension, loginWithNsec } = useCurrentUser();
-  const { createAccount } = useCreateNostrAccount();
+  const { loginWithExtension, loginWithNsec, addLogin } = useCurrentUser();
+  const { createAccount, setupAccount } = useCreateNostrAccount();
   const { mutateAsync: linkAccounts } = useLinkAccount();
 
   // Create dependency functions that can access the hook methods
@@ -112,6 +113,10 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [loginWithExtension, loginWithNsec]
   );
 
+  const createAccountDependency = useCallback(async () => {
+    return await createAccount();
+  }, [createAccount]);
+
   const generateAccountDependency = useCallback(async () => {
     return await createAccount();
   }, [createAccount]);
@@ -124,13 +129,20 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [linkAccounts]
   );
 
+  const setupAccountDependency = useCallback(async (generatedName: string) => {
+    return await setupAccount(generatedName);
+  }, [setupAccount]);
+
   // State machine with dependencies injected
   const stateMachine = useLegacyMigrationStateMachine({
     firebaseAuth: firebaseAuthDependency,
     checkLinkedPubkeys: checkLinkedPubkeysDependency,
     authenticateNostr: authenticateNostrDependency,
     generateAccount: generateAccountDependency,
+    createAccount: createAccountDependency,
     linkAccounts: linkAccountsDependency,
+    addLogin,
+    setupAccount: setupAccountDependency,
   });
 
   // Step handlers that integrate with UI
@@ -182,6 +194,13 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     },
     [stateMachine.actions]
   );
+
+  const handleMigrationCompletion = useCallback(async () => {
+    const result = await stateMachine.actions.completeLogin();
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+  }, [stateMachine.actions]);
 
   // Helper functions for UI
   const getStepTitle = useCallback(() => {
@@ -245,6 +264,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,
+    handleMigrationCompletion,
     getStepTitle,
     getStepDescription,
     hasLinkedAccounts,

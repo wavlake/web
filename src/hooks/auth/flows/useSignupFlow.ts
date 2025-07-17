@@ -13,6 +13,7 @@ import {
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
 import { useLinkAccount } from "../useLinkAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export interface UseSignupFlowResult {
   // State machine interface
@@ -24,6 +25,7 @@ export interface UseSignupFlowResult {
   handleProfileCompletion: (profileData: unknown) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
+  handleSignupCompletion: () => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -33,9 +35,10 @@ export interface UseSignupFlowResult {
 
 export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
-  const { createAccount } = useCreateNostrAccount();
+  const { createAccount, setupAccount } = useCreateNostrAccount();
   const { mutateAsync: linkAccounts } = useLinkAccount();
   const { registerWithEmailAndPassword } = useFirebaseAuth();
+  const { addLogin } = useCurrentUser();
 
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
@@ -49,6 +52,8 @@ export function useSignupFlow(): UseSignupFlowResult {
       return result.user;
     },
     linkAccounts,
+    addLogin,
+    setupAccount,
   });
 
   // Step handlers that integrate with UI
@@ -97,6 +102,13 @@ export function useSignupFlow(): UseSignupFlowResult {
 
   const handleFirebaseBackupSkip = useCallback(async () => {
     stateMachine.actions.skipFirebaseBackup();
+  }, [stateMachine.actions]);
+
+  const handleSignupCompletion = useCallback(async () => {
+    const result = await stateMachine.actions.completeLogin();
+    if (!result.success) {
+      throw new Error(result.error);
+    }
   }, [stateMachine.actions]);
 
   // Helper functions for UI
@@ -152,6 +164,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleProfileCompletion,
     handleFirebaseBackupSetup,
     handleFirebaseBackupSkip,
+    handleSignupCompletion,
     getStepTitle,
     getStepDescription,
     shouldShowFirebaseBackup,
