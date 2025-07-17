@@ -19,34 +19,49 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
 
   const query = useQuery({
     queryKey: ["account-linking-status", user?.pubkey],
-    queryFn: async (): Promise<{ isLinked: boolean; firebaseUid: string | null; email: string | null }> => {
+    queryFn: async (): Promise<{
+      isLinked: boolean;
+      firebaseUid: string | null;
+      email: string | null;
+    }> => {
       if (!user?.pubkey || !user?.signer) {
         return { isLinked: false, firebaseUid: null, email: null };
       }
 
       try {
         // Use the new API endpoint to check if pubkey is linked
-        const API_BASE_URL = import.meta.env.VITE_NEW_API_URL || "https://api-cgi4gylh7q-uc.a.run.app/v1";
+        const API_BASE_URL =
+          import.meta.env.VITE_NEW_API_URL ||
+          "https://api-cgi4gylh7q-uc.a.run.app/v1";
         const url = `${API_BASE_URL}/auth/check-pubkey-link`;
         const method = "POST";
         const body = { pubkey: user.pubkey };
 
         // Create NIP-98 auth header
-        const authHeader = await createNip98AuthHeader(url, method, body, user.signer);
+        const authHeader = await createNip98AuthHeader(
+          url,
+          method,
+          body,
+          user.signer
+        );
 
         const response = await fetch(url, {
           method,
           headers: {
             "Content-Type": "application/json",
-            "Authorization": authHeader,
+            Authorization: authHeader,
           },
           body: JSON.stringify(body),
         });
 
         if (!response.ok) {
           // If the endpoint fails, we should block uploads for security
-          console.error(`Account linking check failed with status ${response.status}`);
-          throw new Error(`Account linking check failed: ${response.status} ${response.statusText}`);
+          console.error(
+            `Account linking check failed with status ${response.status}`
+          );
+          throw new Error(
+            `Account linking check failed: ${response.status} ${response.statusText}`
+          );
         }
 
         const data = await response.json();
@@ -62,7 +77,7 @@ export function useAccountLinkingStatus(): AccountLinkingStatus {
       }
     },
     enabled: !!user?.pubkey && !!user?.signer,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
     retry: 1, // Only retry once on failure
   });
 
