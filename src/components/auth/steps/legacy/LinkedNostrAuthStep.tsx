@@ -155,26 +155,58 @@ export function LinkedNostrAuthStep({
         {/* Error Display */}
         <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
         
-        {/* Expected Account Info */}
+        {/* Linked Accounts Info */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Expected Account:</span>
-            {expectedAccount?.isMostRecentlyLinked && (
-              <Badge variant="secondary">Most Recent</Badge>
-            )}
+            <span className="text-sm font-medium">
+              Linked Accounts ({linkedPubkeys.length}):
+            </span>
           </div>
           
-          <div className="bg-muted rounded-lg p-3 space-y-2">
-            <div className="flex items-center space-x-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <code className="text-sm">{expectedPubkey ? formatPubkey(expectedPubkey) : 'Unknown'}</code>
-            </div>
-            {expectedAccount?.linkedAt && (
-              <div className="text-xs text-muted-foreground">
-                Linked {formatTimeAgo(expectedAccount.linkedAt)}
+          <div className="space-y-2">
+            {linkedPubkeys.map((account, index) => (
+              <div 
+                key={account.pubkey}
+                className={`rounded-lg p-3 space-y-2 ${
+                  account.pubkey === expectedPubkey 
+                    ? 'bg-primary/10 border border-primary/20' 
+                    : 'bg-muted'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <code className="text-sm">{formatPubkey(account.pubkey)}</code>
+                  </div>
+                  <div className="flex gap-1">
+                    {account.pubkey === expectedPubkey && (
+                      <Badge variant="default" className="text-xs">Expected</Badge>
+                    )}
+                    {account.isMostRecentlyLinked && (
+                      <Badge variant="secondary" className="text-xs">Most Recent</Badge>
+                    )}
+                  </div>
+                </div>
+                {account.linkedAt && (
+                  <div className="text-xs text-muted-foreground">
+                    Linked {formatTimeAgo(account.linkedAt)}
+                  </div>
+                )}
+                {account.profile && (
+                  <div className="text-xs text-muted-foreground">
+                    {account.profile.display_name || account.profile.name || 'No profile name'}
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
+          
+          {expectedPubkey && (
+            <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded border border-blue-200">
+              <strong>Note:</strong> Please authenticate with the "Expected" account highlighted above 
+              to complete your migration.
+            </div>
+          )}
         </div>
         
         <Separator />
