@@ -7,15 +7,17 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Key, Zap, Link2, User, CheckCircle, Shield, AlertCircle } from "lucide-react";
+import { User, CheckCircle, AlertCircle } from "lucide-react";
 import { LinkedPubkey } from "@/hooks/auth/machines/types";
+
+// Import extracted components and utilities
+import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
+import { NostrAuthErrorDisplay } from "../../ui/NostrAuthErrorDisplay";
+import { AuthLoadingStates, AuthErrors } from "../../types";
+import { formatPubkey, formatTimeAgo } from "../../utils/formatters";
 
 // ============================================================================
 // Types
@@ -40,28 +42,12 @@ interface NostrCredentials {
 }
 
 // ============================================================================
-// Helper Functions
+// Helper Functions (now using extracted utilities)
 // ============================================================================
 
-function formatPubkey(pubkey: string): string {
-  if (pubkey.length <= 16) return pubkey;
-  return `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`;
-}
-
-function formatTimeAgo(timestamp?: number): string {
-  if (!timestamp) return "Unknown";
-  
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  return "Just now";
-}
+// Helper functions are now imported from extracted utilities:
+// - formatPubkey() from formatters.ts
+// - formatTimeAgo() from formatters.ts
 
 // ============================================================================
 // Component
@@ -76,128 +62,78 @@ export function LinkedNostrAuthStep({
   onBack,
   onUseDifferentAccount,
 }: LinkedNostrAuthStepProps) {
-  const [nsecInput, setNsecInput] = useState("");
-  const [bunkerInput, setBunkerInput] = useState("");
+  // ============================================================================
+  // State (using extracted types)
+  // ============================================================================
+
+  const [loadingStates, setLoadingStates] = useState<AuthLoadingStates>({
+    extension: false,
+    nsec: false,
+    bunker: false,
+  });
+  const [errors, setErrors] = useState<AuthErrors>({
+    extension: null,
+    nsec: null,
+    bunker: null,
+  });
 
   // Find the expected account info
   const expectedAccount = expectedPubkey ? linkedPubkeys.find(p => p.pubkey === expectedPubkey) : null;
 
   // ============================================================================
-  // Event Handlers
+  // Event Handlers (for NostrAuthTabs)
   // ============================================================================
 
   const handleExtensionAuth = async () => {
-    await onComplete({ method: "extension" });
+    setLoadingStates((prev) => ({ ...prev, extension: true }));
+    setErrors((prev) => ({ ...prev, extension: null }));
+    try {
+      await onComplete({ method: "extension" });
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        extension: error instanceof Error ? error.message : "Extension authentication failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, extension: false }));
+    }
   };
 
-  const handleNsecAuth = async () => {
-    if (!nsecInput.trim()) return;
-    await onComplete({ method: "nsec", nsec: nsecInput.trim() });
+  const handleNsecAuth = async (nsecValue: string) => {
+    setLoadingStates((prev) => ({ ...prev, nsec: true }));
+    setErrors((prev) => ({ ...prev, nsec: null }));
+    try {
+      await onComplete({ method: "nsec", nsec: nsecValue });
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        nsec: error instanceof Error ? error.message : "Nsec authentication failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, nsec: false }));
+    }
   };
 
-  const handleBunkerAuth = async () => {
-    if (!bunkerInput.trim()) return;
-    await onComplete({ method: "bunker", bunkerUri: bunkerInput.trim() });
+  const handleBunkerAuth = async (bunkerUri: string) => {
+    setLoadingStates((prev) => ({ ...prev, bunker: true }));
+    setErrors((prev) => ({ ...prev, bunker: null }));
+    try {
+      await onComplete({ method: "bunker", bunkerUri });
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        bunker: error instanceof Error ? error.message : "Bunker authentication failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, bunker: false }));
+    }
   };
-
-  // Validation helpers
-  const isNsecValid = nsecInput.trim().length > 0 && nsecInput.startsWith("nsec1");
-  const isBunkerValid = bunkerInput.trim().length > 0 && bunkerInput.startsWith("bunker://");
 
   // ============================================================================
-  // Render Tabbed Authentication (matching NostrAuthForm.tsx)
+  // Render Tabbed Authentication (now using extracted NostrAuthTabs)
   // ============================================================================
 
-  const renderAuthTabs = () => (
-    <Tabs defaultValue="extension" className="w-full">
-      <TabsList className="grid grid-cols-3 mb-6">
-        <TabsTrigger value="extension">Extension</TabsTrigger>
-        <TabsTrigger value="nsec">Nsec</TabsTrigger>
-        <TabsTrigger value="bunker">Bunker</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="extension" className="space-y-4">
-        <div className="text-center p-4 rounded-lg bg-muted">
-          <Shield className="w-12 h-12 mx-auto mb-3 text-primary" />
-          <div className="text-sm text-muted-foreground mb-4">
-            Login with one click using the browser extension
-          </div>
-          {expectedPubkey && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Make sure your extension contains the account ending in {formatPubkey(expectedPubkey)}.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-        <Button
-          className="w-full rounded-full py-6"
-          onClick={handleExtensionAuth}
-          disabled={isLoading}
-        >
-          {isLoading ? "Authenticating..." : "Login with Extension"}
-        </Button>
-      </TabsContent>
-
-      <TabsContent value="nsec" className="space-y-4">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nsec">Enter your nsec</Label>
-            <Input
-              id="nsec"
-              type="password"
-              value={nsecInput}
-              onChange={(e) => setNsecInput(e.target.value)}
-              className="rounded-lg focus-visible:ring-primary"
-              placeholder="nsec1..."
-              disabled={isLoading}
-            />
-            {nsecInput && !isNsecValid && (
-              <div className="text-destructive text-xs">
-                Invalid nsec format. Must start with "nsec1"
-              </div>
-            )}
-          </div>
-
-          <Button
-            className="w-full rounded-full py-6"
-            onClick={handleNsecAuth}
-            disabled={isLoading || !isNsecValid}
-          >
-            {isLoading ? "Verifying private key..." : "Login with Nsec"}
-          </Button>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="bunker" className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="bunkerUri">Bunker URI</Label>
-          <Input
-            id="bunkerUri"
-            value={bunkerInput}
-            onChange={(e) => setBunkerInput(e.target.value)}
-            className="rounded-lg focus-visible:ring-primary"
-            placeholder="bunker://"
-            disabled={isLoading}
-          />
-          {bunkerInput && !isBunkerValid && (
-            <div className="text-destructive text-xs">
-              URI must start with bunker://
-            </div>
-          )}
-        </div>
-
-        <Button
-          className="w-full rounded-full py-6"
-          onClick={handleBunkerAuth}
-          disabled={isLoading || !isBunkerValid}
-        >
-          {isLoading ? "Connecting to bunker..." : "Login with Bunker"}
-        </Button>
-      </TabsContent>
-    </Tabs>
-  );
+  // Authentication tabs are now handled by the extracted NostrAuthTabs component
 
   // ============================================================================
   // Main Render
@@ -217,12 +153,7 @@ export function LinkedNostrAuthStep({
       
       <CardContent className="space-y-6">
         {/* Error Display */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        <NostrAuthErrorDisplay error={error} />
         
         {/* Expected Account Info */}
         <div className="space-y-3">
@@ -249,7 +180,15 @@ export function LinkedNostrAuthStep({
         <Separator />
         
         {/* Tabbed Authentication Interface */}
-        {renderAuthTabs()}
+        <NostrAuthTabs
+          onExtensionAuth={handleExtensionAuth}
+          onNsecAuth={handleNsecAuth}
+          onBunkerAuth={handleBunkerAuth}
+          loadingStates={loadingStates}
+          errors={errors}
+          externalLoading={isLoading}
+          expectedPubkey={expectedPubkey || undefined}
+        />
         
         {/* Navigation Buttons */}
         <div className="space-y-2">

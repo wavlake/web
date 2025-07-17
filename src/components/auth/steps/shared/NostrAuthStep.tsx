@@ -1,12 +1,16 @@
-/**
- * Nostr Authentication Step Component
- *
- * This component is a wrapper around the existing NostrAuthForm component,
- * integrating it with the new flow pattern. It provides a consistent interface
- * for all flows that need Nostr authentication.
- */
+import React, { useState } from "react";
+import { Shield } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useProfileSync } from "@/hooks/useProfileSync";
+import { NostrAvatar } from "@/components/NostrAvatar";
+import { nip19 } from "nostr-tools";
 
-import { NostrAuthForm } from "@/components/auth/NostrAuthForm";
+// Import extracted components
+import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
+import { NostrAuthErrorDisplay, createPubkeyMismatchError } from "../../ui/NostrAuthErrorDisplay";
+import { AuthLoadingStates, AuthErrors } from "../../types";
+import { validatePubkeyMatch } from "../../utils/validation";
+import { formatPubkey } from "../../utils/formatters";
 
 // ============================================================================
 // Types
@@ -24,7 +28,7 @@ export interface NostrAuthStepProps {
   supportedMethods?: string[];
 
   // Event handlers
-  onComplete?: () => Promise<void> | void;
+  onComplete?: (method: string, credentials: any) => Promise<void> | void;
   onError?: (error: string) => void;
 
   // Loading and error states
@@ -42,9 +46,8 @@ export interface NostrAuthStepProps {
 /**
  * Nostr Authentication Step
  *
- * A wrapper around NostrAuthForm that integrates with the new flow pattern.
- * This component provides a consistent interface for authentication across
- * all flows while preserving the existing NostrAuthForm functionality.
+ * A complete authentication component that handles all three Nostr authentication
+ * methods (extension, nsec, bunker) with proper error handling and validation.
  *
  * @example
  * ```tsx
@@ -73,18 +76,77 @@ export function NostrAuthStep({
   onComplete,
   onError,
   className = "",
+  isLoading: externalLoading = false,
+  error: externalError = null,
 }: NostrAuthStepProps) {
+  // ============================================================================
+  // State
+  // ============================================================================
+
+  const [loadingStates, setLoadingStates] = useState<AuthLoadingStates>({
+    extension: false,
+    nsec: false,
+    bunker: false,
+  });
+  const [errors, setErrors] = useState<AuthErrors>({
+    extension: null,
+    nsec: null,
+    bunker: null,
+  });
+  const [mismatchWarning, setMismatchWarning] = useState<{
+    expectedPubkey: string;
+    enteredPubkey: string;
+  } | null>(null);
+
+  // ============================================================================
+  // Hooks
+  // ============================================================================
+
+  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
+  const { syncProfile } = useProfileSync();
+
+  // ============================================================================
+  // Utility Functions
+  // ============================================================================
+
+  // Function to validate pubkey match using extracted utility
+  const checkPubkeyMatch = (enteredPubkey: string): boolean => {
+    if (!expectedPubkey) return true;
+
+    const validation = validatePubkeyMatch(expectedPubkey, enteredPubkey);
+    
+    if (!validation.isValid) {
+      // Normalize pubkeys to hex format for mismatch display
+      let expectedPubkeyHex = expectedPubkey;
+      if (expectedPubkey.startsWith("npub1")) {
+        try {
+          const decoded = nip19.decode(expectedPubkey);
+          expectedPubkeyHex = decoded.data as string;
+        } catch (error) {
+          console.error("Error decoding expected pubkey:", error);
+          return false;
+        }
+      }
+
+      setMismatchWarning({
+        expectedPubkey: expectedPubkeyHex,
+        enteredPubkey: enteredPubkey,
+      });
+      return false;
+    } else {
+      setMismatchWarning(null);
+    }
+    return true;
+  };
+
   // ============================================================================
   // Event Handlers
   // ============================================================================
 
-  /**
-   * Handle successful authentication from NostrAuthForm
-   */
-  const handleComplete = async () => {
+  const handleComplete = async (method: string, credentials: any) => {
     try {
       if (onComplete) {
-        await onComplete();
+        await onComplete(method, credentials);
       }
     } catch (error) {
       console.error("NostrAuthStep completion failed:", error);
@@ -98,17 +160,150 @@ export function NostrAuthStep({
     }
   };
 
+  const handleExtensionAuth = async () => {
+    setLoadingStates((prev) => ({ ...prev, extension: true }));
+    setErrors((prev) => ({ ...prev, extension: null }));
+    try {
+      if (!("nostr" in window)) {
+        throw new Error(
+          "Nostr extension not found. Please install a NIP-07 extension."
+        );
+      }
+      const loginInfo = await loginWithExtension();
+
+      // Validate pubkey match if expected pubkey is provided
+      if (expectedPubkey && !checkPubkeyMatch(loginInfo.pubkey)) {
+        throw new Error(
+          "The connected account does not match the expected pubkey"
+        );
+      }
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await handleComplete("extension", {});
+    } catch (error) {
+      console.error("Extension login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        extension:
+          error instanceof Error ? error.message : "Extension login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, extension: false }));
+    }
+  };
+
+  const handleNsecAuth = async (nsecValue: string) => {
+    setLoadingStates((prev) => ({ ...prev, nsec: true }));
+    setErrors((prev) => ({ ...prev, nsec: null }));
+
+    try {
+      const loginInfo = loginWithNsec(nsecValue);
+
+      // Validate pubkey match if expected pubkey is provided
+      if (expectedPubkey && !checkPubkeyMatch(loginInfo.pubkey)) {
+        throw new Error(
+          "The entered nsec does not match the expected pubkey"
+        );
+      }
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await handleComplete("nsec", { nsec: nsecValue });
+    } catch (error) {
+      console.error("Nsec login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        nsec: error instanceof Error ? error.message : "Nsec login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, nsec: false }));
+    }
+  };
+
+  const handleBunkerAuth = async (bunkerUri: string) => {
+    setLoadingStates((prev) => ({ ...prev, bunker: true }));
+    setErrors((prev) => ({ ...prev, bunker: null }));
+
+    try {
+      const loginInfo = await loginWithBunker(bunkerUri);
+
+      // Validate pubkey match if expected pubkey is provided
+      if (expectedPubkey && !checkPubkeyMatch(loginInfo.pubkey)) {
+        throw new Error(
+          "The bunker account does not match the expected pubkey"
+        );
+      }
+
+      // Sync profile after successful login
+      await syncProfile(loginInfo.pubkey);
+      await handleComplete("bunker", { bunkerUri });
+    } catch (error) {
+      console.error("Bunker login failed:", error);
+      setErrors((prev) => ({
+        ...prev,
+        bunker: error instanceof Error ? error.message : "Bunker login failed",
+      }));
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, bunker: false }));
+    }
+  };
+
   // ============================================================================
   // Render
   // ============================================================================
 
   return (
-    <NostrAuthForm
-      title={title}
-      description={description}
-      expectedPubkey={expectedPubkey}
-      onComplete={handleComplete}
-    />
+    <div className={className}>
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold mb-2">{title}</h2>
+        <p className="text-muted-foreground">{description}</p>
+      </div>
+
+      {/* External Error Display */}
+      <NostrAuthErrorDisplay error={externalError} className="mb-4" />
+
+      {/* Expected Pubkey Display */}
+      {expectedPubkey && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-medium text-amber-800">
+              Expected Account
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <NostrAvatar pubkey={expectedPubkey} size={24} />
+            <span className="text-xs font-mono text-amber-700">
+              {formatPubkey(expectedPubkey, 8, 8)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Pubkey Mismatch Warning */}
+      {mismatchWarning && (
+        <NostrAuthErrorDisplay
+          error={null}
+          errorData={createPubkeyMismatchError(
+            mismatchWarning.expectedPubkey,
+            mismatchWarning.enteredPubkey
+          )}
+          className="mb-4"
+        />
+      )}
+
+      {/* Authentication Tabs */}
+      <NostrAuthTabs
+        onExtensionAuth={handleExtensionAuth}
+        onNsecAuth={handleNsecAuth}
+        onBunkerAuth={handleBunkerAuth}
+        loadingStates={loadingStates}
+        errors={errors}
+        externalLoading={externalLoading}
+        expectedPubkey={expectedPubkey}
+      />
+    </div>
   );
 }
 

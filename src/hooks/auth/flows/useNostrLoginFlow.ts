@@ -18,7 +18,10 @@ export interface UseNostrLoginFlowResult {
   stateMachine: ReturnType<typeof useNostrLoginStateMachine>;
 
   // Step-specific handlers
-  handleNostrAuthentication: () => Promise<void>;
+  handleNostrAuthentication: (
+    method: string,
+    credentials: any
+  ) => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -52,17 +55,18 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   });
 
   // Step handlers that integrate with UI
-  const handleNostrAuthentication = useCallback(async () => {
-    // For now, use a default method since NostrAuthForm doesn't provide method/credentials
-    // This will be enhanced when the NostrAuthForm is updated to provide more details
-    const result = await stateMachine.actions.authenticateWithNostr(
-      "extension",
-      {}
-    );
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleNostrAuthentication = useCallback(
+    async (method: string, credentials: any) => {
+      const result = await stateMachine.actions.authenticateWithNostr(
+        method as NostrAuthMethod,
+        credentials
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    [stateMachine.actions]
+  );
 
   // Helper functions for UI
   const getStepTitle = useCallback(() => {
