@@ -92,7 +92,7 @@ export function LinkedNostrAuthStep({
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        extension: error instanceof Error ? error.message : "Extension authentication failed",
+        extension: error instanceof Error ? error : new Error("Extension authentication failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, extension: false }));
@@ -107,7 +107,7 @@ export function LinkedNostrAuthStep({
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        nsec: error instanceof Error ? error.message : "Nsec authentication failed",
+        nsec: error instanceof Error ? error : new Error("Nsec authentication failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, nsec: false }));
@@ -122,7 +122,7 @@ export function LinkedNostrAuthStep({
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        bunker: error instanceof Error ? error.message : "Bunker authentication failed",
+        bunker: error instanceof Error ? error : new Error("Bunker authentication failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, bunker: false }));
@@ -153,7 +153,7 @@ export function LinkedNostrAuthStep({
       
       <CardContent className="space-y-6">
         {/* Error Display */}
-        <NostrAuthErrorDisplay error={error} />
+        <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
         
         {/* Expected Account Info */}
         <div className="space-y-3">

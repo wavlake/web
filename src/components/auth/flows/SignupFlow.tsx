@@ -42,7 +42,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
           <UserTypeStep
             onComplete={handleUserTypeSelection}
             isLoading={stateMachine.isLoading("setUserType")}
-            error={errorToString(stateMachine.getError("setUserType"))}
+            error={stateMachine.getError("setUserType")}
           />
         );
 
@@ -51,7 +51,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
           <ArtistTypeStep
             onComplete={handleArtistTypeSelection}
             isLoading={stateMachine.isLoading("setArtistType")}
-            error={errorToString(stateMachine.getError("setArtistType"))}
+            error={stateMachine.getError("setArtistType")}
           />
         );
 

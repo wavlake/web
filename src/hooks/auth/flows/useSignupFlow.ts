@@ -61,7 +61,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     async (isArtist: boolean) => {
       const result = await stateMachine.actions.setUserType(isArtist);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to set user type");
       }
     },
     [stateMachine.actions]
@@ -71,7 +71,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     async (isSolo: boolean) => {
       const result = await stateMachine.actions.setArtistType(isSolo);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to set artist type");
       }
     },
     [stateMachine.actions]
@@ -81,7 +81,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     async (profileData: unknown) => {
       const result = await stateMachine.actions.completeProfile(profileData);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to complete profile");
       }
     },
     [stateMachine.actions]
@@ -94,7 +94,7 @@ export function useSignupFlow(): UseSignupFlowResult {
         password
       );
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error?.message || "Failed to setup Firebase backup");
       }
     },
     [stateMachine.actions]
@@ -107,7 +107,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   const handleSignupCompletion = useCallback(async () => {
     const result = await stateMachine.actions.completeLogin();
     if (!result.success) {
-      throw new Error(result.error);
+      throw new Error(result.error?.message || "Failed to complete signup");
     }
   }, [stateMachine.actions]);
 

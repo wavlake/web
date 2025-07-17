@@ -7,7 +7,7 @@
 
 import { useReducer, useCallback, useMemo } from 'react';
 import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationError } from '../utils/stateMachineUtils';
-import { ActionResult, LegacyMigrationState, LegacyMigrationAction, LegacyMigrationStep } from './types';
+import { ActionResult, LegacyMigrationState, LegacyMigrationAction, LegacyMigrationStep, LinkedPubkey, NostrAccount } from './types';
 import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -131,10 +131,10 @@ function getPreviousStep(currentStep: LegacyMigrationStep, hasLinkedAccounts: bo
 export interface UseLegacyMigrationStateMachineResult {
   // State
   step: LegacyMigrationStep;
-  firebaseUser: any | null;
-  linkedPubkeys: any[];
+  firebaseUser: FirebaseUser | null;
+  linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
-  generatedAccount: unknown | null;
+  generatedAccount: NostrAccount | null;
   createdLogin: any | null;
   generatedName: string | null;
   canGoBack: boolean;
@@ -159,11 +159,11 @@ export interface UseLegacyMigrationStateMachineResult {
 
 export interface LegacyMigrationStateMachineDependencies {
   firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
-  checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<unknown[]>;
-  authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<unknown>;
-  generateAccount: () => Promise<unknown>;
+  checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<LinkedPubkey[]>;
+  authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NostrAccount>;
+  generateAccount: () => Promise<NostrAccount>;
   createAccount: () => Promise<{ login: any; generatedName: string }>;
-  linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: unknown) => Promise<void>;
+  linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: NostrAccount) => Promise<void>;
   addLogin: (login: any) => void;
   setupAccount: (generatedName: string) => Promise<void>;
 }
@@ -209,6 +209,9 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "ACCOUNT_GENERATED", account });
       
       // Link to Firebase
+      if (!state.firebaseUser) {
+        throw new Error("Firebase user not available for linking");
+      }
       await dependencies.linkAccounts(state.firebaseUser, account);
       dispatch({ type: "LINKING_COMPLETED" });
       
@@ -222,6 +225,9 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "KEYPAIR_AUTHENTICATED", account });
       
       // Link to Firebase
+      if (!state.firebaseUser) {
+        throw new Error("Firebase user not available for linking");
+      }
       await dependencies.linkAccounts(state.firebaseUser, account);
       dispatch({ type: "LINKING_COMPLETED" });
       

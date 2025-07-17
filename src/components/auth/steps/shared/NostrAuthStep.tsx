@@ -180,13 +180,13 @@ export function NostrAuthStep({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
-      await handleComplete("extension", {});
+      await handleComplete("extension", { method: "extension" });
     } catch (error) {
       console.error("Extension login failed:", error);
       setErrors((prev) => ({
         ...prev,
         extension:
-          error instanceof Error ? error.message : "Extension login failed",
+          error instanceof Error ? error : new Error("Extension login failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, extension: false }));
@@ -209,12 +209,12 @@ export function NostrAuthStep({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
-      await handleComplete("nsec", { nsec: nsecValue });
+      await handleComplete("nsec", { method: "nsec", nsec: nsecValue });
     } catch (error) {
       console.error("Nsec login failed:", error);
       setErrors((prev) => ({
         ...prev,
-        nsec: error instanceof Error ? error.message : "Nsec login failed",
+        nsec: error instanceof Error ? error : new Error("Nsec login failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, nsec: false }));
@@ -237,12 +237,12 @@ export function NostrAuthStep({
 
       // Sync profile after successful login
       await syncProfile(loginInfo.pubkey);
-      await handleComplete("bunker", { bunkerUri });
+      await handleComplete("bunker", { method: "bunker", bunkerUri });
     } catch (error) {
       console.error("Bunker login failed:", error);
       setErrors((prev) => ({
         ...prev,
-        bunker: error instanceof Error ? error.message : "Bunker login failed",
+        bunker: error instanceof Error ? error : new Error("Bunker login failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, bunker: false }));

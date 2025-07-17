@@ -11,6 +11,7 @@ import {
   LegacyMigrationStateMachineDependencies,
 } from "../machines/useLegacyMigrationStateMachine";
 import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
+import { NostrAccount } from "../machines/types";
 import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
@@ -27,10 +28,14 @@ export interface UseLegacyMigrationFlowResult {
     email: string,
     password: string
   ) => Promise<void>;
-  handleLinkedNostrAuthentication: (credentials: NostrCredentials) => Promise<void>;
+  handleLinkedNostrAuthentication: (
+    credentials: NostrCredentials
+  ) => Promise<void>;
   handleAccountGeneration: () => Promise<void>;
   handleBringOwnKeypair: () => Promise<void>;
-  handleBringOwnKeypairWithCredentials: (credentials: NostrCredentials) => Promise<void>;
+  handleBringOwnKeypairWithCredentials: (
+    credentials: NostrCredentials
+  ) => Promise<void>;
   handleMigrationCompletion: () => Promise<void>;
 
   // Helper functions
@@ -51,7 +56,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<FirebaseUser> => {
       if (!firebaseAuth.isConfigured) {
         throw new Error("Firebase is not configured for this environment");
       }
@@ -62,26 +67,28 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
           password,
         });
 
-        return {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          displayName: userCredential.user.displayName,
-          user: userCredential.user,
-        };
+        if (!userCredential.user) {
+          throw new Error("Authentication failed - no user returned");
+        }
+        return userCredential.user;
       } catch (error: unknown) {
         // Re-throw with more user-friendly message for common cases
-        if (error.code === "auth/user-not-found") {
-          throw new Error("No account found with this email address");
-        } else if (error.code === "auth/wrong-password") {
-          throw new Error("Incorrect password");
-        } else if (error.code === "auth/invalid-email") {
-          throw new Error("Invalid email address");
-        } else if (error.code === "auth/user-disabled") {
-          throw new Error("This account has been disabled");
-        } else {
-          const message = error instanceof Error ? error.message : "Login failed";
-          throw new Error(message);
+        if (error && typeof error === "object" && "code" in error) {
+          const firebaseError = error as { code: string };
+          if (firebaseError.code === "auth/user-not-found") {
+            throw new Error("No account found with this email address");
+          } else if (firebaseError.code === "auth/wrong-password") {
+            throw new Error("Incorrect password");
+          } else if (firebaseError.code === "auth/invalid-email") {
+            throw new Error("Invalid email address");
+          } else if (firebaseError.code === "auth/user-disabled") {
+            throw new Error("This account has been disabled");
+          }
         }
+        
+        const message =
+          error instanceof Error ? error.message : "Login failed";
+        throw new Error(message);
       }
     },
     [firebaseAuth]
@@ -104,7 +111,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         case "extension":
           return await loginWithExtension();
         case "nsec":
-          if (credentials.method !== "nsec") throw new Error("Invalid credentials for nsec method");
+          if (credentials.method !== "nsec")
+            throw new Error("Invalid credentials for nsec method");
           return await loginWithNsec(credentials.nsec);
         default:
           throw new Error(`Unsupported authentication method: ${method}`);
@@ -117,9 +125,27 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     return await createAccount();
   }, [createAccount]);
 
-  const generateAccountDependency = useCallback(async () => {
-    return await createAccount();
-  }, [createAccount]);
+  const generateAccountDependency =
+    useCallback(async (): Promise<NostrAccount> => {
+      const result = await createAccount();
+      // Convert login to NostrAccount
+      const pubkey =
+        result.login.type === "nsec"
+          ? result.login.pubkey
+          : result.login.type === "extension"
+          ? result.login.pubkey
+          : result.login.type === "bunker"
+          ? result.login.pubkey
+          : "";
+
+      return {
+        pubkey,
+        signer: result.login,
+        profile: {
+          name: result.generatedName,
+        },
+      };
+    }, [createAccount]);
 
   const linkAccountsDependency = useCallback(
     async (firebaseUser: FirebaseUser, nostrAccount: unknown) => {
@@ -129,9 +155,12 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [linkAccounts]
   );
 
-  const setupAccountDependency = useCallback(async (generatedName: string) => {
-    return await setupAccount(generatedName);
-  }, [setupAccount]);
+  const setupAccountDependency = useCallback(
+    async (generatedName: string) => {
+      return await setupAccount(generatedName);
+    },
+    [setupAccount]
+  );
 
   // State machine with dependencies injected
   const stateMachine = useLegacyMigrationStateMachine({
@@ -198,7 +227,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const handleMigrationCompletion = useCallback(async () => {
     const result = await stateMachine.actions.completeLogin();
     if (!result.success) {
-      throw new Error(result.error);
+      throw new Error(result.error?.message || "Failed to complete migration");
     }
   }, [stateMachine.actions]);
 
