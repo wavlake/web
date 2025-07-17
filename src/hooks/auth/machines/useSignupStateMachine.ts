@@ -57,6 +57,13 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
+    case "FIREBASE_BACKUP_SKIPPED":
+      return {
+        ...state,
+        step: "complete",
+        canGoBack: false,
+      };
+
     case "GO_BACK":
       const previousStep = getPreviousStep(state.step, state.isArtist);
       return {
@@ -93,18 +100,19 @@ export interface UseSignupStateMachineResult {
   isArtist: boolean;
   isSoloArtist: boolean;
   canGoBack: boolean;
-  account: any | null;
+  account: unknown | null;
   
   // Loading helpers
   isLoading: (operation: string) => boolean;
-  getError: (operation: string) => string | null;
+  getError: (operation: string) => Error | null;
   
   // Promise-based actions
   actions: {
     setUserType: (isArtist: boolean) => Promise<ActionResult>;
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
-    completeProfile: (profileData: any) => Promise<ActionResult>;
+    completeProfile: (profileData: unknown) => Promise<ActionResult>;
     setupFirebaseBackup: (email: string, password: string) => Promise<ActionResult>;
+    skipFirebaseBackup: () => void;
   };
   
   // Navigation
@@ -113,9 +121,9 @@ export interface UseSignupStateMachineResult {
 }
 
 export interface SignupStateMachineDependencies {
-  createAccount: () => Promise<any>;
-  saveProfile: (data: any) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<any>;
+  createAccount: () => Promise<unknown>;
+  saveProfile: (data: unknown) => Promise<void>;
+  createFirebaseAccount: (email: string, password: string) => Promise<unknown>;
   linkAccounts: () => Promise<void>;
 }
 
@@ -150,7 +158,7 @@ export function useSignupStateMachine(
     }, dispatch), [dependencies.createAccount]);
 
   const completeProfile = useMemo(() =>
-    createAsyncAction("completeProfile", async (profileData: any) => {
+    createAsyncAction("completeProfile", async (profileData: unknown) => {
       await dependencies.saveProfile(profileData);
       dispatch({ type: "PROFILE_COMPLETED" });
       return {};
@@ -163,6 +171,10 @@ export function useSignupStateMachine(
       dispatch({ type: "FIREBASE_BACKUP_COMPLETED" });
       return { firebaseUser };
     }, dispatch), [dependencies.createFirebaseAccount, dependencies.linkAccounts]);
+
+  const skipFirebaseBackup = useCallback(() => {
+    dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
+  }, []);
 
   // Navigation helpers
   const goBack = useCallback(() => {
@@ -200,6 +212,7 @@ export function useSignupStateMachine(
       setArtistType,
       completeProfile,
       setupFirebaseBackup,
+      skipFirebaseBackup,
     },
     
     // Navigation

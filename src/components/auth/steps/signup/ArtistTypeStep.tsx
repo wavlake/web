@@ -12,7 +12,7 @@ import { UserIcon, UsersIcon, AlertCircle } from 'lucide-react';
 interface ArtistTypeStepProps {
   onComplete: (isSolo: boolean) => Promise<void>;
   isLoading: boolean;
-  error: string | null;
+  error: Error | null;
 }
 
 export function ArtistTypeStep({ onComplete, isLoading, error }: ArtistTypeStepProps) {
@@ -37,7 +37,7 @@ export function ArtistTypeStep({ onComplete, isLoading, error }: ArtistTypeStepP
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
 

@@ -21,8 +21,9 @@ export interface UseSignupFlowResult {
   // Step-specific handlers
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
-  handleProfileCompletion: (profileData: any) => Promise<void>;
+  handleProfileCompletion: (profileData: unknown) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
+  handleFirebaseBackupSkip: () => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -39,7 +40,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
-    saveProfile: async (data: any) => {
+    saveProfile: async (data: unknown) => {
       // TODO: Implementation for saving profile
       console.log("Saving profile:", data);
     },
@@ -72,7 +73,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   );
 
   const handleProfileCompletion = useCallback(
-    async (profileData: any) => {
+    async (profileData: unknown) => {
       const result = await stateMachine.actions.completeProfile(profileData);
       if (!result.success) {
         throw new Error(result.error);
@@ -93,6 +94,10 @@ export function useSignupFlow(): UseSignupFlowResult {
     },
     [stateMachine.actions]
   );
+
+  const handleFirebaseBackupSkip = useCallback(async () => {
+    stateMachine.actions.skipFirebaseBackup();
+  }, [stateMachine.actions]);
 
   // Helper functions for UI
   const getStepTitle = useCallback(() => {
@@ -146,6 +151,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleArtistTypeSelection,
     handleProfileCompletion,
     handleFirebaseBackupSetup,
+    handleFirebaseBackupSkip,
     getStepTitle,
     getStepDescription,
     shouldShowFirebaseBackup,

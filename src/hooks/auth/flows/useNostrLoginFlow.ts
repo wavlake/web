@@ -10,7 +10,7 @@ import {
   useNostrLoginStateMachine,
   NostrLoginStateMachineDependencies,
 } from "../machines/useNostrLoginStateMachine";
-import { NostrAuthMethod } from "@/types/authFlow";
+import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export interface UseNostrLoginFlowResult {
@@ -18,7 +18,10 @@ export interface UseNostrLoginFlowResult {
   stateMachine: ReturnType<typeof useNostrLoginStateMachine>;
 
   // Step-specific handlers
-  handleNostrAuthentication: () => Promise<void>;
+  handleNostrAuthentication: (
+    method: NostrAuthMethod,
+    credentials: NostrCredentials
+  ) => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -33,13 +36,15 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
 
   // State machine with dependencies injected
   const stateMachine = useNostrLoginStateMachine({
-    authenticate: async (method: NostrAuthMethod, credentials: any) => {
+    authenticate: async (method: NostrAuthMethod, credentials: NostrCredentials) => {
       switch (method) {
         case "extension":
           return await loginWithExtension();
         case "nsec":
+          if (credentials.method !== "nsec") throw new Error("Invalid credentials for nsec method");
           return await loginWithNsec(credentials.nsec);
         case "bunker":
+          if (credentials.method !== "bunker") throw new Error("Invalid credentials for bunker method");
           return await loginWithBunker(credentials.bunkerUri);
         default:
           throw new Error(`Unsupported authentication method: ${method}`);
@@ -52,17 +57,18 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   });
 
   // Step handlers that integrate with UI
-  const handleNostrAuthentication = useCallback(async () => {
-    // For now, use a default method since NostrAuthForm doesn't provide method/credentials
-    // This will be enhanced when the NostrAuthForm is updated to provide more details
-    const result = await stateMachine.actions.authenticateWithNostr(
-      "extension",
-      {}
-    );
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleNostrAuthentication = useCallback(
+    async (method: NostrAuthMethod, credentials: NostrCredentials) => {
+      const result = await stateMachine.actions.authenticateWithNostr(
+        method,
+        credentials
+      );
+      if (!result.success) {
+        throw result.error || new Error("Authentication failed");
+      }
+    },
+    [stateMachine.actions]
+  );
 
   // Helper functions for UI
   const getStepTitle = useCallback(() => {

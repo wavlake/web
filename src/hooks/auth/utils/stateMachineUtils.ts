@@ -21,9 +21,9 @@ export function createAsyncAction<TArgs extends any[], TResult>(
       dispatch({ type: "ASYNC_SUCCESS", operation, data: result });
       return { success: true, data: result };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      dispatch({ type: "ASYNC_ERROR", operation, error: errorMessage });
-      return { success: false, error: errorMessage };
+      const errorObject = error instanceof Error ? error : new Error(String(error));
+      dispatch({ type: "ASYNC_ERROR", operation, error: errorObject });
+      return { success: false, error: errorObject };
     }
   };
 }
@@ -34,7 +34,7 @@ export function isOperationLoading(state: BaseStateMachineState, operation: stri
 }
 
 // Helper to get operation error
-export function getOperationError(state: BaseStateMachineState, operation: string): string | null {
+export function getOperationError(state: BaseStateMachineState, operation: string): Error | null {
   return state.errors[operation] ?? null;
 }
 
