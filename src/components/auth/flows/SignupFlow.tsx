@@ -14,7 +14,7 @@ import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface SignupFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: { isArtist: boolean }) => void;
   onCancel?: () => void;
 }
 
@@ -25,15 +25,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     handleArtistTypeSelection,
     handleProfileCompletion,
     handleFirebaseBackupSetup,
+    handleFirebaseBackupSkip,
     getStepTitle,
     getStepDescription,
   } = useSignupFlow();
-
-  const handleStepComplete = async () => {
-    if (stateMachine.step === "complete") {
-      onComplete({ success: true });
-    }
-  };
 
   const renderCurrentStep = () => {
     switch (stateMachine.step) {
@@ -70,7 +65,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return (
           <FirebaseBackupStep
             onComplete={handleFirebaseBackupSetup}
-            onSkip={() => handleStepComplete()}
+            onSkip={handleFirebaseBackupSkip}
             isLoading={stateMachine.isLoading("setupFirebaseBackup")}
             error={stateMachine.getError("setupFirebaseBackup")}
           />
@@ -87,7 +82,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
               to explore.
             </p>
             <button
-              onClick={() => onComplete({ success: true })}
+              onClick={() => onComplete({ isArtist: stateMachine.isArtist })}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
               Continue to App
@@ -97,30 +92,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
       default:
         return null;
-    }
-  };
-
-  const getTotalSteps = () => {
-    if (stateMachine.isArtist) {
-      return 4; // user-type, artist-type, profile-setup, firebase-backup
-    }
-    return 2; // user-type, profile-setup
-  };
-
-  const getCurrentStepNumber = () => {
-    switch (stateMachine.step) {
-      case "user-type":
-        return 1;
-      case "artist-type":
-        return 2;
-      case "profile-setup":
-        return stateMachine.isArtist ? 3 : 2;
-      case "firebase-backup":
-        return 4;
-      case "complete":
-        return getTotalSteps();
-      default:
-        return 1;
     }
   };
 

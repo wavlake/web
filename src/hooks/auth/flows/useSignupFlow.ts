@@ -23,6 +23,7 @@ export interface UseSignupFlowResult {
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: any) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
+  handleFirebaseBackupSkip: () => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -94,6 +95,10 @@ export function useSignupFlow(): UseSignupFlowResult {
     [stateMachine.actions]
   );
 
+  const handleFirebaseBackupSkip = useCallback(async () => {
+    stateMachine.actions.skipFirebaseBackup();
+  }, [stateMachine.actions]);
+
   // Helper functions for UI
   const getStepTitle = useCallback(() => {
     switch (stateMachine.step) {
@@ -146,6 +151,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleArtistTypeSelection,
     handleProfileCompletion,
     handleFirebaseBackupSetup,
+    handleFirebaseBackupSkip,
     getStepTitle,
     getStepDescription,
     shouldShowFirebaseBackup,

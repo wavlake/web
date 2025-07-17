@@ -72,6 +72,7 @@ export type SignupAction =
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
   | { type: "PROFILE_COMPLETED" }
   | { type: "FIREBASE_BACKUP_COMPLETED" }
+  | { type: "FIREBASE_BACKUP_SKIPPED" }
   | AsyncStartAction
   | AsyncSuccessAction
   | AsyncErrorAction

@@ -45,17 +45,16 @@ const FLOW_OPTIONS: AuthMethodOption[] = [
 export default function AuthTest() {
   const navigate = useNavigate();
   const [selectedFlow, setSelectedFlow] = useState<FlowType>(null);
-  const [completedFlows, setCompletedFlows] = useState<Set<FlowType>>(
-    new Set()
-  );
 
-  const handleFlowComplete = (flowType: FlowType, result: any) => {
-    console.log(`${flowType} completed:`, result);
-    setCompletedFlows((prev) => new Set([...prev, flowType]));
-    setSelectedFlow(null);
-
-    // In a real app, this would navigate to the dashboard
-    alert(`${flowType} completed successfully! Check console for details.`);
+  const handleFlowComplete = (
+    flowType: FlowType,
+    result: { isArtist: boolean }
+  ) => {
+    if (flowType === "signup") {
+      navigate(result.isArtist ? "/dashboard" : "/groups");
+    } else {
+      navigate("/groups");
+    }
   };
 
   const handleFlowCancel = () => {

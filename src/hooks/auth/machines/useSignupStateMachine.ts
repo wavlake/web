@@ -57,6 +57,13 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
+    case "FIREBASE_BACKUP_SKIPPED":
+      return {
+        ...state,
+        step: "complete",
+        canGoBack: false,
+      };
+
     case "GO_BACK":
       const previousStep = getPreviousStep(state.step, state.isArtist);
       return {
@@ -105,6 +112,7 @@ export interface UseSignupStateMachineResult {
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
     completeProfile: (profileData: any) => Promise<ActionResult>;
     setupFirebaseBackup: (email: string, password: string) => Promise<ActionResult>;
+    skipFirebaseBackup: () => void;
   };
   
   // Navigation
@@ -164,6 +172,10 @@ export function useSignupStateMachine(
       return { firebaseUser };
     }, dispatch), [dependencies.createFirebaseAccount, dependencies.linkAccounts]);
 
+  const skipFirebaseBackup = useCallback(() => {
+    dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
+  }, []);
+
   // Navigation helpers
   const goBack = useCallback(() => {
     if (state.canGoBack) {
@@ -200,6 +212,7 @@ export function useSignupStateMachine(
       setArtistType,
       completeProfile,
       setupFirebaseBackup,
+      skipFirebaseBackup,
     },
     
     // Navigation
