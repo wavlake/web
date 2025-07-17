@@ -7,11 +7,16 @@
     "dev": "npm i && vite",
     "build": "npm i && vite build && cp dist/index.html dist/404.html",
     "build:dev": "npm i && vite build --mode development",
-    "ci": "npm i && tsc -p tsconfig.app.json --noEmit && eslint && vite build",
+    "ci": "npm i && tsc -p tsconfig.app.json --noEmit && eslint && npm run test:run && vite build",
     "lint": "npm i && eslint .",
     "preview": "npm i && vite preview",
     "deploy": "npm run build && npx -y surge@latest dist",
-    "dev:https": "vite --config vite.config.https.js"
+    "dev:https": "vite --config vite.config.https.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@cashu/cashu-ts": "^2.5.2",
@@ -83,20 +88,28 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.22",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.10.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "express": "^5.1.0",
     "globals": "^15.9.0",
+    "jsdom": "^26.1.0",
+    "msw": "^2.10.4",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
   }
 }
