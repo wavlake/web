@@ -45,28 +45,34 @@ Detailed documentation is located in context-specific CLAUDE.md files:
   - Welcome flow and routing patterns
   - Wavlake-specific features
 
-## Enhanced Authentication System
+## Authentication System
 
-### Current Status (75% Complete)
-The enhanced authentication system is largely implemented with comprehensive documentation:
+### Current Status (Production Ready)
+The authentication system is **fully implemented** with sophisticated state machine-based flows:
 
-- **Master Plan**: [`ENHANCED_AUTH_MASTER_TODO.md`](ENHANCED_AUTH_MASTER_TODO.md) - Overall project status and progress tracking
-- **Implementation Guide**: [`ENHANCED_AUTH_IMPLEMENTATION_PLAN.md`](ENHANCED_AUTH_IMPLEMENTATION_PLAN.md) - Technical implementation details
-- **UX Flows**: [`ENHANCED_AUTH_UX_FLOWS.md`](ENHANCED_AUTH_UX_FLOWS.md) - Complete user experience documentation
+- **Authentication Hooks**: [`src/hooks/auth/CLAUDE.md`](src/hooks/auth/CLAUDE.md) - State machine hooks and flow orchestration
+- **Authentication Components**: [`src/components/auth/CLAUDE.md`](src/components/auth/CLAUDE.md) - Flow components and step UI
+- **Core Hooks**: [`src/hooks/CLAUDE.md`](src/hooks/CLAUDE.md) - Complete hooks documentation including auth
 
-### Working on Enhanced Auth Issues
+### Architecture Overview
 
-**Default Development Context:**
-- **Base Branch**: `auth-updates` (contains all completed enhanced auth components)
-- **Components**: CompositeLoginDialog, LoginChoiceStep, NostrAuthStep, ProfileSelectionStep all implemented
-- **Hooks**: useAutoLinkPubkey, useLinkedPubkeys, useLegacyProfile all implemented  
-- **Integration**: Index.tsx already uses CompositeLoginDialog
-- **Remaining Work**: Upload flow integration (Phase 3) and documentation updates
+**State Machine Pattern:**
+- **Flow Hooks**: `useSignupFlow`, `useLegacyMigrationFlow`, `useNostrLoginFlow`
+- **State Machines**: TypeScript-based predictable authentication flows
+- **Step Components**: Reusable UI components for each authentication step
+- **Dual Authentication**: Firebase token preferred, NIP-98 fallback
 
-**Key Files for Enhanced Auth Work:**
-- Core auth components in `src/components/auth/`
-- Auto-linking hooks in `src/hooks/`
-- Main integration in `src/pages/Index.tsx`
+**Key Features:**
+- **Multi-Method Support**: Extension, nsec, bunker authentication
+- **Legacy Integration**: Firebase account linking and migration
+- **Type Safety**: Comprehensive TypeScript implementation
+- **Error Handling**: Robust error recovery and user feedback
+
+**Implementation Status:**
+- ✅ **Flow Components**: All flows fully implemented and tested
+- ✅ **Step Components**: Complete UI component library
+- ✅ **State Machines**: Production-ready state management
+- ✅ **Authentication Logic**: Working implementation in `/src/pages/Login.tsx`
 
 ## Quick Start
 
