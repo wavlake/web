@@ -1,26 +1,51 @@
-import { useState } from "react";
-import { useNostrLogin, NLogin } from "@nostrify/react/login";
+import { useState, useMemo } from "react";
+import { useNostrLogin, NLogin, type NLoginType, NUser } from "@nostrify/react/login";
 import { useNostrPublish } from "@/hooks/useNostrPublish";
 import { generateSecretKey, nip19 } from "nostr-tools";
 import { toast } from "@/hooks/useToast";
-import { useCreateCashuWallet } from "@/hooks/useCreateCashuWallet";
+import { useSignupCreateCashuWallet } from "@/hooks/auth/useSignupCreateCashuWallet";
 import { generateFakeName } from "@/lib/utils";
+import { useNostr } from "@nostrify/react";
 
 interface UseCreateAccountReturn {
   isCreating: boolean;
   generatedName: string | null;
-  createAccount: () => Promise<{ login: NLogin; generatedName: string }>;
+  createAccount: () => Promise<{ login: NLoginType; generatedName: string }>;
   setupAccount: (generatedName: string) => Promise<void>;
 }
 
 export const useCreateNostrAccount = (): UseCreateAccountReturn => {
   const [isCreating, setIsCreating] = useState(false);
   const [generatedName, setGeneratedName] = useState<string | null>(null);
+  const [createdLogin, setCreatedLogin] = useState<NLoginType | null>(null);
 
+  const { nostr } = useNostr();
   const { mutateAsync: publishEvent } = useNostrPublish();
-  const { mutateAsync: createCashuWallet } = useCreateCashuWallet();
 
-  const createAccount = async (): Promise<{ login: NLogin; generatedName: string }> => {
+  // Convert created login to user for wallet creation
+  const user = useMemo(() => {
+    if (!createdLogin) return null;
+    
+    try {
+      switch (createdLogin.type) {
+        case 'nsec':
+          return NUser.fromNsecLogin(createdLogin);
+        case 'bunker':
+          return NUser.fromBunkerLogin(createdLogin, nostr);
+        case 'extension':
+          return NUser.fromExtensionLogin(createdLogin);
+        default:
+          throw new Error(`Unsupported login type: ${createdLogin.type}`);
+      }
+    } catch (error) {
+      console.error('Failed to create user from login:', error);
+      return null;
+    }
+  }, [createdLogin, nostr]);
+
+  const { mutateAsync: createCashuWallet } = useSignupCreateCashuWallet(user);
+
+  const createAccount = async (): Promise<{ login: NLoginType; generatedName: string }> => {
     setIsCreating(true);
 
     try {
@@ -34,6 +59,9 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
       // Generate fake name
       const fakeName = generateFakeName();
       setGeneratedName(fakeName);
+
+      // Store the created login for setupAccount to use
+      setCreatedLogin(login);
 
       // Return the login and generated name for the flow to handle
       return { login, generatedName: fakeName };

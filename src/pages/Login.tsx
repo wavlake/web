@@ -42,7 +42,7 @@ const FLOW_OPTIONS: AuthMethodOption[] = [
   },
 ];
 
-export default function AuthTest() {
+export default function Login() {
   const navigate = useNavigate();
   const [selectedFlow, setSelectedFlow] = useState<FlowType>(null);
 
@@ -91,7 +91,23 @@ export default function AuthTest() {
         return null;
     }
   }
-
+  const nostruserLoggedIn = false;
+  if (nostruserLoggedIn) {
+    const name = "Nostr User"; // Replace with actual user data
+    return (
+      <StepWrapper
+        title="Welcome Back"
+        description="You're already signed in. Choose how you want to continue."
+        header={StartHeader()}
+      >
+        <div className="flex flex-col gap-4">
+          <div>Signed in as: {name}</div>
+          <Button onClick={() => navigate("/groups")}>Back to Home</Button>
+          <Button onClick={() => console.log("Logout")}>Logout</Button>
+        </div>
+      </StepWrapper>
+    );
+  }
   // Render flow selection screen
   return (
     <StepWrapper

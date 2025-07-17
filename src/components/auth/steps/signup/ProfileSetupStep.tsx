@@ -1,14 +1,15 @@
 /**
  * ProfileSetupStep Component
  *
- * Uses the existing EditProfileForm component for profile setup during signup
+ * Uses the SignupProfileForm component for profile setup during signup.
+ * This component works without requiring a logged-in user by using the
+ * createdLogin object directly from the state machine.
  */
 
-import React from "react";
-import { EditProfileForm } from "@/components/EditProfileForm";
+import { SignupProfileForm } from "./SignupProfileForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { useCreateNostrAccount } from "@/hooks/auth/useCreateNostrAccount";
+import { type NLoginType } from "@nostrify/react/login";
 
 interface ProfileSetupStepProps {
   onComplete: (profileData: any) => Promise<void>;
@@ -16,6 +17,8 @@ interface ProfileSetupStepProps {
   error: string | null;
   isArtist: boolean;
   isSoloArtist: boolean;
+  createdLogin: NLoginType | null;
+  generatedName: string | null;
 }
 
 export function ProfileSetupStep({
@@ -24,14 +27,12 @@ export function ProfileSetupStep({
   error,
   isArtist,
   isSoloArtist,
+  createdLogin,
+  generatedName,
 }: ProfileSetupStepProps) {
-  const { generatedName } = useCreateNostrAccount();
-
-  const handleProfileComplete = async () => {
+  const handleProfileComplete = async (profileData: any) => {
     try {
-      // The EditProfileForm handles the profile data internally
-      // We just need to signal completion
-      await onComplete({});
+      await onComplete(profileData);
     } catch (err) {
       console.error("Failed to complete profile setup:", err);
     }
@@ -47,7 +48,7 @@ export function ProfileSetupStep({
       )}
 
       {/* Show context based on user type */}
-      {/* <div className="text-sm text-muted-foreground text-center mb-4">
+      <div className="text-sm text-muted-foreground text-center mb-4">
         {isArtist ? (
           isSoloArtist ? (
             "Set up your artist profile to connect with fans"
@@ -57,10 +58,11 @@ export function ProfileSetupStep({
         ) : (
           "Set up your listener profile"
         )}
-      </div> */}
+      </div>
 
-      <EditProfileForm
-        initialName={generatedName}
+      <SignupProfileForm
+        createdLogin={createdLogin}
+        generatedName={generatedName}
         onComplete={handleProfileComplete}
       />
 

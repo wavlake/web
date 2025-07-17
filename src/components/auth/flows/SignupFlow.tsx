@@ -26,6 +26,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     handleProfileCompletion,
     handleFirebaseBackupSetup,
     handleFirebaseBackupSkip,
+    handleSignupCompletion,
     getStepTitle,
     getStepDescription,
   } = useSignupFlow();
@@ -62,6 +63,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             error={errorToString(stateMachine.getError("completeProfile"))}
             isArtist={stateMachine.isArtist}
             isSoloArtist={stateMachine.isSoloArtist}
+            createdLogin={stateMachine.createdLogin}
+            generatedName={stateMachine.generatedName}
           />
         );
 
@@ -86,7 +89,15 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
               to explore.
             </p>
             <button
-              onClick={() => onComplete({ isArtist: stateMachine.isArtist })}
+              onClick={async () => {
+                // Complete the login process first
+                try {
+                  await handleSignupCompletion();
+                  onComplete({ isArtist: stateMachine.isArtist });
+                } catch (error) {
+                  console.error("Failed to complete signup:", error);
+                }
+              }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
               Continue to App

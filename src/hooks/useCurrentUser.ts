@@ -1,7 +1,6 @@
 import { type NLoginType, NUser, useNostrLogin, NLogin } from '@nostrify/react/login';
 import { useNostr } from '@nostrify/react';
 import { useCallback, useMemo } from 'react';
-import type { NostrEvent } from '@nostrify/nostrify';
 
 import { useAuthor } from './useAuthor.ts';
 import { useFirebaseAuth } from '@/components/FirebaseAuthProvider';
@@ -105,6 +104,7 @@ export function useCurrentUser() {
     
     // Actions
     logout,
+    addLogin,
     
     // Login methods
     loginWithNsec,
