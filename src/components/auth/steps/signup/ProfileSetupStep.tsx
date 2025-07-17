@@ -10,17 +10,7 @@ import { SignupProfileForm } from "./SignupProfileForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { type NLoginType } from "@nostrify/react/login";
-
-interface ProfileData {
-  name?: string;
-  display_name?: string;
-  about?: string;
-  picture?: string;
-  banner?: string;
-  nip05?: string;
-  lud16?: string;
-  website?: string;
-}
+import { type ProfileData } from "@/types/profile";
 
 interface ProfileSetupStepProps {
   onComplete: (profileData: ProfileData) => Promise<void>;
@@ -45,7 +35,7 @@ export function ProfileSetupStep({
     try {
       await onComplete(profileData);
     } catch (err) {
-      console.error("Failed to complete profile setup:", err);
+      console.error("❌ [ProfileSetupStep] Failed to complete profile setup:", err);
     }
   };
 

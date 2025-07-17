@@ -14,6 +14,7 @@ import { useCreateNostrAccount } from "../useCreateNostrAccount";
 import { useLinkAccount } from "../useLinkAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { type ProfileData } from "@/types/profile";
 
 export interface UseSignupFlowResult {
   // State machine interface
@@ -22,7 +23,7 @@ export interface UseSignupFlowResult {
   // Step-specific handlers
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
-  handleProfileCompletion: (profileData: unknown) => Promise<void>;
+  handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
@@ -43,9 +44,8 @@ export function useSignupFlow(): UseSignupFlowResult {
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
-    saveProfile: async (data: unknown) => {
-      // TODO: Implementation for saving profile
-      console.log("Saving profile:", data);
+    saveProfile: async (data: ProfileData) => {
+      // Profile data is now properly stored in state machine and passed to setupAccount
     },
     createFirebaseAccount: async (email: string, password: string) => {
       const result = await registerWithEmailAndPassword({ email, password });
@@ -53,7 +53,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     },
     linkAccounts,
     addLogin,
-    setupAccount,
+    setupAccount: (profileData: ProfileData | null, generatedName: string) => setupAccount(profileData, generatedName),
   });
 
   // Step handlers that integrate with UI
@@ -78,8 +78,9 @@ export function useSignupFlow(): UseSignupFlowResult {
   );
 
   const handleProfileCompletion = useCallback(
-    async (profileData: unknown) => {
+    async (profileData: ProfileData) => {
       const result = await stateMachine.actions.completeProfile(profileData);
+      
       if (!result.success) {
         throw new Error(result.error?.message || "Failed to complete profile");
       }
@@ -106,6 +107,7 @@ export function useSignupFlow(): UseSignupFlowResult {
 
   const handleSignupCompletion = useCallback(async () => {
     const result = await stateMachine.actions.completeLogin();
+    
     if (!result.success) {
       throw new Error(result.error?.message || "Failed to complete signup");
     }

@@ -10,6 +10,7 @@ import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationE
 import { ActionResult, LegacyMigrationState, LegacyMigrationAction, LegacyMigrationStep, LinkedPubkey, NostrAccount } from './types';
 import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
 import { User as FirebaseUser } from 'firebase/auth';
+import { type ProfileData } from '@/types/profile';
 
 const initialState: LegacyMigrationState = {
   step: "firebase-auth",
@@ -165,7 +166,7 @@ export interface LegacyMigrationStateMachineDependencies {
   createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
   linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: NostrAccount) => Promise<void>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
-  setupAccount: (generatedName: string) => Promise<void>;
+  setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
 }
 
 export function useLegacyMigrationStateMachine(
@@ -241,7 +242,8 @@ export function useLegacyMigrationStateMachine(
         dependencies.addLogin(state.createdLogin);
         
         // Setup account (create wallet, publish profile)
-        await dependencies.setupAccount(state.generatedName);
+        // Legacy migration doesn't have custom profile data, pass null
+        await dependencies.setupAccount(null, state.generatedName);
         
         dispatch({ type: "LOGIN_COMPLETED" });
         return { success: true };

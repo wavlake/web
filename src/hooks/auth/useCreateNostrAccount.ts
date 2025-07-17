@@ -6,12 +6,13 @@ import { toast } from "@/hooks/useToast";
 import { useSignupCreateCashuWallet } from "@/hooks/auth/useSignupCreateCashuWallet";
 import { generateFakeName } from "@/lib/utils";
 import { useNostr } from "@nostrify/react";
+import { type ProfileData } from "@/types/profile";
 
 interface UseCreateAccountReturn {
   isCreating: boolean;
   generatedName: string | null;
   createAccount: () => Promise<{ login: NLoginType; generatedName: string }>;
-  setupAccount: (generatedName: string) => Promise<void>;
+  setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
 }
 
 export const useCreateNostrAccount = (): UseCreateAccountReturn => {
@@ -77,19 +78,26 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
     }
   };
 
-  const setupAccount = async (generatedName: string): Promise<void> => {
+  const setupAccount = async (profileData: ProfileData | null, generatedName: string): Promise<void> => {
     try {
       // Create Cashu wallet
       await createCashuWallet();
 
-      // Publish kind:0 metadata
+      // Use profile data from form if available, fallback to generated name
+      let finalProfileData: ProfileData;
+      if (profileData) {
+        finalProfileData = { ...profileData };
+      } else {
+        finalProfileData = { name: generatedName };
+      }
+      
       await publishEvent({
         kind: 0,
-        content: JSON.stringify({ name: generatedName }),
+        content: JSON.stringify(finalProfileData),
       });
     } catch (error) {
       // Non-critical errors - continue anyway
-      console.error("Error during account setup:", error);
+      console.error("❌ [useCreateNostrAccount] Error during account setup:", error);
     }
   };
 

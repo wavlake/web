@@ -8,6 +8,7 @@
 import { User as FirebaseUser } from 'firebase/auth';
 import { NostrCredentials } from '@/types/authFlow';
 import { type NLoginType } from "@nostrify/react/login";
+import { type ProfileData } from '@/types/profile';
 
 // Base interfaces that all state machines extend
 export interface BaseStateMachineState {
@@ -71,13 +72,14 @@ export interface SignupState extends BaseStateMachineState {
   account: NostrAccount | null;
   createdLogin: NLoginType | null;
   generatedName: string | null;
+  profileData: ProfileData | null;
 }
 
 export type SignupAction = 
   | { type: "SET_USER_TYPE"; isArtist: boolean }
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName: string }
-  | { type: "PROFILE_COMPLETED" }
+  | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
   | { type: "FIREBASE_BACKUP_COMPLETED" }
   | { type: "FIREBASE_BACKUP_SKIPPED" }
   | { type: "LOGIN_COMPLETED" }

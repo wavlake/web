@@ -13,6 +13,7 @@ import {
 import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { NostrAccount } from "../machines/types";
 import { User as FirebaseUser } from "firebase/auth";
+import { type ProfileData } from "@/types/profile";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -156,8 +157,9 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   );
 
   const setupAccountDependency = useCallback(
-    async (generatedName: string) => {
-      return await setupAccount(generatedName);
+    async (_profileData: ProfileData | null, generatedName: string) => {
+      // Legacy migration doesn't have custom profile data, always pass null
+      return await setupAccount(null, generatedName);
     },
     [setupAccount]
   );

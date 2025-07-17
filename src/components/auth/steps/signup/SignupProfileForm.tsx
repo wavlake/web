@@ -163,6 +163,7 @@ export const SignupProfileForm: FC<SignupProfileFormProps> = ({
   // Publish profile event using user signer
   const publishProfile = async (data: NostrMetadata) => {
     if (!user?.signer) {
+      console.error("❌ [SignupProfileForm] No signer available for publishing");
       throw new Error('No signer available for publishing');
     }
 
@@ -177,12 +178,8 @@ export const SignupProfileForm: FC<SignupProfileFormProps> = ({
     // Sign the event
     const signedEvent = await user.signer.signEvent(event);
     
-    // Publish to relays (we'll need to implement relay publishing)
-    // For now, we'll just resolve - the actual publishing will happen during login completion
-    console.log("Profile data prepared for publishing:", {
-      event: signedEvent,
-      data,
-    });
+    // NOTE: Profile data is prepared but not published to relays here
+    // The actual publishing should happen during login completion in setupAccount
 
     return signedEvent;
   };
@@ -224,8 +221,6 @@ export const SignupProfileForm: FC<SignupProfileFormProps> = ({
         }
         return acc;
       }, {} as any);
-
-      console.log("Publishing profile update:", cleanedData);
 
       // Publish the profile event
       await publishProfile(cleanedData);
