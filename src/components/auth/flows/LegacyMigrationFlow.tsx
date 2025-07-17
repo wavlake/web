@@ -38,6 +38,10 @@ export function LegacyMigrationFlow({
     getExpectedPubkey,
   } = useLegacyMigrationFlow();
 
+  // Helper to convert Error to string for legacy components
+  const errorToString = (error: Error | null): string | null => 
+    error ? error.message : null;
+
   const renderCurrentStep = () => {
     switch (stateMachine.step) {
       case "firebase-auth":
@@ -45,7 +49,7 @@ export function LegacyMigrationFlow({
           <FirebaseAuthStep
             onComplete={handleFirebaseAuthentication}
             isLoading={stateMachine.isLoading("authenticateWithFirebase")}
-            error={stateMachine.getError("authenticateWithFirebase")}
+            error={errorToString(stateMachine.getError("authenticateWithFirebase"))}
           />
         );
 
@@ -53,7 +57,7 @@ export function LegacyMigrationFlow({
         return (
           <CheckingLinksStep
             isLoading={stateMachine.isLoading("authenticateWithFirebase")}
-            error={stateMachine.getError("authenticateWithFirebase")}
+            error={errorToString(stateMachine.getError("authenticateWithFirebase"))}
           />
         );
 
@@ -62,7 +66,7 @@ export function LegacyMigrationFlow({
           <LinkedNostrAuthStep
             onComplete={handleLinkedNostrAuthentication}
             isLoading={stateMachine.isLoading("authenticateWithLinkedNostr")}
-            error={stateMachine.getError("authenticateWithLinkedNostr")}
+            error={errorToString(stateMachine.getError("authenticateWithLinkedNostr"))}
             expectedPubkey={getExpectedPubkey()}
             linkedPubkeys={stateMachine.linkedPubkeys}
           />
@@ -80,7 +84,7 @@ export function LegacyMigrationFlow({
         return (
           <AccountGenerationStep
             isLoading={stateMachine.isLoading("generateNewAccount")}
-            error={stateMachine.getError("generateNewAccount")}
+            error={errorToString(stateMachine.getError("generateNewAccount"))}
           />
         );
 
@@ -89,7 +93,7 @@ export function LegacyMigrationFlow({
           <BringKeypairStep
             onComplete={handleBringOwnKeypairWithCredentials}
             isLoading={stateMachine.isLoading("bringOwnKeypair")}
-            error={stateMachine.getError("bringOwnKeypair")}
+            error={errorToString(stateMachine.getError("bringOwnKeypair"))}
           />
         );
 

@@ -28,17 +28,17 @@ export interface AuthLoadingStates {
 }
 
 export interface AuthErrors {
-  extension: string | null;
-  nsec: string | null;
-  bunker: string | null;
+  extension: Error | null;
+  nsec: Error | null;
+  bunker: Error | null;
 }
 
 // ============================================================================
 // Authentication Handler Types
 // ============================================================================
 
-export type AuthCompletionHandler = (method: NostrAuthMethod, credentials: any) => Promise<void> | void;
-export type AuthErrorHandler = (error: string) => void;
+export type AuthCompletionHandler = (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<void> | void;
+export type AuthErrorHandler = (error: Error) => void;
 
 // ============================================================================
 // Authentication Props Types
@@ -47,7 +47,7 @@ export type AuthErrorHandler = (error: string) => void;
 export interface BaseAuthProps {
   // Loading and error states
   isLoading?: boolean;
-  error?: string | null;
+  error?: Error | null;
   
   // Event handlers
   onComplete?: AuthCompletionHandler;
@@ -111,7 +111,7 @@ export interface AuthMismatchWarning {
 }
 
 export interface AuthErrorDisplayProps {
-  error: string | null;
+  error: Error | null;
   variant?: "default" | "destructive";
   className?: string;
 }

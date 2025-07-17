@@ -10,7 +10,8 @@ import {
   useLegacyMigrationStateMachine,
   LegacyMigrationStateMachineDependencies,
 } from "../machines/useLegacyMigrationStateMachine";
-import { NostrAuthMethod } from "@/types/authFlow";
+import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
+import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -26,10 +27,10 @@ export interface UseLegacyMigrationFlowResult {
     email: string,
     password: string
   ) => Promise<void>;
-  handleLinkedNostrAuthentication: (credentials: any) => Promise<void>;
+  handleLinkedNostrAuthentication: (credentials: NostrCredentials) => Promise<void>;
   handleAccountGeneration: () => Promise<void>;
   handleBringOwnKeypair: () => Promise<void>;
-  handleBringOwnKeypairWithCredentials: (credentials: any) => Promise<void>;
+  handleBringOwnKeypairWithCredentials: (credentials: NostrCredentials) => Promise<void>;
 
   // Helper functions
   getStepTitle: () => string;
@@ -66,7 +67,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
           displayName: userCredential.user.displayName,
           user: userCredential.user,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Re-throw with more user-friendly message for common cases
         if (error.code === "auth/user-not-found") {
           throw new Error("No account found with this email address");
@@ -77,7 +78,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         } else if (error.code === "auth/user-disabled") {
           throw new Error("This account has been disabled");
         } else {
-          throw new Error(error.message || "Login failed");
+          const message = error instanceof Error ? error.message : "Login failed";
+          throw new Error(message);
         }
       }
     },
@@ -86,7 +88,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Create other dependency functions
   const checkLinkedPubkeysDependency = useCallback(
-    async (firebaseUser: any) => {
+    async (firebaseUser: FirebaseUser) => {
       // TODO: Replace with actual API call to check linked pubkeys for Firebase user
       // For now, use the existing hook but ignore the firebaseUser parameter
       await checkLinkedPubkeys();
@@ -96,11 +98,12 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   );
 
   const authenticateNostrDependency = useCallback(
-    async (method: NostrAuthMethod, credentials: any) => {
+    async (method: NostrAuthMethod, credentials: NostrCredentials) => {
       switch (method) {
         case "extension":
           return await loginWithExtension();
         case "nsec":
+          if (credentials.method !== "nsec") throw new Error("Invalid credentials for nsec method");
           return await loginWithNsec(credentials.nsec);
         default:
           throw new Error(`Unsupported authentication method: ${method}`);
@@ -114,7 +117,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   }, [createAccount]);
 
   const linkAccountsDependency = useCallback(
-    async (firebaseUser: any, nostrAccount: any) => {
+    async (firebaseUser: FirebaseUser, nostrAccount: unknown) => {
       // TODO: Implement proper account linking with both user objects
       await linkAccounts();
     },
@@ -138,19 +141,19 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         password
       );
       if (!result.success) {
-        throw new Error(result.error);
+        throw result.error || new Error("Firebase authentication failed");
       }
     },
     [stateMachine.actions]
   );
 
   const handleLinkedNostrAuthentication = useCallback(
-    async (credentials: any) => {
+    async (credentials: NostrCredentials) => {
       const result = await stateMachine.actions.authenticateWithLinkedNostr(
         credentials
       );
       if (!result.success) {
-        throw new Error(result.error);
+        throw result.error || new Error("Firebase authentication failed");
       }
     },
     [stateMachine.actions]
@@ -159,7 +162,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const handleAccountGeneration = useCallback(async () => {
     const result = await stateMachine.actions.generateNewAccount();
     if (!result.success) {
-      throw new Error(result.error);
+      throw result.error || new Error("Account generation failed");
     }
   }, [stateMachine.actions]);
 
@@ -171,10 +174,10 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   }, []);
 
   const handleBringOwnKeypairWithCredentials = useCallback(
-    async (credentials: any) => {
+    async (credentials: NostrCredentials) => {
       const result = await stateMachine.actions.bringOwnKeypair(credentials);
       if (!result.success) {
-        throw new Error(result.error);
+        throw result.error || new Error("Firebase authentication failed");
       }
     },
     [stateMachine.actions]

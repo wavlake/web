@@ -30,6 +30,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     getStepDescription,
   } = useSignupFlow();
 
+  // Helper to convert Error to string for legacy components
+  const errorToString = (error: Error | null): string | null => 
+    error ? error.message : null;
+
   const renderCurrentStep = () => {
     switch (stateMachine.step) {
       case "user-type":
@@ -37,7 +41,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
           <UserTypeStep
             onComplete={handleUserTypeSelection}
             isLoading={stateMachine.isLoading("setUserType")}
-            error={stateMachine.getError("setUserType")}
+            error={errorToString(stateMachine.getError("setUserType"))}
           />
         );
 
@@ -46,7 +50,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
           <ArtistTypeStep
             onComplete={handleArtistTypeSelection}
             isLoading={stateMachine.isLoading("setArtistType")}
-            error={stateMachine.getError("setArtistType")}
+            error={errorToString(stateMachine.getError("setArtistType"))}
           />
         );
 
@@ -55,7 +59,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
           <ProfileSetupStep
             onComplete={handleProfileCompletion}
             isLoading={stateMachine.isLoading("completeProfile")}
-            error={stateMachine.getError("completeProfile")}
+            error={errorToString(stateMachine.getError("completeProfile"))}
             isArtist={stateMachine.isArtist}
             isSoloArtist={stateMachine.isSoloArtist}
           />
@@ -67,7 +71,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             onComplete={handleFirebaseBackupSetup}
             onSkip={handleFirebaseBackupSkip}
             isLoading={stateMachine.isLoading("setupFirebaseBackup")}
-            error={stateMachine.getError("setupFirebaseBackup")}
+            error={errorToString(stateMachine.getError("setupFirebaseBackup"))}
           />
         );
 

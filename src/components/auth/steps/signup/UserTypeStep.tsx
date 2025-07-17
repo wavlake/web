@@ -12,7 +12,7 @@ import { MicIcon, HeadphonesIcon, AlertCircle } from 'lucide-react';
 interface UserTypeStepProps {
   onComplete: (isArtist: boolean) => Promise<void>;
   isLoading: boolean;
-  error: string | null;
+  error: Error | null;
 }
 
 export function UserTypeStep({ onComplete, isLoading, error }: UserTypeStepProps) {
@@ -39,7 +39,7 @@ export function UserTypeStep({ onComplete, isLoading, error }: UserTypeStepProps
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
 

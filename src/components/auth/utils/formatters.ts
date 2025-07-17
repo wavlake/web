@@ -6,6 +6,7 @@
  */
 
 import { nip19 } from "nostr-tools";
+import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 
 // ============================================================================
 // Pubkey Formatting
@@ -224,7 +225,7 @@ export function formatErrorMessage(error: unknown): string {
 /**
  * Creates a user-friendly error message for authentication errors
  */
-export function formatAuthErrorMessage(error: unknown, method?: string): string {
+export function formatAuthErrorMessage(error: unknown, method?: NostrAuthMethod): string {
   const baseMessage = formatErrorMessage(error);
   
   if (method) {
@@ -241,7 +242,7 @@ export function formatAuthErrorMessage(error: unknown, method?: string): string 
 /**
  * Formats credentials for display (masking sensitive information)
  */
-export function formatCredentialsForDisplay(method: string, credentials: any): string {
+export function formatCredentialsForDisplay(method: NostrAuthMethod, credentials: NostrCredentials): string {
   switch (method.toLowerCase()) {
     case "extension":
       return "Browser Extension";

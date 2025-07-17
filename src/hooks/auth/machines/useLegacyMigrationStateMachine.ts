@@ -8,7 +8,8 @@
 import { useReducer, useCallback, useMemo } from 'react';
 import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationError } from '../utils/stateMachineUtils';
 import { ActionResult, LegacyMigrationState, LegacyMigrationAction, LegacyMigrationStep } from './types';
-import { NostrAuthMethod } from '@/types/authFlow';
+import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
+import { User as FirebaseUser } from 'firebase/auth';
 
 const initialState: LegacyMigrationState = {
   step: "firebase-auth",
@@ -117,19 +118,19 @@ export interface UseLegacyMigrationStateMachineResult {
   firebaseUser: any | null;
   linkedPubkeys: any[];
   expectedPubkey: string | null;
-  generatedAccount: any | null;
+  generatedAccount: unknown | null;
   canGoBack: boolean;
   
   // Loading helpers
   isLoading: (operation: string) => boolean;
-  getError: (operation: string) => string | null;
+  getError: (operation: string) => Error | null;
   
   // Promise-based actions
   actions: {
     authenticateWithFirebase: (email: string, password: string) => Promise<ActionResult>;
-    authenticateWithLinkedNostr: (credentials: any) => Promise<ActionResult>;
+    authenticateWithLinkedNostr: (credentials: NostrCredentials) => Promise<ActionResult>;
     generateNewAccount: () => Promise<ActionResult>;
-    bringOwnKeypair: (credentials: any) => Promise<ActionResult>;
+    bringOwnKeypair: (credentials: NostrCredentials) => Promise<ActionResult>;
   };
   
   // Navigation
@@ -138,11 +139,11 @@ export interface UseLegacyMigrationStateMachineResult {
 }
 
 export interface LegacyMigrationStateMachineDependencies {
-  firebaseAuth: (email: string, password: string) => Promise<any>;
-  checkLinkedPubkeys: (firebaseUser: any) => Promise<any[]>;
-  authenticateNostr: (method: NostrAuthMethod, credentials: any) => Promise<any>;
-  generateAccount: () => Promise<any>;
-  linkAccounts: (firebaseUser: any, nostrAccount: any) => Promise<void>;
+  firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
+  checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<unknown[]>;
+  authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<unknown>;
+  generateAccount: () => Promise<unknown>;
+  linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: unknown) => Promise<void>;
 }
 
 export function useLegacyMigrationStateMachine(
@@ -165,7 +166,7 @@ export function useLegacyMigrationStateMachine(
     }, dispatch), [dependencies.firebaseAuth, dependencies.checkLinkedPubkeys]);
 
   const authenticateWithLinkedNostr = useMemo(() =>
-    createAsyncAction("authenticateWithLinkedNostr", async (credentials: any) => {
+    createAsyncAction("authenticateWithLinkedNostr", async (credentials: NostrCredentials) => {
       // Verify matches expected pubkey and complete auth
       const account = await dependencies.authenticateNostr("extension", credentials);
       
@@ -189,7 +190,7 @@ export function useLegacyMigrationStateMachine(
     }, dispatch), [dependencies.generateAccount, dependencies.linkAccounts, state.firebaseUser]);
 
   const bringOwnKeypair = useMemo(() =>
-    createAsyncAction("bringOwnKeypair", async (credentials: any) => {
+    createAsyncAction("bringOwnKeypair", async (credentials: NostrCredentials) => {
       // Authenticate with provided keys
       const account = await dependencies.authenticateNostr("nsec", credentials);
       dispatch({ type: "KEYPAIR_AUTHENTICATED", account });

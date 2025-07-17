@@ -5,18 +5,21 @@
  * used across all authentication flows.
  */
 
+import { User as FirebaseUser } from 'firebase/auth';
+import { NostrCredentials } from '@/types/authFlow';
+
 // Base interfaces that all state machines extend
 export interface BaseStateMachineState {
   step: string;
   isLoading: Record<string, boolean>;
-  errors: Record<string, string | null>;
+  errors: Record<string, Error | null>;
   canGoBack: boolean;
 }
 
 export interface ActionResult<T = any> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: Error | null;
 }
 
 export type AsyncActionHandler<TArgs extends any[] = any[], TResult = any> = 
@@ -41,7 +44,7 @@ export interface AsyncSuccessAction<T = any> extends BaseStateMachineAction {
 export interface AsyncErrorAction extends BaseStateMachineAction {
   type: "ASYNC_ERROR";
   operation: string;
-  error: string;
+  error: Error;
 }
 
 export interface ResetAction extends BaseStateMachineAction {
@@ -121,7 +124,7 @@ export interface LinkedPubkey {
 export interface NostrAccount {
   pubkey: string;
   privateKey?: string;
-  signer?: any;
+  signer?: unknown;
   profile?: {
     name?: string;
     display_name?: string;
@@ -132,14 +135,14 @@ export interface NostrAccount {
 
 export interface LegacyMigrationState extends BaseStateMachineState {
   step: LegacyMigrationStep;
-  firebaseUser: any | null; // TODO: Replace with proper FirebaseUser type
+  firebaseUser: FirebaseUser | null;
   linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
   generatedAccount: NostrAccount | null;
 }
 
 export type LegacyMigrationAction = 
-  | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: any }
+  | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: FirebaseUser }
   | { type: "LINKS_CHECKED"; linkedPubkeys: LinkedPubkey[] }
   | { type: "ACCOUNT_CHOICE_MADE"; choice: "generate" | "bring-own" }
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }

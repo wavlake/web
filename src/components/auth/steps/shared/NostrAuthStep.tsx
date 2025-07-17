@@ -8,7 +8,7 @@ import { nip19 } from "nostr-tools";
 // Import extracted components
 import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
 import { NostrAuthErrorDisplay, createPubkeyMismatchError } from "../../ui/NostrAuthErrorDisplay";
-import { AuthLoadingStates, AuthErrors } from "../../types";
+import { AuthLoadingStates, AuthErrors, NostrAuthMethod, NostrCredentials } from "../../types";
 import { validatePubkeyMatch } from "../../utils/validation";
 import { formatPubkey } from "../../utils/formatters";
 
@@ -25,15 +25,15 @@ export interface NostrAuthStepProps {
   expectedPubkey?: string;
 
   // Supported auth methods
-  supportedMethods?: string[];
+  supportedMethods?: NostrAuthMethod[];
 
   // Event handlers
-  onComplete?: (method: string, credentials: any) => Promise<void> | void;
-  onError?: (error: string) => void;
+  onComplete?: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<void> | void;
+  onError?: (error: Error) => void;
 
   // Loading and error states
   isLoading?: boolean;
-  error?: string | null;
+  error?: Error | null;
 
   // UI state
   className?: string;
@@ -143,7 +143,7 @@ export function NostrAuthStep({
   // Event Handlers
   // ============================================================================
 
-  const handleComplete = async (method: string, credentials: any) => {
+  const handleComplete = async (method: NostrAuthMethod, credentials: NostrCredentials) => {
     try {
       if (onComplete) {
         await onComplete(method, credentials);
@@ -153,8 +153,8 @@ export function NostrAuthStep({
       if (onError) {
         onError(
           error instanceof Error
-            ? error.message
-            : "Authentication completion failed"
+            ? error
+            : new Error("Authentication completion failed")
         );
       }
     }
