@@ -1,380 +1,820 @@
-# Wavlake Authentication V3 System
+# Authentication Components Documentation
 
 ## Overview
 
-This document describes the **v3 authentication system** - a production-ready, dual-authentication architecture that combines **Nostr-first identity** with **Firebase business operations** while integrating **legacy Wavlake metadata**. The system provides a seamless user experience with intelligent authentication method selection and comprehensive account linking capabilities.
+This directory contains the **sophisticated state machine-based authentication components** for Wavlake's multi-step authentication flows. The components implement a clean separation between UI and business logic, with flow components orchestrating state machines and step components handling specific UI interactions.
 
-## 🏗️ Architecture Philosophy
+## 🏗️ Architecture Overview
 
-### Core Pattern: Hybrid Authentication with Legacy Integration
-
-The v3 system implements:
-- **Dual Authentication**: Firebase token preferred, NIP-98 fallback for all API calls
-- **Legacy Metadata Integration**: Rich user profile data from PostgreSQL-backed legacy API
-- **Component-Based State Machines**: Simple, predictable UI flows
-- **Progressive Enhancement**: Graceful degradation when services are unavailable
+### Component Architecture Pattern
+The authentication system follows a hierarchical component structure:
+- **Flow Components**: Orchestrate state machines and render step components
+- **Step Components**: Handle specific UI interactions within flows
+- **Utility Components**: Provide shared functionality and UI patterns
+- **Guard Components**: Protect actions that require specific authentication levels
 
 ```
-📍 AuthFlow → 🔑 SignIn (nostr → firebase) → 🔗 Legacy Integration → ✅ authenticated
-📍 AuthFlow → 🆕 SignUp (firebase → nostr) → 🔗 Auto-linking → ✅ authenticated
+📋 Flow Component → 🔄 State Machine Hook → 📱 Step Components → 🎯 User Actions
 ```
 
-## 🎯 Current Implementation Status
+## 📁 Directory Structure
 
-### ✅ **Production Components (v3)**
-- `AuthFlow.tsx` - Main orchestrator with method selection
-- `AuthMethodSelector.tsx` - Clean method selection UI
-- `SignUp.tsx` - Multi-step signup with user type selection
-- `SignIn.tsx` - Nostr-first signin with Firebase migration
-- `NostrAuthForm.tsx` - Tabbed Nostr authentication (extension/nsec/bunker)
-- `FirebaseAuthForm.tsx` - **Enhanced with legacy metadata display**
+```
+/src/components/auth/
+├── flows/                           # Main authentication flow components
+│   ├── SignupFlow.tsx              ✅ New user registration flow
+│   ├── LegacyMigrationFlow.tsx     ✅ Legacy account migration flow
+│   └── NostrLoginFlow.tsx          ✅ Simple Nostr authentication flow
+├── steps/                          # Step components for each flow
+│   ├── signup/                     # Signup-specific steps
+│   │   ├── UserTypeStep.tsx        ✅ Artist vs Listener selection
+│   │   ├── ArtistTypeStep.tsx      ✅ Solo vs Band selection
+│   │   ├── ProfileSetupStep.tsx    ✅ Profile creation
+│   │   └── FirebaseBackupStep.tsx  ✅ Optional email backup
+│   ├── legacy/                     # Legacy migration steps
+│   │   ├── FirebaseAuthStep.tsx    ✅ Firebase authentication
+│   │   ├── CheckingLinksStep.tsx   ✅ Account linking verification
+│   │   ├── LinkedNostrAuthStep.tsx ✅ Linked account authentication
+│   │   ├── AccountChoiceStep.tsx   ✅ Account setup method selection
+│   │   ├── AccountGenerationStep.tsx ✅ New account generation
+│   │   └── BringKeypairStep.tsx    ✅ Import existing keys
+│   └── shared/                     # Shared step components
+│       ├── NostrAuthStep.tsx       ✅ General Nostr authentication
+│       └── LoadingStep.tsx         ✅ Loading states
+├── ui/                             # UI utility components
+│   ├── StepWrapper.tsx             ✅ Consistent step layout
+│   └── LoginButton.tsx             ✅ Simple login navigation
+├── FirebaseActionGuard.tsx         ✅ Firebase-required action protection
+├── PubkeyMismatchAlert.tsx         ✅ Account mismatch warnings
+├── UnlinkConfirmDialog.tsx         ✅ Account unlinking confirmation
+└── index.ts                        ✅ Component exports
+```
 
-### ✅ **Dual Authentication System**
-- **Firebase Token Priority**: All API calls prefer Firebase authentication tokens
-- **NIP-98 Fallback**: Automatic fallback to Nostr NIP-98 authentication when Firebase unavailable
-- **Intelligent Routing**: `useLegacyApi` hook handles authentication method selection transparently
-- **Legacy Metadata**: Rich user profile data integration from PostgreSQL backend
+## 🔄 Flow Components
 
-### ✅ **Legacy Integration Status**
-- `useLegacyApi.ts` - **Dual authentication support implemented**
-- `useLegacyMetadata()` - Fetches comprehensive user profile data
-- `FirebaseAuthForm.tsx` - **Shows legacy metadata instead of Firebase metadata**
-- Account linking between Firebase and Nostr accounts functional
+### `SignupFlow`
+Orchestrates new user registration with progressive steps based on user type.
 
-## 🔧 **Enhanced FirebaseAuthForm Implementation**
-
-### Current Features (Production Ready)
 ```tsx
-// Enhanced FirebaseAuthForm with legacy metadata integration
-function FirebaseAuthForm() {
-  const { user, logout, loading } = useFirebaseAuth();
-  const { data: legacyMetadata, isLoading: isLegacyLoading } = useLegacyMetadata();
+import { SignupFlow } from '@/components/auth/flows/SignupFlow';
 
-  // When user is authenticated, show rich legacy profile
-  if (user) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Wavlake Account Connected</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Legacy profile integration */}
-          <Avatar src={legacyMetadata?.user?.artwork_url || user.photoURL} />
-          <UserName>{legacyMetadata?.user?.name || user.displayName}</UserName>
-          
-          {/* Legacy metadata display */}
-          <LegacyMetadata>
-            <Field label="Legacy Username">{legacyMetadata?.user?.name}</Field>
-            <Field label="Legacy ID">{legacyMetadata?.user?.id}</Field>
-            <Field label="Legacy Created">{legacyMetadata?.user?.created_at}</Field>
-            <Field label="Profile URL">{legacyMetadata?.user?.profile_url}</Field>
-          </LegacyMetadata>
-          
-          {/* Account status */}
-          <AccountStatus verified={user.emailVerified} />
-          
-          {/* Actions */}
-          <Actions>
-            <Button onClick={logout}>Sign Out</Button>
-            <Button onClick={onComplete}>Continue</Button>
-          </Actions>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  // Standard form for authentication
-  return <AuthenticationForm />;
-}
-```
-
-### Key Enhancements
-1. **Legacy Profile Integration**: Shows user's Wavlake profile data (name, artwork, creation date)
-2. **Progressive Display**: Shows legacy metadata when available, falls back to Firebase data
-3. **Rich Context**: Users see their full Wavlake account information, not just Firebase details
-4. **Seamless UX**: Loading states handle metadata fetching gracefully
-
-## 🔄 **Dual Authentication Architecture**
-
-### API Integration Pattern
-```tsx
-// useLegacyApi.ts - Intelligent auth method selection
-async function fetchLegacyApi<T>(
-  endpoint: string, 
-  signer: unknown, 
-  getAuthToken?: () => Promise<string | null>
-): Promise<T> {
-  let authHeader: string;
-  
-  // 1. Try Firebase auth token first (preferred)
-  if (getAuthToken) {
-    try {
-      const firebaseToken = await getAuthToken();
-      if (firebaseToken) {
-        authHeader = `Bearer ${firebaseToken}`;
-      } else {
-        throw new Error("Firebase token not available");
-      }
-    } catch (error) {
-      // 2. Fall back to NIP-98 if Firebase auth fails
-      authHeader = await createNip98AuthHeader(url, method, {}, signer);
+function RegistrationPage() {
+  const handleComplete = (result: { success: boolean }) => {
+    if (result.success) {
+      navigate('/dashboard');
     }
-  } else {
-    // 3. No Firebase auth available, use NIP-98
-    authHeader = await createNip98AuthHeader(url, method, {}, signer);
-  }
-  
-  // 4. Make authenticated request
-  return await fetch(url, {
-    headers: { Authorization: authHeader }
-  }).then(res => res.json());
-}
-```
-
-### Hook Integration
-```tsx
-// All legacy API hooks now support dual authentication
-export function useLegacyMetadata() {
-  const { user } = useCurrentUser();
-  const { getAuthToken } = useFirebaseAuth(); // Firebase token provider
-  
-  return useQuery({
-    queryKey: ["legacy-metadata", user?.pubkey],
-    queryFn: () => fetchLegacyApi<LegacyMetadataResponse>(
-      "/metadata", 
-      user?.signer,      // NIP-98 fallback
-      getAuthToken       // Firebase token preferred
-    ),
-    enabled: !!user?.signer || !!getAuthToken,
-    staleTime: 5 * 60 * 1000, // 5 minute cache
-  });
-}
-```
-
-## 💾 **Legacy Metadata Integration**
-
-### Data Structure
-```tsx
-interface LegacyMetadataResponse {
-  user: {
-    id: string;
-    name: string;
-    artwork_url: string;
-    profile_url: string;
-    lightning_address: string;
-    msat_balance: number;
-    created_at: string;
-    updated_at: string;
   };
-  artists: Artist[];
-  albums: Album[];
-  tracks: Track[];
-}
-```
 
-### Display Integration
-- **Profile Picture**: `legacyMetadata?.user?.artwork_url` preferred over Firebase `photoURL`
-- **Display Name**: `legacyMetadata?.user?.name` preferred over Firebase `displayName`
-- **Legacy Context**: Shows user's Wavlake-specific data (balance, creation date, profile URL)
-- **Graceful Fallback**: Uses Firebase data when legacy metadata unavailable
+  const handleCancel = () => {
+    navigate('/');
+  };
 
-## 🔐 **Authentication Flow Patterns**
-
-### 1. Firebase-First Flow (Returning Users)
-```
-User → Firebase Login → Legacy Metadata Fetch → Rich Profile Display
-   ↓
-Firebase Token → Legacy API → PostgreSQL → User Profile Data
-```
-
-### 2. Nostr-First Flow (New Users)
-```
-User → Nostr Login → Auto-Link Firebase → Legacy Metadata Fetch → Profile Display
-   ↓
-NIP-98 Auth → Legacy API → PostgreSQL → User Profile Data
-```
-
-### 3. Hybrid Flow (Cross-Platform Users)
-```
-User → Firebase Login → Nostr Account Discovery → Account Linking → Unified Profile
-   ↓
-Firebase Token (preferred) → NIP-98 (fallback) → Legacy API → Rich Profile
-```
-
-## 🛡️ **Security & Authentication**
-
-### Multi-Layer Security
-1. **Firebase Authentication**: Industry-standard email/password, OAuth providers
-2. **NIP-98 Authentication**: Cryptographic Nostr event-based authentication
-3. **Token Preference**: Firebase tokens preferred for better security/performance
-4. **Graceful Degradation**: System functions even if one auth method fails
-
-### Error Handling
-```tsx
-// Comprehensive error handling in fetchLegacyApi
-try {
-  const firebaseToken = await getAuthToken();
-  if (firebaseToken) {
-    authHeader = `Bearer ${firebaseToken}`;
-  } else {
-    throw new Error("Firebase token not available");
-  }
-} catch (error) {
-  // Automatic fallback to NIP-98
-  if (!signer) {
-    throw new Error("No Firebase token or Nostr signer available");
-  }
-  authHeader = await createNip98AuthHeader(url, method, {}, signer);
-}
-```
-
-## 📊 **Performance Optimizations**
-
-### Caching Strategy
-- **Legacy Metadata**: 5-minute stale time, 30-minute garbage collection
-- **Authentication Tokens**: In-memory caching with automatic refresh
-- **Profile Data**: Background refetching on window focus/reconnect
-
-### Loading States
-- **Progressive Loading**: Show Firebase data immediately, enhance with legacy data
-- **Skeleton Screens**: Loading indicators for metadata fetching
-- **Error Boundaries**: Graceful handling of API failures
-
-## 🎨 **User Experience Enhancements**
-
-### Visual Improvements
-1. **Rich Profile Display**: User's Wavlake artwork, name, and metadata
-2. **Context-Aware Badges**: Email verification, provider type, legacy account status
-3. **Progressive Enhancement**: Starts with Firebase data, enhances with legacy metadata
-4. **Loading States**: Smooth transitions between authentication states
-
-### Accessibility
-- **Screen Reader Support**: Proper ARIA labels for all profile information
-- **Keyboard Navigation**: Full keyboard support for all interactive elements
-- **High Contrast**: Proper color contrast ratios for all text and badges
-
-## 🔧 **Development Patterns**
-
-### Component Integration
-```tsx
-// Clean integration pattern for legacy metadata
-function AuthenticatedProfile() {
-  const { user } = useFirebaseAuth();
-  const { data: legacyMetadata, isLoading } = useLegacyMetadata();
-  
   return (
-    <ProfileCard>
-      <Avatar src={legacyMetadata?.user?.artwork_url || user.photoURL} />
-      <Name>{legacyMetadata?.user?.name || user.displayName}</Name>
-      {isLoading && <Skeleton />}
-      {legacyMetadata && <LegacyMetadata data={legacyMetadata} />}
-    </ProfileCard>
+    <SignupFlow 
+      onComplete={handleComplete}
+      onCancel={handleCancel}
+    />
   );
 }
 ```
 
-### Hook Usage Best Practices
-```tsx
-// ✅ Correct: Use both auth methods
-const { user } = useCurrentUser();         // Nostr authentication
-const { getAuthToken } = useFirebaseAuth(); // Firebase authentication
-const { data: metadata } = useLegacyMetadata(); // Dual-auth API call
+**Flow Steps:**
+1. **User Type Selection** - Artist vs Listener choice
+2. **Artist Type Selection** - Solo vs Band (artists only)
+3. **Profile Setup** - Profile creation and configuration
+4. **Firebase Backup** - Optional email backup (artists only)
+5. **Completion** - Success message and navigation
 
-// ✅ Correct: Handle loading states
-if (isLoading) return <LoadingSpinner />;
-if (!user) return <LoginRequired />;
+**Key Features:**
+- **Dynamic Flow**: Different steps based on user type selection
+- **State Integration**: Connects to `useSignupFlow` hook for business logic
+- **Progress Tracking**: Automatic step counting and navigation
+- **Error Handling**: Displays loading states and errors from state machine
+
+### `LegacyMigrationFlow`
+Manages complex migration from Firebase to Nostr with branching logic.
+
+```tsx
+import { LegacyMigrationFlow } from '@/components/auth/flows/LegacyMigrationFlow';
+
+function MigrationPage() {
+  const handleComplete = (result: { success: boolean }) => {
+    if (result.success) {
+      navigate('/dashboard');
+    }
+  };
+
+  return (
+    <LegacyMigrationFlow 
+      onComplete={handleComplete}
+      onCancel={() => navigate('/')}
+    />
+  );
+}
 ```
 
-## 🚀 **Future Enhancement Opportunities**
+**Flow Steps:**
+1. **Firebase Authentication** - Legacy account login
+2. **Checking Links** - Verify existing Nostr account links
+3. **Linked Nostr Auth** - Authenticate with existing linked account (if found)
+4. **Account Choice** - Choose between generating new keys or importing existing
+5. **Account Generation/Import** - Create new account or import existing keys
+6. **Account Linking** - Link Firebase and Nostr accounts
+7. **Completion** - Migration success confirmation
 
-### Technical Improvements
-- **Real-time Metadata**: WebSocket connections for live profile updates
-- **Offline Support**: Service worker integration for offline authentication
-- **Performance Monitoring**: Detailed analytics for auth flow performance
-- **Advanced Caching**: Redis-backed caching for legacy metadata
+**Key Features:**
+- **Branching Logic**: Different paths based on existing account links
+- **Complex State Management**: Handles multiple account states and transitions
+- **Error Recovery**: Comprehensive error handling for each step
+- **Account Validation**: Verifies account linking and authentication
 
-### User Experience Enhancements
-- **Profile Sync**: Automatic sync between Firebase and legacy profiles
-- **Social Features**: Integration with Nostr social graph data
-- **Personalization**: ML-based user preference learning
-- **Multi-Device**: Seamless authentication across devices
+### `NostrLoginFlow`
+Simple Nostr-only authentication flow for existing users.
 
-## 📈 **Production Metrics**
+```tsx
+import { NostrLoginFlow } from '@/components/auth/flows/NostrLoginFlow';
 
-### Current Performance
-- **Authentication Success Rate**: >95% for both Firebase and Nostr flows
-- **API Response Time**: <500ms for legacy metadata fetching
-- **Cache Hit Rate**: >80% for repeated metadata requests
-- **Error Rate**: <2% for dual authentication flows
+function LoginPage() {
+  const handleComplete = (result: { success: boolean }) => {
+    if (result.success) {
+      navigate('/dashboard');
+    }
+  };
 
-### Monitoring
-- **Sentry Integration**: Comprehensive error tracking and performance monitoring
-- **Real-time Analytics**: Authentication flow completion rates
-- **User Feedback**: Continuous UX improvement based on user behavior
+  return (
+    <NostrLoginFlow 
+      onComplete={handleComplete}
+    />
+  );
+}
+```
 
-## 🔄 **Migration & Deployment**
+**Flow Steps:**
+1. **Nostr Authentication** - Extension/nsec/bunker authentication
+2. **Completion** - Authentication success
 
-### Deployment Strategy
-1. **Gradual Rollout**: Feature flags control dual authentication activation
-2. **A/B Testing**: Compare legacy vs enhanced authentication flows
-3. **Monitoring**: Real-time performance and error rate monitoring
-4. **Rollback Plan**: Immediate rollback capability if issues arise
+**Key Features:**
+- **Multiple Auth Methods**: Supports extension, nsec, and bunker authentication
+- **Streamlined UX**: Minimal steps for quick authentication
+- **Existing User Focus**: Optimized for users with established Nostr accounts
 
-### Maintenance
-- **Regular Updates**: Monthly security updates for both Firebase and Nostr dependencies
-- **Performance Audits**: Quarterly performance reviews and optimizations
-- **User Testing**: Continuous user experience testing and improvement
+## 📱 Step Components
 
-## 📋 **Implementation Status**
+### Signup Steps
 
-### ✅ **Completed (Production Ready)**
-- [x] Dual authentication system (Firebase + NIP-98)
-- [x] Legacy metadata integration in FirebaseAuthForm
-- [x] Enhanced user profile display with Wavlake data
-- [x] Progressive loading states and error handling
-- [x] TypeScript type safety for all components
-- [x] Build system integration and deployment ready
+#### `UserTypeStep`
+First step where users choose between Artist and Listener roles.
 
-### 🔄 **In Progress**
-- [ ] Comprehensive testing suite for dual authentication
-- [ ] Performance optimization and monitoring
-- [ ] User experience testing and feedback collection
+```tsx
+interface UserTypeStepProps {
+  onComplete: (isArtist: boolean) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
 
-### 📅 **Future Roadmap**
-- [ ] Real-time profile synchronization
-- [ ] Advanced caching strategies
-- [ ] Multi-device authentication support
-- [ ] Social graph integration
+**Features:**
+- **Clear Visual Design**: Large buttons with icons and descriptions
+- **Loading States**: Shows "Creating your account..." during processing
+- **Error Display**: Shows state machine errors with proper styling
+- **Accessibility**: Proper keyboard navigation and screen reader support
 
-## 🎯 **Success Metrics**
+#### `ArtistTypeStep`
+Artist-specific step for choosing between Solo and Band/Group.
 
-### Production KPIs
-- **Authentication Completion Rate**: >98%
-- **User Satisfaction**: >4.7/5 stars
-- **API Response Time**: <300ms p95
-- **Error Rate**: <1% for all auth flows
-- **Cache Efficiency**: >85% hit rate
+```tsx
+interface ArtistTypeStepProps {
+  onComplete: (isSolo: boolean) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
 
-### Business Impact
-- **User Retention**: 15% improvement in first-week retention
-- **Profile Completeness**: 60% more users with complete profiles
-- **Support Tickets**: 40% reduction in authentication-related support
-- **User Engagement**: 25% increase in profile interactions
+#### `ProfileSetupStep`
+Profile creation and configuration step.
 
-## 🏆 **Conclusion**
+```tsx
+interface ProfileSetupStepProps {
+  onComplete: (profileData: any) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+  isArtist: boolean;
+  isSoloArtist: boolean;
+}
+```
 
-The Wavlake Authentication V3 System represents a **production-ready, enterprise-grade implementation** that successfully bridges **decentralized Nostr identity**, **centralized Firebase operations**, and **legacy PostgreSQL data** into a unified, user-friendly experience.
+**Features:**
+- **Context-Aware UI**: Different fields based on user type and artist type
+- **Form Validation**: Client-side validation with error messages
+- **Profile Preview**: Shows profile information as user types
 
-**Key Achievements:**
-- **Dual Authentication**: Seamless fallback between Firebase and NIP-98 authentication
-- **Legacy Integration**: Rich user profile data from existing Wavlake database
-- **Enhanced UX**: Progressive loading with contextual user information
-- **Production Ready**: Comprehensive error handling, TypeScript safety, and monitoring
+#### `FirebaseBackupStep`
+Optional email backup setup for artists.
+
+```tsx
+interface FirebaseBackupStepProps {
+  onComplete: (email: string, password: string) => Promise<void>;
+  onSkip: () => void;
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+**Features:**
+- **Skip Option**: Users can skip Firebase backup
+- **Secure Input**: Password field with show/hide toggle
+- **Email Validation**: Real-time email format validation
+
+### Legacy Migration Steps
+
+#### `FirebaseAuthStep`
+Firebase email/password authentication for legacy accounts.
+
+```tsx
+interface FirebaseAuthStepProps {
+  onComplete: (email: string, password: string) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+  onCancel?: () => void;
+}
+```
+
+**Features:**
+- **Comprehensive Form Validation**: Email format and password requirements
+- **Password Visibility Toggle**: Eye icon for show/hide password
+- **Error Handling**: Field-specific and global error display
+- **Security**: Proper input types and validation
+
+#### `CheckingLinksStep`
+Loading step that checks for existing Nostr account links.
+
+```tsx
+interface CheckingLinksStepProps {
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+**Features:**
+- **Loading Animation**: Spinner and progress indicators
+- **Status Messages**: Clear communication about the checking process
+
+#### `LinkedNostrAuthStep`
+Authentication with previously linked Nostr accounts.
+
+```tsx
+interface LinkedNostrAuthStepProps {
+  onComplete: (credentials: any) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+  expectedPubkey: string | null;
+  linkedPubkeys: LinkedPubkey[];
+}
+```
+
+**Features:**
+- **Account Display**: Shows linked accounts with profile information
+- **Expected Pubkey Validation**: Verifies user authenticates with correct account
+- **Multiple Account Support**: Handles users with multiple linked accounts
+
+#### `AccountChoiceStep`
+Choice between generating new account or importing existing keys.
+
+```tsx
+interface AccountChoiceStepProps {
+  onGenerateNew: () => void;
+  onBringOwn: () => void;
+}
+```
+
+**Features:**
+- **Clear Options**: Visual buttons for each choice
+- **Help Text**: Explanations for each option
+- **No Loading State**: Simple selection step
+
+#### `AccountGenerationStep`
+Automatic generation of new Nostr account.
+
+```tsx
+interface AccountGenerationStepProps {
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+**Features:**
+- **Automatic Progress**: Shows account generation progress
+- **Security Information**: Explains what's being generated
+
+#### `BringKeypairStep`
+Import existing Nostr keys (nsec or extension).
+
+```tsx
+interface BringKeypairStepProps {
+  onComplete: (credentials: any) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+**Features:**
+- **Multiple Import Methods**: nsec input or extension authentication
+- **Key Validation**: Validates nsec format before submission
+- **Security Warnings**: Explains key security best practices
+
+### Shared Steps
+
+#### `NostrAuthStep`
+General-purpose Nostr authentication component.
+
+```tsx
+interface NostrAuthStepProps {
+  title?: string;
+  description?: string;
+  expectedPubkey?: string;
+  supportedMethods?: string[];
+  onComplete?: () => Promise<void> | void;
+  onError?: (error: string) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  className?: string;
+}
+```
+
+**Features:**
+- **Flexible Configuration**: Customizable title, description, and methods
+- **Expected Pubkey Support**: Can validate against specific pubkey
+- **Method Filtering**: Can restrict to specific authentication methods
+- **Integration Bridge**: Wraps existing NostrAuthForm for new flow pattern
+
+#### `LoadingStep`
+Generic loading step for async operations.
+
+```tsx
+interface LoadingStepProps {
+  title: string;
+  description: string;
+  className?: string;
+}
+```
+
+**Features:**
+- **Customizable Content**: Title and description for different loading scenarios
+- **Consistent Styling**: Matches other step components
+- **Progress Indicators**: Spinner animations and visual feedback
+
+## 🛠️ UI Components
+
+### `StepWrapper`
+Provides consistent layout and navigation for all auth steps.
+
+```tsx
+interface StepWrapperProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  canGoBack?: boolean;
+  onBack?: () => void;
+  onCancel?: () => void;
+  currentStep?: string;
+  totalSteps?: number;
+  className?: string;
+  header?: React.ReactNode;
+}
+```
+
+**Features:**
+- **Consistent Layout**: Card-based layout with proper spacing
+- **Navigation Controls**: Back button and cancel functionality
+- **Step Indicators**: Progress tracking (currently commented out)
+- **Responsive Design**: Mobile-first responsive layout
+- **Header Support**: Optional custom header content
+
+**Layout Structure:**
+```tsx
+<div className="flex flex-col justify-center min-h-screen w-full max-w-md mx-auto px-2">
+  {/* Optional custom header */}
+  {header}
+  
+  {/* Navigation bar with back/cancel buttons */}
+  <div className="flex items-center justify-between mb-6">
+    {/* Back button or spacer */}
+    {/* Step indicator (optional) */}
+    {/* Cancel button or spacer */}
+  </div>
+  
+  {/* Main content card */}
+  <Card>
+    <CardHeader className="text-center">
+      <CardTitle>{title}</CardTitle>
+      <CardDescription>{description}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      {children}
+    </CardContent>
+  </Card>
+</div>
+```
+
+### `LoginButton`
+Simple navigation button for accessing login flows.
+
+```tsx
+export function LoginButton()
+```
+
+**Features:**
+- **Navigation Integration**: Routes to `/login` page
+- **Consistent Styling**: Matches design system patterns
+- **Icon Integration**: User icon with text label
+- **Animation**: Scale-in animation on mount
+
+## 🛡️ Guard Components
+
+### `FirebaseActionGuard`
+Protects actions that require Firebase account linking.
+
+```tsx
+interface FirebaseActionGuardProps {
+  children: ReactNode;
+  action: "create-group" | "edit-group" | "upload-music" | "edit-music";
+  className?: string;
+}
+```
+
+**Protected Actions:**
+- **create-group**: Creating new artist pages (always requires Firebase)
+- **edit-group**: Editing artist page settings (only for owners)
+- **upload-music**: Uploading music tracks (requires Firebase)
+- **edit-music**: Editing existing tracks (requires Firebase)
+
+**Features:**
+- **Granular Protection**: Only blocks specific actions, not entire pages
+- **Context Awareness**: Checks user role in community context
+- **User-Friendly UI**: Shows informative banner instead of blocking access
+- **Account Linking Navigation**: Direct link to account linking page
+- **Conditional Display**: Only shows restriction when Firebase is actually required
+
+**Guard Logic:**
+```tsx
+// Determine if Firebase is required
+let requiresFirebase = false;
+
+if (action === "create-group") {
+  requiresFirebase = !!user; // Always require for logged-in users
+} else if (action === "upload-music" || action === "edit-music") {
+  requiresFirebase = !!user; // Music actions require Firebase
+} else if (action === "edit-group" && communityContext) {
+  requiresFirebase = communityContext.userRole === "owner"; // Only owners need Firebase
+}
+```
+
+### `PubkeyMismatchAlert`
+Warns users when authenticated pubkey doesn't match expected pubkey.
+
+```tsx
+interface PubkeyMismatchAlertProps {
+  expectedPubkey: string;
+  actualPubkey: string;
+  onRetry?: () => void;
+  onCancel?: () => void;
+}
+```
+
+**Features:**
+- **Clear Warning**: Explains pubkey mismatch situation
+- **Action Options**: Retry authentication or cancel operation
+- **Security Focus**: Helps prevent account confusion and security issues
+
+### `UnlinkConfirmDialog`
+Confirmation dialog for account unlinking operations.
+
+```tsx
+interface UnlinkConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  accountType: 'firebase' | 'nostr';
+}
+```
+
+**Features:**
+- **Destructive Action Confirmation**: Prevents accidental account unlinking
+- **Account Type Awareness**: Different messaging for different account types
+- **Clear Consequences**: Explains what happens when accounts are unlinked
+
+## 🎯 Integration Patterns
+
+### Flow Component Pattern
+Flow components follow a consistent structure:
+
+```tsx
+export function ExampleFlow({ onComplete, onCancel }: FlowProps) {
+  // 1. Get state machine hook
+  const { stateMachine, handlers, helpers } = useExampleFlow();
+
+  // 2. Define step rendering
+  const renderCurrentStep = () => {
+    switch (stateMachine.step) {
+      case "step1":
+        return (
+          <Step1Component
+            onComplete={handlers.handleStep1}
+            isLoading={stateMachine.isLoading("step1Action")}
+            error={stateMachine.getError("step1Action")}
+          />
+        );
+      // ... other steps
+    }
+  };
+
+  // 3. Render with StepWrapper
+  return (
+    <StepWrapper
+      title={helpers.getStepTitle()}
+      description={helpers.getStepDescription()}
+      canGoBack={stateMachine.canGoBack}
+      onBack={stateMachine.goBack}
+      onCancel={onCancel}
+    >
+      {renderCurrentStep()}
+    </StepWrapper>
+  );
+}
+```
+
+### Step Component Pattern
+Step components follow a consistent interface:
+
+```tsx
+interface StepProps {
+  onComplete: (...args: any[]) => Promise<void>;
+  isLoading?: boolean;
+  error?: string | null;
+  // ... step-specific props
+}
+
+export function ExampleStep({ onComplete, isLoading, error }: StepProps) {
+  // 1. Local state for form data
+  const [formData, setFormData] = useState({});
+  const [formErrors, setFormErrors] = useState({});
+
+  // 2. Form validation
+  const validateForm = () => {
+    // Validation logic
+    return isValid;
+  };
+
+  // 3. Submit handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    
+    try {
+      await onComplete(formData);
+    } catch (err) {
+      // Error is handled by state machine
+    }
+  };
+
+  // 4. Render form with error display
+  return (
+    <form onSubmit={handleSubmit}>
+      {error && <Alert variant="destructive">{error}</Alert>}
+      {/* Form fields */}
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? "Processing..." : "Continue"}
+      </Button>
+    </form>
+  );
+}
+```
+
+### Error Handling Pattern
+Consistent error handling across all components:
+
+```tsx
+// Step component error display
+{error && (
+  <Alert variant="destructive">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription>{error}</AlertDescription>
+  </Alert>
+)}
+
+// Loading state integration
+<Button disabled={isLoading}>
+  {isLoading ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Processing...
+    </>
+  ) : (
+    "Continue"
+  )}
+</Button>
+```
+
+## 🎨 Design System Integration
+
+### Component Styling
+All components use the established design system:
+
+```tsx
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Consistent color scheme
+className="border-amber-200 bg-amber-50"        // Warning states
+className="text-green-600"                      // Success states  
+className="border-red-500 text-red-500"        // Error states
+className="text-muted-foreground"              // Secondary text
+```
+
+### Responsive Design
+Components are mobile-first with responsive breakpoints:
+
+```tsx
+// StepWrapper responsive container
+className="flex flex-col justify-center min-h-screen w-full max-w-md mx-auto px-2"
+
+// Button responsive sizing
+className="w-full h-auto min-h-[80px] py-4 px-4 rounded-xl"
+
+// Icon responsive sizing
+className="w-4 h-4"  // Small icons
+className="w-5 h-5"  // Medium icons
+```
+
+### Animation Integration
+Subtle animations enhance user experience:
+
+```tsx
+// Scale-in animation
+className="animate-scale-in"
+
+// Loading spinner
+className="animate-spin"
+
+// Hover transitions
+className="transition-colors hover:border-primary"
+```
+
+## 🚀 Development Guidelines
+
+### Component Creation Standards
+
+#### New Step Component Checklist
+- [ ] Implements consistent props interface (`onComplete`, `isLoading`, `error`)
+- [ ] Includes proper form validation with error display
+- [ ] Uses shadcn/ui components for consistency
+- [ ] Handles loading states with disabled inputs and spinner
+- [ ] Includes accessibility attributes (labels, ARIA)
+- [ ] Follows mobile-first responsive design
+- [ ] Documents props interface with TypeScript
+
+#### New Flow Component Checklist
+- [ ] Uses appropriate state machine hook
+- [ ] Implements step rendering switch statement
+- [ ] Uses `StepWrapper` for consistent layout
+- [ ] Handles all flow completion and cancellation scenarios
+- [ ] Includes proper error boundaries
+- [ ] Documents flow steps and branching logic
+
+### Testing Strategies
+
+#### Unit Testing Components
+```tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { UserTypeStep } from '@/components/auth/steps/signup/UserTypeStep';
+
+describe('UserTypeStep', () => {
+  it('should call onComplete with true when artist is selected', async () => {
+    const mockOnComplete = jest.fn().mockResolvedValue(undefined);
+    
+    render(
+      <UserTypeStep 
+        onComplete={mockOnComplete}
+        isLoading={false}
+        error={null}
+      />
+    );
+    
+    fireEvent.click(screen.getByText('Artist'));
+    
+    await waitFor(() => {
+      expect(mockOnComplete).toHaveBeenCalledWith(true);
+    });
+  });
+});
+```
+
+#### Integration Testing Flows
+```tsx
+import { renderWithProviders } from '@/test/utils';
+import { SignupFlow } from '@/components/auth/flows/SignupFlow';
+
+describe('SignupFlow Integration', () => {
+  it('should complete full artist signup flow', async () => {
+    const onComplete = jest.fn();
+    const { user } = renderWithProviders(
+      <SignupFlow onComplete={onComplete} />
+    );
+    
+    // Complete flow steps
+    await user.click(screen.getByText('Artist'));
+    await user.click(screen.getByText('Solo Artist'));
+    // ... complete remaining steps
+    
+    expect(onComplete).toHaveBeenCalledWith({ success: true });
+  });
+});
+```
+
+### Performance Considerations
+
+#### Optimization Techniques
+```tsx
+// Memoize expensive operations
+const stepTitle = useMemo(() => getStepTitle(step), [step]);
+
+// Prevent unnecessary re-renders
+const handleSubmit = useCallback(async (data) => {
+  await onComplete(data);
+}, [onComplete]);
+
+// Lazy load step components
+const StepComponent = lazy(() => import('./steps/ComplexStep'));
+```
+
+#### Bundle Size Management
+- Use dynamic imports for large step components
+- Avoid importing entire icon libraries
+- Tree-shake unused design system components
+
+## 📊 Current Implementation Status
+
+### ✅ **Complete & Production Ready**
+- **Flow Components**: All three main flows fully implemented
+- **Step Components**: Complete set of steps for all flows
+- **UI Components**: StepWrapper and utility components ready
+- **Guard Components**: Firebase action protection implemented
+- **Error Handling**: Consistent error management across components
+- **Type Safety**: Full TypeScript implementation with proper interfaces
+- **Design Integration**: Complete shadcn/ui integration
+
+### ✅ **Integration Status** 
+**IMPLEMENTED** in `/src/pages/Login.tsx` (lines 45-145):
+
+1. **AuthFlow.tsx Logic** ✅ - Flow routing implemented (lines 66-94)
+   - Routes between `SignupFlow`, `NostrLoginFlow`, `LegacyMigrationFlow`
+   - Handles completion and cancellation scenarios
+   - Ready to extract into reusable `AuthFlow` component
+
+2. **AuthMethodSelector.tsx Logic** ✅ - Method selection UI implemented (lines 96-145)
+   - Flow selection interface with `FLOW_OPTIONS` configuration
+   - "Get Started" (signup) and "Sign in" (nostr-login) buttons
+   - Ready to extract into reusable `AuthMethodSelector` component
+
+3. **Page Integration** ✅ - Complete working implementation
+   - Uses production-ready flow components
+   - Implements documented patterns and interfaces
+   - Demonstrates proper orchestration of all auth flows
+
+**Next Steps**: Extract Login.tsx logic into standalone components for reuse across the application.
+
+### 🎯 **Enhancement Opportunities**
+- **Step Progress Indicators**: Currently commented out in StepWrapper
+- **Advanced Animations**: More sophisticated loading and transition animations
+- **Accessibility Testing**: Comprehensive screen reader and keyboard navigation testing
+- **Error Recovery**: Advanced error recovery and retry mechanisms
+
+## 🏆 Architecture Summary
+
+The authentication components represent a **sophisticated, production-ready implementation** that demonstrates excellent software engineering practices:
+
+**Key Strengths:**
+- **Separation of Concerns**: Clear separation between UI components and business logic
+- **Consistent Patterns**: All components follow established interface and styling patterns
+- **Type Safety**: Comprehensive TypeScript implementation ensures reliability
+- **Responsive Design**: Mobile-first design with proper breakpoints
+- **Error Handling**: Consistent error display and user feedback
+- **Accessibility**: Proper semantic HTML and ARIA attributes
+- **Performance**: Optimized rendering with minimal re-renders
+
+**Design Excellence:**
+- **User Experience**: Smooth flows with clear progress indication
+- **Visual Consistency**: Proper design system integration
+- **Interactive Feedback**: Loading states, error messages, and success confirmations
+- **Accessibility**: Keyboard navigation and screen reader support
 
 **Technical Excellence:**
-- **Intelligent API Routing**: Automatic selection of optimal authentication method
-- **Progressive Enhancement**: Graceful degradation when services unavailable
-- **Performance Optimization**: Efficient caching and background data fetching
-- **Security Focus**: Multi-layer authentication with proper error sanitization
+- **Component Composition**: Reusable components that can be combined in different ways
+- **State Integration**: Clean integration with state machine hooks
+- **Error Boundaries**: Proper error containment and recovery
+- **Performance Optimization**: Efficient rendering and state management
 
-This system serves as a **reference implementation** for complex authentication architectures that must integrate **multiple authentication providers**, **legacy systems**, and **modern decentralized protocols** while maintaining **excellent user experience** and **production reliability**.
+This implementation serves as a **reference architecture** for complex authentication UIs that require multiple flows, sophisticated state management, and excellent user experience while maintaining code maintainability and scalability.
