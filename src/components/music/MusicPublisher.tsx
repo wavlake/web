@@ -106,11 +106,21 @@ interface AlbumUploadItem extends BaseUploadItem {
   draftData?: DraftAlbum;
 }
 
-// Legacy upload item (from upload history)
+// Legacy upload item (from upload history) - better type safety than before
 interface LegacyUploadItem extends BaseUploadItem {
   type?: "track" | "album";
-  trackCount?: number;
+  trackCount?: number; // Only meaningful for albums
   draftData?: DraftTrack | DraftAlbum;
+  event?: any; // NostrEvent from upload history
+}
+
+// Type guards for better type safety when working with LegacyUploadItem
+function isLegacyTrackItem(item: LegacyUploadItem): item is LegacyUploadItem & { type: "track" } {
+  return item.type === "track";
+}
+
+function isLegacyAlbumItem(item: LegacyUploadItem): item is LegacyUploadItem & { type: "album"; trackCount?: number } {
+  return item.type === "album";
 }
 
 type UploadItem = TrackUploadItem | AlbumUploadItem | LegacyUploadItem;
@@ -244,7 +254,11 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
 
   // Combine upload history with drafts for complete upload history
   const combinedUploadHistory: UploadItem[] = [
-    ...uploadHistory,
+    // Convert upload history items to LegacyUploadItem format
+    ...uploadHistory.map((item): LegacyUploadItem => ({
+      ...item,
+      isDraft: false,
+    })),
     // Add draft tracks
     ...draftTracks.map((draft) => ({
       id: draft.draftEventId,

@@ -15,7 +15,7 @@ import {
   encryptDraftContent, 
   createFutureTrackEvent, 
   createFutureAlbumEvent 
-} from "@/lib/draftUtils";
+, Nip44Signer } from "@/lib/draftUtils";
 import { toast } from "sonner";
 
 // Published track interface for conversion to draft
@@ -79,7 +79,7 @@ export function useDraftPublish() {
 
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer as any, // Cast since we verified nip44 exists
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -127,7 +127,7 @@ export function useDraftPublish() {
 
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer as any, // Cast since we verified nip44 exists
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -327,7 +327,7 @@ export function useDraftPublish() {
 
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer as any, // Cast since we verified nip44 exists
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );
@@ -421,7 +421,7 @@ export function useDraftPublish() {
 
       // Encrypt the future event
       const encryptedContent = await encryptDraftContent(
-        user.signer as any, // Cast since we verified nip44 exists
+        user.signer as Nip44Signer, // Type-safe cast since we verified nip44 exists
         user.pubkey,
         futureEvent
       );

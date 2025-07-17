@@ -11,7 +11,7 @@ import {
 } from "@/types/drafts";
 
 // Signer interface with NIP-44 encryption support
-interface Nip44Signer {
+export interface Nip44Signer {
   nip44: {
     encrypt(pubkey: string, plaintext: string): Promise<string>;
     decrypt(pubkey: string, ciphertext: string): Promise<string>;

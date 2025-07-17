@@ -9,7 +9,7 @@ import {
   TRACK_KIND, 
   ALBUM_KIND 
 } from "@/types/drafts";
-import { parseDraftTrack, parseDraftAlbum } from "@/lib/draftUtils";
+import { parseDraftTrack, parseDraftAlbum, Nip44Signer } from "@/lib/draftUtils";
 
 // Hook to fetch all draft tracks for the current user
 export function useDraftTracks() {
@@ -43,7 +43,7 @@ export function useDraftTracks() {
               console.error("NIP-44 encryption not supported by current signer");
               continue;
             }
-            const draftTrack = await parseDraftTrack(event, user.signer as any, user.pubkey);
+            const draftTrack = await parseDraftTrack(event, user.signer as Nip44Signer, user.pubkey);
             if (draftTrack) {
               draftTracks.push(draftTrack);
             }
@@ -98,7 +98,7 @@ export function useDraftAlbums() {
               console.error("NIP-44 encryption not supported by current signer");
               continue;
             }
-            const draftAlbum = await parseDraftAlbum(event, user.signer as any, user.pubkey);
+            const draftAlbum = await parseDraftAlbum(event, user.signer as Nip44Signer, user.pubkey);
             if (draftAlbum) {
               draftAlbums.push(draftAlbum);
             }
