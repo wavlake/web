@@ -11,6 +11,7 @@ import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
+import { FirebaseLinkingStep } from "../steps/signup/FirebaseLinkingStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface SignupFlowProps {
@@ -24,7 +25,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     handleUserTypeSelection,
     handleArtistTypeSelection,
     handleProfileCompletion,
-    handleFirebaseBackupSetup,
+    handleFirebaseAccountCreation,
+    handleFirebaseAccountLinking,
     handleFirebaseBackupSkip,
     handleSignupCompletion,
     getStepTitle,
@@ -71,10 +73,20 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
       case "firebase-backup":
         return (
           <FirebaseBackupStep
-            onComplete={handleFirebaseBackupSetup}
+            onComplete={handleFirebaseAccountCreation}
             onSkip={handleFirebaseBackupSkip}
-            isLoading={stateMachine.isLoading("setupFirebaseBackup")}
-            error={errorToString(stateMachine.getError("setupFirebaseBackup"))}
+            isLoading={stateMachine.isLoading("createFirebaseAccount")}
+            error={errorToString(stateMachine.getError("createFirebaseAccount"))}
+          />
+        );
+
+      case "firebase-linking":
+        return (
+          <FirebaseLinkingStep
+            onComplete={handleFirebaseAccountLinking}
+            isLoading={stateMachine.isLoading("linkFirebaseAccount")}
+            error={errorToString(stateMachine.getError("linkFirebaseAccount"))}
+            firebaseUser={stateMachine.firebaseUser}
           />
         );
 

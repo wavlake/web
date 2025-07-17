@@ -63,6 +63,7 @@ export type SignupStep =
   | "artist-type"  
   | "profile-setup"
   | "firebase-backup"
+  | "firebase-linking"
   | "complete";
 
 export interface SignupState extends BaseStateMachineState {
@@ -73,6 +74,7 @@ export interface SignupState extends BaseStateMachineState {
   createdLogin: NLoginType | null;
   generatedName: string | null;
   profileData: ProfileData | null;
+  firebaseUser: FirebaseUser | null;
 }
 
 export type SignupAction = 
@@ -80,7 +82,8 @@ export type SignupAction =
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName: string }
   | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
-  | { type: "FIREBASE_BACKUP_COMPLETED" }
+  | { type: "FIREBASE_ACCOUNT_CREATED"; firebaseUser: FirebaseUser }
+  | { type: "FIREBASE_LINKING_COMPLETED" }
   | { type: "FIREBASE_BACKUP_SKIPPED" }
   | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction

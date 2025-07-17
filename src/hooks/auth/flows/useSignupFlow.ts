@@ -24,7 +24,8 @@ export interface UseSignupFlowResult {
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
-  handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
+  handleFirebaseAccountCreation: (email: string, password: string) => Promise<void>;
+  handleFirebaseAccountLinking: () => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
 
@@ -88,18 +89,25 @@ export function useSignupFlow(): UseSignupFlowResult {
     [stateMachine.actions]
   );
 
-  const handleFirebaseBackupSetup = useCallback(
+  const handleFirebaseAccountCreation = useCallback(
     async (email: string, password: string) => {
-      const result = await stateMachine.actions.setupFirebaseBackup(
+      const result = await stateMachine.actions.createFirebaseAccount(
         email,
         password
       );
       if (!result.success) {
-        throw new Error(result.error?.message || "Failed to setup Firebase backup");
+        throw new Error(result.error?.message || "Failed to create Firebase account");
       }
     },
     [stateMachine.actions]
   );
+
+  const handleFirebaseAccountLinking = useCallback(async () => {
+    const result = await stateMachine.actions.linkFirebaseAccount();
+    if (!result.success) {
+      throw new Error(result.error?.message || "Failed to link Firebase account");
+    }
+  }, [stateMachine.actions]);
 
   const handleFirebaseBackupSkip = useCallback(async () => {
     stateMachine.actions.skipFirebaseBackup();
@@ -125,7 +133,9 @@ export function useSignupFlow(): UseSignupFlowResult {
           ? "Create Artist Profile"
           : "Create Profile";
       case "firebase-backup":
-        return "Add Email Backup";
+        return "Create Email Account";
+      case "firebase-linking":
+        return "Link Accounts";
       case "complete":
         return "Welcome!";
       default:
@@ -147,7 +157,9 @@ export function useSignupFlow(): UseSignupFlowResult {
         }
         return "Set up your public profile";
       case "firebase-backup":
-        return "Add an email to help recover your account if needed";
+        return "Create an email account to backup your Nostr identity and access additional features";
+      case "firebase-linking":
+        return "Linking your email account to your Nostr identity for backup and recovery";
       case "complete":
         return "You're all set up!";
       default:
@@ -164,7 +176,8 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleUserTypeSelection,
     handleArtistTypeSelection,
     handleProfileCompletion,
-    handleFirebaseBackupSetup,
+    handleFirebaseAccountCreation,
+    handleFirebaseAccountLinking,
     handleFirebaseBackupSkip,
     handleSignupCompletion,
     getStepTitle,
