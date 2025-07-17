@@ -11,7 +11,7 @@ import {
 } from "@/types/drafts";
 
 // Signer interface with NIP-44 encryption support
-interface Nip44Signer {
+export interface Nip44Signer {
   nip44: {
     encrypt(pubkey: string, plaintext: string): Promise<string>;
     decrypt(pubkey: string, ciphertext: string): Promise<string>;
@@ -229,7 +229,7 @@ export async function parseDraftTrack(
       draftCreatedAt: draftEvent.created_at,
       draftUpdatedAt: draftEvent.created_at, // Same as created for now
       title,
-      futureEvent,
+      futureEvent: futureEvent as { kind: 31337; content: string; tags: [string, string][]; },
       metadata,
     };
   } catch (error) {
@@ -325,7 +325,7 @@ export async function parseDraftAlbum(
       draftCreatedAt: draftEvent.created_at,
       draftUpdatedAt: draftEvent.created_at,
       title,
-      futureEvent,
+      futureEvent: futureEvent as { kind: 31338; content: string; tags: [string, string][]; },
       metadata,
     };
   } catch (error) {
