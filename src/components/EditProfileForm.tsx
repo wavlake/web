@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FC } from "react";
+import { useEffect, type FC } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -11,11 +11,9 @@ import {
   FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { NSchema as n, type NostrMetadata } from "@nostrify/nostrify";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,11 +21,11 @@ import { useUploadFile } from "@/hooks/useUploadFile";
 import { useNavigate } from "react-router-dom";
 import { KINDS } from "@/lib/nostr-kinds";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLoginActions } from "@/hooks/useLoginActions";
 
 interface EditProfileFormProps {
   showSkipLink?: boolean;
   initialName?: string | null;
+  onComplete?: () => void; // Callback when profile update is complete
 }
 
 /**
@@ -41,19 +39,18 @@ interface EditProfileFormProps {
  * other profile information that may have been set elsewhere.
  */
 export const EditProfileForm: FC<EditProfileFormProps> = ({
-  showSkipLink = false,
   initialName = null,
+  onComplete,
 }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // Get current user and their complete metadata from relays
   // This ensures we have all existing profile fields to preserve
-  const { user, metadata } = useCurrentUser();
+  const { user, metadata, logout } = useCurrentUser();
   const { mutateAsync: publishEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
   const { toast } = useToast();
-  const { logout } = useLoginActions();
 
   // Initialize the form with default values
   const form = useForm<NostrMetadata>({
@@ -193,9 +190,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
       );
 
       // If this was part of onboarding, navigate to groups page
-      if (showSkipLink) {
-        navigate("/groups");
-      }
+      onComplete?.();
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
@@ -292,41 +287,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
               )}
               Save
             </Button>
-
-            {showSkipLink && (
-              <div className="flex flex-col items-center gap-3 mt-4">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="text-muted-foreground"
-                  onClick={() => navigate("/groups")}
-                >
-                  Skip for now
-                </Button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-muted" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      or
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={handleBackToLogin}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to login
-                </Button>
-              </div>
-            )}
           </div>
         </form>
       </Form>

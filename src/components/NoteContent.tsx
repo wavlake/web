@@ -226,8 +226,6 @@ export function NoteContent({
       }
     });
     
-    // Debug logging
-    console.log('URL MIME Types mapping:', urlMimeTypes);
 
     // 1. Extract images from tags
     const tagImages = event.tags
@@ -258,15 +256,11 @@ export function NoteContent({
         // Check if we have a MIME type from the 'm' tag
         const mimeType = urlMimeTypes[url];
         
-        console.log(`Processing URL: ${url}, MIME type: ${mimeType}`);
-        
         if (mimeType) {
           // Use the mime type from the tag
           if (mimeType.startsWith('audio/')) {
-            console.log('Adding to audio URLs:', url);
             extractedAudios.push(url);
           } else if (mimeType.startsWith('video/')) {
-            console.log('Adding to video URLs:', url);
             extractedVideos.push(url);
           } else if (mimeType.startsWith('image/')) {
             if (!extractedImages.includes(url)) {
@@ -280,7 +274,6 @@ export function NoteContent({
               extractedImages.push(url);
             }
           } else if (/\.(mp4|webm|ogg|mov|avi|mkv|m4v|3gp)(\?\S*)?$/i.test(url)) {
-            console.log('Fall back - adding to video URLs based on extension:', url);
             extractedVideos.push(url);
           } else if (/\.(mp3|wav|flac|m4a|aac|opus|oga|wma)(\?\S*)?$/i.test(url)) {
             extractedAudios.push(url);
@@ -307,11 +300,6 @@ export function NoteContent({
     setVideoUrls(extractedVideos);
     setAudioUrls(extractedAudios);
     
-    console.log('Final extracted URLs:', {
-      images: extractedImages,
-      videos: extractedVideos,
-      audios: extractedAudios
-    });
 
     // Process the text content
     if (event.content) {

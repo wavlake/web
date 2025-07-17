@@ -45,6 +45,35 @@ Detailed documentation is located in context-specific CLAUDE.md files:
   - Welcome flow and routing patterns
   - Wavlake-specific features
 
+## Authentication System
+
+### Current Status (Production Ready)
+The authentication system is **fully implemented** with sophisticated state machine-based flows:
+
+- **Authentication Hooks**: [`src/hooks/auth/CLAUDE.md`](src/hooks/auth/CLAUDE.md) - State machine hooks and flow orchestration
+- **Authentication Components**: [`src/components/auth/CLAUDE.md`](src/components/auth/CLAUDE.md) - Flow components and step UI
+- **Core Hooks**: [`src/hooks/CLAUDE.md`](src/hooks/CLAUDE.md) - Complete hooks documentation including auth
+
+### Architecture Overview
+
+**State Machine Pattern:**
+- **Flow Hooks**: `useSignupFlow`, `useLegacyMigrationFlow`, `useNostrLoginFlow`
+- **State Machines**: TypeScript-based predictable authentication flows
+- **Step Components**: Reusable UI components for each authentication step
+- **Dual Authentication**: Firebase token preferred, NIP-98 fallback
+
+**Key Features:**
+- **Multi-Method Support**: Extension, nsec, bunker authentication
+- **Legacy Integration**: Firebase account linking and migration
+- **Type Safety**: Comprehensive TypeScript implementation
+- **Error Handling**: Robust error recovery and user feedback
+
+**Implementation Status:**
+- ✅ **Flow Components**: All flows fully implemented and tested
+- ✅ **Step Components**: Complete UI component library
+- ✅ **State Machines**: Production-ready state management
+- ✅ **Authentication Logic**: Working implementation in `/src/pages/Login.tsx`
+
 ## Quick Start
 
 ### Development Practices
@@ -92,3 +121,8 @@ This runs typecheck and build validation.
 - Never create files unless absolutely necessary
 - Always prefer editing existing files
 - Don't create documentation unless explicitly requested
+
+### Enhanced Auth Work
+- **Always base branches off `auth-updates`** - contains all implemented components
+- **Check ENHANCED_AUTH_MASTER_TODO.md first** - shows current status and what's already done
+- **Most core components are complete** - focus on integration and remaining Phase 3 work

@@ -2,6 +2,7 @@
 // To add new routes, edit the AppRouter.tsx file.
 
 import NostrProvider from "@/components/NostrProvider";
+import { FirebaseAuthProvider } from "@/components/FirebaseAuthProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,21 +35,23 @@ export function App() {
   return (
     <SentryErrorBoundary>
       <ThemeProvider>
-        <NostrLoginProvider storageKey="nostr:login">
-          <NostrProvider relays={defaultRelays}>
-            <QueryClientProvider client={queryClient}>
-              <TooltipProvider>
-                <JoinDialogProvider>
-                  <WalletLoader />
-                  <GlobalAudioPlayer />
-                  <Toaster />
-                  <Sonner />
-                  <AppRouter />
-                </JoinDialogProvider>
-              </TooltipProvider>
-            </QueryClientProvider>
-          </NostrProvider>
-        </NostrLoginProvider>
+        <FirebaseAuthProvider>
+          <NostrLoginProvider storageKey="nostr:login">
+            <NostrProvider relays={defaultRelays}>
+              <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                  <JoinDialogProvider>
+                    <WalletLoader />
+                    <GlobalAudioPlayer />
+                    <Toaster />
+                    <Sonner />
+                    <AppRouter />
+                  </JoinDialogProvider>
+                </TooltipProvider>
+              </QueryClientProvider>
+            </NostrProvider>
+          </NostrLoginProvider>
+        </FirebaseAuthProvider>
       </ThemeProvider>
     </SentryErrorBoundary>
   );

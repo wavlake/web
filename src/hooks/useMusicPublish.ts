@@ -101,21 +101,14 @@ export function useMusicPublish() {
       }
 
       // Add community tag if posting to a community (NIP-72)
-      console.log('Track publishing - communityId received:', trackData.communityId);
       if (trackData.communityId) {
-        console.log('Publishing track with communityId:', trackData.communityId);
         // communityId format: "34550:pubkey:d-identifier"
         const [kind, pubkey, dIdentifier] = trackData.communityId.split(":");
-        console.log('Parsed communityId parts:', { kind, pubkey, dIdentifier });
         if (kind === "34550" && pubkey && dIdentifier) {
           tags.push(["a", trackData.communityId]);
-          console.log('Added community tag to track:', ["a", trackData.communityId]);
-          console.log('Final track tags:', tags);
         } else {
           console.error('Invalid communityId format for track:', trackData.communityId, 'Expected format: 34550:pubkey:d-identifier');
         }
-      } else {
-        console.warn('No communityId provided for track - this will create orphaned content!');
       }
 
       const event = {
@@ -210,12 +203,10 @@ export function useMusicPublish() {
 
       // Add community tag if posting to a community (NIP-72)
       if (albumData.communityId) {
-        console.log('Publishing album with communityId:', albumData.communityId);
         // communityId format: "34550:pubkey:d-identifier"
         const [kind, pubkey, dIdentifier] = albumData.communityId.split(":");
         if (kind === "34550" && pubkey && dIdentifier) {
           tags.push(["a", albumData.communityId]);
-          console.log('Added community tag to album:', ["a", albumData.communityId]);
         }
       }
 

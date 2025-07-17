@@ -1,3 +1,6 @@
+/* Wavlake Brand Colors */
+@import '../branding-package/colors/brand-colors.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

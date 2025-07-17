@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoginArea } from "@/components/auth/LoginArea";
+import { LoginButton } from "@/components/auth/ui/LoginButton";
 import { ArtistDashboard } from "@/components/ArtistDashboard";
 import { CommunityProvider } from "@/contexts/CommunityContext";
 import { useCommunityContext } from "@/hooks/useCommunityHooks";
@@ -17,7 +17,8 @@ import { useCommunityContext } from "@/hooks/useCommunityHooks";
 function DashboardDetailContent() {
   const { user } = useCurrentUser();
   const { communityId } = useParams<{ communityId: string }>();
-  const { selectedCommunity, getCommunityName, setSelectedCommunityId } = useCommunityContext();
+  const { selectedCommunity, getCommunityName, setSelectedCommunityId } =
+    useCommunityContext();
 
   // Set the community ID from URL parameter when component mounts
   useEffect(() => {
@@ -29,18 +30,18 @@ function DashboardDetailContent() {
   if (!user) {
     return (
       <div className="space-y-6 my-6">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>Dashboard Access</CardTitle>
-              <CardDescription>
-                Please log in to access your dashboard
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LoginArea />
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Dashboard Access</CardTitle>
+            <CardDescription>
+              Please log in to access your dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginButton />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -51,10 +52,8 @@ function DashboardDetailContent() {
 
   return (
     <div className="my-6">
-        <ArtistDashboard
-          artistName={artistName}
-        />
-      </div>
+      <ArtistDashboard artistName={artistName} />
+    </div>
   );
 }
 
