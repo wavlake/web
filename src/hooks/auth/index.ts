@@ -14,7 +14,7 @@ export type {
   UseAuthFlowStateResult,
 } from "./useAuthFlowState";
 
-// Business logic hooks
+// Business logic hooks (legacy)
 export { useSignupFlow } from "./useSignupFlow";
 export type {
   UseSignupFlowOptions,
@@ -30,6 +30,12 @@ export type {
 // Main coordinator
 export { useAuthFlowCoordinator } from "./useAuthFlowCoordinator";
 export type { UseAuthFlowCoordinatorResult } from "./useAuthFlowCoordinator";
+
+// State machines and flows
+export * from "./machines";
+export * from "./flows";
+
+// Flow hooks are now exported via * from "./flows" above
 
 // Utility functions
 export {
@@ -51,3 +57,6 @@ export {
   getFlowProgress,
   canGoBackFromStep,
 } from "./useAuthFlowCoordinator";
+
+// These utility functions need to be implemented if needed
+// export { isLoginFlowActive, isLoginFlowComplete } from "./flows/useNostrLoginFlow";

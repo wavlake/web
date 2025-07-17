@@ -25,7 +25,7 @@ import { useAuthor } from "@/hooks/useAuthor";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
 import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
 import { useUnlinkAccount } from "@/hooks/auth/useUnlinkAccount";
-import { LoginButton } from "@/components/auth/LoginButton";
+import { LoginButton } from "@/components/auth/ui/LoginButton";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
 import {
   initializeFirebaseAuth,

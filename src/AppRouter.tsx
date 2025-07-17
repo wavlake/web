@@ -58,6 +58,7 @@ export function AppRouter() {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/welcome" element={<WelcomePage />} />
+
           {/* These routes have the header and footer */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/:communityId" element={<DashboardDetail />} />
