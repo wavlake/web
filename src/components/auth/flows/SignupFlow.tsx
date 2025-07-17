@@ -7,6 +7,11 @@
 
 import React from "react";
 import { useSignupFlow } from "@/hooks/auth/flows/useSignupFlow";
+
+interface FlowCompletionResult {
+  success: boolean;
+  message?: string;
+}
 import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
@@ -14,7 +19,7 @@ import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface SignupFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: FlowCompletionResult) => void;
   onCancel?: () => void;
 }
 

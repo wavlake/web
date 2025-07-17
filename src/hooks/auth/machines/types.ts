@@ -13,13 +13,13 @@ export interface BaseStateMachineState {
   canGoBack: boolean;
 }
 
-export interface ActionResult<T = any> {
+export interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export type AsyncActionHandler<TArgs extends any[] = any[], TResult = any> = 
+export type AsyncActionHandler<TArgs extends unknown[] = unknown[], TResult = unknown> = 
   (...args: TArgs) => Promise<ActionResult<TResult>>;
 
 // Base action types that all state machines use
@@ -32,7 +32,7 @@ export interface AsyncStartAction extends BaseStateMachineAction {
   operation: string;
 }
 
-export interface AsyncSuccessAction<T = any> extends BaseStateMachineAction {
+export interface AsyncSuccessAction<T = unknown> extends BaseStateMachineAction {
   type: "ASYNC_SUCCESS";
   operation: string;
   data?: T;
@@ -117,10 +117,41 @@ export interface LinkedPubkey {
   isMostRecentlyLinked?: boolean;
 }
 
+// Nostr signer interface
+export interface NostrSigner {
+  getPublicKey(): Promise<string>;
+  signEvent(event: {
+    kind: number;
+    content: string;
+    tags: string[][];
+    created_at: number;
+  }): Promise<{
+    id: string;
+    pubkey: string;
+    created_at: number;
+    kind: number;
+    tags: string[][];
+    content: string;
+    sig: string;
+  }>;
+  nip44?: {
+    encrypt(pubkey: string, plaintext: string): Promise<string>;
+    decrypt(pubkey: string, ciphertext: string): Promise<string>;
+  };
+}
+
+// Firebase user interface (simplified)
+export interface FirebaseUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
 export interface NostrAccount {
   pubkey: string;
   privateKey?: string;
-  signer?: any;
+  signer?: NostrSigner;
   profile?: {
     name?: string;
     display_name?: string;
@@ -131,14 +162,14 @@ export interface NostrAccount {
 
 export interface LegacyMigrationState extends BaseStateMachineState {
   step: LegacyMigrationStep;
-  firebaseUser: any | null; // TODO: Replace with proper FirebaseUser type
+  firebaseUser: FirebaseUser | null;
   linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
   generatedAccount: NostrAccount | null;
 }
 
 export type LegacyMigrationAction = 
-  | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: any }
+  | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: FirebaseUser }
   | { type: "LINKS_CHECKED"; linkedPubkeys: LinkedPubkey[] }
   | { type: "ACCOUNT_CHOICE_MADE"; choice: "generate" | "bring-own" }
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }

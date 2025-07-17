@@ -1,14 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TestTube, Users, Zap, Mail, Sparkles } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Import the new flow components
@@ -49,7 +41,7 @@ export default function AuthTest() {
     new Set()
   );
 
-  const handleFlowComplete = (flowType: FlowType, result: any) => {
+  const handleFlowComplete = (flowType: FlowType, result: unknown) => {
     console.log(`${flowType} completed:`, result);
     setCompletedFlows((prev) => new Set([...prev, flowType]));
     setSelectedFlow(null);

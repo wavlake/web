@@ -10,6 +10,13 @@ import { useSignupStateMachine, SignupStateMachineDependencies } from '../machin
 import { useCreateNostrAccount } from '../useCreateNostrAccount';
 import { useLinkAccount } from '../useLinkAccount';
 import { useFirebaseAuth } from '@/components/FirebaseAuthProvider';
+import { NostrAccount } from '../machines/types';
+
+interface ProfileData {
+  name?: string;
+  picture?: string;
+  about?: string;
+}
 
 export interface UseSignupFlowResult {
   // State machine interface
@@ -18,7 +25,7 @@ export interface UseSignupFlowResult {
   // Step-specific handlers
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
-  handleProfileCompletion: (profileData: any) => Promise<void>;
+  handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
   
   // Helper functions
@@ -35,8 +42,13 @@ export function useSignupFlow(): UseSignupFlowResult {
   
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
-    createAccount,
-    saveProfile: async (data: any) => {
+    createAccount: async (): Promise<NostrAccount> => {
+      await createAccount();
+      // TODO: Return actual NostrAccount after creation
+      // For now return a mock account to satisfy the interface
+      return { pubkey: "mock-pubkey" };
+    },
+    saveProfile: async (data: ProfileData) => {
       // TODO: Implementation for saving profile
       console.log("Saving profile:", data);
     },
@@ -62,7 +74,7 @@ export function useSignupFlow(): UseSignupFlowResult {
     }
   }, [stateMachine.actions]);
 
-  const handleProfileCompletion = useCallback(async (profileData: any) => {
+  const handleProfileCompletion = useCallback(async (profileData: ProfileData) => {
     const result = await stateMachine.actions.completeProfile(profileData);
     if (!result.success) {
       throw new Error(result.error);

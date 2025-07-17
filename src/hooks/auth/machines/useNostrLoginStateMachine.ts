@@ -11,7 +11,8 @@ import { ActionResult, NostrLoginState, NostrLoginAction, NostrLoginStep } from 
 
 // Export types that are imported elsewhere
 export type { NostrLoginState, NostrLoginAction, NostrLoginStep };
-import { NostrAuthMethod } from '@/types/authFlow';
+import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
+import { type NLoginType } from "@nostrify/react/login";
 
 const initialState: NostrLoginState = {
   step: "auth",
@@ -55,7 +56,7 @@ export interface UseNostrLoginStateMachineResult {
   
   // Promise-based actions
   actions: {
-    authenticateWithNostr: (method: NostrAuthMethod, credentials: any) => Promise<ActionResult>;
+    authenticateWithNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<ActionResult>;
   };
   
   // Navigation
@@ -63,7 +64,7 @@ export interface UseNostrLoginStateMachineResult {
 }
 
 export interface NostrLoginStateMachineDependencies {
-  authenticate: (method: NostrAuthMethod, credentials: any) => Promise<any>;
+  authenticate: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NLoginType>;
   syncProfile: () => Promise<void>;
 }
 
@@ -74,7 +75,7 @@ export function useNostrLoginStateMachine(
   
   // Create async action handlers
   const authenticateWithNostr = useMemo(() => 
-    createAsyncAction("authenticateWithNostr", async (method: NostrAuthMethod, credentials: any) => {
+    createAsyncAction("authenticateWithNostr", async (method: NostrAuthMethod, credentials: NostrCredentials) => {
       // Authenticate with chosen method
       const authResult = await dependencies.authenticate(method, credentials);
       
@@ -85,7 +86,7 @@ export function useNostrLoginStateMachine(
       dispatch({ type: "AUTH_COMPLETED" });
       
       return { authResult };
-    }, dispatch), [dependencies.authenticate, dependencies.syncProfile]);
+    }, dispatch), [dependencies]);
 
   // Navigation helpers
   const reset = useCallback(() => {

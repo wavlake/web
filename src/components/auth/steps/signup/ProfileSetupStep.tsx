@@ -10,8 +10,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useCreateNostrAccount } from '@/hooks/auth/useCreateNostrAccount';
 
+interface ProfileData {
+  name?: string;
+  picture?: string;
+  about?: string;
+}
+
 interface ProfileSetupStepProps {
-  onComplete: (profileData: any) => Promise<void>;
+  onComplete: (profileData: ProfileData) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   isArtist: boolean;

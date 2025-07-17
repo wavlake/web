@@ -7,7 +7,7 @@
 
 import { useCallback } from 'react';
 import { useNostrLoginStateMachine, NostrLoginStateMachineDependencies } from '../machines/useNostrLoginStateMachine';
-import { NostrAuthMethod } from '@/types/authFlow';
+import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 export interface UseNostrLoginFlowResult {
@@ -29,14 +29,20 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   
   // State machine with dependencies injected
   const stateMachine = useNostrLoginStateMachine({
-    authenticate: async (method: NostrAuthMethod, credentials: any) => {
+    authenticate: async (method: NostrAuthMethod, credentials: NostrCredentials) => {
       switch (method) {
         case "extension":
           return await loginWithExtension();
         case "nsec":
-          return await loginWithNsec(credentials.nsec);
+          if (credentials.method === "nsec") {
+            return await loginWithNsec(credentials.nsec);
+          }
+          throw new Error("Invalid credentials for nsec method");
         case "bunker":
-          return await loginWithBunker(credentials.bunkerUri);
+          if (credentials.method === "bunker") {
+            return await loginWithBunker(credentials.bunkerUri);
+          }
+          throw new Error("Invalid credentials for bunker method");
         default:
           throw new Error(`Unsupported authentication method: ${method}`);
       }
@@ -51,7 +57,7 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   const handleNostrAuthentication = useCallback(async () => {
     // For now, use a default method since NostrAuthForm doesn't provide method/credentials
     // This will be enhanced when the NostrAuthForm is updated to provide more details
-    const result = await stateMachine.actions.authenticateWithNostr("extension", {});
+    const result = await stateMachine.actions.authenticateWithNostr("extension", { method: "extension" });
     if (!result.success) {
       throw new Error(result.error);
     }

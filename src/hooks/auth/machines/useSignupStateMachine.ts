@@ -7,7 +7,7 @@
 
 import { useReducer, useCallback, useMemo } from 'react';
 import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationError } from '../utils/stateMachineUtils';
-import { ActionResult, SignupState, SignupAction, SignupStep } from './types';
+import { ActionResult, SignupState, SignupAction, SignupStep, NostrAccount, FirebaseUser } from './types';
 
 const initialState: SignupState = {
   step: "user-type",
@@ -57,13 +57,14 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
-    case "GO_BACK":
+    case "GO_BACK": {
       const previousStep = getPreviousStep(state.step, state.isArtist);
       return {
         ...state,
         step: previousStep,
         canGoBack: previousStep !== "user-type",
       };
+    }
 
     case "RESET":
       return initialState;
@@ -93,7 +94,7 @@ export interface UseSignupStateMachineResult {
   isArtist: boolean;
   isSoloArtist: boolean;
   canGoBack: boolean;
-  account: any | null;
+  account: NostrAccount | null;
   
   // Loading helpers
   isLoading: (operation: string) => boolean;
@@ -103,7 +104,7 @@ export interface UseSignupStateMachineResult {
   actions: {
     setUserType: (isArtist: boolean) => Promise<ActionResult>;
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
-    completeProfile: (profileData: any) => Promise<ActionResult>;
+    completeProfile: (profileData: NostrAccount['profile']) => Promise<ActionResult>;
     setupFirebaseBackup: (email: string, password: string) => Promise<ActionResult>;
   };
   
@@ -113,9 +114,9 @@ export interface UseSignupStateMachineResult {
 }
 
 export interface SignupStateMachineDependencies {
-  createAccount: () => Promise<any>;
-  saveProfile: (data: any) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<any>;
+  createAccount: () => Promise<NostrAccount>;
+  saveProfile: (data: NostrAccount['profile']) => Promise<void>;
+  createFirebaseAccount: (email: string, password: string) => Promise<FirebaseUser>;
   linkAccounts: () => Promise<void>;
 }
 
@@ -137,7 +138,7 @@ export function useSignupStateMachine(
       }
       
       return {};
-    }, dispatch), [dependencies.createAccount]);
+    }, dispatch), [dependencies]);
 
   const setArtistType = useMemo(() =>
     createAsyncAction("setArtistType", async (isSolo: boolean) => {
@@ -147,14 +148,14 @@ export function useSignupStateMachine(
       // Create account for profile setup
       const account = await dependencies.createAccount();
       return { account };
-    }, dispatch), [dependencies.createAccount]);
+    }, dispatch), [dependencies]);
 
   const completeProfile = useMemo(() =>
-    createAsyncAction("completeProfile", async (profileData: any) => {
+    createAsyncAction("completeProfile", async (profileData: NostrAccount['profile']) => {
       await dependencies.saveProfile(profileData);
       dispatch({ type: "PROFILE_COMPLETED" });
       return {};
-    }, dispatch), [dependencies.saveProfile]);
+    }, dispatch), [dependencies]);
 
   const setupFirebaseBackup = useMemo(() =>
     createAsyncAction("setupFirebaseBackup", async (email: string, password: string) => {
@@ -162,7 +163,7 @@ export function useSignupStateMachine(
       await dependencies.linkAccounts();
       dispatch({ type: "FIREBASE_BACKUP_COMPLETED" });
       return { firebaseUser };
-    }, dispatch), [dependencies.createFirebaseAccount, dependencies.linkAccounts]);
+    }, dispatch), [dependencies]);
 
   // Navigation helpers
   const goBack = useCallback(() => {

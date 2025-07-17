@@ -5,7 +5,6 @@
  * multiple steps and branching logic.
  */
 
-import React from "react";
 import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlow";
 import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
@@ -16,8 +15,12 @@ import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
+interface FlowCompletionResult {
+  success: boolean;
+  message?: string;
+}
 interface LegacyMigrationFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: FlowCompletionResult) => void;
   onCancel?: () => void;
 }
 
@@ -34,9 +37,17 @@ export function LegacyMigrationFlow({
     handleBringOwnKeypairWithCredentials,
     getStepTitle,
     getStepDescription,
-    hasLinkedAccounts,
     getExpectedPubkey,
   } = useLegacyMigrationFlow();
+
+  // Wrapper to convert private key to NostrCredentials for BringKeypairStep
+  const handleBringOwnKeypairWithPrivateKey = async (privateKey: string) => {
+    const credentials = {
+      method: "nsec" as const,
+      nsec: privateKey,
+    };
+    return handleBringOwnKeypairWithCredentials(credentials);
+  };
 
   const renderCurrentStep = () => {
     switch (stateMachine.step) {
@@ -87,7 +98,7 @@ export function LegacyMigrationFlow({
       case "bring-own-keypair":
         return (
           <BringKeypairStep
-            onComplete={handleBringOwnKeypairWithCredentials}
+            onComplete={handleBringOwnKeypairWithPrivateKey}
             isLoading={stateMachine.isLoading("bringOwnKeypair")}
             error={stateMachine.getError("bringOwnKeypair")}
           />
@@ -125,31 +136,6 @@ export function LegacyMigrationFlow({
     }
   };
 
-  const getCurrentStepNumber = () => {
-    switch (stateMachine.step) {
-      case "firebase-auth":
-        return 1;
-      case "checking-links":
-        return 2;
-      case "linked-nostr-auth":
-        return 3;
-      case "account-choice":
-        return hasLinkedAccounts() ? 3 : 3;
-      case "account-generation":
-      case "bring-own-keypair":
-        return 4;
-      case "linking":
-        return 5;
-      case "complete":
-        return 6;
-      default:
-        return 1;
-    }
-  };
-
-  const getTotalSteps = () => {
-    return hasLinkedAccounts() ? 4 : 6;
-  };
 
   return (
     <StepWrapper

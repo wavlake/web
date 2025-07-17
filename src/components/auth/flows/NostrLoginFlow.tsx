@@ -7,12 +7,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNostrLoginFlow } from "@/hooks/auth/flows/useNostrLoginFlow";
+
+interface FlowCompletionResult {
+  success: boolean;
+  message?: string;
+}
 import { NostrAuthStep } from "../steps/shared/NostrAuthStep";
 import { LegacyMigrationFlow } from "./LegacyMigrationFlow";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface NostrLoginFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: FlowCompletionResult) => void;
   onCancel?: () => void;
 }
 
@@ -34,7 +39,7 @@ export function NostrLoginFlow({ onComplete, onCancel }: NostrLoginFlowProps) {
   };
 
   // Handle migration flow completion
-  const handleMigrationComplete = (result: any) => {
+  const handleMigrationComplete = (result: FlowCompletionResult) => {
     console.log("Legacy migration completed:", result);
     setShowMigrationFlow(false);
     // Complete the entire flow since migration is successful
