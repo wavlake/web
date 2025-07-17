@@ -20,10 +20,21 @@ import { useToast } from "@/hooks/useToast";
 import { KINDS } from "@/lib/nostr-kinds";
 import { useNostr } from "@nostrify/react";
 
+interface ProfileData {
+  name?: string;
+  display_name?: string;
+  about?: string;
+  picture?: string;
+  banner?: string;
+  nip05?: string;
+  lud16?: string;
+  website?: string;
+}
+
 interface SignupProfileFormProps {
   createdLogin: NLoginType | null;
   generatedName: string | null;
-  onComplete: (profileData: any) => Promise<void>;
+  onComplete: (profileData: ProfileData) => Promise<void>;
 }
 
 /**

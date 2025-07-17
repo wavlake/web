@@ -46,14 +46,13 @@ export default function Login() {
   const navigate = useNavigate();
   const [selectedFlow, setSelectedFlow] = useState<FlowType>(null);
 
-  const handleFlowComplete = (
-    flowType: FlowType,
-    result: { isArtist: boolean }
-  ) => {
-    if (flowType === "signup") {
-      navigate(result.isArtist ? "/dashboard" : "/groups");
-    } else {
-      navigate("/groups");
+  const handleSignupComplete = (result: { isArtist: boolean }) => {
+    navigate(result.isArtist ? "/dashboard" : "/groups");
+  };
+
+  const handleAuthFlowComplete = (result: { success: boolean; error?: string }) => {
+    if (result.success) {
+      navigate("/dashboard");
     }
   };
 
@@ -67,23 +66,21 @@ export default function Login() {
       case "signup":
         return (
           <SignupFlow
-            onComplete={(result) => handleFlowComplete("signup", result)}
+            onComplete={handleSignupComplete}
             onCancel={handleFlowCancel}
           />
         );
       case "nostr-login":
         return (
           <NostrLoginFlow
-            onComplete={(result) => handleFlowComplete("nostr-login", result)}
+            onComplete={handleAuthFlowComplete}
             onCancel={handleFlowCancel}
           />
         );
       case "legacy-migration":
         return (
           <LegacyMigrationFlow
-            onComplete={(result) =>
-              handleFlowComplete("legacy-migration", result)
-            }
+            onComplete={handleAuthFlowComplete}
             onCancel={handleFlowCancel}
           />
         );

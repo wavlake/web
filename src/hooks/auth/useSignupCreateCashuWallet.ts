@@ -35,7 +35,7 @@ export function useSignupCreateCashuWallet(user: NUser | null) {
         // add default mints
         mints.push(...defaultMints);
 
-        createWallet({
+        await createWallet({
           privkey,
           mints,
         });

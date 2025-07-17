@@ -135,7 +135,7 @@ export interface UseLegacyMigrationStateMachineResult {
   linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
   generatedAccount: NostrAccount | null;
-  createdLogin: any | null;
+  createdLogin: import("@nostrify/react/login").NLoginType | null;
   generatedName: string | null;
   canGoBack: boolean;
   
@@ -162,9 +162,9 @@ export interface LegacyMigrationStateMachineDependencies {
   checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<LinkedPubkey[]>;
   authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NostrAccount>;
   generateAccount: () => Promise<NostrAccount>;
-  createAccount: () => Promise<{ login: any; generatedName: string }>;
+  createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
   linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: NostrAccount) => Promise<void>;
-  addLogin: (login: any) => void;
+  addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
   setupAccount: (generatedName: string) => Promise<void>;
 }
 

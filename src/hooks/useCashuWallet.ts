@@ -364,7 +364,7 @@ export function useCashuWallet() {
     walletId: walletQuery.data?.id,
     tokens: getNip60TokensQuery.data || [],
     isLoading: walletQuery.isLoading || getNip60TokensQuery.isLoading,
-    createWallet: createWalletMutation.mutate,
+    createWallet: createWalletMutation.mutateAsync,
     updateProofs: updateProofsMutation.mutateAsync,
   };
 }

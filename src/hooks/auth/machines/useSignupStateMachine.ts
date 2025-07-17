@@ -117,7 +117,7 @@ export interface UseSignupStateMachineResult {
   isSoloArtist: boolean;
   canGoBack: boolean;
   account: unknown | null;
-  createdLogin: any | null;
+  createdLogin: import("@nostrify/react/login").NLoginType | null;
   generatedName: string | null;
   
   // Loading helpers
@@ -140,11 +140,11 @@ export interface UseSignupStateMachineResult {
 }
 
 export interface SignupStateMachineDependencies {
-  createAccount: () => Promise<{ login: any; generatedName: string }>;
-  saveProfile: (data: any) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<any>;
+  createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
+  saveProfile: (data: unknown) => Promise<void>;
+  createFirebaseAccount: (email: string, password: string) => Promise<unknown>;
   linkAccounts: () => Promise<void>;
-  addLogin: (login: any) => void;
+  addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
   setupAccount: (generatedName: string) => Promise<void>;
 }
 

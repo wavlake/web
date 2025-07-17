@@ -16,8 +16,13 @@ import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
+interface AuthFlowResult {
+  success: boolean;
+  error?: string;
+}
+
 interface LegacyMigrationFlowProps {
-  onComplete: (result: any) => void;
+  onComplete: (result: AuthFlowResult) => void;
   onCancel?: () => void;
 }
 

@@ -11,8 +11,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { type NLoginType } from "@nostrify/react/login";
 
+interface ProfileData {
+  name?: string;
+  display_name?: string;
+  about?: string;
+  picture?: string;
+  banner?: string;
+  nip05?: string;
+  lud16?: string;
+  website?: string;
+}
+
 interface ProfileSetupStepProps {
-  onComplete: (profileData: any) => Promise<void>;
+  onComplete: (profileData: ProfileData) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   isArtist: boolean;
@@ -30,7 +41,7 @@ export function ProfileSetupStep({
   createdLogin,
   generatedName,
 }: ProfileSetupStepProps) {
-  const handleProfileComplete = async (profileData: any) => {
+  const handleProfileComplete = async (profileData: ProfileData) => {
     try {
       await onComplete(profileData);
     } catch (err) {
