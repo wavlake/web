@@ -18,6 +18,43 @@ import {
 } from "@/lib/draftUtils";
 import { toast } from "sonner";
 
+// Published track interface for conversion to draft
+interface PublishedTrack {
+  id: string;
+  title: string;
+  genre?: string;
+  audioUrl: string;
+  explicit: boolean;
+  description?: string;
+  price?: number;
+  coverUrl?: string;
+  tags?: string[];
+}
+
+// Published album interface for conversion to draft
+interface PublishedAlbum {
+  id: string;
+  title: string;
+  artist: string;
+  genre?: string;
+  explicit: boolean;
+  description?: string;
+  price?: number;
+  coverUrl?: string;
+  releaseDate?: string;
+  upc?: string;
+  label?: string;
+  tags?: string[];
+  tracks: AlbumTrack[];
+}
+
+// Track within an album
+interface AlbumTrack {
+  id: string;
+  title: string;
+  trackNumber: number;
+}
+
 export function useDraftPublish() {
   const { user } = useCurrentUser();
   const { mutateAsync: publishEvent } = useNostrPublish();
@@ -246,7 +283,7 @@ export function useDraftPublish() {
 
   // Convert published track to draft (delete original and create draft)
   const convertTrackToDraft = useMutation({
-    mutationFn: async (track: any) => {
+    mutationFn: async (track: PublishedTrack) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
@@ -258,7 +295,7 @@ export function useDraftPublish() {
         tags: [
           ["d", track.id.replace('track-', 'track-')], // Keep same identifier
           ["title", track.title],
-          ["genre", track.genre],
+          ...(track.genre ? [["genre", track.genre]] : []),
           ["url", track.audioUrl],
           ["explicit", track.explicit.toString()],
           ...(track.description ? [["description", track.description]] : []),
@@ -324,7 +361,7 @@ export function useDraftPublish() {
 
   // Convert published album to draft (delete original and create draft)
   const convertAlbumToDraft = useMutation({
-    mutationFn: async (album: any) => {
+    mutationFn: async (album: PublishedAlbum) => {
       if (!user?.signer || !user?.pubkey) {
         throw new Error("User not logged in or signer not available");
       }
@@ -337,7 +374,7 @@ export function useDraftPublish() {
           ["d", album.id.replace('album-', 'album-')], // Keep same identifier
           ["title", album.title],
           ["artist", album.artist],
-          ["genre", album.genre],
+          ...(album.genre ? [["genre", album.genre]] : []),
           ["explicit", album.explicit.toString()],
           ...(album.description ? [["description", album.description]] : []),
           ...(album.price && album.price > 0 ? [["price", album.price.toString(), "sat"]] : []),
@@ -347,8 +384,8 @@ export function useDraftPublish() {
           ...(album.label ? [["label", album.label]] : []),
           // Add track references
           ...album.tracks
-            .sort((a: any, b: any) => a.trackNumber - b.trackNumber)
-            .flatMap((track: any) => [
+            .sort((a, b) => a.trackNumber - b.trackNumber)
+            .flatMap((track) => [
               ["e", track.id, "", track.title],
               ["track", track.trackNumber.toString(), track.id]
             ]),

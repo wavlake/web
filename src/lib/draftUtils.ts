@@ -10,11 +10,26 @@ import {
   ALBUM_KIND,
 } from "@/types/drafts";
 
+// Signer interface with NIP-44 encryption support
+interface Nip44Signer {
+  nip44: {
+    encrypt(pubkey: string, plaintext: string): Promise<string>;
+    decrypt(pubkey: string, ciphertext: string): Promise<string>;
+  };
+}
+
+// Future event structure for draft content
+interface FutureEventData {
+  kind: number;
+  content: string;
+  tags: string[][];
+}
+
 // Encrypt draft content using NIP-44
 export async function encryptDraftContent(
-  signer: any,
+  signer: Nip44Signer,
   userPubkey: string,
-  content: any
+  content: unknown
 ): Promise<string> {
   if (!signer.nip44) {
     throw new Error("NIP-44 encryption not supported by signer");
@@ -24,11 +39,11 @@ export async function encryptDraftContent(
 }
 
 // Decrypt draft content using NIP-44
-export async function decryptDraftContent(
-  signer: any,
+export async function decryptDraftContent<T = unknown>(
+  signer: Nip44Signer,
   userPubkey: string,
   encryptedContent: string
-): Promise<any> {
+): Promise<T> {
   if (!signer.nip44) {
     throw new Error("NIP-44 decryption not supported by signer");
   }
@@ -158,7 +173,7 @@ export function createFutureAlbumEvent(
 // Parse draft event into DraftTrack
 export async function parseDraftTrack(
   draftEvent: NostrEvent,
-  signer: any,
+  signer: Nip44Signer,
   userPubkey: string
 ): Promise<DraftTrack | null> {
   try {
@@ -178,7 +193,7 @@ export async function parseDraftTrack(
     }
 
     // Decrypt the future event
-    const futureEvent = await decryptDraftContent(
+    const futureEvent = await decryptDraftContent<FutureEventData>(
       signer,
       userPubkey,
       draftEvent.content
@@ -226,7 +241,7 @@ export async function parseDraftTrack(
 // Parse draft event into DraftAlbum
 export async function parseDraftAlbum(
   draftEvent: NostrEvent,
-  signer: any,
+  signer: Nip44Signer,
   userPubkey: string
 ): Promise<DraftAlbum | null> {
   try {
@@ -246,7 +261,7 @@ export async function parseDraftAlbum(
     }
 
     // Decrypt the future event
-    const futureEvent = await decryptDraftContent(
+    const futureEvent = await decryptDraftContent<FutureEventData>(
       signer,
       userPubkey,
       draftEvent.content

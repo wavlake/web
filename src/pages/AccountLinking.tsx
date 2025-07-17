@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FirebaseUser } from "@/types/auth";
 import {
   Card,
   CardContent,
@@ -52,7 +53,7 @@ export default function AccountLinking() {
   const linkAccountMutation = useLinkAccount();
   const unlinkAccountMutation = useUnlinkAccount();
 
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [showFirebaseAuthFirst, setShowFirebaseAuthFirst] = useState(false);
@@ -105,14 +106,15 @@ export default function AccountLinking() {
       );
       toast.success(result.message || "Account unlinked successfully!");
       setShowUnlinkConfirm(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Unlink account error:", error);
 
       // Check for specific authentication mismatch error
+      const errorMessage = error instanceof Error ? error.message : String(error);
       if (
-        error.message?.includes("pubkey does not belong to this user") ||
-        error.message?.includes("not authorized") ||
-        error.message?.includes("Authentication mismatch")
+        errorMessage.includes("pubkey does not belong to this user") ||
+        errorMessage.includes("not authorized") ||
+        errorMessage.includes("Authentication mismatch")
       ) {
         toast.error(
           "Authentication mismatch: You're signed in with the wrong Firebase account. Please sign in with the correct account and try again."
@@ -121,7 +123,7 @@ export default function AccountLinking() {
         return;
       }
 
-      toast.error(error.message || "Failed to unlink account");
+      toast.error(errorMessage || "Failed to unlink account");
     }
   };
 

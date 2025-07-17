@@ -153,7 +153,7 @@ export function useSignupFlow(): UseSignupFlowResult {
       default:
         return "";
     }
-  }, [stateMachine.step]);
+  }, [stateMachine.step, stateMachine.isArtist, stateMachine.isSoloArtist]);
 
   const shouldShowFirebaseBackup = useCallback(() => {
     return stateMachine.isArtist;

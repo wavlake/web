@@ -94,13 +94,14 @@ function legacyMigrationReducer(state: LegacyMigrationState, action: LegacyMigra
         canGoBack: false,
       };
 
-    case "GO_BACK":
+    case "GO_BACK": {
       const previousStep = getPreviousStep(state.step, state.linkedPubkeys.length > 0);
       return {
         ...state,
         step: previousStep,
         canGoBack: previousStep !== "firebase-auth",
       };
+    }
 
     case "RESET":
       return initialState;
@@ -186,7 +187,7 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "LINKS_CHECKED", linkedPubkeys });
       
       return { firebaseUser, linkedPubkeys };
-    }, dispatch), [dependencies.firebaseAuth, dependencies.checkLinkedPubkeys]);
+    }, dispatch), [dependencies]);
 
   const authenticateWithLinkedNostr = useMemo(() =>
     createAsyncAction("authenticateWithLinkedNostr", async (credentials: NostrCredentials) => {
@@ -197,7 +198,7 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "LINKING_COMPLETED" });
       
       return { account };
-    }, dispatch), [dependencies.authenticateNostr]);
+    }, dispatch), [dependencies]);
 
   const generateNewAccount = useMemo(() =>
     createAsyncAction("generateNewAccount", async () => {
@@ -217,7 +218,7 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "LINKING_COMPLETED" });
       
       return { login, generatedName };
-    }, dispatch), [dependencies.createAccount, dependencies.generateAccount, dependencies.linkAccounts, state.firebaseUser]);
+    }, dispatch), [dependencies, state.firebaseUser]);
 
   const bringOwnKeypair = useMemo(() =>
     createAsyncAction("bringOwnKeypair", async (credentials: NostrCredentials) => {
@@ -233,7 +234,7 @@ export function useLegacyMigrationStateMachine(
       dispatch({ type: "LINKING_COMPLETED" });
       
       return { account };
-    }, dispatch), [dependencies.authenticateNostr, dependencies.linkAccounts, state.firebaseUser]);
+    }, dispatch), [dependencies, state.firebaseUser]);
 
   const completeLogin = useMemo(() =>
     createAsyncAction("completeLogin", async () => {
@@ -249,7 +250,7 @@ export function useLegacyMigrationStateMachine(
         return { success: true };
       }
       throw new Error("No login or generated name available");
-    }, dispatch), [state.createdLogin, state.generatedName, dependencies.addLogin, dependencies.setupAccount]);
+    }, dispatch), [dependencies, state.createdLogin, state.generatedName]);
 
   // Navigation helpers
   const goBack = useCallback(() => {

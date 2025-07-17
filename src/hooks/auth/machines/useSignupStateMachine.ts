@@ -83,13 +83,14 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
-    case "GO_BACK":
+    case "GO_BACK": {
       const previousStep = getPreviousStep(state.step, state.isArtist);
       return {
         ...state,
         step: previousStep,
         canGoBack: previousStep !== "user-type",
       };
+    }
 
     case "RESET":
       return initialState;
@@ -171,7 +172,7 @@ export function useSignupStateMachine(
       }
       
       return {};
-    }, dispatch), [dependencies.createAccount]);
+    }, dispatch), [dependencies]);
 
   const setArtistType = useMemo(() =>
     createAsyncAction("setArtistType", async (isSolo: boolean) => {
@@ -182,7 +183,7 @@ export function useSignupStateMachine(
       const { login, generatedName } = await dependencies.createAccount();
       dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
       return { login, generatedName };
-    }, dispatch), [dependencies.createAccount]);
+    }, dispatch), [dependencies]);
 
   const completeProfile = useMemo(() =>
     createAsyncAction("completeProfile", async (profileData: ProfileData) => {
@@ -190,7 +191,7 @@ export function useSignupStateMachine(
       dispatch({ type: "PROFILE_COMPLETED", profileData });
       
       return {};
-    }, dispatch), [dependencies.saveProfile]);
+    }, dispatch), [dependencies]);
 
   const setupFirebaseBackup = useMemo(() =>
     createAsyncAction("setupFirebaseBackup", async (email: string, password: string) => {
@@ -198,7 +199,7 @@ export function useSignupStateMachine(
       await dependencies.linkAccounts();
       dispatch({ type: "FIREBASE_BACKUP_COMPLETED" });
       return { firebaseUser };
-    }, dispatch), [dependencies.createFirebaseAccount, dependencies.linkAccounts]);
+    }, dispatch), [dependencies]);
 
   const skipFirebaseBackup = useCallback(() => {
     dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
@@ -218,7 +219,7 @@ export function useSignupStateMachine(
       }
       
       throw new Error("No login or generated name available");
-    }, dispatch), [state.createdLogin, state.generatedName, state.profileData, dependencies.addLogin, dependencies.setupAccount]);
+    }, dispatch), [dependencies, state.createdLogin, state.generatedName, state.profileData]);
 
   // Navigation helpers
   const goBack = useCallback(() => {

@@ -220,7 +220,7 @@ export const SignupProfileForm: FC<SignupProfileFormProps> = ({
           acc[key] = value;
         }
         return acc;
-      }, {} as any);
+      }, {} as Record<string, string>);
 
       // Publish the profile event
       await publishProfile(cleanedData);

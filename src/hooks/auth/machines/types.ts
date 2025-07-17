@@ -18,13 +18,13 @@ export interface BaseStateMachineState {
   canGoBack: boolean;
 }
 
-export interface ActionResult<T = any> {
+export interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: Error | null;
 }
 
-export type AsyncActionHandler<TArgs extends any[] = any[], TResult = any> = 
+export type AsyncActionHandler<TArgs extends unknown[] = unknown[], TResult = unknown> = 
   (...args: TArgs) => Promise<ActionResult<TResult>>;
 
 // Base action types that all state machines use
@@ -37,7 +37,7 @@ export interface AsyncStartAction extends BaseStateMachineAction {
   operation: string;
 }
 
-export interface AsyncSuccessAction<T = any> extends BaseStateMachineAction {
+export interface AsyncSuccessAction<T = unknown> extends BaseStateMachineAction {
   type: "ASYNC_SUCCESS";
   operation: string;
   data?: T;
