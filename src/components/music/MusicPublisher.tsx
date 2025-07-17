@@ -110,6 +110,7 @@ interface AlbumUploadItem extends BaseUploadItem {
 interface LegacyUploadItem extends BaseUploadItem {
   type?: "track" | "album";
   trackCount?: number;
+  draftData?: DraftTrack | DraftAlbum;
 }
 
 type UploadItem = TrackUploadItem | AlbumUploadItem | LegacyUploadItem;
@@ -1379,13 +1380,15 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
                                   variant="default"
                                   onClick={() => {
                                     if (upload.type === "track" && upload.draftData) {
-                                      publishDraftTrack.mutateAsync(
-                                        upload.draftData as DraftTrack
-                                      );
+                                      publishDraftTrack.mutateAsync({
+                                        draft: upload.draftData as DraftTrack,
+                                        communityId: selectedCommunityId
+                                      });
                                     } else if (upload.draftData) {
-                                      publishDraftAlbum.mutateAsync(
-                                        upload.draftData as DraftAlbum
-                                      );
+                                      publishDraftAlbum.mutateAsync({
+                                        draft: upload.draftData as DraftAlbum,
+                                        communityId: selectedCommunityId
+                                      });
                                     }
                                   }}
                                 >

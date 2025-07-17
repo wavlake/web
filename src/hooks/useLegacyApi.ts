@@ -21,7 +21,7 @@ const API_BASE_URL =
  */
 async function fetchLegacyApi<T>(
   endpoint: string, 
-  signer: unknown, 
+  signer: any, 
   getAuthToken?: () => Promise<string | null>
 ): Promise<T> {
   const url = `${API_BASE_URL}/legacy${endpoint}`;
