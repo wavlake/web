@@ -116,6 +116,7 @@ export type LegacyMigrationStep =
   | "account-choice"
   | "account-generation"
   | "bring-own-keypair"
+  | "profile-setup"
   | "linking"
   | "complete";
 
@@ -151,6 +152,7 @@ export interface LegacyMigrationState extends BaseStateMachineState {
   generatedAccount: NostrAccount | null;
   createdLogin: NLoginType | null;
   generatedName: string | null;
+  profileData: ProfileData | null;
 }
 
 export type LegacyMigrationAction = 
@@ -160,6 +162,7 @@ export type LegacyMigrationAction =
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }
   | { type: "KEYPAIR_AUTHENTICATED"; account: NostrAccount }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName?: string }
+  | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
   | { type: "LINKING_COMPLETED" }
   | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction

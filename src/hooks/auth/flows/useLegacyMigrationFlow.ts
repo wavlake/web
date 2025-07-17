@@ -37,6 +37,7 @@ export interface UseLegacyMigrationFlowResult {
   handleBringOwnKeypairWithCredentials: (
     credentials: NostrCredentials
   ) => Promise<void>;
+  handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleMigrationCompletion: () => Promise<void>;
 
   // Helper functions
@@ -226,6 +227,16 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [stateMachine.actions]
   );
 
+  const handleProfileCompletion = useCallback(
+    async (profileData: ProfileData) => {
+      const result = await stateMachine.actions.completeProfile(profileData);
+      if (!result.success) {
+        throw new Error(result.error?.message || "Failed to complete profile");
+      }
+    },
+    [stateMachine.actions]
+  );
+
   const handleMigrationCompletion = useCallback(async () => {
     const result = await stateMachine.actions.completeLogin();
     if (!result.success) {
@@ -248,6 +259,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         return "Generating New Account";
       case "bring-own-keypair":
         return "Import Your Keys";
+      case "profile-setup":
+        return "Set Up Your Profile";
       case "linking":
         return "Linking Accounts";
       case "complete":
@@ -271,6 +284,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         return "Creating a new Nostr account for you...";
       case "bring-own-keypair":
         return "Import your existing Nostr keys";
+      case "profile-setup":
+        return "Set up your public profile information that others will see";
       case "linking":
         return "Linking your accounts together...";
       case "complete":
@@ -295,6 +310,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,
+    handleProfileCompletion,
     handleMigrationCompletion,
     getStepTitle,
     getStepDescription,

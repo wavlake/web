@@ -13,6 +13,7 @@ import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
 import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
+import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
@@ -37,6 +38,7 @@ export function LegacyMigrationFlow({
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,
+    handleProfileCompletion,
     getStepTitle,
     getStepDescription,
     hasLinkedAccounts,
@@ -101,6 +103,19 @@ export function LegacyMigrationFlow({
             }}
             isLoading={stateMachine.isLoading("bringOwnKeypair")}
             error={errorToString(stateMachine.getError("bringOwnKeypair"))}
+          />
+        );
+
+      case "profile-setup":
+        return (
+          <ProfileSetupStep
+            onComplete={handleProfileCompletion}
+            isLoading={stateMachine.isLoading("completeProfile")}
+            error={errorToString(stateMachine.getError("completeProfile"))}
+            isArtist={true} // Legacy users are typically artists
+            isSoloArtist={true} // Default to solo artist
+            createdLogin={stateMachine.createdLogin}
+            generatedName={stateMachine.generatedName}
           />
         );
 
