@@ -1,26 +1,29 @@
 /**
  * Signup Flow Hook
- * 
+ *
  * Business logic layer for the signup flow that integrates the state machine
  * with external dependencies and provides step-specific handlers for UI.
  */
 
-import { useCallback } from 'react';
-import { useSignupStateMachine, SignupStateMachineDependencies } from '../machines/useSignupStateMachine';
-import { useCreateNostrAccount } from '../useCreateNostrAccount';
-import { useLinkAccount } from '../useLinkAccount';
-import { useFirebaseAuth } from '@/components/FirebaseAuthProvider';
+import { useCallback } from "react";
+import {
+  useSignupStateMachine,
+  SignupStateMachineDependencies,
+} from "../machines/useSignupStateMachine";
+import { useCreateNostrAccount } from "../useCreateNostrAccount";
+import { useLinkAccount } from "../useLinkAccount";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 
 export interface UseSignupFlowResult {
   // State machine interface
   stateMachine: ReturnType<typeof useSignupStateMachine>;
-  
+
   // Step-specific handlers
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: any) => Promise<void>;
   handleFirebaseBackupSetup: (email: string, password: string) => Promise<void>;
-  
+
   // Helper functions
   getStepTitle: () => string;
   getStepDescription: () => string;
@@ -32,7 +35,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   const { createAccount } = useCreateNostrAccount();
   const { mutateAsync: linkAccounts } = useLinkAccount();
   const { registerWithEmailAndPassword } = useFirebaseAuth();
-  
+
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
@@ -48,43 +51,60 @@ export function useSignupFlow(): UseSignupFlowResult {
   });
 
   // Step handlers that integrate with UI
-  const handleUserTypeSelection = useCallback(async (isArtist: boolean) => {
-    const result = await stateMachine.actions.setUserType(isArtist);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleUserTypeSelection = useCallback(
+    async (isArtist: boolean) => {
+      const result = await stateMachine.actions.setUserType(isArtist);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    [stateMachine.actions]
+  );
 
-  const handleArtistTypeSelection = useCallback(async (isSolo: boolean) => {
-    const result = await stateMachine.actions.setArtistType(isSolo);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleArtistTypeSelection = useCallback(
+    async (isSolo: boolean) => {
+      const result = await stateMachine.actions.setArtistType(isSolo);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    [stateMachine.actions]
+  );
 
-  const handleProfileCompletion = useCallback(async (profileData: any) => {
-    const result = await stateMachine.actions.completeProfile(profileData);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleProfileCompletion = useCallback(
+    async (profileData: any) => {
+      const result = await stateMachine.actions.completeProfile(profileData);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    [stateMachine.actions]
+  );
 
-  const handleFirebaseBackupSetup = useCallback(async (email: string, password: string) => {
-    const result = await stateMachine.actions.setupFirebaseBackup(email, password);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-  }, [stateMachine.actions]);
+  const handleFirebaseBackupSetup = useCallback(
+    async (email: string, password: string) => {
+      const result = await stateMachine.actions.setupFirebaseBackup(
+        email,
+        password
+      );
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+    },
+    [stateMachine.actions]
+  );
 
   // Helper functions for UI
   const getStepTitle = useCallback(() => {
     switch (stateMachine.step) {
       case "user-type":
-        return "Welcome to Wavlake";
+        return "Sign Up";
       case "artist-type":
         return "Artist Type";
       case "profile-setup":
-        return stateMachine.isArtist ? "Create Artist Profile" : "Create Profile";
+        return stateMachine.isArtist
+          ? "Create Artist Profile"
+          : "Create Profile";
       case "firebase-backup":
         return "Add Email Backup";
       case "complete":
@@ -97,10 +117,15 @@ export function useSignupFlow(): UseSignupFlowResult {
   const getStepDescription = useCallback(() => {
     switch (stateMachine.step) {
       case "user-type":
-        return "Choose how you want to use Wavlake";
+        return "Select whether you want to sign up as an artist or a listener. This helps us tailor your experience.";
       case "artist-type":
         return "Are you a solo artist or part of a band/group?";
       case "profile-setup":
+        if (stateMachine.isArtist) {
+          return stateMachine.isSoloArtist
+            ? "This is your public solo artist profile that will be visible to others."
+            : "This is your public band/group profile that will be visible to others. You'll be able to make individual member profiles later.";
+        }
         return "Set up your public profile";
       case "firebase-backup":
         return "Add an email to help recover your account if needed";

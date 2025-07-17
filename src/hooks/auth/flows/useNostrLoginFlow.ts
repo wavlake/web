@@ -1,22 +1,25 @@
 /**
  * Nostr Login Flow Hook
- * 
- * Business logic layer for the simple Nostr login flow that integrates 
+ *
+ * Business logic layer for the simple Nostr login flow that integrates
  * the state machine with Nostr authentication methods.
  */
 
-import { useCallback } from 'react';
-import { useNostrLoginStateMachine, NostrLoginStateMachineDependencies } from '../machines/useNostrLoginStateMachine';
-import { NostrAuthMethod } from '@/types/authFlow';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useCallback } from "react";
+import {
+  useNostrLoginStateMachine,
+  NostrLoginStateMachineDependencies,
+} from "../machines/useNostrLoginStateMachine";
+import { NostrAuthMethod } from "@/types/authFlow";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export interface UseNostrLoginFlowResult {
   // State machine interface
   stateMachine: ReturnType<typeof useNostrLoginStateMachine>;
-  
+
   // Step-specific handlers
   handleNostrAuthentication: () => Promise<void>;
-  
+
   // Helper functions
   getStepTitle: () => string;
   getStepDescription: () => string;
@@ -25,8 +28,9 @@ export interface UseNostrLoginFlowResult {
 
 export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   // External dependencies
-  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
-  
+  const { loginWithExtension, loginWithNsec, loginWithBunker } =
+    useCurrentUser();
+
   // State machine with dependencies injected
   const stateMachine = useNostrLoginStateMachine({
     authenticate: async (method: NostrAuthMethod, credentials: any) => {
@@ -51,7 +55,10 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   const handleNostrAuthentication = useCallback(async () => {
     // For now, use a default method since NostrAuthForm doesn't provide method/credentials
     // This will be enhanced when the NostrAuthForm is updated to provide more details
-    const result = await stateMachine.actions.authenticateWithNostr("extension", {});
+    const result = await stateMachine.actions.authenticateWithNostr(
+      "extension",
+      {}
+    );
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -61,7 +68,7 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   const getStepTitle = useCallback(() => {
     switch (stateMachine.step) {
       case "auth":
-        return "Sign in with Nostr";
+        return "Sign in";
       case "complete":
         return "Welcome back!";
       default:
@@ -72,7 +79,7 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   const getStepDescription = useCallback(() => {
     switch (stateMachine.step) {
       case "auth":
-        return "Choose your preferred method to sign in";
+        return "Sign in to Wavlake";
       case "complete":
         return "You're signed in successfully";
       default:
@@ -81,16 +88,16 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   }, [stateMachine.step]);
 
   const getSupportedMethods = useCallback((): NostrAuthMethod[] => {
-    const methods: NostrAuthMethod[] = ['nsec'];
-    
+    const methods: NostrAuthMethod[] = ["nsec"];
+
     // Check if window.nostr is available (browser extension)
-    if (typeof window !== 'undefined' && window.nostr) {
-      methods.unshift('extension');
+    if (typeof window !== "undefined" && window.nostr) {
+      methods.unshift("extension");
     }
-    
+
     // Bunker is always supported
-    methods.push('bunker');
-    
+    methods.push("bunker");
+
     return methods;
   }, []);
 

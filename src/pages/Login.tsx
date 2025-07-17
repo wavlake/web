@@ -23,7 +23,7 @@ interface AuthMethodOption {
   method: "sign-in" | "sign-up";
   icon: React.ComponentType<{ className?: string }>;
   title: string;
-  description: string;
+  description?: string;
   variant?: "default" | "primary";
 }
 const FLOW_OPTIONS: AuthMethodOption[] = [
@@ -31,14 +31,14 @@ const FLOW_OPTIONS: AuthMethodOption[] = [
     method: "sign-up",
     icon: Sparkles,
     title: "Get Started",
-    description: "New to Wavlake? Create your account",
+    // description: "New to Wavlake? Create your account",
     variant: "primary",
   },
   {
     method: "sign-in",
     icon: Mail,
     title: "Sign in",
-    description: "Sign in with your Nostr account",
+    // description: "Sign in with your Nostr account",
   },
 ];
 

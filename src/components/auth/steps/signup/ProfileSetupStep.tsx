@@ -1,14 +1,14 @@
 /**
  * ProfileSetupStep Component
- * 
+ *
  * Uses the existing EditProfileForm component for profile setup during signup
  */
 
-import React from 'react';
-import { EditProfileForm } from '@/components/EditProfileForm';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { useCreateNostrAccount } from '@/hooks/auth/useCreateNostrAccount';
+import React from "react";
+import { EditProfileForm } from "@/components/EditProfileForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { useCreateNostrAccount } from "@/hooks/auth/useCreateNostrAccount";
 
 interface ProfileSetupStepProps {
   onComplete: (profileData: any) => Promise<void>;
@@ -18,12 +18,12 @@ interface ProfileSetupStepProps {
   isSoloArtist: boolean;
 }
 
-export function ProfileSetupStep({ 
-  onComplete, 
-  isLoading, 
-  error, 
-  isArtist, 
-  isSoloArtist 
+export function ProfileSetupStep({
+  onComplete,
+  isLoading,
+  error,
+  isArtist,
+  isSoloArtist,
 }: ProfileSetupStepProps) {
   const { generatedName } = useCreateNostrAccount();
 
@@ -47,7 +47,7 @@ export function ProfileSetupStep({
       )}
 
       {/* Show context based on user type */}
-      <div className="text-sm text-muted-foreground text-center mb-4">
+      {/* <div className="text-sm text-muted-foreground text-center mb-4">
         {isArtist ? (
           isSoloArtist ? (
             "Set up your artist profile to connect with fans"
@@ -57,7 +57,7 @@ export function ProfileSetupStep({
         ) : (
           "Set up your listener profile"
         )}
-      </div>
+      </div> */}
 
       <EditProfileForm
         initialName={generatedName}
