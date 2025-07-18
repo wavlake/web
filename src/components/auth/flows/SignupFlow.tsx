@@ -91,7 +91,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
               }
             }}
             currentPubkey={stateMachine.createdLogin?.pubkey || ""}
-            displayName={stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
+            displayName={stateMachine.profileData?.name || stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
             linkedPubkeys={[]}
             isLinked={false}
             firebaseEmail={stateMachine.firebaseUser?.email || undefined}
