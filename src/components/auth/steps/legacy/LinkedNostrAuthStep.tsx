@@ -7,16 +7,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { User, CheckCircle, AlertCircle } from "lucide-react";
+import { User } from "lucide-react";
 import { LinkedPubkey } from "@/hooks/auth/machines/types";
 
 // Import extracted components and utilities
@@ -26,7 +17,6 @@ import { AuthLoadingStates, AuthErrors } from "../../types";
 import { formatPubkey, formatTimeAgo } from "../../utils/formatters";
 
 interface LinkedNostrAuthStepProps {
-  expectedPubkey: string | null;
   linkedPubkeys: LinkedPubkey[];
   onComplete: (credentials: NostrCredentials) => Promise<void>;
   isLoading: boolean;
@@ -44,7 +34,6 @@ interface NostrCredentials {
 }
 
 export function LinkedNostrAuthStep({
-  expectedPubkey,
   linkedPubkeys,
   onComplete,
   isLoading,
@@ -119,81 +108,72 @@ export function LinkedNostrAuthStep({
       setLoadingStates((prev) => ({ ...prev, bunker: false }));
     }
   };
-  const [lastLinkedPubkey] = linkedPubkeys;
+
   return (
-    <div>
-      {/* Error Display */}
+    <div className="h-full flex flex-col">
+      {/* Error Display - Compact */}
       <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
 
-      {lastLinkedPubkey && (
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between">
+      {/* Linked Account - Compact Display */}
+      {expectedAccount && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Linked Account:</span>
           </div>
-          <div
-            key={lastLinkedPubkey.pubkey}
-            className="rounded-lg p-3 space-y-2 bg-primary/10 border border-primary/20"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <code className="text-sm">
-                  {formatPubkey(lastLinkedPubkey.pubkey)}
-                </code>
-              </div>
+          <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded-lg">
+            <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <code className="text-sm font-mono block truncate">
+                {formatPubkey(expectedAccount.pubkey)}
+              </code>
+              {expectedAccount.linkedAt && (
+                <div className="text-xs text-muted-foreground">
+                  Linked {formatTimeAgo(expectedAccount.linkedAt)}
+                </div>
+              )}
             </div>
-            {lastLinkedPubkey.linkedAt && (
-              <div className="text-xs text-muted-foreground">
-                Linked {formatTimeAgo(lastLinkedPubkey.linkedAt)}
-              </div>
-            )}
-            {lastLinkedPubkey.profile && (
-              <div className="text-xs text-muted-foreground">
-                {lastLinkedPubkey.profile.display_name ||
-                  lastLinkedPubkey.profile.name ||
-                  "No profile name"}
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      <Separator />
+      {/* Main Content - Flexible */}
+      <div className="flex-1 flex flex-col">
+        {/* Tabbed Authentication Interface */}
+        <div className="flex-1">
+          <NostrAuthTabs
+            onExtensionAuth={handleExtensionAuth}
+            onNsecAuth={handleNsecAuth}
+            onBunkerAuth={handleBunkerAuth}
+            loadingStates={loadingStates}
+            errors={errors}
+            externalLoading={isLoading}
+          />
+        </div>
 
-      {/* Tabbed Authentication Interface */}
-      <NostrAuthTabs
-        onExtensionAuth={handleExtensionAuth}
-        onNsecAuth={handleNsecAuth}
-        onBunkerAuth={handleBunkerAuth}
-        loadingStates={loadingStates}
-        errors={errors}
-        externalLoading={isLoading}
-        expectedPubkey={expectedAccount?.pubkey || undefined}
-      />
+        {/* Navigation Buttons - Sticky Bottom */}
+        <div className="mt-4 space-y-2">
+          {onUseDifferentAccount && (
+            <Button
+              variant="outline"
+              onClick={onUseDifferentAccount}
+              className="w-full"
+              disabled={isLoading}
+            >
+              Use Different Account
+            </Button>
+          )}
 
-      {/* Navigation Buttons */}
-      <div className="space-y-2">
-        {onUseDifferentAccount && (
-          <Button
-            variant="outline"
-            onClick={onUseDifferentAccount}
-            className="w-full"
-            disabled={isLoading}
-          >
-            Use Different Account
-          </Button>
-        )}
-
-        {onBack && (
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="w-full"
-            disabled={isLoading}
-          >
-            Back
-          </Button>
-        )}
+          {onBack && (
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="w-full"
+              disabled={isLoading}
+            >
+              Back
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

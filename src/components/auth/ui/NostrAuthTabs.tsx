@@ -44,7 +44,6 @@ import { formatPubkey, formatAuthErrorMessage } from "../utils/formatters";
  *   onBunkerAuth={handleBunkerAuth}
  *   loadingStates={loadingStates}
  *   errors={errors}
- *   expectedPubkey={expectedPubkey}
  * />
  * ```
  */
@@ -55,7 +54,6 @@ export function NostrAuthTabs({
   loadingStates,
   errors,
   externalLoading = false,
-  expectedPubkey,
   className = "",
 }: AuthTabsProps) {
   // ============================================================================
@@ -158,17 +156,6 @@ export function NostrAuthTabs({
         <p className="text-sm text-muted-foreground mb-4">
           Sign in using your browser extension
         </p>
-
-        {/* Expected pubkey warning for extension */}
-        {expectedPubkey && (
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Make sure your extension contains the account ending in{" "}
-              {formatPubkey(expectedPubkey, 6, 6)}.
-            </AlertDescription>
-          </Alert>
-        )}
 
         <Button
           onClick={handleExtensionClick}

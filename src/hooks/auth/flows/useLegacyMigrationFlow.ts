@@ -207,7 +207,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const getStepTitle = useCallback(() => {
     switch (stateMachine.step) {
       case "firebase-auth":
-        return "Sign in to Legacy Account";
+        return "Sign in to Wavlake";
       case "checking-links":
         return "Checking Linked Accounts";
       case "linked-nostr-auth":
@@ -232,7 +232,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const getStepDescription = useCallback(() => {
     switch (stateMachine.step) {
       case "firebase-auth":
-        return "Sign in with your legacy Wavlake account and we'll get you migrated.";
+        return "Sign in with your legacy Wavlake account to migrate.";
       case "checking-links":
         return "";
       case "linked-nostr-auth":

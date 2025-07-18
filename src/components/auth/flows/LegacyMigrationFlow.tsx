@@ -42,7 +42,6 @@ export function LegacyMigrationFlow({
     handleProfileCompletion,
     getStepTitle,
     getStepDescription,
-    getExpectedPubkey,
   } = useLegacyMigrationFlow();
 
   // Helper to convert Error to string for legacy components
@@ -78,7 +77,6 @@ export function LegacyMigrationFlow({
             onComplete={handleLinkedNostrAuthentication}
             isLoading={stateMachine.isLoading("authenticateWithLinkedNostr")}
             error={errorToString(stateMachine.getError("authenticateWithLinkedNostr"))}
-            expectedPubkey={getExpectedPubkey()}
             linkedPubkeys={stateMachine.linkedPubkeys}
           />
         );

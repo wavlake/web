@@ -264,7 +264,7 @@ export function useLegacyMigrationStateMachine(
         async (credentials: NostrCredentials) => {
           // Verify matches expected pubkey and complete auth
           const account = await dependencies.authenticateNostr(
-            "extension",
+            credentials.method,
             credentials
           );
 

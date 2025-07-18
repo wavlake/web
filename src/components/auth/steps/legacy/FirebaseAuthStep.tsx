@@ -131,7 +131,7 @@ export function FirebaseAuthStep({
     try {
       await firebaseLogout();
     } catch (error) {
-      console.error('Firebase logout failed:', error);
+      console.error("Firebase logout failed:", error);
     }
   };
 
@@ -141,7 +141,8 @@ export function FirebaseAuthStep({
 
   // If user is already logged in, show continue/logout options
   if (firebaseUser) {
-    const displayName = firebaseUser.displayName || firebaseUser.email || "Unknown User";
+    const displayName =
+      firebaseUser.displayName || firebaseUser.email || "Unknown User";
     const userInitial = displayName.charAt(0).toUpperCase();
 
     return (
@@ -158,32 +159,18 @@ export function FirebaseAuthStep({
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 text-green-800">
               <User className="h-5 w-5" />
-              Already Signed In
             </CardTitle>
             <CardDescription className="text-green-700">
-              You're logged in as {displayName}
+              Signed in with {displayName}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* User info display */}
-            <div className="flex items-center justify-center gap-3 p-4 bg-white rounded-lg">
-              <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-medium">
-                {userInitial}
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-gray-900">{displayName}</p>
-                {firebaseUser.email && (
-                  <p className="text-sm text-gray-500">{firebaseUser.email}</p>
-                )}
-              </div>
-            </div>
-
             {/* Action buttons */}
             <div className="space-y-2">
               {onContinueWithExistingUser && (
-                <Button 
-                  onClick={handleContinue} 
-                  className="w-full" 
+                <Button
+                  onClick={handleContinue}
+                  className="w-full"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -196,15 +183,15 @@ export function FirebaseAuthStep({
                   )}
                 </Button>
               )}
-              
-              <Button 
-                onClick={handleLogout} 
-                variant="outline" 
+
+              <Button
+                onClick={handleLogout}
+                variant="outline"
                 className="w-full"
                 disabled={isLoading}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign out and use different account
+                Sign out
               </Button>
             </div>
           </CardContent>

@@ -1,6 +1,6 @@
 /**
  * Shared Types for Authentication Components
- * 
+ *
  * Common types and interfaces used across authentication components
  * to ensure consistency and reduce duplication.
  */
@@ -37,7 +37,10 @@ export interface AuthErrors {
 // Authentication Handler Types
 // ============================================================================
 
-export type AuthCompletionHandler = (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<void> | void;
+export type AuthCompletionHandler = (
+  method: NostrAuthMethod,
+  credentials: NostrCredentials
+) => Promise<void> | void;
 export type AuthErrorHandler = (error: Error) => void;
 
 // ============================================================================
@@ -48,11 +51,11 @@ export interface BaseAuthProps {
   // Loading and error states
   isLoading?: boolean;
   error?: Error | null;
-  
+
   // Event handlers
   onComplete?: AuthCompletionHandler;
   onError?: AuthErrorHandler;
-  
+
   // UI state
   className?: string;
 }
@@ -71,15 +74,12 @@ export interface AuthTabsProps {
   onExtensionAuth: () => Promise<void>;
   onNsecAuth: (nsec: string) => Promise<void>;
   onBunkerAuth: (bunkerUri: string) => Promise<void>;
-  
+
   // State
   loadingStates: AuthLoadingStates;
   errors: AuthErrors;
   externalLoading?: boolean;
-  
-  // Expected pubkey for validation messaging
-  expectedPubkey?: string;
-  
+
   // UI configuration
   className?: string;
 }
@@ -88,15 +88,15 @@ export interface AuthInputProps {
   // Input value
   value: string;
   onChange: (value: string) => void;
-  
+
   // Validation
   isValid?: boolean;
   validationMessage?: string;
-  
+
   // State
   disabled?: boolean;
   placeholder?: string;
-  
+
   // UI configuration
   className?: string;
 }
@@ -182,20 +182,20 @@ export const DEFAULT_AUTH_METHOD_CONFIG: AuthMethodConfig = {
   extension: {
     enabled: true,
     label: "Extension",
-    description: "Sign in using your browser extension"
+    description: "Sign in using your browser extension",
   },
   nsec: {
     enabled: true,
     label: "Private Key",
     description: "Your private key in nsec format",
     showPasswordToggle: true,
-    showFileUpload: true
+    showFileUpload: true,
   },
   bunker: {
     enabled: true,
     label: "Bunker",
-    description: "Your NIP-46 bunker URI for remote signing"
-  }
+    description: "Your NIP-46 bunker URI for remote signing",
+  },
 };
 
 // ============================================================================

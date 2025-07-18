@@ -7,8 +7,16 @@ import { nip19 } from "nostr-tools";
 
 // Import extracted components
 import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
-import { NostrAuthErrorDisplay, createPubkeyMismatchError } from "../../ui/NostrAuthErrorDisplay";
-import { AuthLoadingStates, AuthErrors, NostrAuthMethod, NostrCredentials } from "../../types";
+import {
+  NostrAuthErrorDisplay,
+  createPubkeyMismatchError,
+} from "../../ui/NostrAuthErrorDisplay";
+import {
+  AuthLoadingStates,
+  AuthErrors,
+  NostrAuthMethod,
+  NostrCredentials,
+} from "../../types";
 import { validatePubkeyMatch } from "../../utils/validation";
 import { formatPubkey } from "../../utils/formatters";
 
@@ -28,7 +36,10 @@ export interface NostrAuthStepProps {
   supportedMethods?: NostrAuthMethod[];
 
   // Event handlers
-  onComplete?: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<void> | void;
+  onComplete?: (
+    method: NostrAuthMethod,
+    credentials: NostrCredentials
+  ) => Promise<void> | void;
   onError?: (error: Error) => void;
 
   // Loading and error states
@@ -70,8 +81,8 @@ export interface NostrAuthStepProps {
  * ```
  */
 export function NostrAuthStep({
-  title = "Sign in with Nostr",
-  description = "Choose your preferred authentication method",
+  title = "",
+  description = "",
   expectedPubkey,
   onComplete,
   onError,
@@ -102,7 +113,8 @@ export function NostrAuthStep({
   // Hooks
   // ============================================================================
 
-  const { loginWithExtension, loginWithNsec, loginWithBunker } = useCurrentUser();
+  const { loginWithExtension, loginWithNsec, loginWithBunker } =
+    useCurrentUser();
   const { syncProfile } = useProfileSync();
 
   // ============================================================================
@@ -114,7 +126,7 @@ export function NostrAuthStep({
     if (!expectedPubkey) return true;
 
     const validation = validatePubkeyMatch(expectedPubkey, enteredPubkey);
-    
+
     if (!validation.isValid) {
       // Normalize pubkeys to hex format for mismatch display
       let expectedPubkeyHex = expectedPubkey;
@@ -143,7 +155,10 @@ export function NostrAuthStep({
   // Event Handlers
   // ============================================================================
 
-  const handleComplete = async (method: NostrAuthMethod, credentials: NostrCredentials) => {
+  const handleComplete = async (
+    method: NostrAuthMethod,
+    credentials: NostrCredentials
+  ) => {
     try {
       if (onComplete) {
         await onComplete(method, credentials);
@@ -202,9 +217,7 @@ export function NostrAuthStep({
 
       // Validate pubkey match if expected pubkey is provided
       if (expectedPubkey && !checkPubkeyMatch(loginInfo.pubkey)) {
-        throw new Error(
-          "The entered nsec does not match the expected pubkey"
-        );
+        throw new Error("The entered nsec does not match the expected pubkey");
       }
 
       // Sync profile after successful login
@@ -242,7 +255,8 @@ export function NostrAuthStep({
       console.error("Bunker login failed:", error);
       setErrors((prev) => ({
         ...prev,
-        bunker: error instanceof Error ? error : new Error("Bunker login failed"),
+        bunker:
+          error instanceof Error ? error : new Error("Bunker login failed"),
       }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, bunker: false }));
@@ -259,10 +273,8 @@ export function NostrAuthStep({
         <h2 className="text-2xl font-bold mb-2">{title}</h2>
         <p className="text-muted-foreground">{description}</p>
       </div>
-
       {/* External Error Display */}
       <NostrAuthErrorDisplay error={externalError} className="mb-4" />
-
       {/* Expected Pubkey Display */}
       {expectedPubkey && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -280,7 +292,6 @@ export function NostrAuthStep({
           </div>
         </div>
       )}
-
       {/* Pubkey Mismatch Warning */}
       {mismatchWarning && (
         <NostrAuthErrorDisplay
@@ -301,7 +312,6 @@ export function NostrAuthStep({
         loadingStates={loadingStates}
         errors={errors}
         externalLoading={externalLoading}
-        expectedPubkey={expectedPubkey}
       />
     </div>
   );
