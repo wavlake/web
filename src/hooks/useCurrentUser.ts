@@ -93,6 +93,12 @@ export function useCurrentUser() {
     return login;
   }, [addLogin]);
 
+  // Enhanced addLogin that returns the created user
+  const addLoginWithUser = useCallback((login: NLoginType) => {
+    addLogin(login);
+    return loginToUser(login);
+  }, [addLogin, loginToUser]);
+
   return {
     // Core user data
     user,
@@ -104,7 +110,7 @@ export function useCurrentUser() {
     
     // Actions
     logout,
-    addLogin,
+    addLogin: addLoginWithUser,
     
     // Login methods
     loginWithNsec,

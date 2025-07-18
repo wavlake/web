@@ -239,7 +239,7 @@ export function useLegacyMigrationStateMachine(
         pubkey: account.pubkey,
         firebaseUid: state.firebaseUser.uid,
         authToken: firebaseToken,
-        signer: account.signer as any,
+        signer: account.signer as { signEvent: (event: unknown) => Promise<unknown>; getPublicKey?: () => Promise<string> },
       });
       
       // Skip separate linking step and go directly to complete
@@ -263,7 +263,7 @@ export function useLegacyMigrationStateMachine(
         pubkey: account.pubkey,
         firebaseUid: state.firebaseUser.uid,
         authToken: firebaseToken,
-        signer: account.signer as any,
+        signer: account.signer as { signEvent: (event: unknown) => Promise<unknown>; getPublicKey?: () => Promise<string> },
       });
       
       // Skip separate linking step and go directly to complete

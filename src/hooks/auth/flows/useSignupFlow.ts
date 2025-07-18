@@ -38,9 +38,8 @@ export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
   const { createAccount, setupAccount } = useCreateNostrAccount();
   const { registerWithEmailAndPassword } = useFirebaseAuth();
-  const { addLogin, user } = useCurrentUser();
+  const { addLogin } = useCurrentUser();
   const { toast } = useToast();
-
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
@@ -54,7 +53,6 @@ export function useSignupFlow(): UseSignupFlowResult {
     addLogin,
     setupAccount: (profileData: ProfileData | null, generatedName: string) =>
       setupAccount(profileData, generatedName),
-    getCurrentUser: () => user || null,
   });
 
   // Step handlers that integrate with UI

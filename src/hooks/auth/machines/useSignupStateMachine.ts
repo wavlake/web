@@ -167,18 +167,17 @@ export interface SignupStateMachineDependencies {
   }>;
   saveProfile: (data: ProfileData) => Promise<void>;
   createFirebaseAccount: (email: string, password: string) => Promise<User>;
-  addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
-  setupAccount: (
-    profileData: ProfileData | null,
-    generatedName: string
-  ) => Promise<void>;
-  getCurrentUser: () => {
+  addLogin: (login: import("@nostrify/react/login").NLoginType) => {
     pubkey: string;
     signer: {
       signEvent: (event: unknown) => Promise<unknown>;
       getPublicKey?: () => Promise<string>;
     };
-  } | null;
+  };
+  setupAccount: (
+    profileData: ProfileData | null,
+    generatedName: string
+  ) => Promise<void>;
 }
 
 export function useSignupStateMachine(
@@ -253,27 +252,24 @@ export function useSignupStateMachine(
             password
           );
 
-          // Log in the Nostr user if not already done
-          if (state.createdLogin) {
-            dependencies.addLogin(state.createdLogin);
-          }
-
           try {
             // Get Firebase token for linking
             const firebaseToken = await firebaseUser.getIdToken();
 
-            // Get current user with signer after login
-            const currentUser = dependencies.getCurrentUser();
-            if (!currentUser) {
-              throw new Error("Failed to get current user after login");
+            // Use the created login directly instead of getCurrentUser to avoid race condition
+            if (!state.createdLogin) {
+              throw new Error("No created login available for linking");
             }
 
-            // Attempt atomic linking
+            // Log in the Nostr user and get the user object back
+            const user = dependencies.addLogin(state.createdLogin);
+
+            // Attempt atomic linking using the user's signer
             await makeLinkAccountRequest({
-              pubkey: currentUser.pubkey,
+              pubkey: user.pubkey,
               firebaseUid: firebaseUser.uid,
               authToken: firebaseToken,
-              signer: currentUser.signer,
+              signer: user.signer,
             });
 
             // Success - go directly to complete

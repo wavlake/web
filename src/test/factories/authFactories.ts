@@ -160,15 +160,14 @@ export const createMockSignupDependencies = () => ({
     email: 'test@example.com',
     getIdToken: vi.fn().mockResolvedValue('mock-firebase-token'),
   }),
-  addLogin: vi.fn(),
-  setupAccount: vi.fn().mockResolvedValue(undefined),
-  getCurrentUser: vi.fn().mockReturnValue({
+  addLogin: vi.fn().mockReturnValue({
     pubkey: 'mock-pubkey-123',
     signer: {
       signEvent: vi.fn().mockResolvedValue({}),
       getPublicKey: vi.fn().mockResolvedValue('mock-pubkey-123'),
     },
   }),
+  setupAccount: vi.fn().mockResolvedValue(undefined),
 })
 
 export const createMockLegacyMigrationDependencies = () => ({
