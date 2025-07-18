@@ -21,6 +21,7 @@ const initialState: SignupState = {
   createdLogin: null,
   generatedName: null,
   profileData: null,
+  firebaseUser: null,
 };
 
 function signupReducer(state: SignupState, action: SignupAction): SignupState {
@@ -62,14 +63,22 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         profileData: action.profileData,
       };
 
-    case "LOGIN_COMPLETED":
+    case "FIREBASE_ACCOUNT_CREATED":
+      return {
+        ...state,
+        step: "firebase-linking",
+        canGoBack: true,
+        firebaseUser: action.firebaseUser,
+      };
+
+    case "FIREBASE_LINKING_COMPLETED":
       return {
         ...state,
         step: "complete",
         canGoBack: false,
       };
 
-    case "FIREBASE_BACKUP_COMPLETED":
+    case "LOGIN_COMPLETED":
       return {
         ...state,
         step: "complete",
@@ -108,6 +117,8 @@ function getPreviousStep(currentStep: SignupStep, isArtist: boolean): SignupStep
       return isArtist ? "artist-type" : "user-type";
     case "firebase-backup":
       return "profile-setup";
+    case "firebase-linking":
+      return "firebase-backup";
     default:
       return "user-type";
   }
@@ -124,6 +135,7 @@ export interface UseSignupStateMachineResult {
   createdLogin: import("@nostrify/react/login").NLoginType | null;
   generatedName: string | null;
   profileData: ProfileData | null;
+  firebaseUser: import("firebase/auth").User | null;
   
   // Loading helpers
   isLoading: (operation: string) => boolean;
@@ -134,7 +146,8 @@ export interface UseSignupStateMachineResult {
     setUserType: (isArtist: boolean) => Promise<ActionResult>;
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
     completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
-    setupFirebaseBackup: (email: string, password: string) => Promise<ActionResult>;
+    createFirebaseAccount: (email: string, password: string) => Promise<ActionResult>;
+    linkFirebaseAccount: () => Promise<ActionResult>;
     skipFirebaseBackup: () => void;
     completeLogin: () => Promise<ActionResult>;
   };
@@ -193,12 +206,18 @@ export function useSignupStateMachine(
       return {};
     }, dispatch), [dependencies]);
 
-  const setupFirebaseBackup = useMemo(() =>
-    createAsyncAction("setupFirebaseBackup", async (email: string, password: string) => {
+  const createFirebaseAccount = useMemo(() =>
+    createAsyncAction("createFirebaseAccount", async (email: string, password: string) => {
       const firebaseUser = await dependencies.createFirebaseAccount(email, password);
-      await dependencies.linkAccounts();
-      dispatch({ type: "FIREBASE_BACKUP_COMPLETED" });
+      dispatch({ type: "FIREBASE_ACCOUNT_CREATED", firebaseUser: firebaseUser as import("firebase/auth").User });
       return { firebaseUser };
+    }, dispatch), [dependencies]);
+
+  const linkFirebaseAccount = useMemo(() =>
+    createAsyncAction("linkFirebaseAccount", async () => {
+      await dependencies.linkAccounts();
+      dispatch({ type: "FIREBASE_LINKING_COMPLETED" });
+      return {};
     }, dispatch), [dependencies]);
 
   const skipFirebaseBackup = useCallback(() => {
@@ -249,6 +268,7 @@ export function useSignupStateMachine(
     createdLogin: state.createdLogin,
     generatedName: state.generatedName,
     profileData: state.profileData,
+    firebaseUser: state.firebaseUser,
     
     // Helpers
     isLoading,
@@ -259,7 +279,8 @@ export function useSignupStateMachine(
       setUserType,
       setArtistType,
       completeProfile,
-      setupFirebaseBackup,
+      createFirebaseAccount,
+      linkFirebaseAccount,
       skipFirebaseBackup,
       completeLogin,
     },

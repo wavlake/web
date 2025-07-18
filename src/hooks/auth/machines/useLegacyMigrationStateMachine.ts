@@ -20,6 +20,7 @@ const initialState: LegacyMigrationState = {
   generatedAccount: null,
   createdLogin: null,
   generatedName: null,
+  profileData: null,
   isLoading: {},
   errors: {},
   canGoBack: false,
@@ -61,16 +62,16 @@ function legacyMigrationReducer(state: LegacyMigrationState, action: LegacyMigra
       return {
         ...state,
         generatedAccount: action.account,
-        step: "linking",
-        canGoBack: false,
+        step: "profile-setup",
+        canGoBack: true,
       };
 
     case "KEYPAIR_AUTHENTICATED":
       return {
         ...state,
         generatedAccount: action.account,
-        step: "linking",
-        canGoBack: false,
+        step: "profile-setup",
+        canGoBack: true,
       };
 
     case "ACCOUNT_CREATED":
@@ -78,6 +79,14 @@ function legacyMigrationReducer(state: LegacyMigrationState, action: LegacyMigra
         ...state,
         createdLogin: action.login,
         generatedName: action.generatedName || null,
+      };
+
+    case "PROFILE_COMPLETED":
+      return {
+        ...state,
+        profileData: action.profileData,
+        step: "linking",
+        canGoBack: true,
       };
 
     case "LINKING_COMPLETED":
@@ -122,8 +131,10 @@ function getPreviousStep(currentStep: LegacyMigrationStep, hasLinkedAccounts: bo
     case "account-generation":
     case "bring-own-keypair":
       return hasLinkedAccounts ? "linked-nostr-auth" : "account-choice";
+    case "profile-setup":
+      return "account-generation"; // Could be from account-generation or bring-own-keypair
     case "linking":
-      return "account-generation"; // Can't go back from linking
+      return "profile-setup";
     default:
       return "firebase-auth";
   }
@@ -139,6 +150,7 @@ export interface UseLegacyMigrationStateMachineResult {
   generatedAccount: NostrAccount | null;
   createdLogin: import("@nostrify/react/login").NLoginType | null;
   generatedName: string | null;
+  profileData: ProfileData | null;
   canGoBack: boolean;
   
   // Loading helpers
@@ -151,6 +163,7 @@ export interface UseLegacyMigrationStateMachineResult {
     authenticateWithLinkedNostr: (credentials: NostrCredentials) => Promise<ActionResult>;
     generateNewAccount: () => Promise<ActionResult>;
     bringOwnKeypair: (credentials: NostrCredentials) => Promise<ActionResult>;
+    completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
     completeLogin: () => Promise<ActionResult>;
   };
   
@@ -236,6 +249,12 @@ export function useLegacyMigrationStateMachine(
       return { account };
     }, dispatch), [dependencies, state.firebaseUser]);
 
+  const completeProfile = useMemo(() =>
+    createAsyncAction("completeProfile", async (profileData: ProfileData) => {
+      dispatch({ type: "PROFILE_COMPLETED", profileData });
+      return {};
+    }, dispatch), []);
+
   const completeLogin = useMemo(() =>
     createAsyncAction("completeLogin", async () => {
       if (state.createdLogin && state.generatedName) {
@@ -243,14 +262,14 @@ export function useLegacyMigrationStateMachine(
         dependencies.addLogin(state.createdLogin);
         
         // Setup account (create wallet, publish profile)
-        // Legacy migration doesn't have custom profile data, pass null
-        await dependencies.setupAccount(null, state.generatedName);
+        // Use the profile data from the profile setup step
+        await dependencies.setupAccount(state.profileData, state.generatedName);
         
         dispatch({ type: "LOGIN_COMPLETED" });
         return { success: true };
       }
       throw new Error("No login or generated name available");
-    }, dispatch), [dependencies, state.createdLogin, state.generatedName]);
+    }, dispatch), [dependencies, state.createdLogin, state.generatedName, state.profileData]);
 
   // Navigation helpers
   const goBack = useCallback(() => {
@@ -279,6 +298,7 @@ export function useLegacyMigrationStateMachine(
     generatedAccount: state.generatedAccount,
     createdLogin: state.createdLogin,
     generatedName: state.generatedName,
+    profileData: state.profileData,
     canGoBack: state.canGoBack,
     
     // Helpers
@@ -291,6 +311,7 @@ export function useLegacyMigrationStateMachine(
       authenticateWithLinkedNostr,
       generateNewAccount,
       bringOwnKeypair,
+      completeProfile,
       completeLogin,
     },
     

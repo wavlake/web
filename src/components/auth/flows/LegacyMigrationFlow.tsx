@@ -13,7 +13,9 @@ import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
 import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
+import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
+import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface AuthFlowResult {
@@ -37,6 +39,7 @@ export function LegacyMigrationFlow({
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,
+    handleProfileCompletion,
     getStepTitle,
     getStepDescription,
     hasLinkedAccounts,
@@ -104,6 +107,19 @@ export function LegacyMigrationFlow({
           />
         );
 
+      case "profile-setup":
+        return (
+          <ProfileSetupStep
+            onComplete={handleProfileCompletion}
+            isLoading={stateMachine.isLoading("completeProfile")}
+            error={errorToString(stateMachine.getError("completeProfile"))}
+            isArtist={true} // Legacy users are typically artists
+            isSoloArtist={true} // Default to solo artist
+            createdLogin={stateMachine.createdLogin}
+            generatedName={stateMachine.generatedName}
+          />
+        );
+
       case "linking":
         return (
           <LoadingStep
@@ -114,21 +130,17 @@ export function LegacyMigrationFlow({
 
       case "complete":
         return (
-          <div className="text-center space-y-4">
-            <h3 className="text-lg font-semibold text-green-600">
-              Migration Complete!
-            </h3>
-            <p className="text-muted-foreground">
-              Your legacy account has been successfully migrated to the new
-              system.
-            </p>
-            <button
-              onClick={() => onComplete({ success: true })}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Continue to App
-            </button>
-          </div>
+          <AccountSummaryStep
+            onContinue={() => onComplete({ success: true })}
+            currentPubkey={stateMachine.generatedAccount?.pubkey || stateMachine.createdLogin?.pubkey || ""}
+            displayName={stateMachine.generatedName || stateMachine.profileData?.display_name}
+            linkedPubkeys={stateMachine.linkedPubkeys}
+            isLinked={true}
+            firebaseEmail={stateMachine.firebaseUser?.email || undefined}
+            hasFirebaseBackup={!!stateMachine.firebaseUser}
+            flowType="migration"
+            isArtist={true}
+          />
         );
 
       default:

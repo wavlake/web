@@ -11,6 +11,8 @@ import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
+import { FirebaseLinkingStep } from "../steps/signup/FirebaseLinkingStep";
+import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface SignupFlowProps {
@@ -24,7 +26,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     handleUserTypeSelection,
     handleArtistTypeSelection,
     handleProfileCompletion,
-    handleFirebaseBackupSetup,
+    handleFirebaseAccountCreation,
+    handleFirebaseAccountLinking,
     handleFirebaseBackupSkip,
     handleSignupCompletion,
     getStepTitle,
@@ -71,38 +74,44 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
       case "firebase-backup":
         return (
           <FirebaseBackupStep
-            onComplete={handleFirebaseBackupSetup}
+            onComplete={handleFirebaseAccountCreation}
             onSkip={handleFirebaseBackupSkip}
-            isLoading={stateMachine.isLoading("setupFirebaseBackup")}
-            error={errorToString(stateMachine.getError("setupFirebaseBackup"))}
+            isLoading={stateMachine.isLoading("createFirebaseAccount")}
+            error={errorToString(stateMachine.getError("createFirebaseAccount"))}
+          />
+        );
+
+      case "firebase-linking":
+        return (
+          <FirebaseLinkingStep
+            onComplete={handleFirebaseAccountLinking}
+            isLoading={stateMachine.isLoading("linkFirebaseAccount")}
+            error={errorToString(stateMachine.getError("linkFirebaseAccount"))}
+            firebaseUser={stateMachine.firebaseUser}
           />
         );
 
       case "complete":
         return (
-          <div className="text-center space-y-4">
-            <h3 className="text-lg font-semibold text-green-600">
-              Account Created Successfully!
-            </h3>
-            <p className="text-muted-foreground">
-              Welcome to Wavlake! Your account has been set up and you're ready
-              to explore.
-            </p>
-            <button
-              onClick={async () => {
-                // Complete the login process first
-                try {
-                  await handleSignupCompletion();
-                  onComplete({ isArtist: stateMachine.isArtist });
-                } catch (error) {
-                  console.error("Failed to complete signup:", error);
-                }
-              }}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Continue to App
-            </button>
-          </div>
+          <AccountSummaryStep
+            onContinue={async () => {
+              // Complete the login process first
+              try {
+                await handleSignupCompletion();
+                onComplete({ isArtist: stateMachine.isArtist });
+              } catch (error) {
+                console.error("Failed to complete signup:", error);
+              }
+            }}
+            currentPubkey={stateMachine.createdLogin?.pubkey || ""}
+            displayName={stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
+            linkedPubkeys={[]}
+            isLinked={false}
+            firebaseEmail={stateMachine.firebaseUser?.email || undefined}
+            hasFirebaseBackup={!!stateMachine.firebaseUser}
+            flowType="signup"
+            isArtist={stateMachine.isArtist}
+          />
         );
 
       default:

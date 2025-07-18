@@ -63,6 +63,7 @@ export type SignupStep =
   | "artist-type"  
   | "profile-setup"
   | "firebase-backup"
+  | "firebase-linking"
   | "complete";
 
 export interface SignupState extends BaseStateMachineState {
@@ -73,6 +74,7 @@ export interface SignupState extends BaseStateMachineState {
   createdLogin: NLoginType | null;
   generatedName: string | null;
   profileData: ProfileData | null;
+  firebaseUser: FirebaseUser | null;
 }
 
 export type SignupAction = 
@@ -80,7 +82,8 @@ export type SignupAction =
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName: string }
   | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
-  | { type: "FIREBASE_BACKUP_COMPLETED" }
+  | { type: "FIREBASE_ACCOUNT_CREATED"; firebaseUser: FirebaseUser }
+  | { type: "FIREBASE_LINKING_COMPLETED" }
   | { type: "FIREBASE_BACKUP_SKIPPED" }
   | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction
@@ -113,6 +116,7 @@ export type LegacyMigrationStep =
   | "account-choice"
   | "account-generation"
   | "bring-own-keypair"
+  | "profile-setup"
   | "linking"
   | "complete";
 
@@ -148,6 +152,7 @@ export interface LegacyMigrationState extends BaseStateMachineState {
   generatedAccount: NostrAccount | null;
   createdLogin: NLoginType | null;
   generatedName: string | null;
+  profileData: ProfileData | null;
 }
 
 export type LegacyMigrationAction = 
@@ -157,6 +162,7 @@ export type LegacyMigrationAction =
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }
   | { type: "KEYPAIR_AUTHENTICATED"; account: NostrAccount }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName?: string }
+  | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
   | { type: "LINKING_COMPLETED" }
   | { type: "LOGIN_COMPLETED" }
   | AsyncStartAction
