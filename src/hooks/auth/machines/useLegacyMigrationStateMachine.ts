@@ -11,6 +11,8 @@ import { ActionResult, LegacyMigrationState, LegacyMigrationAction, LegacyMigrat
 import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
 import { User as FirebaseUser } from 'firebase/auth';
 import { type ProfileData } from '@/types/profile';
+import { makeLinkedPubkeysRequest } from '@/hooks/useLinkedPubkeys';
+import { makeLinkAccountRequest } from '../useLinkAccount';
 
 const initialState: LegacyMigrationState = {
   step: "firebase-auth",
@@ -175,10 +177,8 @@ export interface UseLegacyMigrationStateMachineResult {
 
 export interface LegacyMigrationStateMachineDependencies {
   firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
-  checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<LinkedPubkey[]>;
   authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NostrAccount>;
   createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
-  linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: NostrAccount) => Promise<void>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
   setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
 }
@@ -195,8 +195,9 @@ export function useLegacyMigrationStateMachine(
       const firebaseUser = await dependencies.firebaseAuth(email, password);
       dispatch({ type: "FIREBASE_AUTH_COMPLETED", firebaseUser });
       
-      // Check for linked pubkeys
-      const linkedPubkeys = await dependencies.checkLinkedPubkeys(firebaseUser);
+      // Check for linked pubkeys using direct API call
+      const firebaseToken = await firebaseUser.getIdToken();
+      const linkedPubkeys = await makeLinkedPubkeysRequest(firebaseUser, firebaseToken);
       dispatch({ type: "LINKS_CHECKED", linkedPubkeys });
       
       return { firebaseUser, linkedPubkeys };
@@ -229,11 +230,17 @@ export function useLegacyMigrationStateMachine(
       };
       dispatch({ type: "ACCOUNT_GENERATED", account });
       
-      // Link to Firebase atomically
+      // Link to Firebase atomically using direct API call
       if (!state.firebaseUser) {
         throw new Error("Firebase user not available for linking");
       }
-      await dependencies.linkAccounts(state.firebaseUser, account);
+      const firebaseToken = await state.firebaseUser.getIdToken();
+      await makeLinkAccountRequest({
+        pubkey: account.pubkey,
+        firebaseUid: state.firebaseUser.uid,
+        authToken: firebaseToken,
+        signer: account.signer as any,
+      });
       
       // Skip separate linking step and go directly to complete
       dispatch({ type: "LOGIN_COMPLETED" });
@@ -247,11 +254,17 @@ export function useLegacyMigrationStateMachine(
       const account = await dependencies.authenticateNostr("nsec", credentials);
       dispatch({ type: "KEYPAIR_AUTHENTICATED", account });
       
-      // Link to Firebase atomically
+      // Link to Firebase atomically using direct API call
       if (!state.firebaseUser) {
         throw new Error("Firebase user not available for linking");
       }
-      await dependencies.linkAccounts(state.firebaseUser, account);
+      const firebaseToken = await state.firebaseUser.getIdToken();
+      await makeLinkAccountRequest({
+        pubkey: account.pubkey,
+        firebaseUid: state.firebaseUser.uid,
+        authToken: firebaseToken,
+        signer: account.signer as any,
+      });
       
       // Skip separate linking step and go directly to complete
       dispatch({ type: "LOGIN_COMPLETED" });

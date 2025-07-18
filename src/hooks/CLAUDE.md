@@ -921,6 +921,145 @@ export function useBatchedUpdates() {
 }
 ```
 
+## 📊 Hook Inventory: HTTP API vs Nostr Relay Queries
+
+### 🌐 **HTTP API Hooks** (External Services)
+These hooks make HTTP requests to external APIs, including Wavlake's legacy API, third-party services, and file upload servers.
+
+#### **Wavlake Legacy API** (`/legacy` endpoints)
+- `useLegacyMetadata()` - User profile and metadata
+- `useLegacyTracks()` - User's music tracks  
+- `useLegacyArtists()` - User's artist profiles
+- `useLegacyAlbums()` - User's albums
+- `useLegacyArtistTracks(artistId)` - Tracks for specific artist
+- `useLegacyAlbumTracks(albumId)` - Tracks for specific album
+- `useLegacyProfile(firebaseUser)` - Legacy user profile data
+
+#### **Wavlake New API** (`/v1` endpoints)
+- `makeLinkedPubkeysRequest()` - Get linked Firebase/Nostr accounts
+- `makeLinkAccountRequest()` - Link Firebase and Nostr accounts
+- `useAccountLinkingStatus()` - Check account linking status
+- `useReceivedNutzaps()` - Fetch received Bitcoin payments
+
+#### **File Upload & Storage**
+- `useUploadFile()` - Blossom server file uploads (NIP-94)
+- `useUploadAudio()` - Audio file processing and upload
+- `useTrackProcessingStatus()` - Audio processing status
+
+#### **Third-Party APIs**
+- `useBitcoinPrice()` - Coinbase API for BTC/USD rates
+- `useNip05Verification(nip05, pubkey)` - NIP-05 identity verification
+- `usePushSubscription()` - Web Push notification subscriptions
+
+#### **Local/Static Resources**
+- `useMarkdown(path)` - Local markdown file loading
+- `useMarkdownWithoutFirstHeading(path)` - Processed markdown loading
+- `useExtractUrls()` - URL extraction utilities
+
+### ⚡ **Nostr Relay Hooks** (Decentralized Network)
+These hooks query Nostr relays for decentralized data using the Nostr protocol.
+
+#### **User Data & Profiles**
+- `useAuthor(pubkey)` - Kind 0 metadata events (profiles)
+- `useCurrentUser()` - Current authenticated user state
+- `useProfileSync()` - Sync profile changes to relays
+- `useFollowList(pubkey)` - Kind 3 follow lists
+
+#### **Community & Group Management**
+- `useGroup(groupId)` - Kind 34550 community definition events
+- `useUserGroups()` - User's community memberships
+- `useGroupMembership(communityId)` - Community membership status
+- `useApprovedMembers(communityId)` - Kind 27 community members
+- `useBannedUsers(communityId)` - Community ban lists
+- `usePendingJoinRequests(communityId)` - Join request events
+- `useGroupStats(communities)` - Community statistics
+- `useGroupModeration({communityId, selectedCommunity})` - Moderation tools
+- `useReportActions()` - Content reporting and moderation
+- `useGroupReports(communityId)` - Community report events
+- `useOpenReportsCount(communityId)` - Count of open reports
+- `usePinnedGroups()` - User's pinned communities
+
+#### **Content & Posts**
+- `useCommunityContent(communityId)` - Community posts and content
+- `useCommunityTracks(communityId)` - Music tracks in community
+- `useCommunityAlbums(communityId)` - Albums in community
+- `useCommunityActivity(communityId)` - Community activity feed
+- `usePostById(eventId)` - Specific post by event ID
+- `usePinnedPosts(communityId)` - Pinned posts in community
+- `usePendingPostsCount(communityId)` - Count of pending posts
+- `useReplies(postId, communityId)` - Post replies and comments
+- `useNestedReplies(replyId)` - Nested reply threads
+- `usePendingReplies(communityId)` - Pending reply approvals
+- `useReplyApprovals(communityId)` - Reply approval management
+
+#### **Interactions & Social**
+- `useLikes(eventId)` - Like/reaction events for content
+- `useNotifications()` - User notifications and mentions
+- `useMarkNotificationAsRead()` - Mark notifications as read
+- `useUnreadNotificationsCount()` - Count unread notifications
+
+#### **Music & Content Publishing**
+- `useMusicPublish()` - Publish music tracks to Nostr
+- `usePublishAudioEvent()` - Publish audio events
+- `useDraftPublish()` - Publish draft content
+- `useNostrPublish(options)` - General event publishing with auto-invalidation
+- `useArtistAlbums(artistPubkey)` - Artist's album collection
+- `useDrafts` hooks - Draft content management
+- `useUploadHistory()` - Upload history tracking
+
+#### **Bitcoin & Payments**
+- `useCashuWallet()` - NIP-60 Cashu ecash wallet management
+- `useCashuHistory()` - Cashu transaction history
+- `useCashuToken()` - Cashu token management
+- `useNutzaps()` - Bitcoin zap events
+- `useNutzapInfo(pubkey)` - Zap recipient information
+- `useSendNutzap()` - Send Bitcoin payments
+- `useGroupNutzaps(groupId)` - Group-specific zaps
+- `useTrackNutzapTotals(trackIds)` - Track zap totals
+- `useAutoReceiveNutzaps()` - Automatic zap receiving
+- `useNutzapRedemption()` - Redeem received zaps
+
+#### **Application State & Settings**
+- `useAppSettings()` - User application settings (stored as Nostr events)
+- `useUpdateAppSetting()` - Update application settings
+- `useTrendingHashtags(limit)` - Trending hashtag analysis
+
+### 🔄 **Hybrid Hooks** (Both HTTP + Nostr)
+These hooks combine both HTTP API calls and Nostr relay queries.
+
+- `useLegacyApi` hooks - Use dual authentication (Firebase token preferred, NIP-98 fallback)
+- `useAccountLinkingStatus()` - Checks both Firebase API and Nostr state
+
+### 🛠️ **Utility & UI Hooks**
+These hooks don't make network requests but provide application functionality.
+
+- `useToast()` - Toast notification system
+- `useTheme()` - Theme management (light/dark)
+- `useSystemTheme()` - System theme detection
+- `useIsMobile()` - Mobile device detection
+- `usePWA()` - Progressive Web App features
+- `useAudioPlayer()` - Music player state management
+
+## 🏗️ **Architectural Patterns**
+
+### **Direct API Functions vs Hook Wrappers**
+Following the pattern established in `useLinkAccount.ts` and `useLinkedPubkeys.ts`:
+
+```typescript
+// ✅ Pattern: Export both direct function and hook
+export const makeApiRequest = async (params) => { /* Direct API call */ };
+export const useApiData = () => useQuery({ queryFn: () => makeApiRequest() });
+
+// Usage:
+// - Components: const { data } = useApiData() // With caching, loading states
+// - State machines: const result = await makeApiRequest() // Direct, no overhead
+```
+
+### **Authentication Strategy**
+- **Nostr-first**: All Nostr hooks use current user authentication
+- **Dual auth**: Legacy API hooks prefer Firebase token, fallback to NIP-98
+- **Direct calls**: State machines use direct API functions, not hook wrappers
+
 ## 📈 Current Implementation Status
 
 ### ✅ **Complete & Production Ready**

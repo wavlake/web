@@ -15,10 +15,8 @@ import { NostrAccount } from "../machines/types";
 import { User as FirebaseUser } from "firebase/auth";
 import { type ProfileData } from "@/types/profile";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
-import { useLinkedPubkeys } from "@/hooks/useLinkedPubkeys";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
-import { useLinkAccount } from "../useLinkAccount";
 
 export interface UseLegacyMigrationFlowResult {
   // State machine interface
@@ -50,11 +48,8 @@ export interface UseLegacyMigrationFlowResult {
 export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   // External dependencies
   const firebaseAuth = useFirebaseAuth();
-  const { data: linkedPubkeys, refetch: checkLinkedPubkeys } =
-    useLinkedPubkeys();
   const { loginWithExtension, loginWithNsec, addLogin } = useCurrentUser();
   const { createAccount, setupAccount } = useCreateNostrAccount();
-  const { mutateAsync: linkAccounts } = useLinkAccount();
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
@@ -96,16 +91,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [firebaseAuth]
   );
 
-  // Create other dependency functions
-  const checkLinkedPubkeysDependency = useCallback(
-    async (firebaseUser: FirebaseUser) => {
-      // TODO: Replace with actual API call to check linked pubkeys for Firebase user
-      // For now, use the existing hook but ignore the firebaseUser parameter
-      await checkLinkedPubkeys();
-      return linkedPubkeys || [];
-    },
-    [checkLinkedPubkeys, linkedPubkeys]
-  );
+  // No longer need checkLinkedPubkeysDependency - using direct API call in state machine
 
   const authenticateNostrDependency = useCallback(
     async (method: NostrAuthMethod, credentials: NostrCredentials) => {
@@ -127,13 +113,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     return await createAccount();
   }, [createAccount]);
 
-  const linkAccountsDependency = useCallback(
-    async (firebaseUser: FirebaseUser, nostrAccount: unknown) => {
-      // TODO: Implement proper account linking with both user objects
-      await linkAccounts();
-    },
-    [linkAccounts]
-  );
+  // linkAccounts dependency removed - now using direct API calls in state machine
 
   const setupAccountDependency = useCallback(
     async (_profileData: ProfileData | null, generatedName: string) => {
@@ -146,10 +126,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   // State machine with dependencies injected
   const stateMachine = useLegacyMigrationStateMachine({
     firebaseAuth: firebaseAuthDependency,
-    checkLinkedPubkeys: checkLinkedPubkeysDependency,
     authenticateNostr: authenticateNostrDependency,
     createAccount: createAccountDependency,
-    linkAccounts: linkAccountsDependency,
     addLogin,
     setupAccount: setupAccountDependency,
   });
