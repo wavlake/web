@@ -58,6 +58,11 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         throw new Error("Firebase is not configured for this environment");
       }
 
+      // If user is already logged in and credentials are empty, use existing user
+      if (!email && !password && firebaseAuth.user) {
+        return firebaseAuth.user;
+      }
+
       try {
         const userCredential = await firebaseAuth.loginWithEmailAndPassword({
           email,
@@ -82,9 +87,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
             throw new Error("This account has been disabled");
           }
         }
-        
-        const message =
-          error instanceof Error ? error.message : "Login failed";
+
+        const message = error instanceof Error ? error.message : "Login failed";
         throw new Error(message);
       }
     },
@@ -230,7 +234,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       case "firebase-auth":
         return "Sign in with your legacy Wavlake account and we'll get you migrated.";
       case "checking-links":
-        return "Looking for existing Nostr accounts linked to your email...";
+        return "";
       case "linked-nostr-auth":
         return "We found a Nostr account linked to your email. Please sign in with it.";
       case "account-choice":

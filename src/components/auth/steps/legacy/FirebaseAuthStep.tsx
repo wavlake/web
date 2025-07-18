@@ -17,7 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, User, LogOut } from "lucide-react";
+import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 
 // ============================================================================
 // Types
@@ -25,6 +26,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface FirebaseAuthStepProps {
   onComplete: (email: string, password: string) => Promise<void>;
+  onContinueWithExistingUser?: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
   onCancel?: () => void;
@@ -46,10 +48,12 @@ interface FormErrors {
 
 export function FirebaseAuthStep({
   onComplete,
+  onContinueWithExistingUser,
   isLoading,
   error,
   onCancel,
 }: FirebaseAuthStepProps) {
+  const { user: firebaseUser, logout: firebaseLogout } = useFirebaseAuth();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -117,10 +121,112 @@ export function FirebaseAuthStep({
     setShowPassword((prev) => !prev);
   };
 
+  const handleContinue = async () => {
+    if (onContinueWithExistingUser) {
+      await onContinueWithExistingUser();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await firebaseLogout();
+    } catch (error) {
+      console.error('Firebase logout failed:', error);
+    }
+  };
+
   // ============================================================================
   // Render
   // ============================================================================
 
+  // If user is already logged in, show continue/logout options
+  if (firebaseUser) {
+    const displayName = firebaseUser.displayName || firebaseUser.email || "Unknown User";
+    const userInitial = displayName.charAt(0).toUpperCase();
+
+    return (
+      <div className="space-y-4">
+        {/* Global Error */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Logged in user card */}
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-green-800">
+              <User className="h-5 w-5" />
+              Already Signed In
+            </CardTitle>
+            <CardDescription className="text-green-700">
+              You're logged in as {displayName}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* User info display */}
+            <div className="flex items-center justify-center gap-3 p-4 bg-white rounded-lg">
+              <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-medium">
+                {userInitial}
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-gray-900">{displayName}</p>
+                {firebaseUser.email && (
+                  <p className="text-sm text-gray-500">{firebaseUser.email}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="space-y-2">
+              {onContinueWithExistingUser && (
+                <Button 
+                  onClick={handleContinue} 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Continuing...
+                    </>
+                  ) : (
+                    "Continue with this account"
+                  )}
+                </Button>
+              )}
+              
+              <Button 
+                onClick={handleLogout} 
+                variant="outline" 
+                className="w-full"
+                disabled={isLoading}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out and use different account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cancel Button */}
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Original login form for users not logged in
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Global Error */}

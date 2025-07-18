@@ -55,6 +55,10 @@ export function LegacyMigrationFlow({
         return (
           <FirebaseAuthStep
             onComplete={handleFirebaseAuthentication}
+            onContinueWithExistingUser={async () => {
+              // Use empty credentials - the dependency will detect existing user
+              await handleFirebaseAuthentication("", "");
+            }}
             isLoading={stateMachine.isLoading("authenticateWithFirebase")}
             error={errorToString(stateMachine.getError("authenticateWithFirebase"))}
           />
