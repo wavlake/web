@@ -129,11 +129,11 @@ export interface AuthContextType {
   // Utility methods
   clearError: () => void;
   reauthenticate: (password: string) => Promise<void>;
-  
+
   // Validation helpers
   isValidEmail: (email: string) => boolean;
   isValidPassword: (password: string, strict?: boolean) => boolean;
-  getPasswordStrength: (password: string) => 'weak' | 'medium' | 'strong';
+  getPasswordStrength: (password: string) => "weak" | "medium" | "strong";
 }
 
 // Create context
@@ -163,7 +163,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     return initializeFirebaseAuth().auth;
   }, [isConfigured]);
 
-
   // Error handler
   const handleError = useCallback((error: unknown, defaultMessage: string) => {
     handleFirebaseError(error, defaultMessage, (message) => {
@@ -182,30 +181,38 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     return emailRegex.test(email);
   }, []);
 
-  const isValidPassword = useCallback((password: string, strict: boolean = false): boolean => {
-    if (strict) {
-      // Strict validation for signup
-      return password.length >= 6;
-    }
-    // Less strict for signin
-    return password.length > 0;
-  }, []);
+  const isValidPassword = useCallback(
+    (password: string, strict: boolean = false): boolean => {
+      if (strict) {
+        // Strict validation for signup
+        return password.length >= 6;
+      }
+      // Less strict for signin
+      return password.length > 0;
+    },
+    []
+  );
 
-  const getPasswordStrength = useCallback((password: string): 'weak' | 'medium' | 'strong' => {
-    if (password.length < 6) return 'weak';
-    if (password.length < 10) return 'medium';
-    
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
-    const criteria = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
-    
-    if (criteria >= 3) return 'strong';
-    if (criteria >= 2) return 'medium';
-    return 'weak';
-  }, []);
+  const getPasswordStrength = useCallback(
+    (password: string): "weak" | "medium" | "strong" => {
+      if (password.length < 6) return "weak";
+      if (password.length < 10) return "medium";
+
+      const hasUpper = /[A-Z]/.test(password);
+      const hasLower = /[a-z]/.test(password);
+      const hasNumber = /\d/.test(password);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+      const criteria = [hasUpper, hasLower, hasNumber, hasSpecial].filter(
+        Boolean
+      ).length;
+
+      if (criteria >= 3) return "strong";
+      if (criteria >= 2) return "medium";
+      return "weak";
+    },
+    []
+  );
 
   // Get auth token
   const getAuthToken = useCallback(async (): Promise<string | null> => {
@@ -266,7 +273,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
             displayName: credentials.displayName,
           });
         }
-
         return result;
       } catch (error) {
         handleError(error, "Registration failed");
@@ -544,7 +550,7 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
     // Utility methods
     clearError,
     reauthenticate,
-    
+
     // Validation helpers
     isValidEmail,
     isValidPassword,
