@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Shield } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileSync } from "@/hooks/useProfileSync";
@@ -306,15 +306,6 @@ export function NostrAuthStep({
     </div>
   );
 }
-
-// ============================================================================
-// Default Props
-// ============================================================================
-
-NostrAuthStep.defaultProps = {
-  title: "Sign in with Nostr",
-  description: "Choose your preferred authentication method",
-} as Partial<NostrAuthStepProps>;
 
 // ============================================================================
 // Display Name
