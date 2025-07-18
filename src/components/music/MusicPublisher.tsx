@@ -111,7 +111,7 @@ interface LegacyUploadItem extends BaseUploadItem {
   type?: "track" | "album";
   trackCount?: number; // Only meaningful for albums
   draftData?: DraftTrack | DraftAlbum;
-  event?: any; // NostrEvent from upload history
+  event?: unknown; // NostrEvent from upload history
 }
 
 // Type guards for better type safety when working with LegacyUploadItem

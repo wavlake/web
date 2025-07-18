@@ -29,7 +29,7 @@ interface PublishedTrack {
   price?: number;
   coverUrl?: string;
   tags?: string[];
-  event?: any; // NostrEvent
+  event?: unknown; // NostrEvent
 }
 
 // Published album interface for conversion to draft
@@ -47,7 +47,7 @@ interface PublishedAlbum {
   label?: string;
   tags?: string[];
   tracks: AlbumTrack[];
-  event?: any; // NostrEvent
+  event?: unknown; // NostrEvent
 }
 
 // Track within an album
@@ -354,7 +354,7 @@ export function useDraftPublish() {
         kind: 5,
         content: "Track converted to draft",
         tags: [
-          ...(track.event?.id ? [["e", track.event.id]] : []),
+          ...(track.event && typeof track.event === 'object' && 'id' in track.event && typeof track.event.id === 'string' ? [["e", track.event.id]] : []),
           ["k", TRACK_KIND.toString()]
         ]
       };
@@ -448,7 +448,7 @@ export function useDraftPublish() {
         kind: 5,
         content: "Album converted to draft",
         tags: [
-          ...(album.event?.id ? [["e", album.event.id]] : []),
+          ...(album.event && typeof album.event === 'object' && 'id' in album.event && typeof album.event.id === 'string' ? [["e", album.event.id]] : []),
           ["k", ALBUM_KIND.toString()]
         ]
       };

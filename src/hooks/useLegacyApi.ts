@@ -21,7 +21,7 @@ const API_BASE_URL =
  */
 async function fetchLegacyApi<T>(
   endpoint: string, 
-  signer: any, 
+  signer: unknown, 
   getAuthToken?: () => Promise<string | null>
 ): Promise<T> {
   const url = `${API_BASE_URL}/legacy${endpoint}`;
@@ -43,14 +43,14 @@ async function fetchLegacyApi<T>(
       if (!signer) {
         throw new Error("No Firebase token or Nostr signer available");
       }
-      authHeader = await createNip98AuthHeader(url, method, {}, signer);
+      authHeader = await createNip98AuthHeader(url, method, {}, signer as any);
     }
   } else {
     // No Firebase auth available, use NIP-98
     if (!signer) {
       throw new Error("No Nostr signer available");
     }
-    authHeader = await createNip98AuthHeader(url, method, {}, signer);
+    authHeader = await createNip98AuthHeader(url, method, {}, signer as any);
   }
 
   const response = await fetch(url, {
