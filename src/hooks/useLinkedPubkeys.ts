@@ -22,6 +22,10 @@ export const makeLinkedPubkeysRequest = async (
   firebaseUser: FirebaseUser,
   authToken: string
 ): Promise<LinkedPubkey[]> => {
+  console.log("[makeLinkedPubkeysRequest] Fetching linked pubkeys", {
+    firebaseUser: firebaseUser.uid,
+  });
+
   const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
     method: "GET",
     headers: {
@@ -36,13 +40,13 @@ export const makeLinkedPubkeysRequest = async (
 
   const data = await response.json();
   const mostRecentlyLinked = data.linked_pubkeys?.[0]?.pubkey;
-  return (data.linked_pubkeys || []).map((item: { pubkey: string; linked_at?: string }) => ({
-    pubkey: item.pubkey,
-    linkedAt: item.linked_at
-      ? new Date(item.linked_at).getTime()
-      : undefined,
-    isMostRecentlyLinked: item.pubkey === mostRecentlyLinked,
-  }));
+  return (data.linked_pubkeys || []).map(
+    (item: { pubkey: string; linked_at?: string }) => ({
+      pubkey: item.pubkey,
+      linkedAt: item.linked_at ? new Date(item.linked_at).getTime() : undefined,
+      isMostRecentlyLinked: item.pubkey === mostRecentlyLinked,
+    })
+  );
 };
 
 /**
@@ -65,4 +69,3 @@ export function useLinkedPubkeys() {
     enabled: !!currentUser,
   });
 }
-

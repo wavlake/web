@@ -99,8 +99,14 @@ export function LegacyMigrationFlow({
       case "account-choice":
         return (
           <AccountChoiceStep
-            onGenerateNew={() => handleAccountGeneration()}
-            onBringOwn={() => handleBringOwnKeypair()}
+            createdLogin={stateMachine.createdLogin}
+            generatedName={stateMachine.generatedName}
+            onSaveProfile={handleProfileCompletion}
+            onSignInWithExisting={handleBringOwnKeypairWithCredentials}
+            onAutoGenerate={handleAccountGeneration}
+            isLoading={stateMachine.isLoading("completeProfile") || stateMachine.isLoading("bringOwnKeypair")}
+            error={errorToString(stateMachine.getError("generateNewAccount") || stateMachine.getError("completeProfile") || stateMachine.getError("bringOwnKeypair"))}
+            isGenerating={stateMachine.isLoading("generateNewAccount")}
           />
         );
 
@@ -150,7 +156,7 @@ export function LegacyMigrationFlow({
           <AccountSummaryStep
             onContinue={() => onComplete({ success: true })}
             currentPubkey={stateMachine.generatedAccount?.pubkey || stateMachine.createdLogin?.pubkey || ""}
-            displayName={stateMachine.generatedName || stateMachine.profileData?.display_name}
+            displayName={stateMachine.profileData?.name || stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
             linkedPubkeys={stateMachine.linkedPubkeys}
             isLinked={true}
             firebaseEmail={stateMachine.firebaseUser?.email || undefined}

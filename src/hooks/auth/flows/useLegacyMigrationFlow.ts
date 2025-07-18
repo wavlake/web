@@ -156,9 +156,9 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   // linkAccounts dependency removed - now using direct API calls in state machine
 
   const setupAccountDependency = useCallback(
-    async (_profileData: ProfileData | null, generatedName: string) => {
-      // Legacy migration doesn't have custom profile data, always pass null
-      return await setupAccount(null, generatedName);
+    async (profileData: ProfileData | null, generatedName: string) => {
+      // Pass through the custom profile data from AccountChoiceStep
+      return await setupAccount(profileData, generatedName);
     },
     [setupAccount]
   );
@@ -211,21 +211,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   }, [stateMachine.actions]);
 
   const handleAccountGeneration = useCallback(async () => {
-    console.log(`🎯 [LegacyMigrationFlow] handleAccountGeneration called:`, {
-      currentStep: stateMachine.step,
-      hasFirebaseUser: !!stateMachine.firebaseUser,
-      timestamp: new Date().toISOString(),
-    });
-
     const result = await stateMachine.actions.generateNewAccount();
-
-    console.log(`📋 [LegacyMigrationFlow] generateNewAccount result:`, {
-      success: result.success,
-      error: result.error?.message,
-      newStep: stateMachine.step,
-      timestamp: new Date().toISOString(),
-    });
-
     if (!result.success) {
       throw result.error || new Error("Account generation failed");
     }
@@ -296,7 +282,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const getStepDescription = useCallback(() => {
     switch (stateMachine.step) {
       case "firebase-auth":
-        return "Sign in with your legacy Wavlake account to migrate.";
+        return "Sign in with your legacy Wavlake account.";
       case "checking-links":
         return "";
       case "linked-nostr-auth":

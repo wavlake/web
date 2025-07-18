@@ -121,6 +121,9 @@ export function useCashuWallet() {
   // Create or update wallet
   const createWalletMutation = useMutation({
     mutationFn: async (walletData: CashuWalletStruct) => {
+      console.log("[useCashuWallet] Creating or updating wallet", {
+        walletData,
+      });
       if (!user) throw new Error("User not logged in");
       if (!user.signer.nip44) {
         throw new Error("NIP-44 encryption not supported by your signer");

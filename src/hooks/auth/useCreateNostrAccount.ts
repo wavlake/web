@@ -12,7 +12,10 @@ interface UseCreateAccountReturn {
   isCreating: boolean;
   generatedName: string | null;
   createAccount: () => Promise<{ login: NLoginType; generatedName: string }>;
-  setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
+  setupAccount: (
+    profileData: ProfileData | null,
+    generatedName: string
+  ) => Promise<void>;
 }
 
 export const useCreateNostrAccount = (): UseCreateAccountReturn => {
@@ -24,9 +27,18 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
 
   // For wallet creation, use the current authenticated user
   // This allows setupAccount to work after addLogin has been called
-  const { mutateAsync: createCashuWallet } = useSignupCreateCashuWallet(currentUser || null);
+  const { mutateAsync: createCashuWallet } = useSignupCreateCashuWallet(
+    currentUser || null
+  );
 
-  const createAccount = async (): Promise<{ login: NLoginType; generatedName: string }> => {
+  const createAccount = async (): Promise<{
+    login: NLoginType;
+    generatedName: string;
+  }> => {
+    console.log("[useCreateNostrAccount] Creating account", {
+      isCreating,
+      generatedName,
+    });
     setIsCreating(true);
 
     try {
@@ -40,7 +52,6 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
       // Generate fake name
       const fakeName = generateFakeName();
       setGeneratedName(fakeName);
-
 
       // Return the login and generated name for the flow to handle
       return { login, generatedName: fakeName };
@@ -56,11 +67,11 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
     }
   };
 
-  const setupAccount = async (profileData: ProfileData | null, generatedName: string): Promise<void> => {
+  const setupAccount = async (
+    profileData: ProfileData | null,
+    generatedName: string
+  ): Promise<void> => {
     try {
-      // Create Cashu wallet
-      await createCashuWallet();
-
       // Use profile data from form if available, fallback to generated name
       let finalProfileData: ProfileData;
       if (profileData) {
@@ -68,14 +79,26 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
       } else {
         finalProfileData = { name: generatedName };
       }
+
+      console.log("[useCreateNostrAccount] Setting up account", {
+        profileData,
+        generatedName,
+        finalProfileData,
+      });
       
+      // Create Cashu wallet
+      await createCashuWallet();
+
       await publishEvent({
         kind: 0,
         content: JSON.stringify(finalProfileData),
       });
     } catch (error) {
       // Non-critical errors - continue anyway
-      console.error("❌ [useCreateNostrAccount] Error during account setup:", error);
+      console.error(
+        "❌ [useCreateNostrAccount] Error during account setup:",
+        error
+      );
     }
   };
 
