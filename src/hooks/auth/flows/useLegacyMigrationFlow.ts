@@ -211,7 +211,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       case "checking-links":
         return "Checking Linked Accounts";
       case "linked-nostr-auth":
-        return "Sign in with Linked Nostr Account";
+        return "Sign in with Linked Account";
       case "account-choice":
         return "Choose Account Setup";
       case "account-generation":
@@ -236,7 +236,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       case "checking-links":
         return "";
       case "linked-nostr-auth":
-        return "We found a Nostr account linked to your email. Please sign in with it.";
+        return "We found an existing account linked to your email. Please sign in with it.";
       case "account-choice":
         return "How would you like to set up your Nostr account?";
       case "account-generation":

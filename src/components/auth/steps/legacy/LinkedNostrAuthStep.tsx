@@ -25,10 +25,6 @@ import { NostrAuthErrorDisplay } from "../../ui/NostrAuthErrorDisplay";
 import { AuthLoadingStates, AuthErrors } from "../../types";
 import { formatPubkey, formatTimeAgo } from "../../utils/formatters";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface LinkedNostrAuthStepProps {
   expectedPubkey: string | null;
   linkedPubkeys: LinkedPubkey[];
@@ -46,18 +42,6 @@ interface NostrCredentials {
   nsec?: string;
   bunkerUri?: string;
 }
-
-// ============================================================================
-// Helper Functions (now using extracted utilities)
-// ============================================================================
-
-// Helper functions are now imported from extracted utilities:
-// - formatPubkey() from formatters.ts
-// - formatTimeAgo() from formatters.ts
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export function LinkedNostrAuthStep({
   expectedPubkey,
@@ -79,10 +63,8 @@ export function LinkedNostrAuthStep({
     bunker: null,
   });
 
-  // Find the expected account info
-  const expectedAccount = expectedPubkey
-    ? linkedPubkeys.find((p) => p.pubkey === expectedPubkey)
-    : null;
+  // Use the first account as the expected account
+  const expectedAccount = linkedPubkeys.length > 0 ? linkedPubkeys[0] : null;
 
   const handleExtensionAuth = async () => {
     setLoadingStates((prev) => ({ ...prev, extension: true }));
@@ -137,131 +119,82 @@ export function LinkedNostrAuthStep({
       setLoadingStates((prev) => ({ ...prev, bunker: false }));
     }
   };
-
+  const [lastLinkedPubkey] = linkedPubkeys;
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <CardTitle className="flex items-center justify-center gap-2">
-          <CheckCircle className="h-5 w-5 text-green-500" />
-          Linked Account Found
-        </CardTitle>
-        <CardDescription>
-          We found a Nostr account linked to your Wavlake account
-        </CardDescription>
-      </CardHeader>
+    <div>
+      {/* Error Display */}
+      <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
 
-      <CardContent className="space-y-6">
-        {/* Error Display */}
-        <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
-
-        {/* Linked Accounts Info */}
-        <div className="space-y-3">
+      {lastLinkedPubkey && (
+        <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              Linked Accounts ({linkedPubkeys.length}):
-            </span>
+            <span className="text-sm font-medium">Linked Account:</span>
           </div>
-
-          <div className="space-y-2">
-            {linkedPubkeys.map((account, index) => (
-              <div
-                key={account.pubkey}
-                className={`rounded-lg p-3 space-y-2 ${
-                  account.pubkey === expectedPubkey
-                    ? "bg-primary/10 border border-primary/20"
-                    : "bg-muted"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <code className="text-sm">
-                      {formatPubkey(account.pubkey)}
-                    </code>
-                  </div>
-                  <div className="flex gap-1">
-                    {account.pubkey === expectedPubkey && (
-                      <Badge variant="default" className="text-xs">
-                        Expected
-                      </Badge>
-                    )}
-                    {account.isMostRecentlyLinked && (
-                      <Badge variant="secondary" className="text-xs">
-                        Most Recent
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                {account.linkedAt && (
-                  <div className="text-xs text-muted-foreground">
-                    Linked {formatTimeAgo(account.linkedAt)}
-                  </div>
-                )}
-                {account.profile && (
-                  <div className="text-xs text-muted-foreground">
-                    {account.profile.display_name ||
-                      account.profile.name ||
-                      "No profile name"}
-                  </div>
-                )}
+          <div
+            key={lastLinkedPubkey.pubkey}
+            className="rounded-lg p-3 space-y-2 bg-primary/10 border border-primary/20"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <code className="text-sm">
+                  {formatPubkey(lastLinkedPubkey.pubkey)}
+                </code>
               </div>
-            ))}
-          </div>
-
-          {expectedPubkey && (
-            <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded border border-blue-200">
-              <strong>Note:</strong> Please authenticate with the "Expected"
-              account highlighted above to complete your migration.
             </div>
-          )}
+            {lastLinkedPubkey.linkedAt && (
+              <div className="text-xs text-muted-foreground">
+                Linked {formatTimeAgo(lastLinkedPubkey.linkedAt)}
+              </div>
+            )}
+            {lastLinkedPubkey.profile && (
+              <div className="text-xs text-muted-foreground">
+                {lastLinkedPubkey.profile.display_name ||
+                  lastLinkedPubkey.profile.name ||
+                  "No profile name"}
+              </div>
+            )}
+          </div>
         </div>
+      )}
 
-        <Separator />
+      <Separator />
 
-        {/* Tabbed Authentication Interface */}
-        <NostrAuthTabs
-          onExtensionAuth={handleExtensionAuth}
-          onNsecAuth={handleNsecAuth}
-          onBunkerAuth={handleBunkerAuth}
-          loadingStates={loadingStates}
-          errors={errors}
-          externalLoading={isLoading}
-          expectedPubkey={expectedPubkey || undefined}
-        />
+      {/* Tabbed Authentication Interface */}
+      <NostrAuthTabs
+        onExtensionAuth={handleExtensionAuth}
+        onNsecAuth={handleNsecAuth}
+        onBunkerAuth={handleBunkerAuth}
+        loadingStates={loadingStates}
+        errors={errors}
+        externalLoading={isLoading}
+        expectedPubkey={expectedAccount?.pubkey || undefined}
+      />
 
-        {/* Navigation Buttons */}
-        <div className="space-y-2">
-          {onUseDifferentAccount && (
-            <Button
-              variant="outline"
-              onClick={onUseDifferentAccount}
-              className="w-full"
-              disabled={isLoading}
-            >
-              Use Different Account
-            </Button>
-          )}
+      {/* Navigation Buttons */}
+      <div className="space-y-2">
+        {onUseDifferentAccount && (
+          <Button
+            variant="outline"
+            onClick={onUseDifferentAccount}
+            className="w-full"
+            disabled={isLoading}
+          >
+            Use Different Account
+          </Button>
+        )}
 
-          {onBack && (
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="w-full"
-              disabled={isLoading}
-            >
-              Back
-            </Button>
-          )}
-        </div>
-
-        {/* Help Text */}
-        <div className="text-center text-xs text-muted-foreground">
-          <p>
-            You need to authenticate with the specific Nostr account that's
-            linked to your Wavlake account.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+        {onBack && (
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="w-full"
+            disabled={isLoading}
+          >
+            Back
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
