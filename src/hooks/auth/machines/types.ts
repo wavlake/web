@@ -111,6 +111,7 @@ export type LegacyMigrationStep =
   | "firebase-auth"
   | "checking-links"
   | "linked-nostr-auth"
+  | "pubkey-mismatch"
   | "account-choice"
   | "account-generation"
   | "bring-own-keypair"
@@ -147,6 +148,8 @@ export interface LegacyMigrationState extends BaseStateMachineState {
   firebaseUser: FirebaseUser | null;
   linkedPubkeys: LinkedPubkey[];
   expectedPubkey: string | null;
+  actualPubkey: string | null; // The pubkey the user actually authenticated with
+  mismatchedAccount: NostrAccount | null; // The account from mismatched authentication
   generatedAccount: NostrAccount | null;
   createdLogin: NLoginType | null;
   generatedName: string | null;
@@ -156,6 +159,9 @@ export interface LegacyMigrationState extends BaseStateMachineState {
 export type LegacyMigrationAction = 
   | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: FirebaseUser }
   | { type: "LINKS_CHECKED"; linkedPubkeys: LinkedPubkey[] }
+  | { type: "PUBKEY_MISMATCH_DETECTED"; expectedPubkey: string; actualPubkey: string; account: NostrAccount }
+  | { type: "PUBKEY_MISMATCH_RETRY" }
+  | { type: "PUBKEY_MISMATCH_CONTINUE" }
   | { type: "ACCOUNT_CHOICE_MADE"; choice: "generate" | "bring-own" }
   | { type: "ACCOUNT_GENERATED"; account: NostrAccount }
   | { type: "KEYPAIR_AUTHENTICATED"; account: NostrAccount }

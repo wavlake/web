@@ -10,6 +10,7 @@ import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlo
 import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
 import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
+import { PubkeyMismatchStep } from "../steps/legacy/PubkeyMismatchStep";
 import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
 import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
@@ -36,6 +37,8 @@ export function LegacyMigrationFlow({
     stateMachine,
     handleFirebaseAuthentication,
     handleLinkedNostrAuthentication,
+    handlePubkeyMismatchRetry,
+    handlePubkeyMismatchContinue,
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,
@@ -78,6 +81,18 @@ export function LegacyMigrationFlow({
             isLoading={stateMachine.isLoading("authenticateWithLinkedNostr")}
             error={errorToString(stateMachine.getError("authenticateWithLinkedNostr"))}
             linkedPubkeys={stateMachine.linkedPubkeys}
+          />
+        );
+
+      case "pubkey-mismatch":
+        return (
+          <PubkeyMismatchStep
+            expectedPubkey={stateMachine.expectedPubkey || ""}
+            actualPubkey={stateMachine.actualPubkey || ""}
+            onRetry={handlePubkeyMismatchRetry}
+            onContinue={handlePubkeyMismatchContinue}
+            isLoading={stateMachine.isLoading("continueWithNewPubkey")}
+            error={errorToString(stateMachine.getError("continueWithNewPubkey"))}
           />
         );
 

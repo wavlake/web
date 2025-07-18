@@ -121,6 +121,28 @@ describe('useLegacyMigrationStateMachine', () => {
     it('should authenticate with linked Nostr account and complete', async () => {
       // Mock linked pubkeys response
       (makeLinkedPubkeysRequest as any).mockResolvedValue([
+        { pubkey: 'test-pubkey-123', profile: { name: 'Existing User' } },
+      ]);
+
+      const { result } = renderHook(() => useLegacyMigrationStateMachine(mockDependencies));
+      
+      // First authenticate with Firebase
+      await act(async () => {
+        await result.current.actions.authenticateWithFirebase('test@example.com', 'password123');
+      });
+
+      // Then authenticate with linked Nostr account (pubkey matches expected)
+      await act(async () => {
+        await result.current.actions.authenticateWithLinkedNostr({ method: 'extension' });
+      });
+
+      expect(mockDependencies.authenticateNostr).toHaveBeenCalledWith('extension', { method: 'extension' });
+      expect(result.current.step).toBe('complete');
+    });
+
+    it('should detect pubkey mismatch and go to mismatch step', async () => {
+      // Mock linked pubkeys response with different pubkey than what auth will return
+      (makeLinkedPubkeysRequest as any).mockResolvedValue([
         { pubkey: 'existing-pubkey-123', profile: { name: 'Existing User' } },
       ]);
 
@@ -131,13 +153,15 @@ describe('useLegacyMigrationStateMachine', () => {
         await result.current.actions.authenticateWithFirebase('test@example.com', 'password123');
       });
 
-      // Then authenticate with linked Nostr account
+      // Then authenticate with different pubkey (should trigger mismatch)
       await act(async () => {
         await result.current.actions.authenticateWithLinkedNostr({ method: 'extension' });
       });
 
       expect(mockDependencies.authenticateNostr).toHaveBeenCalledWith('extension', { method: 'extension' });
-      expect(result.current.step).toBe('complete');
+      expect(result.current.step).toBe('pubkey-mismatch');
+      expect(result.current.expectedPubkey).toBe('existing-pubkey-123');
+      expect(result.current.actualPubkey).toBe('test-pubkey-123');
     });
 
     it('should handle Nostr authentication errors for linked accounts', async () => {
@@ -430,9 +454,8 @@ describe('useLegacyMigrationStateMachine', () => {
       });
 
       expect(result.current.getError('generateNewAccount')).toBeDefined();
-      // TODO: This should ideally go back to 'account-choice' for better UX
-      // Currently goes to 'profile-setup' because ACCOUNT_GENERATED is dispatched before linking
-      expect(result.current.step).toBe('profile-setup');
+      // With atomic linking, failed linking should keep us at account-choice step
+      expect(result.current.step).toBe('account-choice');
     });
 
     it('should handle Firebase token generation failures', async () => {
@@ -690,7 +713,7 @@ describe('useLegacyMigrationStateMachine', () => {
 
     it('should maintain consistent state throughout flow', async () => {
       (makeLinkedPubkeysRequest as any).mockResolvedValue([
-        { pubkey: 'existing-pubkey-123' },
+        { pubkey: 'test-pubkey-123' },
       ]);
 
       const { result } = renderHook(() => useLegacyMigrationStateMachine(mockDependencies));

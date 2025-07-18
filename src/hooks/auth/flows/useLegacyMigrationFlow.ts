@@ -17,6 +17,7 @@ import { type ProfileData } from "@/types/profile";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
+import { useNostr } from "@nostrify/react";
 
 export interface UseLegacyMigrationFlowResult {
   // State machine interface
@@ -30,6 +31,8 @@ export interface UseLegacyMigrationFlowResult {
   handleLinkedNostrAuthentication: (
     credentials: NostrCredentials
   ) => Promise<void>;
+  handlePubkeyMismatchRetry: () => void;
+  handlePubkeyMismatchContinue: () => Promise<void>;
   handleAccountGeneration: () => Promise<void>;
   handleBringOwnKeypair: () => Promise<void>;
   handleBringOwnKeypairWithCredentials: (
@@ -50,6 +53,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { loginWithExtension, loginWithNsec, addLogin } = useCurrentUser();
   const { createAccount, setupAccount } = useCreateNostrAccount();
+  const { nostr } = useNostr();
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
@@ -98,19 +102,48 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   // No longer need checkLinkedPubkeysDependency - using direct API call in state machine
 
   const authenticateNostrDependency = useCallback(
-    async (method: NostrAuthMethod, credentials: NostrCredentials) => {
+    async (method: NostrAuthMethod, credentials: NostrCredentials): Promise<NostrAccount> => {
+      let login: any;
+      
       switch (method) {
         case "extension":
-          return await loginWithExtension();
+          login = await loginWithExtension();
+          break;
         case "nsec":
           if (credentials.method !== "nsec")
             throw new Error("Invalid credentials for nsec method");
-          return await loginWithNsec(credentials.nsec);
+          login = loginWithNsec(credentials.nsec);
+          break;
         default:
           throw new Error(`Unsupported authentication method: ${method}`);
       }
+
+      // Convert NLoginType to NostrAccount with proper signer
+      const { NUser } = await import("@nostrify/react/login");
+      let user: any;
+      
+      switch (login.type) {
+        case 'nsec':
+          user = NUser.fromNsecLogin(login);
+          break;
+        case 'extension':
+          user = NUser.fromExtensionLogin(login);
+          break;
+        case 'bunker':
+          user = NUser.fromBunkerLogin(login, nostr);
+          break;
+        default:
+          throw new Error(`Unsupported login type: ${login.type}`);
+      }
+
+      return {
+        pubkey: login.pubkey,
+        privateKey: login.type === 'nsec' ? login.nsec : undefined,
+        signer: user.signer,
+        profile: undefined, // Will be fetched separately if needed
+      };
     },
-    [loginWithExtension, loginWithNsec]
+    [loginWithExtension, loginWithNsec, nostr]
   );
 
   const createAccountDependency = useCallback(async () => {
@@ -134,6 +167,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     createAccount: createAccountDependency,
     addLogin,
     setupAccount: setupAccountDependency,
+    nostr,
   });
 
   // Step handlers that integrate with UI
@@ -162,12 +196,37 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     [stateMachine.actions]
   );
 
+  const handlePubkeyMismatchRetry = useCallback(() => {
+    stateMachine.actions.retryLinkedNostrAuth();
+  }, [stateMachine.actions]);
+
+  const handlePubkeyMismatchContinue = useCallback(async () => {
+    const result = await stateMachine.actions.continueWithNewPubkey();
+    if (!result.success) {
+      throw result.error || new Error("Failed to continue with new pubkey");
+    }
+  }, [stateMachine.actions]);
+
   const handleAccountGeneration = useCallback(async () => {
+    console.log(`🎯 [LegacyMigrationFlow] handleAccountGeneration called:`, {
+      currentStep: stateMachine.step,
+      hasFirebaseUser: !!stateMachine.firebaseUser,
+      timestamp: new Date().toISOString(),
+    });
+    
     const result = await stateMachine.actions.generateNewAccount();
+    
+    console.log(`📋 [LegacyMigrationFlow] generateNewAccount result:`, {
+      success: result.success,
+      error: result.error?.message,
+      newStep: stateMachine.step,
+      timestamp: new Date().toISOString(),
+    });
+    
     if (!result.success) {
       throw result.error || new Error("Account generation failed");
     }
-  }, [stateMachine.actions]);
+  }, [stateMachine.actions, stateMachine.step, stateMachine.firebaseUser]);
 
   const handleBringOwnKeypair = useCallback(async () => {
     // For the choice step, we just transition the state machine
@@ -212,6 +271,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         return "Checking Linked Accounts";
       case "linked-nostr-auth":
         return "Sign in with Linked Account";
+      case "pubkey-mismatch":
+        return "Account Mismatch";
       case "account-choice":
         return "Choose Account Setup";
       case "account-generation":
@@ -237,6 +298,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
         return "";
       case "linked-nostr-auth":
         return "We found an existing account linked to your email. Please sign in with it.";
+      case "pubkey-mismatch":
+        return "You signed in with a different account than expected. Choose how to proceed.";
       case "account-choice":
         return "How would you like to set up your Nostr account?";
       case "account-generation":
@@ -266,6 +329,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     stateMachine,
     handleFirebaseAuthentication,
     handleLinkedNostrAuthentication,
+    handlePubkeyMismatchRetry,
+    handlePubkeyMismatchContinue,
     handleAccountGeneration,
     handleBringOwnKeypair,
     handleBringOwnKeypairWithCredentials,

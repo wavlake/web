@@ -93,6 +93,8 @@ export const createMockLegacyMigrationState = (overrides?: Partial<LegacyMigrati
   firebaseUser: null,
   linkedPubkeys: [],
   expectedPubkey: null,
+  actualPubkey: null,
+  mismatchedAccount: null,
   generatedAccount: null,
   createdLogin: null,
   generatedName: null,
