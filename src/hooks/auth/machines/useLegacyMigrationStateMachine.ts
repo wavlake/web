@@ -134,6 +134,7 @@ function getPreviousStep(currentStep: LegacyMigrationStep, hasLinkedAccounts: bo
     case "profile-setup":
       return "account-generation"; // Could be from account-generation or bring-own-keypair
     case "linking":
+      // This step should no longer be reached due to atomic linking
       return "profile-setup";
     default:
       return "firebase-auth";
@@ -176,7 +177,6 @@ export interface LegacyMigrationStateMachineDependencies {
   firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
   checkLinkedPubkeys: (firebaseUser: FirebaseUser) => Promise<LinkedPubkey[]>;
   authenticateNostr: (method: NostrAuthMethod, credentials: NostrCredentials) => Promise<NostrAccount>;
-  generateAccount: () => Promise<NostrAccount>;
   createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
   linkAccounts: (firebaseUser: FirebaseUser, nostrAccount: NostrAccount) => Promise<void>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
@@ -219,16 +219,24 @@ export function useLegacyMigrationStateMachine(
       const { login, generatedName } = await dependencies.createAccount();
       dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
       
-      // Generate account object for linking
-      const account = await dependencies.generateAccount();
+      // Convert login to NostrAccount for linking (no redundant account creation)
+      const account: NostrAccount = {
+        pubkey: login.pubkey,
+        signer: login,
+        profile: {
+          name: generatedName,
+        },
+      };
       dispatch({ type: "ACCOUNT_GENERATED", account });
       
-      // Link to Firebase
+      // Link to Firebase atomically
       if (!state.firebaseUser) {
         throw new Error("Firebase user not available for linking");
       }
       await dependencies.linkAccounts(state.firebaseUser, account);
-      dispatch({ type: "LINKING_COMPLETED" });
+      
+      // Skip separate linking step and go directly to complete
+      dispatch({ type: "LOGIN_COMPLETED" });
       
       return { login, generatedName };
     }, dispatch), [dependencies, state.firebaseUser]);
@@ -239,12 +247,14 @@ export function useLegacyMigrationStateMachine(
       const account = await dependencies.authenticateNostr("nsec", credentials);
       dispatch({ type: "KEYPAIR_AUTHENTICATED", account });
       
-      // Link to Firebase
+      // Link to Firebase atomically
       if (!state.firebaseUser) {
         throw new Error("Firebase user not available for linking");
       }
       await dependencies.linkAccounts(state.firebaseUser, account);
-      dispatch({ type: "LINKING_COMPLETED" });
+      
+      // Skip separate linking step and go directly to complete
+      dispatch({ type: "LOGIN_COMPLETED" });
       
       return { account };
     }, dispatch), [dependencies, state.firebaseUser]);

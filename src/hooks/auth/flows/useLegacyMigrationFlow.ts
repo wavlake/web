@@ -127,28 +127,6 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     return await createAccount();
   }, [createAccount]);
 
-  const generateAccountDependency =
-    useCallback(async (): Promise<NostrAccount> => {
-      const result = await createAccount();
-      // Convert login to NostrAccount
-      const pubkey =
-        result.login.type === "nsec"
-          ? result.login.pubkey
-          : result.login.type === "extension"
-          ? result.login.pubkey
-          : result.login.type === "bunker"
-          ? result.login.pubkey
-          : "";
-
-      return {
-        pubkey,
-        signer: result.login,
-        profile: {
-          name: result.generatedName,
-        },
-      };
-    }, [createAccount]);
-
   const linkAccountsDependency = useCallback(
     async (firebaseUser: FirebaseUser, nostrAccount: unknown) => {
       // TODO: Implement proper account linking with both user objects
@@ -170,7 +148,6 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     firebaseAuth: firebaseAuthDependency,
     checkLinkedPubkeys: checkLinkedPubkeysDependency,
     authenticateNostr: authenticateNostrDependency,
-    generateAccount: generateAccountDependency,
     createAccount: createAccountDependency,
     linkAccounts: linkAccountsDependency,
     addLogin,

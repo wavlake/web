@@ -5,7 +5,7 @@
  * multiple steps and branching logic.
  */
 
-import React from "react";
+// React import removed - not needed for this component
 import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlow";
 import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
@@ -42,7 +42,6 @@ export function LegacyMigrationFlow({
     handleProfileCompletion,
     getStepTitle,
     getStepDescription,
-    hasLinkedAccounts,
     getExpectedPubkey,
   } = useLegacyMigrationFlow();
 
@@ -121,6 +120,7 @@ export function LegacyMigrationFlow({
         );
 
       case "linking":
+        // This step should no longer be reached due to atomic linking
         return (
           <LoadingStep
             title="Linking Accounts"
@@ -148,31 +148,7 @@ export function LegacyMigrationFlow({
     }
   };
 
-  const getCurrentStepNumber = () => {
-    switch (stateMachine.step) {
-      case "firebase-auth":
-        return 1;
-      case "checking-links":
-        return 2;
-      case "linked-nostr-auth":
-        return 3;
-      case "account-choice":
-        return hasLinkedAccounts() ? 3 : 3;
-      case "account-generation":
-      case "bring-own-keypair":
-        return 4;
-      case "linking":
-        return 5;
-      case "complete":
-        return 6;
-      default:
-        return 1;
-    }
-  };
-
-  const getTotalSteps = () => {
-    return hasLinkedAccounts() ? 4 : 6;
-  };
+  // Step counting functions removed since step indicators are commented out in StepWrapper
 
   return (
     <StepWrapper

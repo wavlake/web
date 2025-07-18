@@ -171,7 +171,6 @@ export const createMockLegacyMigrationDependencies = () => ({
   }),
   checkLinkedPubkeys: vi.fn().mockResolvedValue([]),
   authenticateNostr: vi.fn().mockResolvedValue(createMockNostrAccount()),
-  generateAccount: vi.fn().mockResolvedValue(createMockNostrAccount()),
   createAccount: vi.fn().mockResolvedValue({
     login: createMockLogin(),
     generatedName: 'Generated Name',
