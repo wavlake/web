@@ -1,16 +1,10 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TestTube, Users, Zap, Mail, Sparkles } from "lucide-react";
+import { Mail, Sparkles, LogOut, Home, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAppSetting } from "@/hooks/useAppSettings";
+import { nip19 } from "nostr-tools";
 // Import the new flow components
 import { SignupFlow } from "@/components/auth/flows/SignupFlow";
 import { NostrLoginFlow } from "@/components/auth/flows/NostrLoginFlow";
@@ -45,12 +39,20 @@ const FLOW_OPTIONS: AuthMethodOption[] = [
 export default function Login() {
   const navigate = useNavigate();
   const [selectedFlow, setSelectedFlow] = useState<FlowType>(null);
+  
+  // All hooks must be called at the top level
+  const { isAuthenticated, logout, metadata, user } = useCurrentUser();
+  const isArtist = useAppSetting("isArtist");
+  const npub = user?.pubkey ? nip19.npubEncode(user.pubkey) : null;
 
   const handleSignupComplete = (result: { isArtist: boolean }) => {
     navigate(result.isArtist ? "/dashboard" : "/groups");
   };
 
-  const handleAuthFlowComplete = (result: { success: boolean; error?: string }) => {
+  const handleAuthFlowComplete = (result: {
+    success: boolean;
+    error?: string;
+  }) => {
     if (result.success) {
       navigate("/dashboard");
     }
@@ -88,9 +90,15 @@ export default function Login() {
         return null;
     }
   }
-  const nostruserLoggedIn = false;
-  if (nostruserLoggedIn) {
-    const name = "Nostr User"; // Replace with actual user data
+  
+  // Check if user is already logged in
+  if (isAuthenticated) {
+    const displayName =
+      metadata?.display_name ||
+      metadata?.name ||
+      npub?.slice(0, 10) + "..." + npub?.slice(-4) ||
+      "Wavlake User";
+
     return (
       <StepWrapper
         title="Welcome Back"
@@ -98,9 +106,41 @@ export default function Login() {
         header={StartHeader()}
       >
         <div className="flex flex-col gap-4">
-          <div>Signed in as: {name}</div>
-          <Button onClick={() => navigate("/groups")}>Back to Home</Button>
-          <Button onClick={() => console.log("Logout")}>Logout</Button>
+          <div className="text-center p-4 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground mb-1">Signed in as:</p>
+            <p className="font-medium">{displayName}</p>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              onClick={() => navigate("/groups")}
+              className="w-full flex items-center gap-2"
+              variant="default"
+            >
+              <Home className="w-4 h-4" />
+              Browse Communities
+            </Button>
+
+            {isArtist && (
+              <Button
+                onClick={() => navigate("/dashboard")}
+                className="w-full flex items-center gap-2"
+                variant="outline"
+              >
+                <Palette className="w-4 h-4" />
+                Artist Dashboard
+              </Button>
+            )}
+
+            <Button
+              onClick={logout}
+              className="w-full flex items-center gap-2"
+              variant="outline"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </StepWrapper>
     );
