@@ -102,9 +102,12 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   // No longer need checkLinkedPubkeysDependency - using direct API call in state machine
 
   const authenticateNostrDependency = useCallback(
-    async (method: NostrAuthMethod, credentials: NostrCredentials): Promise<NostrAccount> => {
+    async (
+      method: NostrAuthMethod,
+      credentials: NostrCredentials
+    ): Promise<NostrAccount> => {
       let login: any;
-      
+
       switch (method) {
         case "extension":
           login = await loginWithExtension();
@@ -121,15 +124,15 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       // Convert NLoginType to NostrAccount with proper signer
       const { NUser } = await import("@nostrify/react/login");
       let user: any;
-      
+
       switch (login.type) {
-        case 'nsec':
+        case "nsec":
           user = NUser.fromNsecLogin(login);
           break;
-        case 'extension':
+        case "extension":
           user = NUser.fromExtensionLogin(login);
           break;
-        case 'bunker':
+        case "bunker":
           user = NUser.fromBunkerLogin(login, nostr);
           break;
         default:
@@ -138,7 +141,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
       return {
         pubkey: login.pubkey,
-        privateKey: login.type === 'nsec' ? login.nsec : undefined,
+        privateKey: login.type === "nsec" ? login.nsec : undefined,
         signer: user.signer,
         profile: undefined, // Will be fetched separately if needed
       };
@@ -213,16 +216,16 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       hasFirebaseUser: !!stateMachine.firebaseUser,
       timestamp: new Date().toISOString(),
     });
-    
+
     const result = await stateMachine.actions.generateNewAccount();
-    
+
     console.log(`📋 [LegacyMigrationFlow] generateNewAccount result:`, {
       success: result.success,
       error: result.error?.message,
       newStep: stateMachine.step,
       timestamp: new Date().toISOString(),
     });
-    
+
     if (!result.success) {
       throw result.error || new Error("Account generation failed");
     }
