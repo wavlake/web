@@ -9,7 +9,15 @@
 import { AlertTriangle, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PubkeyMismatchAlert } from "../../PubkeyMismatchAlert";
+import { hexToNpub } from "../../utils/formatters";
 
 interface PubkeyMismatchStepProps {
   expectedPubkey: string;
@@ -34,67 +42,13 @@ export function PubkeyMismatchStep({
   isLoading,
   error,
 }: PubkeyMismatchStepProps) {
+  const npub = expectedPubkey ? hexToNpub(expectedPubkey) : "";
   return (
     <div className="space-y-6">
-      {/* Warning Alert */}
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          You signed in with a different Nostr account than expected. Please choose how to proceed.
-        </AlertDescription>
-      </Alert>
-
-      {/* Expected vs Actual Account Display */}
-      <div className="space-y-4">
-        {/* Expected Account */}
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-amber-800">Expected Account</CardTitle>
-            <CardDescription className="text-amber-700">
-              The account that was previously linked to your Firebase account
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-amber-600 flex-shrink-0" />
-              <code className="text-sm font-mono text-amber-800">
-                {formatPubkey(expectedPubkey)}
-              </code>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Arrow */}
-        <div className="flex justify-center">
-          <ArrowRight className="h-5 w-5 text-muted-foreground" />
-        </div>
-
-        {/* Actual Account */}
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-blue-800">Account You Used</CardTitle>
-            <CardDescription className="text-blue-700">
-              The account you just authenticated with
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-blue-600 flex-shrink-0" />
-              <code className="text-sm font-mono text-blue-800">
-                {formatPubkey(actualPubkey)}
-              </code>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <PubkeyMismatchAlert
+        expectedPubkey={expectedPubkey}
+        enteredPubkey={actualPubkey}
+      />
 
       {/* Action Options */}
       <div className="space-y-3">
@@ -110,7 +64,7 @@ export function PubkeyMismatchStep({
               Try Again with Expected Account
             </div>
             <div className="text-sm text-amber-600">
-              Sign in with the account ending in ...{expectedPubkey.slice(-8)}
+              Sign in with the account ending in ...{npub.slice(-8)}
             </div>
           </div>
         </Button>
@@ -131,21 +85,6 @@ export function PubkeyMismatchStep({
           </div>
         </Button>
       </div>
-
-      {/* Information Card */}
-      <Card className="border-gray-200 bg-gray-50">
-        <CardContent className="pt-4">
-          <div className="text-sm text-gray-600">
-            <p className="font-medium mb-2">What happens when you continue?</p>
-            <ul className="space-y-1 text-xs">
-              <li>• Your new account will be linked to your Firebase account</li>
-              <li>• You'll be able to access features that require account linking</li>
-              <li>• Your previous linked account will remain accessible</li>
-              <li>• You can manage linked accounts from your profile settings</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

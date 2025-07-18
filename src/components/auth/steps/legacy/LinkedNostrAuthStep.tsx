@@ -14,7 +14,7 @@ import { LinkedPubkey } from "@/hooks/auth/machines/types";
 import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
 import { NostrAuthErrorDisplay } from "../../ui/NostrAuthErrorDisplay";
 import { AuthLoadingStates, AuthErrors } from "../../types";
-import { formatPubkey, formatTimeAgo } from "../../utils/formatters";
+import { hexToNpub, formatTimeAgo } from "../../utils/formatters";
 
 interface LinkedNostrAuthStepProps {
   linkedPubkeys: LinkedPubkey[];
@@ -109,6 +109,8 @@ export function LinkedNostrAuthStep({
     }
   };
 
+  const npub = expectedAccount ? hexToNpub(expectedAccount.pubkey) : "";
+
   return (
     <div className="h-full flex flex-col">
       {/* Error Display - Compact */}
@@ -124,7 +126,7 @@ export function LinkedNostrAuthStep({
             <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <code className="text-sm font-mono block truncate">
-                {formatPubkey(expectedAccount.pubkey)}
+                {npub.slice(0, 8)}...{npub.slice(-8)}
               </code>
               {expectedAccount.linkedAt && (
                 <div className="text-xs text-muted-foreground">

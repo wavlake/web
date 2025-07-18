@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertTriangle, ArrowLeft, ArrowRight } from "lucide-react";
 import { useAuthor } from "@/hooks/useAuthor";
 import { Tooltip } from "../ui/tooltip";
+import { hexToNpub } from "./utils/formatters";
 
 interface PubkeyMismatchAlertProps {
   expectedPubkey: string;
@@ -19,6 +20,7 @@ export function PubkeyMismatchAlert({
 
   const expectedProfile = expectedAuthor.data?.metadata;
   const enteredProfile = enteredAuthor.data?.metadata;
+  const npub = hexToNpub(expectedPubkey);
 
   const getDisplayName = (profile: unknown, pubkey: string) => {
     const p = profile as
@@ -26,9 +28,7 @@ export function PubkeyMismatchAlert({
       | null
       | undefined;
     return (
-      p?.display_name ||
-      p?.name ||
-      `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`
+      p?.display_name || p?.name || `${npub.slice(0, 8)}...${npub.slice(-8)}`
     );
   };
 
@@ -57,7 +57,7 @@ export function PubkeyMismatchAlert({
             {getDisplayName(enteredProfile, enteredPubkey)}
           </p>
           <p className="text-sm text-orange-700 font-mono">
-            ...{enteredPubkey.slice(-8)}
+            {npub.slice(0, 8)}...{npub.slice(-8)}
           </p>
         </div>
       </div>
