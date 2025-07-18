@@ -6,14 +6,11 @@
  */
 
 import { useCallback } from "react";
-import {
-  useSignupStateMachine,
-  SignupStateMachineDependencies,
-} from "../machines/useSignupStateMachine";
+import { useSignupStateMachine } from "../machines/useSignupStateMachine";
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
-import { useLinkAccount } from "../useLinkAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useToast } from "@/hooks/useToast";
 import { type ProfileData } from "@/types/profile";
 
 export interface UseSignupFlowResult {
@@ -28,7 +25,6 @@ export interface UseSignupFlowResult {
     email: string,
     password: string
   ) => Promise<void>;
-  handleFirebaseAccountLinking: () => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
 
@@ -41,24 +37,24 @@ export interface UseSignupFlowResult {
 export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
   const { createAccount, setupAccount } = useCreateNostrAccount();
-  const { mutateAsync: linkAccounts } = useLinkAccount();
   const { registerWithEmailAndPassword } = useFirebaseAuth();
-  const { addLogin } = useCurrentUser();
+  const { addLogin, user } = useCurrentUser();
+  const { toast } = useToast();
 
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
-    saveProfile: async (data: ProfileData) => {
+    saveProfile: async () => {
       // Profile data is now properly stored in state machine and passed to setupAccount
     },
     createFirebaseAccount: async (email: string, password: string) => {
       const result = await registerWithEmailAndPassword({ email, password });
       return result.user;
     },
-    linkAccounts,
     addLogin,
     setupAccount: (profileData: ProfileData | null, generatedName: string) =>
       setupAccount(profileData, generatedName),
+    getCurrentUser: () => user || null,
   });
 
   // Step handlers that integrate with UI
@@ -104,23 +100,25 @@ export function useSignupFlow(): UseSignupFlowResult {
           result.error?.message || "Failed to create Firebase account"
         );
       }
+      
+      // Check if account was created but linking failed
+      const data = result.data as { firebaseUser: unknown; linked?: boolean; linkError?: Error } | undefined;
+      if (data?.linked === false) {
+        toast({
+          title: "Account Created",
+          description: "Your email account was created, but we couldn't link it automatically. You can link it later in settings.",
+          variant: "default",
+        });
+      } else if (data?.linked === true) {
+        toast({
+          title: "Success!",
+          description: "Your email backup has been set up and linked to your account.",
+          variant: "default",
+        });
+      }
     },
-    [stateMachine.actions]
+    [stateMachine.actions, toast]
   );
-
-  const handleFirebaseAccountLinking = useCallback(async () => {
-    const result = await stateMachine.actions.linkFirebaseAccount();
-    if (!result.success) {
-      // Log error for debugging but don't throw - let the flow continue
-      console.error(
-        "Firebase linking failed:",
-        result.error?.message || "Unknown error"
-      );
-      // The FirebaseLinkingStep component will handle showing error toast
-      // and the state machine will transition to complete anyway
-    }
-    // Always resolve successfully to allow flow to continue
-  }, [stateMachine.actions]);
 
   const handleFirebaseBackupSkip = useCallback(async () => {
     stateMachine.actions.skipFirebaseBackup();
@@ -147,8 +145,6 @@ export function useSignupFlow(): UseSignupFlowResult {
           : "Create Profile";
       case "firebase-backup":
         return "Create Email Account";
-      case "firebase-linking":
-        return "Linking Your Accounts";
       case "complete":
         return "Welcome!";
       default:
@@ -171,8 +167,6 @@ export function useSignupFlow(): UseSignupFlowResult {
         return "Set up your public profile";
       case "firebase-backup":
         return "Create an email account to backup your Nostr identity and access additional features";
-      case "firebase-linking":
-        return "";
       case "complete":
         return "You're all set up!";
       default:
@@ -190,7 +184,6 @@ export function useSignupFlow(): UseSignupFlowResult {
     handleArtistTypeSelection,
     handleProfileCompletion,
     handleFirebaseAccountCreation,
-    handleFirebaseAccountLinking,
     handleFirebaseBackupSkip,
     handleSignupCompletion,
     getStepTitle,

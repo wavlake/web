@@ -83,6 +83,7 @@ export const createMockSignupState = (overrides?: Partial<SignupState>): SignupS
   createdLogin: null,
   generatedName: null,
   profileData: null,
+  firebaseUser: null,
   ...overrides,
 })
 
@@ -95,6 +96,7 @@ export const createMockLegacyMigrationState = (overrides?: Partial<LegacyMigrati
   generatedAccount: null,
   createdLogin: null,
   generatedName: null,
+  profileData: null,
   isLoading: {},
   errors: {},
   canGoBack: false,

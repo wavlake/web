@@ -5,13 +5,11 @@
  * and renders appropriate step components.
  */
 
-import React from "react";
 import { useSignupFlow } from "@/hooks/auth/flows/useSignupFlow";
 import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
-import { FirebaseLinkingStep } from "../steps/signup/FirebaseLinkingStep";
 import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
@@ -27,7 +25,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     handleArtistTypeSelection,
     handleProfileCompletion,
     handleFirebaseAccountCreation,
-    handleFirebaseAccountLinking,
     handleFirebaseBackupSkip,
     handleSignupCompletion,
     getStepTitle,
@@ -78,16 +75,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             onSkip={handleFirebaseBackupSkip}
             isLoading={stateMachine.isLoading("createFirebaseAccount")}
             error={errorToString(stateMachine.getError("createFirebaseAccount"))}
-          />
-        );
-
-      case "firebase-linking":
-        return (
-          <FirebaseLinkingStep
-            onComplete={handleFirebaseAccountLinking}
-            isLoading={stateMachine.isLoading("linkFirebaseAccount")}
-            error={errorToString(stateMachine.getError("linkFirebaseAccount"))}
-            firebaseUser={stateMachine.firebaseUser}
           />
         );
 

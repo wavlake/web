@@ -1,14 +1,21 @@
 /**
  * Signup State Machine
- * 
+ *
  * Manages the state for new user signup flow including user type selection,
  * profile setup, and optional Firebase backup.
  */
 
-import { useReducer, useCallback, useMemo } from 'react';
-import { createAsyncAction, handleBaseActions, isOperationLoading, getOperationError } from '../utils/stateMachineUtils';
-import { ActionResult, SignupState, SignupAction, SignupStep } from './types';
-import { type ProfileData } from '@/types/profile';
+import { useReducer, useCallback, useMemo } from "react";
+import {
+  createAsyncAction,
+  handleBaseActions,
+  isOperationLoading,
+  getOperationError,
+} from "../utils/stateMachineUtils";
+import { ActionResult, SignupState, SignupAction, SignupStep } from "./types";
+import { type ProfileData } from "@/types/profile";
+import { makeLinkAccountRequest } from "../useLinkAccount";
+import { User } from "firebase/auth";
 
 const initialState: SignupState = {
   step: "user-type",
@@ -66,16 +73,9 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
     case "FIREBASE_ACCOUNT_CREATED":
       return {
         ...state,
-        step: "firebase-linking",
-        canGoBack: true,
-        firebaseUser: action.firebaseUser,
-      };
-
-    case "FIREBASE_LINKING_COMPLETED":
-      return {
-        ...state,
         step: "complete",
         canGoBack: false,
+        firebaseUser: action.firebaseUser,
       };
 
     case "LOGIN_COMPLETED":
@@ -109,7 +109,10 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
   }
 }
 
-function getPreviousStep(currentStep: SignupStep, isArtist: boolean): SignupStep {
+function getPreviousStep(
+  currentStep: SignupStep,
+  isArtist: boolean
+): SignupStep {
   switch (currentStep) {
     case "artist-type":
       return "user-type";
@@ -117,8 +120,6 @@ function getPreviousStep(currentStep: SignupStep, isArtist: boolean): SignupStep
       return isArtist ? "artist-type" : "user-type";
     case "firebase-backup":
       return "profile-setup";
-    case "firebase-linking":
-      return "firebase-backup";
     default:
       return "user-type";
   }
@@ -136,115 +137,195 @@ export interface UseSignupStateMachineResult {
   generatedName: string | null;
   profileData: ProfileData | null;
   firebaseUser: import("firebase/auth").User | null;
-  
+
   // Loading helpers
   isLoading: (operation: string) => boolean;
   getError: (operation: string) => Error | null;
-  
+
   // Promise-based actions
   actions: {
     setUserType: (isArtist: boolean) => Promise<ActionResult>;
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
     completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
-    createFirebaseAccount: (email: string, password: string) => Promise<ActionResult>;
-    linkFirebaseAccount: () => Promise<ActionResult>;
+    createFirebaseAccount: (
+      email: string,
+      password: string
+    ) => Promise<ActionResult>;
     skipFirebaseBackup: () => void;
     completeLogin: () => Promise<ActionResult>;
   };
-  
+
   // Navigation
   goBack: () => void;
   reset: () => void;
 }
 
 export interface SignupStateMachineDependencies {
-  createAccount: () => Promise<{ login: import("@nostrify/react/login").NLoginType; generatedName: string }>;
+  createAccount: () => Promise<{
+    login: import("@nostrify/react/login").NLoginType;
+    generatedName: string;
+  }>;
   saveProfile: (data: ProfileData) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<unknown>;
-  linkAccounts: () => Promise<void>;
+  createFirebaseAccount: (email: string, password: string) => Promise<User>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
-  setupAccount: (profileData: ProfileData | null, generatedName: string) => Promise<void>;
+  setupAccount: (
+    profileData: ProfileData | null,
+    generatedName: string
+  ) => Promise<void>;
+  getCurrentUser: () => {
+    pubkey: string;
+    signer: {
+      signEvent: (event: unknown) => Promise<unknown>;
+      getPublicKey?: () => Promise<string>;
+    };
+  } | null;
 }
 
 export function useSignupStateMachine(
   dependencies: SignupStateMachineDependencies
 ): UseSignupStateMachineResult {
   const [state, dispatch] = useReducer(signupReducer, initialState);
-  
+
   // Create async action handlers
-  const setUserType = useMemo(() => 
-    createAsyncAction("setUserType", async (isArtist: boolean) => {
-      // Update state first
-      dispatch({ type: "SET_USER_TYPE", isArtist });
-      
-      // For listeners, create account immediately
-      if (!isArtist) {
-        const { login, generatedName } = await dependencies.createAccount();
-        dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
-        return { login, generatedName };
-      }
-      
-      return {};
-    }, dispatch), [dependencies]);
+  const setUserType = useMemo(
+    () =>
+      createAsyncAction(
+        "setUserType",
+        async (isArtist: boolean) => {
+          // Update state first
+          dispatch({ type: "SET_USER_TYPE", isArtist });
 
-  const setArtistType = useMemo(() =>
-    createAsyncAction("setArtistType", async (isSolo: boolean) => {
-      // Update state first
-      dispatch({ type: "SET_ARTIST_TYPE", isSolo });
-      
-      // Create account for profile setup
-      const { login, generatedName } = await dependencies.createAccount();
-      dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
-      return { login, generatedName };
-    }, dispatch), [dependencies]);
+          // For listeners, create account immediately
+          if (!isArtist) {
+            const { login, generatedName } = await dependencies.createAccount();
+            dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
+            return { login, generatedName };
+          }
 
-  const completeProfile = useMemo(() =>
-    createAsyncAction("completeProfile", async (profileData: ProfileData) => {
-      await dependencies.saveProfile(profileData);
-      dispatch({ type: "PROFILE_COMPLETED", profileData });
-      
-      return {};
-    }, dispatch), [dependencies]);
+          return {};
+        },
+        dispatch
+      ),
+    [dependencies]
+  );
 
-  const createFirebaseAccount = useMemo(() =>
-    createAsyncAction("createFirebaseAccount", async (email: string, password: string) => {
-      const firebaseUser = await dependencies.createFirebaseAccount(email, password);
-      dispatch({ type: "FIREBASE_ACCOUNT_CREATED", firebaseUser: firebaseUser as import("firebase/auth").User });
-      return { firebaseUser };
-    }, dispatch), [dependencies]);
+  const setArtistType = useMemo(
+    () =>
+      createAsyncAction(
+        "setArtistType",
+        async (isSolo: boolean) => {
+          // Update state first
+          dispatch({ type: "SET_ARTIST_TYPE", isSolo });
 
-  const linkFirebaseAccount = useMemo(() =>
-    createAsyncAction("linkFirebaseAccount", async () => {
-      // First, log the user in with their Nostr account
-      if (state.createdLogin) {
-        dependencies.addLogin(state.createdLogin);
-      }
-      
-      // Now attempt to link the accounts
-      await dependencies.linkAccounts();
-      dispatch({ type: "FIREBASE_LINKING_COMPLETED" });
-      return {};
-    }, dispatch), [dependencies, state.createdLogin]);
+          // Create account for profile setup
+          const { login, generatedName } = await dependencies.createAccount();
+          dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
+          return { login, generatedName };
+        },
+        dispatch
+      ),
+    [dependencies]
+  );
+
+  const completeProfile = useMemo(
+    () =>
+      createAsyncAction(
+        "completeProfile",
+        async (profileData: ProfileData) => {
+          await dependencies.saveProfile(profileData);
+          dispatch({ type: "PROFILE_COMPLETED", profileData });
+
+          return {};
+        },
+        dispatch
+      ),
+    [dependencies]
+  );
+
+  const createFirebaseAccount = useMemo(
+    () =>
+      createAsyncAction(
+        "createFirebaseAccount",
+        async (email: string, password: string) => {
+          // Create Firebase account
+          const firebaseUser = await dependencies.createFirebaseAccount(
+            email,
+            password
+          );
+
+          // Log in the Nostr user if not already done
+          if (state.createdLogin) {
+            dependencies.addLogin(state.createdLogin);
+          }
+
+          try {
+            // Get Firebase token for linking
+            const firebaseToken = await firebaseUser.getIdToken();
+
+            // Get current user with signer after login
+            const currentUser = dependencies.getCurrentUser();
+            if (!currentUser) {
+              throw new Error("Failed to get current user after login");
+            }
+
+            // Attempt atomic linking
+            await makeLinkAccountRequest({
+              pubkey: currentUser.pubkey,
+              firebaseUid: firebaseUser.uid,
+              authToken: firebaseToken,
+              signer: currentUser.signer,
+            });
+
+            // Success - go directly to complete
+            dispatch({ type: "LOGIN_COMPLETED" });
+            return { firebaseUser, linked: true };
+          } catch (linkError) {
+            console.warn(
+              "Firebase account created but linking failed:",
+              linkError
+            );
+            // Continue anyway - user can link later
+            dispatch({
+              type: "FIREBASE_ACCOUNT_CREATED",
+              firebaseUser: firebaseUser as import("firebase/auth").User,
+            });
+            return { firebaseUser, linked: false, linkError };
+          }
+        },
+        dispatch
+      ),
+    [dependencies, state.createdLogin]
+  );
 
   const skipFirebaseBackup = useCallback(() => {
     dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
   }, []);
 
-  const completeLogin = useMemo(() =>
-    createAsyncAction("completeLogin", async () => {
-      if (state.createdLogin && state.generatedName) {
-        // Add the login to actually log the user in (if not already done during linking)
-        dependencies.addLogin(state.createdLogin);
-        
-        // Setup account (create wallet, publish profile)
-        await dependencies.setupAccount(state.profileData, state.generatedName);
-        
-        dispatch({ type: "LOGIN_COMPLETED" });
-        return { success: true };
-      }
-      
-      throw new Error("No login or generated name available");
-    }, dispatch), [dependencies, state.createdLogin, state.generatedName, state.profileData]);
+  const completeLogin = useMemo(
+    () =>
+      createAsyncAction(
+        "completeLogin",
+        async () => {
+          if (state.createdLogin && state.generatedName) {
+            // Add the login to actually log the user in (if not already done during linking)
+            dependencies.addLogin(state.createdLogin);
+
+            // Setup account (create wallet, publish profile)
+            await dependencies.setupAccount(
+              state.profileData,
+              state.generatedName
+            );
+
+            dispatch({ type: "LOGIN_COMPLETED" });
+            return { success: true };
+          }
+
+          throw new Error("No login or generated name available");
+        },
+        dispatch
+      ),
+    [dependencies, state.createdLogin, state.generatedName, state.profileData]
+  );
 
   // Navigation helpers
   const goBack = useCallback(() => {
@@ -258,11 +339,15 @@ export function useSignupStateMachine(
   }, []);
 
   // Loading and error helpers
-  const isLoading = useCallback((operation: string) => 
-    isOperationLoading(state, operation), [state]);
-  
-  const getError = useCallback((operation: string) => 
-    getOperationError(state, operation), [state]);
+  const isLoading = useCallback(
+    (operation: string) => isOperationLoading(state, operation),
+    [state]
+  );
+
+  const getError = useCallback(
+    (operation: string) => getOperationError(state, operation),
+    [state]
+  );
 
   return {
     // State
@@ -275,22 +360,21 @@ export function useSignupStateMachine(
     generatedName: state.generatedName,
     profileData: state.profileData,
     firebaseUser: state.firebaseUser,
-    
+
     // Helpers
     isLoading,
     getError,
-    
+
     // Actions
     actions: {
       setUserType,
       setArtistType,
       completeProfile,
       createFirebaseAccount,
-      linkFirebaseAccount,
       skipFirebaseBackup,
       completeLogin,
     },
-    
+
     // Navigation
     goBack,
     reset,
