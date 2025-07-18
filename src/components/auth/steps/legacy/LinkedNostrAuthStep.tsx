@@ -7,14 +7,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
 import { LinkedPubkey } from "@/hooks/auth/machines/types";
 
 // Import extracted components and utilities
 import { NostrAuthTabs } from "../../ui/NostrAuthTabs";
 import { NostrAuthErrorDisplay } from "../../ui/NostrAuthErrorDisplay";
 import { AuthLoadingStates, AuthErrors } from "../../types";
-import { hexToNpub, formatTimeAgo } from "../../utils/formatters";
+import { formatTimeAgo } from "../../utils/formatters";
+import { NostrAvatar } from "@/components/NostrAvatar";
 
 interface LinkedNostrAuthStepProps {
   linkedPubkeys: LinkedPubkey[];
@@ -109,31 +109,30 @@ export function LinkedNostrAuthStep({
     }
   };
 
-  const npub = expectedAccount ? hexToNpub(expectedAccount.pubkey) : "";
-
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-4">
       {/* Error Display - Compact */}
       <NostrAuthErrorDisplay error={error ? new Error(error) : null} />
 
-      {/* Linked Account - Compact Display */}
+      {/* Linked Account - Improved Display */}
       {expectedAccount && (
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Linked Account:</span>
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-foreground">Linked Account:</span>
+            {expectedAccount.linkedAt && (
+              <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                Linked {formatTimeAgo(expectedAccount.linkedAt)}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded-lg">
-            <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <code className="text-sm font-mono block truncate">
-                {npub.slice(0, 8)}...{npub.slice(-8)}
-              </code>
-              {expectedAccount.linkedAt && (
-                <div className="text-xs text-muted-foreground">
-                  Linked {formatTimeAgo(expectedAccount.linkedAt)}
-                </div>
-              )}
-            </div>
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+            <NostrAvatar 
+              includeName 
+              layout="horizontal"
+              size={48}
+              pubkey={expectedAccount.pubkey} 
+              className="w-full"
+            />
           </div>
         </div>
       )}
@@ -153,7 +152,7 @@ export function LinkedNostrAuthStep({
         </div>
 
         {/* Navigation Buttons - Sticky Bottom */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-6 space-y-3">
           {onUseDifferentAccount && (
             <Button
               variant="outline"
