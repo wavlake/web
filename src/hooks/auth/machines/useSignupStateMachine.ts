@@ -215,10 +215,16 @@ export function useSignupStateMachine(
 
   const linkFirebaseAccount = useMemo(() =>
     createAsyncAction("linkFirebaseAccount", async () => {
+      // First, log the user in with their Nostr account
+      if (state.createdLogin) {
+        dependencies.addLogin(state.createdLogin);
+      }
+      
+      // Now attempt to link the accounts
       await dependencies.linkAccounts();
       dispatch({ type: "FIREBASE_LINKING_COMPLETED" });
       return {};
-    }, dispatch), [dependencies]);
+    }, dispatch), [dependencies, state.createdLogin]);
 
   const skipFirebaseBackup = useCallback(() => {
     dispatch({ type: "FIREBASE_BACKUP_SKIPPED" });
@@ -227,7 +233,7 @@ export function useSignupStateMachine(
   const completeLogin = useMemo(() =>
     createAsyncAction("completeLogin", async () => {
       if (state.createdLogin && state.generatedName) {
-        // Add the login to actually log the user in
+        // Add the login to actually log the user in (if not already done during linking)
         dependencies.addLogin(state.createdLogin);
         
         // Setup account (create wallet, publish profile)

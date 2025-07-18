@@ -24,7 +24,10 @@ export interface UseSignupFlowResult {
   handleUserTypeSelection: (isArtist: boolean) => Promise<void>;
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
-  handleFirebaseAccountCreation: (email: string, password: string) => Promise<void>;
+  handleFirebaseAccountCreation: (
+    email: string,
+    password: string
+  ) => Promise<void>;
   handleFirebaseAccountLinking: () => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
@@ -54,7 +57,8 @@ export function useSignupFlow(): UseSignupFlowResult {
     },
     linkAccounts,
     addLogin,
-    setupAccount: (profileData: ProfileData | null, generatedName: string) => setupAccount(profileData, generatedName),
+    setupAccount: (profileData: ProfileData | null, generatedName: string) =>
+      setupAccount(profileData, generatedName),
   });
 
   // Step handlers that integrate with UI
@@ -81,7 +85,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   const handleProfileCompletion = useCallback(
     async (profileData: ProfileData) => {
       const result = await stateMachine.actions.completeProfile(profileData);
-      
+
       if (!result.success) {
         throw new Error(result.error?.message || "Failed to complete profile");
       }
@@ -96,7 +100,9 @@ export function useSignupFlow(): UseSignupFlowResult {
         password
       );
       if (!result.success) {
-        throw new Error(result.error?.message || "Failed to create Firebase account");
+        throw new Error(
+          result.error?.message || "Failed to create Firebase account"
+        );
       }
     },
     [stateMachine.actions]
@@ -105,8 +111,15 @@ export function useSignupFlow(): UseSignupFlowResult {
   const handleFirebaseAccountLinking = useCallback(async () => {
     const result = await stateMachine.actions.linkFirebaseAccount();
     if (!result.success) {
-      throw new Error(result.error?.message || "Failed to link Firebase account");
+      // Log error for debugging but don't throw - let the flow continue
+      console.error(
+        "Firebase linking failed:",
+        result.error?.message || "Unknown error"
+      );
+      // The FirebaseLinkingStep component will handle showing error toast
+      // and the state machine will transition to complete anyway
     }
+    // Always resolve successfully to allow flow to continue
   }, [stateMachine.actions]);
 
   const handleFirebaseBackupSkip = useCallback(async () => {
@@ -115,7 +128,7 @@ export function useSignupFlow(): UseSignupFlowResult {
 
   const handleSignupCompletion = useCallback(async () => {
     const result = await stateMachine.actions.completeLogin();
-    
+
     if (!result.success) {
       throw new Error(result.error?.message || "Failed to complete signup");
     }
@@ -135,7 +148,7 @@ export function useSignupFlow(): UseSignupFlowResult {
       case "firebase-backup":
         return "Create Email Account";
       case "firebase-linking":
-        return "Link Accounts";
+        return "Linking Your Accounts";
       case "complete":
         return "Welcome!";
       default:
@@ -159,7 +172,7 @@ export function useSignupFlow(): UseSignupFlowResult {
       case "firebase-backup":
         return "Create an email account to backup your Nostr identity and access additional features";
       case "firebase-linking":
-        return "Linking your email account to your Nostr identity for backup and recovery";
+        return "";
       case "complete":
         return "You're all set up!";
       default:
