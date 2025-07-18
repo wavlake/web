@@ -14,7 +14,10 @@ type BaseAction = AsyncStartAction | AsyncSuccessAction | AsyncErrorAction | Res
 // Generic action interface for any action
 interface GenericAction {
   type: string;
-  [key: string]: any;
+  operation?: string;
+  data?: unknown;
+  error?: Error;
+  [key: string]: unknown;
 }
 
 // Helper to create async action wrapper
@@ -55,24 +58,33 @@ export function handleBaseActions<TState extends BaseStateMachineState>(
 ): Partial<TState> | null {
   switch (action.type) {
     case "ASYNC_START":
-      return {
-        ...state,
-        isLoading: { ...state.isLoading, [action.operation]: true },
-        errors: { ...state.errors, [action.operation]: null },
-      };
+      if (action.operation) {
+        return {
+          ...state,
+          isLoading: { ...state.isLoading, [action.operation]: true },
+          errors: { ...state.errors, [action.operation]: null },
+        };
+      }
+      return null;
     
     case "ASYNC_SUCCESS":
-      return {
-        ...state,
-        isLoading: { ...state.isLoading, [action.operation]: false },
-      };
+      if (action.operation) {
+        return {
+          ...state,
+          isLoading: { ...state.isLoading, [action.operation]: false },
+        };
+      }
+      return null;
     
     case "ASYNC_ERROR":
-      return {
-        ...state,
-        isLoading: { ...state.isLoading, [action.operation]: false },
-        errors: { ...state.errors, [action.operation]: action.error },
-      };
+      if (action.operation && action.error) {
+        return {
+          ...state,
+          isLoading: { ...state.isLoading, [action.operation]: false },
+          errors: { ...state.errors, [action.operation]: action.error },
+        };
+      }
+      return null;
     
     case "RESET":
       // Return null to indicate this should be handled by specific reducer
