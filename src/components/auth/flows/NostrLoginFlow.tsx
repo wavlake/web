@@ -74,7 +74,7 @@ export function NostrLoginFlow({ onComplete, onCancel }: NostrLoginFlowProps) {
             />
             <Button
               variant="brand-purple"
-              className="w-full rounded-full py-6"
+              className="w-full mt-4"
               onClick={handleMigrationLaunch}
             >
               Migrate Legacy Wavlake Account

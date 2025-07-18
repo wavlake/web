@@ -150,7 +150,7 @@ export function NostrAuthTabs({
 
   const renderExtensionTab = () => (
     <TabsContent value="extension" className="space-y-4">
-      <div className="text-center py-8">
+      <div className="text-center">
         <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
         <h3 className="text-lg font-semibold mb-2">Browser Extension</h3>
         <p className="text-sm text-muted-foreground mb-4">
