@@ -2,40 +2,38 @@ name: Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          
+
       - name: Clean install dependencies
         run: |
           rm -rf node_modules package-lock.json
           npm install
-          
+
       - name: Run TypeScript check
         run: tsc -p tsconfig.app.json --noEmit || true
-        continue-on-error: true
-        
+
       - name: Run ESLint
         run: npm run lint || true
-        continue-on-error: true
-        
+
       - name: Run tests
         run: npm run test:run
-        
+
       - name: Build
-        run: vite build
+        run: npm run build
