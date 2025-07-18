@@ -52,9 +52,9 @@ export function UserTypeStep({ onComplete, isLoading, error }: UserTypeStepProps
       >
         <div className="flex items-center gap-3 w-full">
           <MicIcon className="w-5 h-5 shrink-0 text-primary" />
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <div className="font-medium text-base">Artist</div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
               Share your music and connect with fans
             </div>
           </div>
@@ -70,9 +70,9 @@ export function UserTypeStep({ onComplete, isLoading, error }: UserTypeStepProps
       >
         <div className="flex items-center gap-3 w-full">
           <HeadphonesIcon className="w-5 h-5 shrink-0 text-primary" />
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <div className="font-medium text-base">Listener</div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
               Discover and support your favorite artists
             </div>
           </div>

@@ -50,9 +50,9 @@ export function ArtistTypeStep({ onComplete, isLoading, error }: ArtistTypeStepP
       >
         <div className="flex items-center gap-3 w-full">
           <UserIcon className="w-5 h-5 shrink-0 text-primary" />
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <div className="font-medium text-base">Solo Artist</div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
               Individual musician or performer
             </div>
           </div>
@@ -68,9 +68,9 @@ export function ArtistTypeStep({ onComplete, isLoading, error }: ArtistTypeStepP
       >
         <div className="flex items-center gap-3 w-full">
           <UsersIcon className="w-5 h-5 shrink-0 text-primary" />
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <div className="font-medium text-base">Band / Group</div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
               Multiple members or collaborative project
             </div>
           </div>

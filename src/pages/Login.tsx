@@ -39,7 +39,7 @@ const FLOW_OPTIONS: AuthMethodOption[] = [
 export default function Login() {
   const navigate = useNavigate();
   const [selectedFlow, setSelectedFlow] = useState<FlowType>(null);
-  
+
   // All hooks must be called at the top level
   const { isAuthenticated, logout, metadata, user } = useCurrentUser();
   const isArtist = useAppSetting("isArtist");
@@ -90,7 +90,7 @@ export default function Login() {
         return null;
     }
   }
-  
+
   // Check if user is already logged in
   if (isAuthenticated) {
     const displayName =
@@ -152,47 +152,49 @@ export default function Login() {
       description="Choose how you want to get started"
       header={StartHeader()}
     >
-      {FLOW_OPTIONS.map((method) => {
-        const IconComponent = method.icon;
+      <div className="flex flex-col gap-2">
+        {FLOW_OPTIONS.map((method) => {
+          const IconComponent = method.icon;
 
-        return (
-          <Button
-            key={method.method}
-            onClick={() => {
-              if (method.method === "sign-up") {
-                setSelectedFlow("signup");
-              } else if (method.method === "sign-in") {
-                setSelectedFlow("nostr-login");
-              }
-            }}
-            variant={method.variant === "primary" ? "default" : "outline"}
-            className={`w-full h-auto min-h-[100px] sm:min-h-[80px] py-4 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              method.variant === "primary"
-                ? "hover:bg-primary/90 active:bg-primary/80"
-                : "hover:bg-muted/50 active:bg-muted/70"
-            }`}
-            size="lg"
-          >
-            <div className="flex items-center gap-3 w-full">
-              <IconComponent
-                className={`w-5 h-5 shrink-0 ${
-                  method.variant === "primary"
-                    ? "text-primary-foreground"
-                    : "text-primary"
-                }`}
-              />
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="font-medium text-base sm:text-base">
-                  {method.title}
-                </div>
-                <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
-                  {method.description}
+          return (
+            <Button
+              key={method.method}
+              onClick={() => {
+                if (method.method === "sign-up") {
+                  setSelectedFlow("signup");
+                } else if (method.method === "sign-in") {
+                  setSelectedFlow("nostr-login");
+                }
+              }}
+              variant={method.variant === "primary" ? "default" : "outline"}
+              className={`w-full h-auto min-h-[70px] sm:min-h-[80px] py-3 sm:py-4 px-4 sm:px-4 rounded-xl text-left border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                method.variant === "primary"
+                  ? "hover:bg-primary/90 active:bg-primary/80"
+                  : "hover:bg-muted/50 active:bg-muted/70"
+              }`}
+              size="lg"
+            >
+              <div className="flex items-center gap-3 w-full">
+                <IconComponent
+                  className={`w-5 h-5 shrink-0 ${
+                    method.variant === "primary"
+                      ? "text-primary-foreground"
+                      : "text-primary"
+                  }`}
+                />
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="font-medium text-base sm:text-base">
+                    {method.title}
+                  </div>
+                  <div className="text-sm sm:text-sm text-muted-foreground mt-1 leading-tight break-words whitespace-normal">
+                    {method.description}
+                  </div>
                 </div>
               </div>
-            </div>
-          </Button>
-        );
-      })}
+            </Button>
+          );
+        })}
+      </div>
     </StepWrapper>
   );
 }
