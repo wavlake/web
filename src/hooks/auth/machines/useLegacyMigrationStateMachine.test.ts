@@ -42,6 +42,11 @@ function createMockLegacyMigrationDependencies(): LegacyMigrationStateMachineDep
     }),
     addLogin: vi.fn(),
     setupAccount: vi.fn().mockResolvedValue(undefined),
+    nostr: {
+      event: vi.fn().mockResolvedValue({}),
+      query: vi.fn().mockResolvedValue([]),
+      req: vi.fn().mockReturnValue({ close: vi.fn() }),
+    },
   };
 }
 
