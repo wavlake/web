@@ -110,6 +110,7 @@ export type NostrLoginAction =
 // Legacy Migration State Machine Types
 export type LegacyMigrationStep = 
   | "firebase-auth"
+  | "email-sent"
   | "checking-links"
   | "linked-nostr-auth"
   | "pubkey-mismatch"
@@ -158,6 +159,7 @@ export interface LegacyMigrationState extends BaseStateMachineState {
 }
 
 export type LegacyMigrationAction = 
+  | { type: "EMAIL_SENT"; email: string }
   | { type: "FIREBASE_AUTH_COMPLETED"; firebaseUser: FirebaseUser }
   | { type: "LINKS_CHECKED"; linkedPubkeys: LinkedPubkey[] }
   | { type: "PUBKEY_MISMATCH_DETECTED"; expectedPubkey: string; actualPubkey: string; account: NostrAccount }

@@ -68,6 +68,14 @@ function legacyMigrationReducer(
   }
 
   switch (action.type) {
+    case "EMAIL_SENT": {
+      return {
+        ...state,
+        step: "email-sent" as const,
+        canGoBack: true,
+      };
+    }
+
     case "FIREBASE_AUTH_COMPLETED": {
       return {
         ...state,
@@ -311,7 +319,16 @@ export function useLegacyMigrationStateMachine(
       createAsyncAction(
         "authenticateWithFirebase",
         async (email: string) => {
-          const firebaseUser = await dependencies.firebaseAuth(email);
+          const result = await dependencies.firebaseAuth(email);
+          
+          // Check if this is an email sent result (passwordless flow)
+          if (result && typeof result === 'object' && 'emailSent' in result) {
+            dispatch({ type: "EMAIL_SENT", email });
+            return { emailSent: true, email };
+          }
+          
+          // Otherwise, it's a completed Firebase authentication
+          const firebaseUser = result as FirebaseUser;
           dispatch({ type: "FIREBASE_AUTH_COMPLETED", firebaseUser });
 
           const firebaseToken = await firebaseUser.getIdToken();

@@ -68,6 +68,24 @@ export function LegacyMigrationFlow({
           />
         );
 
+      case "email-sent":
+        return (
+          <div className="text-center space-y-4">
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-2 text-primary justify-center mb-2">
+                <span className="text-2xl">📧</span>
+                <span className="font-medium">Email Sent!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Please check your email for a login link to continue.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The link will redirect you back to this page to complete the login process.
+            </p>
+          </div>
+        );
+
       case "checking-links":
         return (
           <CheckingLinksStep

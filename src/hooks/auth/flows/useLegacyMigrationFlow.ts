@@ -99,10 +99,9 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
           actionCodeSettings: getActionCodeSettings(),
         });
 
-        // For now, we need to return a promise that resolves when the user completes
-        // the passwordless flow. This is a temporary implementation.
-        // In a full implementation, this would be handled by a global email link handler.
-        throw new Error("Please check your email for a login link to continue.");
+        // Return a special result indicating email was sent successfully
+        // The state machine will handle transitioning to email-sent state
+        return { emailSent: true, email };
       } catch (error: unknown) {
         // Re-throw with more user-friendly message for common cases
         if (error && typeof error === "object" && "code" in error) {
@@ -279,6 +278,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     switch (stateMachine.step) {
       case "firebase-auth":
         return "Sign in to Wavlake";
+      case "email-sent":
+        return "Check Your Email";
       case "checking-links":
         return "Checking Linked Accounts";
       case "linked-nostr-auth":
@@ -306,6 +307,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     switch (stateMachine.step) {
       case "firebase-auth":
         return "Sign in with your legacy Wavlake account.";
+      case "email-sent":
+        return "A login link has been sent to your email address.";
       case "checking-links":
         return "";
       case "linked-nostr-auth":
