@@ -2,7 +2,7 @@ import { useNostr } from "@nostrify/react";
 import { useCallback } from "react";
 import { NostrEvent, NRelay1 } from "@nostrify/nostrify";
 
-const PRIMARY_RELAY = "wss://relay.wavlake.com/";
+const PRIMARY_RELAY = import.meta.env.VITE_RELAY_URL;
 const FALLBACK_RELAYS = [
   "wss://purplepag.es",
   "wss://relay.nos.social",

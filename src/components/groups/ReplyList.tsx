@@ -200,7 +200,7 @@ function ReplyItem({ reply, communityId, postId, postAuthorPubkey, onReplySubmit
         id: reply.id,
         author: reply.pubkey,
         kind: reply.kind,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       
       // Create njump.me URL

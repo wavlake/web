@@ -83,7 +83,7 @@ export function TrackDetailsDialog({
         id: track.id,
         author: track.pubkey,
         kind: KINDS.MUSIC_TRACK,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       const njumpUrl = `https://njump.me/${nevent}`;
       await navigator.clipboard.writeText(njumpUrl);
@@ -100,7 +100,7 @@ export function TrackDetailsDialog({
         id: track.id,
         author: track.pubkey,
         kind: KINDS.MUSIC_TRACK,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       const njumpUrl = `https://njump.me/${nevent}`;
       window.open(njumpUrl, "_blank", "noopener,noreferrer");

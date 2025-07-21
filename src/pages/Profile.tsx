@@ -622,7 +622,7 @@ function PostCard({ post, profileImage, displayName, displayNameFull, isLastItem
         id: post.id,
         author: post.pubkey,
         kind: post.kind,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       
       // Create njump.me URL

@@ -330,7 +330,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
         id: album.id,
         author: album.pubkey,
         kind: KINDS.MUSIC_ALBUM,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       const njumpUrl = `https://njump.me/${nevent}`;
       await navigator.clipboard.writeText(njumpUrl);
@@ -347,7 +347,7 @@ export function MusicPublisher({ artistId, communityId }: MusicPublisherProps) {
         id: album.id,
         author: album.pubkey,
         kind: KINDS.MUSIC_ALBUM,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
       const njumpUrl = `https://njump.me/${nevent}`;
       window.open(njumpUrl, "_blank", "noopener,noreferrer");
