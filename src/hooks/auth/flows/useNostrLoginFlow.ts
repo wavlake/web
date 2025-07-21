@@ -31,7 +31,7 @@ export interface UseNostrLoginFlowResult {
 
 export function useNostrLoginFlow(): UseNostrLoginFlowResult {
   // External dependencies
-  const { loginWithExtension, loginWithNsec, loginWithBunker } =
+  const { loginWithExtension, loginWithNsec, loginWithBunker, addLogin } =
     useCurrentUser();
 
   // State machine with dependencies injected
@@ -50,6 +50,7 @@ export function useNostrLoginFlow(): UseNostrLoginFlowResult {
           throw new Error(`Unsupported authentication method: ${method}`);
       }
     },
+    addLogin, // Add the missing dependency
     syncProfile: async () => {
       // TODO: Implementation for syncing profile after auth
       console.log("Syncing profile after authentication");
