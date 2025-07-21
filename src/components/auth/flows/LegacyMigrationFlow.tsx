@@ -11,9 +11,6 @@ import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
 import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { PubkeyMismatchStep } from "../steps/legacy/PubkeyMismatchStep";
-// AccountChoiceStep and AccountGenerationStep no longer used - integrated into ProfileSetupStep
-// import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
-// import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
