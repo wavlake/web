@@ -40,8 +40,7 @@ export interface UseLegacyMigrationFlowResult {
 
   // Step-specific handlers
   handleFirebaseAuthentication: (
-    email: string,
-    password: string
+    email: string
   ) => Promise<void>;
   handleLinkedNostrAuthentication: (
     credentials: NostrCredentials
@@ -72,34 +71,36 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
-    async (email: string, password: string): Promise<FirebaseUser> => {
+    async (email: string): Promise<FirebaseUser> => {
       if (!firebaseAuth.isConfigured) {
         throw new Error("Firebase is not configured for this environment");
       }
 
-      // If user is already logged in and credentials are empty, use existing user
-      if (!email && !password && firebaseAuth.user) {
+      // If user is already logged in and email is empty, use existing user
+      if (!email && firebaseAuth.user) {
         return firebaseAuth.user;
       }
 
       try {
-        const userCredential = await firebaseAuth.loginWithEmailAndPassword({
+        // Send passwordless login link
+        await firebaseAuth.sendPasswordlessSignInLink({
           email,
-          password,
+          actionCodeSettings: {
+            url: window.location.origin + '/auth/complete',
+            handleCodeInApp: true,
+          }
         });
 
-        if (!userCredential.user) {
-          throw new Error("Authentication failed - no user returned");
-        }
-        return userCredential.user;
+        // For now, we need to return a promise that resolves when the user completes
+        // the passwordless flow. This is a temporary implementation.
+        // In a full implementation, this would be handled by a global email link handler.
+        throw new Error("Please check your email for a login link to continue.");
       } catch (error: unknown) {
         // Re-throw with more user-friendly message for common cases
         if (error && typeof error === "object" && "code" in error) {
           const firebaseError = error as { code: string };
           if (firebaseError.code === "auth/user-not-found") {
             throw new Error("No account found with this email address");
-          } else if (firebaseError.code === "auth/wrong-password") {
-            throw new Error("Incorrect password");
           } else if (firebaseError.code === "auth/invalid-email") {
             throw new Error("Invalid email address");
           } else if (firebaseError.code === "auth/user-disabled") {
@@ -107,7 +108,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
           }
         }
 
-        const message = error instanceof Error ? error.message : "Login failed";
+        const message = error instanceof Error ? error.message : "Failed to send login link";
         throw new Error(message);
       }
     },
@@ -190,10 +191,9 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Step handlers that integrate with UI
   const handleFirebaseAuthentication = useCallback(
-    async (email: string, password: string) => {
+    async (email: string) => {
       const result = await stateMachine.actions.authenticateWithFirebase(
-        email,
-        password
+        email
       );
       if (!result.success) {
         throw result.error || new Error("Firebase authentication failed");

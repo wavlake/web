@@ -14,6 +14,7 @@ import { JoinDialogProvider } from "@/components/groups/JoinDialogProvider";
 import { WalletLoader } from "@/components/WalletLoader";
 import { GlobalAudioPlayer } from "@/components/audio/GlobalAudioPlayer";
 import { SentryErrorBoundary } from "@/components/SentryErrorBoundary";
+import { PasswordlessCompletionHandler } from "@/components/auth/PasswordlessCompletionHandler";
 
 // DO NOT MODIFY THIS LIST UNLESS YOU ARE ABSOLUTELY CERTAIN EACH RELAY URL YOU ARE ADDING IS VALID AND THE RELAY IS CURRENTLY ONLINE AND CONFIRMED TO BE FULLY FUNCTIONAL AND WORKING.
 const defaultRelays = [
@@ -43,6 +44,7 @@ export function App() {
                   <JoinDialogProvider>
                     <WalletLoader />
                     <GlobalAudioPlayer />
+                    <PasswordlessCompletionHandler />
                     <Toaster />
                     <Sonner />
                     <AppRouter />

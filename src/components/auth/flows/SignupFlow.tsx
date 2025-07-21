@@ -9,7 +9,7 @@ import { useSignupFlow } from "@/hooks/auth/flows/useSignupFlow";
 import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
-import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
+import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
@@ -70,7 +70,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
       case "firebase-backup":
         return (
-          <FirebaseBackupStep
+          <FirebaseEmailStep
+            variant="backup"
             onComplete={handleFirebaseAccountCreation}
             onSkip={handleFirebaseBackupSkip}
             isLoading={stateMachine.isLoading("createFirebaseAccount")}

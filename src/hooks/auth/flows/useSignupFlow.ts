@@ -22,8 +22,7 @@ export interface UseSignupFlowResult {
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleFirebaseAccountCreation: (
-    email: string,
-    password: string
+    email: string
   ) => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
@@ -37,7 +36,7 @@ export interface UseSignupFlowResult {
 export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
   const { createAccount, setupAccount } = useCreateNostrAccount();
-  const { registerWithEmailAndPassword } = useFirebaseAuth();
+  const firebaseAuth = useFirebaseAuth();
   const { addLogin } = useCurrentUser();
   const { toast } = useToast();
   // State machine with dependencies injected
@@ -46,9 +45,19 @@ export function useSignupFlow(): UseSignupFlowResult {
     saveProfile: async () => {
       // Profile data is now properly stored in state machine and passed to setupAccount
     },
-    createFirebaseAccount: async (email: string, password: string) => {
-      const result = await registerWithEmailAndPassword({ email, password });
-      return result.user;
+    createFirebaseAccount: async (email: string) => {
+      // Send passwordless signup link
+      await firebaseAuth.sendPasswordlessSignInLink({
+        email,
+        actionCodeSettings: {
+          url: window.location.origin + '/auth/complete',
+          handleCodeInApp: true,
+        }
+      });
+
+      // For now, we throw an error with instructions. 
+      // This will be handled properly when we implement the completion handler
+      throw new Error("Please check your email for a signup link to continue.");
     },
     addLogin,
     setupAccount: (profileData: ProfileData | null, generatedName: string) =>
@@ -88,10 +97,9 @@ export function useSignupFlow(): UseSignupFlowResult {
   );
 
   const handleFirebaseAccountCreation = useCallback(
-    async (email: string, password: string) => {
+    async (email: string) => {
       const result = await stateMachine.actions.createFirebaseAccount(
-        email,
-        password
+        email
       );
       if (!result.success) {
         throw new Error(

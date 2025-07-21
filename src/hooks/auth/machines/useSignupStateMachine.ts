@@ -148,8 +148,7 @@ export interface UseSignupStateMachineResult {
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
     completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
     createFirebaseAccount: (
-      email: string,
-      password: string
+      email: string
     ) => Promise<ActionResult>;
     skipFirebaseBackup: () => void;
     completeLogin: () => Promise<ActionResult>;
@@ -166,7 +165,7 @@ export interface SignupStateMachineDependencies {
     generatedName: string;
   }>;
   saveProfile: (data: ProfileData) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<User>;
+  createFirebaseAccount: (email: string) => Promise<User>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => {
     pubkey: string;
     signer: {
@@ -245,11 +244,10 @@ export function useSignupStateMachine(
     () =>
       createAsyncAction(
         "createFirebaseAccount",
-        async (email: string, password: string) => {
+        async (email: string) => {
           // Create Firebase account
           const firebaseUser = await dependencies.createFirebaseAccount(
-            email,
-            password
+            email
           );
 
           try {
