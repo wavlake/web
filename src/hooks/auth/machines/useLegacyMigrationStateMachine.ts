@@ -516,12 +516,9 @@ export function useLegacyMigrationStateMachine(
           // Log the user in immediately
           dependencies.addLogin(login);
 
-          // Setup account (create wallet, publish profile) - non-critical operations
-          try {
-            await dependencies.setupAccount(null, account.profile?.name || '');
-          } catch (error: any) {
-            // Don't block the flow - user is already authenticated and linked
-          }
+          // For brought-own-keypair users, skip all event publishing
+          // They already have their profile and can create wallets manually if needed
+          // Existing wallet events will be queried automatically when wallet components load
 
           // Skip profile-setup and linking steps, go directly to complete
           dispatch({ type: "LOGIN_COMPLETED" });
