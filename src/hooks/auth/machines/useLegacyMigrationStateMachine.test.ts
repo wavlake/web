@@ -230,9 +230,9 @@ describe('useLegacyMigrationStateMachine', () => {
       });
 
       expect(mockDependencies.createAccount).toHaveBeenCalled();
-      expect(result.current.step).toBe('complete');
-      expect(result.current.createdLogin).toBeTruthy();
-      expect(result.current.generatedName).toBeTruthy();
+      expect(result.current.step).toBe('profile-setup');
+      expect(result.current.generatedAccount).toBeTruthy();
+      expect(result.current.generatedAccount?.pubkey).toBe('generated-pubkey-123');
     });
 
     it('should handle bring own keypair flow', async () => {
