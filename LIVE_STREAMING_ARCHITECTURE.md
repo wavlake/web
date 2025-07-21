@@ -20,11 +20,24 @@ This document outlines the comprehensive architecture for implementing a **NIP-5
 - **Backend**: Go API extensions for stream management
 - **Infrastructure**: CDN for video delivery, relay network for metadata
 
+## 🔐 Critical Security Model: Client-Side Event Signing
+
+### ⚠️ Important: API Cannot Sign User Events
+
+**The Go backend API cannot and must not sign Nostr events on behalf of users.** This would violate Nostr's core security model where only users control their private keys. All NIP-53 events must be signed client-side by the user's browser/extension.
+
+### Correct Event Signing Flow
+
+```
+❌ WRONG: API signs events with user's pubkey
+✅ CORRECT: Client signs events, API provides infrastructure
+```
+
 ## 🏗️ NIP-53 Implementation Architecture
 
 ### Live Event Management (Kind:30311)
 
-Based on NIP-53 specification, live events are addressable events with the following structure:
+Based on NIP-53 specification, live events are addressable events with the following structure. **These events must be signed client-side by the user:**
 
 ```json
 {
@@ -229,13 +242,25 @@ type CreateStreamResponse struct {
 **Stream Status Management:**
 ```go
 // POST /api/v1/streams/{stream_id}/start
-// Mark stream as live and publish NIP-53 event
+// Mark stream as live in database (NO event signing)
+// Returns metrics for client to include in user-signed events
 
 // POST /api/v1/streams/{stream_id}/stop  
-// End stream and update NIP-53 event
+// End stream in database and cleanup resources
+// Returns final metrics for client's end-stream event
 
 // GET /api/v1/streams/{stream_id}/status
 // Get current stream status and metrics
+type StreamStatusResponse struct {
+    Status          string `json:"status"`
+    CurrentViewers  int    `json:"current_viewers"`
+    TotalViewers   int    `json:"total_viewers"`
+    Duration       int    `json:"duration_seconds"`
+    StreamHealth   string `json:"stream_health"`
+}
+
+// POST /api/v1/streams/{stream_id}/confirm-published
+// Optional: Client notifies API that NIP-53 event was published
 ```
 
 **Stream Discovery:**
@@ -359,35 +384,68 @@ cdn_config:
 
 ## 🎛️ Integration with Existing Wavlake Architecture
 
-### Authentication Integration
+### Authentication Integration - Correct Client-Side Approach
 
-**Leverage Existing Auth System:**
+**⚠️ CRITICAL: All event signing happens client-side**
+
 ```tsx
-// Use existing authentication hooks
+// Correct implementation with client-side signing
 const { user, isAuthenticated } = useCurrentUser();
 const { mutate: publishEvent } = useNostrPublish();
 
-// Stream creation with Nostr auth
+// Stream creation with client-side event signing
 const useLiveStreamCreate = () => {
   return useMutation({
     mutationFn: async (streamConfig: StreamConfig) => {
-      // Create stream via Go API
-      const stream = await createStream(streamConfig);
+      // Step 1: API creates stream infrastructure (NO event signing)
+      const { streamId, streamKey, rtmpUrl, hlsUrl } = await createStream({
+        title: streamConfig.title,
+        description: streamConfig.description,
+        // API only handles infrastructure, not events
+      });
       
-      // Publish NIP-53 live event
+      // Step 2: CLIENT signs and publishes NIP-53 event
       await publishEvent({
         kind: 30311,
         content: streamConfig.description,
         tags: [
-          ['d', stream.streamId],
+          ['d', streamId],
           ['title', streamConfig.title],
-          ['streaming', stream.hlsPlaybackUrl],
+          ['streaming', hlsUrl],
           ['status', 'planned'],
-          // ... other NIP-53 tags
+          ['starts', Math.floor(Date.now() / 1000).toString()],
+          ['t', 'music'],
+          ['t', 'live']
         ]
       });
       
-      return stream;
+      // Step 3: Notify API that event was published (optional)
+      await confirmStreamPublished(streamId);
+      
+      return { streamId, streamKey, rtmpUrl, hlsUrl };
+    }
+  });
+};
+
+// Stream status updates - also client-side
+const useStreamStatusUpdate = () => {
+  return useMutation({
+    mutationFn: async ({ streamId, status }: { streamId: string; status: string }) => {
+      // Get metrics from API (non-user data)
+      const { viewerCount, totalViewers } = await getStreamMetrics(streamId);
+      
+      // CLIENT signs status update event
+      await publishEvent({
+        kind: 30311,
+        content: '',
+        tags: [
+          ['d', streamId],
+          ['status', status],
+          ['current_participants', viewerCount.toString()],
+          ['total_participants', totalViewers.toString()],
+          // Carry forward other existing tags...
+        ]
+      });
     }
   });
 };
@@ -599,6 +657,149 @@ export function LiveStreamPlayer({ streamUrl }: { streamUrl: string }) {
 }
 ```
 
+## 🤖 Automated Updates & Service Events
+
+### The Challenge: Real-time Metrics Without User Keys
+
+Since the API cannot sign events as users, we need alternative approaches for automated updates (viewer counts, stream health, etc.):
+
+### Option A: Client-Side Polling (Recommended)
+
+**Streamer's browser handles periodic updates:**
+
+```tsx
+// Runs in streamer's browser while streaming
+export function useStreamMetricsUpdater(streamId: string, isStreaming: boolean) {
+  const { mutate: updateStatus } = useStreamStatusUpdate();
+  
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const metrics = await api.getStreamMetrics(streamId);
+        await updateStatus({
+          streamId,
+          status: 'live',
+          viewerCount: metrics.currentViewers,
+          totalViewers: metrics.totalViewers
+        });
+      } catch (error) {
+        console.error('Failed to update stream metrics:', error);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isStreaming, streamId, updateStatus]);
+}
+```
+
+**Pros**: Simple, user maintains control
+**Cons**: Stops if streamer closes browser
+
+### Option B: Wavlake Service Events (Hybrid)
+
+**Service publishes separate metrics events:**
+
+```tsx
+// Wavlake service account publishes technical metrics
+{
+  kind: 31337, // Custom kind for service metrics
+  pubkey: "wavlake-service-pubkey",  // Service's own key
+  content: JSON.stringify({
+    current_viewers: 89,
+    total_viewers: 234,
+    stream_health: "healthy",
+    bitrate: 2500,
+    last_updated: Date.now()
+  }),
+  tags: [
+    ["a", `30311:${streamerPubkey}:${streamId}`], // References user's stream
+    ["service", "wavlake"],
+    ["type", "metrics"]
+  ],
+  created_at: Math.floor(Date.now() / 1000)
+}
+```
+
+**Client aggregates both event types:**
+
+```tsx
+export function useStreamData(streamId: string, streamerPubkey: string) {
+  // User's main stream event (authoritative for content)
+  const { data: streamEvent } = useNostrEvent({
+    kinds: [30311],
+    authors: [streamerPubkey],
+    "#d": [streamId]
+  });
+
+  // Service metrics (real-time technical data)
+  const { data: metricsEvents } = useNostrEvent({
+    kinds: [31337],
+    authors: [WAVLAKE_SERVICE_PUBKEY],
+    "#a": [`30311:${streamerPubkey}:${streamId}`],
+    limit: 1 // Latest only
+  });
+
+  return {
+    // User-controlled content
+    title: parseStreamTitle(streamEvent),
+    description: parseStreamDescription(streamEvent),
+    status: parseStreamStatus(streamEvent),
+    
+    // Service-provided metrics (if available)
+    currentViewers: parseServiceMetrics(metricsEvents)?.current_viewers,
+    streamHealth: parseServiceMetrics(metricsEvents)?.stream_health,
+    
+    // Fallback to user event if service metrics unavailable
+    fallbackViewers: parseUserViewerCount(streamEvent)
+  };
+}
+```
+
+### Option C: WebSocket + Manual Sync
+
+**Real-time metrics via WebSocket, manual event publishing:**
+
+```tsx
+export function useStreamWithWebSocket(streamId: string) {
+  const [metrics, setMetrics] = useState({});
+  const { mutate: updateStatus } = useStreamStatusUpdate();
+  
+  // WebSocket for real-time data
+  useEffect(() => {
+    const ws = new WebSocket(`wss://api.wavlake.com/streams/${streamId}/metrics`);
+    
+    ws.onmessage = (event) => {
+      const newMetrics = JSON.parse(event.data);
+      setMetrics(newMetrics);
+    };
+    
+    return () => ws.close();
+  }, [streamId]);
+  
+  // Manual "sync to Nostr" button for streamers
+  const syncToNostr = async () => {
+    await updateStatus({
+      streamId,
+      status: 'live',
+      ...metrics
+    });
+  };
+  
+  return { metrics, syncToNostr };
+}
+```
+
+### Recommended Hybrid Approach
+
+1. **User Events** (30311): Stream metadata, status changes, manual updates
+2. **Service Events** (31337): Real-time metrics, technical status, health monitoring  
+3. **Client Aggregation**: Combine both sources for complete picture
+4. **Graceful Degradation**: If service events unavailable, fall back to user events
+
+This maintains Nostr security while providing real-time functionality.
+
 ## 🛡️ Security Considerations
 
 ### Stream Key Security
@@ -782,4 +983,37 @@ interface StreamAnalytics {
 - [ ] Browser compatibility testing
 - [ ] Security penetration testing
 
-This architecture provides a comprehensive foundation for implementing a production-ready live streaming service that leverages Nostr's decentralized infrastructure while integrating seamlessly with Wavlake's existing platform architecture.
+## 🎯 Revised Architecture Summary
+
+This **corrected architecture** provides a comprehensive foundation for implementing a production-ready live streaming service that **properly respects Nostr's security model** while leveraging decentralized infrastructure and integrating seamlessly with Wavlake's existing platform.
+
+### 🔐 Key Security Principles Applied
+
+1. **Client-Side Event Signing**: All NIP-53 events signed by user's browser/extension
+2. **Infrastructure Separation**: API handles streaming infrastructure, NOT user events  
+3. **Service Events**: Separate metrics events signed by Wavlake's service key
+4. **Hybrid Data Model**: Combine user-controlled content with service-provided metrics
+5. **Graceful Degradation**: System works even if service metrics unavailable
+
+### 📊 Data Flow Summary
+
+```
+🎥 Stream Creation:
+API creates infrastructure → Client signs NIP-53 event → Nostr publication
+
+⚡ Live Updates:  
+API provides metrics → Client polls & signs updates → Nostr publication
+(+ Optional: Service publishes separate metrics events)
+
+👥 Viewer Experience:
+Client aggregates user events + service events → Complete stream data
+```
+
+### 🚀 Implementation Priority
+
+**Phase 1**: Client-side signing with basic API infrastructure
+**Phase 2**: Add service events for automated metrics  
+**Phase 3**: Optimize with WebSocket real-time updates
+**Phase 4**: Advanced features and analytics
+
+This approach maintains **user sovereignty**, **security**, and **decentralization** while providing the real-time functionality needed for a modern streaming platform.
