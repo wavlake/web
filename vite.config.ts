@@ -1,16 +1,46 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "node:path";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // https://vitejs.dev/config/
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => {
+  // Load environment variables
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  
+  return {
   server: {
     host: "::",
     port: 8080,
   },
   plugins: [
     react(),
+    // Plugin to inject environment variables into HTML
+    {
+      name: 'inject-env-vars',
+      transformIndexHtml(html: string) {
+        // Get the relay URL from loaded environment variables
+        const relayUrl = env.VITE_RELAY_URL || 'wss://relay.wavlake.com/';
+        
+        console.log('🔧 [Vite] Injecting relay URL into CSP:', relayUrl);
+        
+        // Extract protocol and host from relay URL for CSP
+        let relayHost = '';
+        try {
+          const url = new URL(relayUrl);
+          relayHost = `${url.protocol}//${url.host}`;
+        } catch (e) {
+          console.warn('Invalid VITE_RELAY_URL format, using fallback CSP');
+          relayHost = 'wss://relay.wavlake.com';
+        }
+        
+        // Replace the placeholder in CSP connect-src directive
+        return html.replace(
+          'ws://placeholder-will-be-replaced',
+          relayHost
+        );
+      }
+    },
     // Only include Sentry plugin in production builds
     process.env.NODE_ENV === "production" &&
       process.env.SENTRY_AUTH_TOKEN &&
@@ -96,4 +126,5 @@ export default defineConfig(() => ({
     // Increase chunk size warning threshold
     chunkSizeWarningLimit: 1000,
   },
-}));
+  };
+});
