@@ -190,5 +190,6 @@ export const createMockLegacyMigrationDependencies = () => ({
 
 export const createMockNostrLoginDependencies = () => ({
   authenticate: vi.fn().mockResolvedValue(createMockNostrAccount()),
+  addLogin: vi.fn(),
   syncProfile: vi.fn().mockResolvedValue(undefined),
 })
