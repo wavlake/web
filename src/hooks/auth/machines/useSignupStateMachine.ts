@@ -14,7 +14,7 @@ import {
 } from "../utils/stateMachineUtils";
 import { ActionResult, SignupState, SignupAction, SignupStep } from "./types";
 import { type ProfileData } from "@/types/profile";
-import { makeLinkAccountRequest } from "../useLinkAccount";
+import { makeLinkAccountRequest } from "../../useLinkAccount";
 import { User } from "firebase/auth";
 
 const initialState: SignupState = {

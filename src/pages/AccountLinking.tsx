@@ -24,7 +24,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAuthor } from "@/hooks/useAuthor";
 import { useAccountLinkingStatus } from "@/hooks/useAccountLinkingStatus";
-import { useLinkAccount } from "@/hooks/auth/useLinkAccount";
+import { useLinkAccount } from "@/hooks/useLinkAccount";
 import { useUnlinkAccount } from "@/hooks/auth/useUnlinkAccount";
 import { LoginButton } from "@/components/auth/ui/LoginButton";
 import { UnlinkConfirmDialog } from "@/components/auth/UnlinkConfirmDialog";
@@ -110,7 +110,8 @@ export default function AccountLinking() {
       console.error("Unlink account error:", error);
 
       // Check for specific authentication mismatch error
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       if (
         errorMessage.includes("pubkey does not belong to this user") ||
         errorMessage.includes("not authorized") ||

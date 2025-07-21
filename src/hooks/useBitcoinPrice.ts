@@ -4,11 +4,14 @@ interface BitcoinPrice {
   USD: number;
 }
 
+const isDev = import.meta.env.MODE === "development";
 export function useBitcoinPrice() {
   return useQuery({
     queryKey: ["bitcoin-price"],
     queryFn: async () => {
-      const response = await fetch("https://api.coinbase.com/v2/exchange-rates?currency=BTC");
+      const response = await fetch(
+        "https://api.coinbase.com/v2/exchange-rates?currency=BTC"
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch Bitcoin price");
@@ -19,7 +22,7 @@ export function useBitcoinPrice() {
 
       return { USD: usdPrice };
     },
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: isDev ? 1000000 : 10000, // Refetch every 10 seconds
     staleTime: 5000, // Consider data fresh for 5 seconds
   });
 }
@@ -41,7 +44,7 @@ export function formatUSD(amount: number): string {
   }).format(amount);
 
   // Remove the $ symbol from the formatted string
-  const withoutDollar = formatted.replace('$', '');
+  const withoutDollar = formatted.replace("$", "");
 
   return `${withoutDollar} usd`;
 }

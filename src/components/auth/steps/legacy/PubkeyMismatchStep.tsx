@@ -63,9 +63,6 @@ export function PubkeyMismatchStep({
             <div className="text-base font-medium text-amber-800">
               Try Again with Expected Account
             </div>
-            <div className="text-sm text-amber-600">
-              Sign in with the account ending in ...{npub.slice(-8)}
-            </div>
           </div>
         </Button>
 
@@ -77,7 +74,7 @@ export function PubkeyMismatchStep({
         >
           <div className="flex flex-col items-center gap-2">
             <div className="text-base font-medium text-white">
-              {isLoading ? "Linking Account..." : "Continue with New Account"}
+              {isLoading ? "Linking Account..." : "Continue with this Account"}
             </div>
             <div className="text-sm text-blue-100">
               Link this account to your Firebase account
