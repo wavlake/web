@@ -7,13 +7,10 @@
 
 // React import removed - not needed for this component
 import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlow";
-import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
+import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
 import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { PubkeyMismatchStep } from "../steps/legacy/PubkeyMismatchStep";
-// AccountChoiceStep and AccountGenerationStep no longer used - integrated into ProfileSetupStep
-// import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
-// import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
@@ -56,15 +53,34 @@ export function LegacyMigrationFlow({
     switch (stateMachine.step) {
       case "firebase-auth":
         return (
-          <FirebaseAuthStep
+          <FirebaseEmailStep
+            variant="login"
             onComplete={handleFirebaseAuthentication}
             onContinueWithExistingUser={async () => {
-              // Use empty credentials - the dependency will detect existing user
-              await handleFirebaseAuthentication("", "");
+              // Use empty email - the dependency will detect existing user
+              await handleFirebaseAuthentication("");
             }}
             isLoading={stateMachine.isLoading("authenticateWithFirebase")}
             error={errorToString(stateMachine.getError("authenticateWithFirebase"))}
           />
+        );
+
+      case "email-sent":
+        return (
+          <div className="text-center space-y-4">
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-2 text-primary justify-center mb-2">
+                <span className="text-2xl">📧</span>
+                <span className="font-medium">Email Sent!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Please check your email for a login link to continue.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The link will redirect you back to this page to complete the login process.
+            </p>
+          </div>
         );
 
       case "checking-links":

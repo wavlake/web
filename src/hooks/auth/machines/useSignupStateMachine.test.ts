@@ -172,7 +172,7 @@ describe('useSignupStateMachine', () => {
       });
 
       await act(async () => {
-        await result.current.actions.createFirebaseAccount('test@example.com', 'password123');
+        await result.current.actions.createFirebaseAccount('test@example.com');
       });
 
       expect(result.current.firebaseUser).toBeTruthy();
@@ -191,7 +191,7 @@ describe('useSignupStateMachine', () => {
       });
 
       await act(async () => {
-        await result.current.actions.createFirebaseAccount('test@example.com', 'password123');
+        await result.current.actions.createFirebaseAccount('test@example.com');
       });
 
       expect(result.current.getError('createFirebaseAccount')).toBeDefined();
@@ -339,7 +339,7 @@ describe('useSignupStateMachine', () => {
       });
 
       await act(async () => {
-        await result.current.actions.createFirebaseAccount('test@example.com', 'password');
+        await result.current.actions.createFirebaseAccount('test@example.com');
       });
 
       expect(result.current.getError('createFirebaseAccount')?.message).toContain('timeout');
@@ -394,7 +394,7 @@ describe('useSignupStateMachine', () => {
       });
 
       await act(async () => {
-        await result.current.actions.createFirebaseAccount('test@example.com', 'password');
+        await result.current.actions.createFirebaseAccount('test@example.com');
       });
 
       expect(result.current.getError('createFirebaseAccount')?.message).toContain('401');
@@ -468,7 +468,7 @@ describe('useSignupStateMachine', () => {
       });
 
       await act(async () => {
-        await result.current.actions.createFirebaseAccount('test@example.com', 'password');
+        await result.current.actions.createFirebaseAccount('test@example.com');
       });
 
       expect(result.current.getError('createFirebaseAccount')?.message).toContain('429');

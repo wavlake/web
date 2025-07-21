@@ -7,6 +7,7 @@
 
 import type { ProfileData } from "@/types/profile";
 import type { User } from "firebase/auth";
+import type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 
 // Re-export commonly used types for convenience
 export type { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";

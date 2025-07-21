@@ -11,6 +11,7 @@ import { useCreateNostrAccount } from "../useCreateNostrAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useToast } from "@/hooks/useToast";
+import { usePasswordlessCompletion } from "@/hooks/auth/usePasswordlessCompletion";
 import { type ProfileData } from "@/types/profile";
 
 export interface UseSignupFlowResult {
@@ -22,8 +23,7 @@ export interface UseSignupFlowResult {
   handleArtistTypeSelection: (isSolo: boolean) => Promise<void>;
   handleProfileCompletion: (profileData: ProfileData) => Promise<void>;
   handleFirebaseAccountCreation: (
-    email: string,
-    password: string
+    email: string
   ) => Promise<void>;
   handleFirebaseBackupSkip: () => Promise<void>;
   handleSignupCompletion: () => Promise<void>;
@@ -37,18 +37,51 @@ export interface UseSignupFlowResult {
 export function useSignupFlow(): UseSignupFlowResult {
   // External dependencies
   const { createAccount, setupAccount } = useCreateNostrAccount();
-  const { registerWithEmailAndPassword } = useFirebaseAuth();
+  const firebaseAuth = useFirebaseAuth();
   const { addLogin } = useCurrentUser();
   const { toast } = useToast();
+  const { storeEmailForPasswordlessAuth, storeFlowContext } = usePasswordlessCompletion();
+
+  // Helper function to get the correct action URL for environment
+  const getActionCodeSettings = useCallback(() => {
+    const isDevelopment = import.meta.env.MODE === 'development';
+    const baseUrl = isDevelopment ? 'http://localhost:8080' : window.location.origin;
+    
+    return {
+      url: baseUrl + '/auth/complete',
+      handleCodeInApp: true,
+    };
+  }, []);
+
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
     saveProfile: async () => {
       // Profile data is now properly stored in state machine and passed to setupAccount
     },
-    createFirebaseAccount: async (email: string, password: string) => {
-      const result = await registerWithEmailAndPassword({ email, password });
-      return result.user;
+    createFirebaseAccount: async (email: string) => {
+      // Store email for passwordless completion
+      storeEmailForPasswordlessAuth(email);
+      
+      // Store flow context for resumption after email link click
+      storeFlowContext({
+        flow: 'signup',
+        step: 'firebase-backup',
+        additionalData: {
+          isArtist: stateMachine.isArtist,
+          email
+        }
+      });
+      
+      // Send passwordless signup link with environment-appropriate settings
+      await firebaseAuth.sendPasswordlessSignInLink({
+        email,
+        actionCodeSettings: getActionCodeSettings(),
+      });
+
+      // Return a special result indicating email was sent successfully
+      // The state machine will handle transitioning to email-sent state
+      return { emailSent: true, email };
     },
     addLogin,
     setupAccount: (profileData: ProfileData | null, generatedName: string) =>
@@ -88,10 +121,9 @@ export function useSignupFlow(): UseSignupFlowResult {
   );
 
   const handleFirebaseAccountCreation = useCallback(
-    async (email: string, password: string) => {
+    async (email: string) => {
       const result = await stateMachine.actions.createFirebaseAccount(
-        email,
-        password
+        email
       );
       if (!result.success) {
         throw new Error(
@@ -143,6 +175,8 @@ export function useSignupFlow(): UseSignupFlowResult {
           : "Create Profile";
       case "firebase-backup":
         return "Create Email Account";
+      case "email-sent":
+        return "Check Your Email";
       case "complete":
         return "Welcome!";
       default:
@@ -165,6 +199,8 @@ export function useSignupFlow(): UseSignupFlowResult {
         return "Set up your public profile";
       case "firebase-backup":
         return "Create an email account to backup your Nostr identity and access additional features";
+      case "email-sent":
+        return "A signup link has been sent to your email address.";
       case "complete":
         return "You're all set up!";
       default:

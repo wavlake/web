@@ -85,6 +85,13 @@ function signupReducer(state: SignupState, action: SignupAction): SignupState {
         canGoBack: false,
       };
 
+    case "EMAIL_SENT":
+      return {
+        ...state,
+        step: "email-sent",
+        canGoBack: true,
+      };
+
     case "FIREBASE_BACKUP_SKIPPED":
       return {
         ...state,
@@ -120,6 +127,8 @@ function getPreviousStep(
       return isArtist ? "artist-type" : "user-type";
     case "firebase-backup":
       return "profile-setup";
+    case "email-sent":
+      return "firebase-backup";
     default:
       return "user-type";
   }
@@ -148,8 +157,7 @@ export interface UseSignupStateMachineResult {
     setArtistType: (isSolo: boolean) => Promise<ActionResult>;
     completeProfile: (profileData: ProfileData) => Promise<ActionResult>;
     createFirebaseAccount: (
-      email: string,
-      password: string
+      email: string
     ) => Promise<ActionResult>;
     skipFirebaseBackup: () => void;
     completeLogin: () => Promise<ActionResult>;
@@ -166,7 +174,7 @@ export interface SignupStateMachineDependencies {
     generatedName: string;
   }>;
   saveProfile: (data: ProfileData) => Promise<void>;
-  createFirebaseAccount: (email: string, password: string) => Promise<User>;
+  createFirebaseAccount: (email: string) => Promise<User | { emailSent: boolean; email: string }>;
   addLogin: (login: import("@nostrify/react/login").NLoginType) => {
     pubkey: string;
     signer: {
@@ -245,12 +253,19 @@ export function useSignupStateMachine(
     () =>
       createAsyncAction(
         "createFirebaseAccount",
-        async (email: string, password: string) => {
-          // Create Firebase account
-          const firebaseUser = await dependencies.createFirebaseAccount(
-            email,
-            password
-          );
+        async (email: string) => {
+          // Send Firebase signup email
+          const result = await dependencies.createFirebaseAccount(email);
+          
+          // Check if this was an email-sent result
+          if (result && typeof result === 'object' && 'emailSent' in result && 'email' in result) {
+            const emailResult = result as { emailSent: boolean; email: string };
+            dispatch({ type: "EMAIL_SENT", email: emailResult.email });
+            return { emailSent: true, email: emailResult.email };
+          }
+          
+          // If we get here, it's the actual Firebase user creation flow
+          const firebaseUser = result;
 
           try {
             // Get Firebase token for linking

@@ -9,7 +9,7 @@ import { useSignupFlow } from "@/hooks/auth/flows/useSignupFlow";
 import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
-import { FirebaseBackupStep } from "../steps/signup/FirebaseBackupStep";
+import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
@@ -70,12 +70,28 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
       case "firebase-backup":
         return (
-          <FirebaseBackupStep
+          <FirebaseEmailStep
+            variant="backup"
             onComplete={handleFirebaseAccountCreation}
             onSkip={handleFirebaseBackupSkip}
             isLoading={stateMachine.isLoading("createFirebaseAccount")}
             error={errorToString(stateMachine.getError("createFirebaseAccount"))}
           />
+        );
+
+      case "email-sent":
+        return (
+          <div className="text-center space-y-4">
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-2 text-primary justify-center mb-2">
+                <span className="text-2xl">📧</span>
+                <span className="font-medium">Email Sent!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Please check your email for a signup link to continue.
+              </p>
+            </div>
+          </div>
         );
 
       case "complete":

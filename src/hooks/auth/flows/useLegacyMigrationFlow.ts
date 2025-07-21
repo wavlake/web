@@ -32,6 +32,7 @@ import { type ProfileData } from "@/types/profile";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
+import { usePasswordlessCompletion } from "@/hooks/auth/usePasswordlessCompletion";
 import { useNostr } from "@nostrify/react";
 
 export interface UseLegacyMigrationFlowResult {
@@ -40,8 +41,7 @@ export interface UseLegacyMigrationFlowResult {
 
   // Step-specific handlers
   handleFirebaseAuthentication: (
-    email: string,
-    password: string
+    email: string
   ) => Promise<void>;
   handleLinkedNostrAuthentication: (
     credentials: NostrCredentials
@@ -68,38 +68,60 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { loginWithExtension, loginWithNsec, addLogin } = useCurrentUser();
   const { createAccount, setupAccount } = useCreateNostrAccount();
+  const { storeEmailForPasswordlessAuth, storeFlowContext } = usePasswordlessCompletion();
   const { nostr } = useNostr();
+
+  // Helper function to get the correct action URL for environment
+  const getActionCodeSettings = useCallback(() => {
+    const isDevelopment = import.meta.env.MODE === 'development';
+    const baseUrl = isDevelopment ? 'http://localhost:8080' : window.location.origin;
+    
+    return {
+      url: baseUrl + '/auth/complete',
+      handleCodeInApp: true,
+    };
+  }, []);
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
-    async (email: string, password: string): Promise<FirebaseUser> => {
+    async (email: string): Promise<FirebaseUser | { emailSent: boolean; email: string }> => {
       if (!firebaseAuth.isConfigured) {
         throw new Error("Firebase is not configured for this environment");
       }
 
-      // If user is already logged in and credentials are empty, use existing user
-      if (!email && !password && firebaseAuth.user) {
+      // If user is already logged in and email is empty, use existing user
+      if (!email && firebaseAuth.user) {
         return firebaseAuth.user;
       }
 
       try {
-        const userCredential = await firebaseAuth.loginWithEmailAndPassword({
+        // Store email for passwordless completion
+        storeEmailForPasswordlessAuth(email);
+        
+        // Store flow context for resumption after email link click
+        storeFlowContext({
+          flow: 'legacy-migration',
+          step: 'firebase-auth',
+          additionalData: {
+            email
+          }
+        });
+        
+        // Send passwordless login link with environment-appropriate settings
+        await firebaseAuth.sendPasswordlessSignInLink({
           email,
-          password,
+          actionCodeSettings: getActionCodeSettings(),
         });
 
-        if (!userCredential.user) {
-          throw new Error("Authentication failed - no user returned");
-        }
-        return userCredential.user;
+        // Return a special result indicating email was sent successfully
+        // The state machine will handle transitioning to email-sent state
+        return { emailSent: true, email };
       } catch (error: unknown) {
         // Re-throw with more user-friendly message for common cases
         if (error && typeof error === "object" && "code" in error) {
           const firebaseError = error as { code: string };
           if (firebaseError.code === "auth/user-not-found") {
             throw new Error("No account found with this email address");
-          } else if (firebaseError.code === "auth/wrong-password") {
-            throw new Error("Incorrect password");
           } else if (firebaseError.code === "auth/invalid-email") {
             throw new Error("Invalid email address");
           } else if (firebaseError.code === "auth/user-disabled") {
@@ -107,7 +129,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
           }
         }
 
-        const message = error instanceof Error ? error.message : "Login failed";
+        const message = error instanceof Error ? error.message : "Failed to send login link";
         throw new Error(message);
       }
     },
@@ -190,10 +212,9 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Step handlers that integrate with UI
   const handleFirebaseAuthentication = useCallback(
-    async (email: string, password: string) => {
+    async (email: string) => {
       const result = await stateMachine.actions.authenticateWithFirebase(
-        email,
-        password
+        email
       );
       if (!result.success) {
         throw result.error || new Error("Firebase authentication failed");
@@ -271,6 +292,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     switch (stateMachine.step) {
       case "firebase-auth":
         return "Sign in to Wavlake";
+      case "email-sent":
+        return "Check Your Email";
       case "checking-links":
         return "Checking Linked Accounts";
       case "linked-nostr-auth":
@@ -298,6 +321,8 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
     switch (stateMachine.step) {
       case "firebase-auth":
         return "Sign in with your legacy Wavlake account.";
+      case "email-sent":
+        return "A login link has been sent to your email address.";
       case "checking-links":
         return "";
       case "linked-nostr-auth":

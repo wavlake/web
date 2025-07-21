@@ -17,6 +17,7 @@ import DashboardDetail from "./pages/DashboardDetail";
 import WelcomePage from "./pages/WelcomePage";
 import CreateArtist from "./pages/CreateArtist";
 import Login from "./pages/Login";
+import AuthComplete from "./pages/AuthComplete";
 
 // Lazy load less frequently used pages
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -57,6 +58,7 @@ export function AppRouter() {
           {/* These routes do not have the header - see GlobalLayout.tsx for more details */}
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/complete" element={<AuthComplete />} />
           <Route path="/welcome" element={<WelcomePage />} />
 
           {/* These routes have the header and footer */}

@@ -68,6 +68,14 @@ function legacyMigrationReducer(
   }
 
   switch (action.type) {
+    case "EMAIL_SENT": {
+      return {
+        ...state,
+        step: "email-sent" as const,
+        canGoBack: true,
+      };
+    }
+
     case "FIREBASE_AUTH_COMPLETED": {
       return {
         ...state,
@@ -253,8 +261,7 @@ export interface UseLegacyMigrationStateMachineResult {
   // Promise-based actions
   actions: {
     authenticateWithFirebase: (
-      email: string,
-      password: string
+      email: string
     ) => Promise<ActionResult>;
     authenticateWithLinkedNostr: (
       credentials: NostrCredentials
@@ -284,7 +291,7 @@ export interface UseLegacyMigrationStateMachineResult {
  * because they have consistent behavior across all contexts.
  */
 export interface LegacyMigrationStateMachineDependencies {
-  firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
+  firebaseAuth: (email: string) => Promise<FirebaseUser | { emailSent: boolean; email: string }>;
   authenticateNostr: (
     method: NostrAuthMethod,
     credentials: NostrCredentials
@@ -311,8 +318,17 @@ export function useLegacyMigrationStateMachine(
     () =>
       createAsyncAction(
         "authenticateWithFirebase",
-        async (email: string, password: string) => {
-          const firebaseUser = await dependencies.firebaseAuth(email, password);
+        async (email: string) => {
+          const result = await dependencies.firebaseAuth(email);
+          
+          // Check if this is an email sent result (passwordless flow)
+          if (result && typeof result === 'object' && 'emailSent' in result) {
+            dispatch({ type: "EMAIL_SENT", email });
+            return { emailSent: true, email };
+          }
+          
+          // Otherwise, it's a completed Firebase authentication
+          const firebaseUser = result as FirebaseUser;
           dispatch({ type: "FIREBASE_AUTH_COMPLETED", firebaseUser });
 
           const firebaseToken = await firebaseUser.getIdToken();
