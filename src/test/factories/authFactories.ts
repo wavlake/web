@@ -108,6 +108,7 @@ export const createMockLegacyMigrationState = (overrides?: Partial<LegacyMigrati
 // Factory for creating mock Nostr login state
 export const createMockNostrLoginState = (overrides?: Partial<NostrLoginState>): NostrLoginState => ({
   step: 'auth',
+  authenticatedPubkey: null,
   isLoading: {},
   errors: {},
   canGoBack: false,

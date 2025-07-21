@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useNostrLoginFlow } from "@/hooks/auth/flows/useNostrLoginFlow";
 import { NostrAuthStep } from "../steps/shared/NostrAuthStep";
 import { LegacyMigrationFlow } from "./LegacyMigrationFlow";
+import { AccountSummaryStep } from "../steps/shared/AccountSummaryStep";
 import { StepWrapper } from "../ui/StepWrapper";
 
 interface AuthFlowResult {
@@ -84,20 +85,15 @@ export function NostrLoginFlow({ onComplete, onCancel }: NostrLoginFlowProps) {
 
       case "complete":
         return (
-          <div className="text-center space-y-4">
-            <h3 className="text-lg font-semibold text-green-600">
-              Welcome back!
-            </h3>
-            <p className="text-muted-foreground">
-              You've successfully signed in to your account.
-            </p>
-            <button
-              onClick={() => onComplete({ success: true })}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Continue to App
-            </button>
-          </div>
+          <AccountSummaryStep
+            onContinue={() => onComplete({ success: true })}
+            currentPubkey={stateMachine.authenticatedPubkey || ""}
+            linkedPubkeys={[]}
+            isLinked={false}
+            hasFirebaseBackup={false}
+            flowType="login"
+            isArtist={false}
+          />
         );
 
       default:

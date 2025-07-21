@@ -15,6 +15,7 @@ import { NostrAuthMethod, NostrCredentials } from '@/types/authFlow';
 
 const initialState: NostrLoginState = {
   step: "auth",
+  authenticatedPubkey: null,
   isLoading: {},
   errors: {},
   canGoBack: false,
@@ -32,6 +33,7 @@ function nostrLoginReducer(state: NostrLoginState, action: NostrLoginAction): No
       return {
         ...state,
         step: "complete",
+        authenticatedPubkey: action.pubkey,
         canGoBack: false,
       };
 
@@ -47,6 +49,7 @@ function nostrLoginReducer(state: NostrLoginState, action: NostrLoginAction): No
 export interface UseNostrLoginStateMachineResult {
   // State
   step: NostrLoginStep;
+  authenticatedPubkey: string | null;
   canGoBack: boolean;
   
   // Loading helpers
@@ -78,11 +81,14 @@ export function useNostrLoginStateMachine(
       // Authenticate with chosen method
       const authResult = await dependencies.authenticate(method, credentials);
       
+      // Extract pubkey from the authentication result
+      const pubkey = (authResult as unknown as { pubkey?: string })?.pubkey || "";
+      
       // Sync profile
       await dependencies.syncProfile();
       
-      // Complete flow
-      dispatch({ type: "AUTH_COMPLETED" });
+      // Complete flow with pubkey
+      dispatch({ type: "AUTH_COMPLETED", pubkey });
       
       return { authResult };
     }, dispatch), [dependencies]);
@@ -102,6 +108,7 @@ export function useNostrLoginStateMachine(
   return {
     // State
     step: state.step,
+    authenticatedPubkey: state.authenticatedPubkey,
     canGoBack: state.canGoBack,
     
     // Helpers

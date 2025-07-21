@@ -26,13 +26,13 @@ import {
   Shield,
 } from "lucide-react";
 import { LinkedPubkey } from "@/hooks/auth/machines/types";
+import { NostrAvatar } from "@/components/NostrAvatar";
 
 interface AccountSummaryStepProps {
   onContinue: () => void;
   // Nostr account info
   currentPubkey: string;
-  displayName?: string;
-  profilePicture?: string;
+  displayName?: string; // Keep for custom names from signup/migration flows
   // Linked accounts
   linkedPubkeys?: LinkedPubkey[];
   isLinked?: boolean;
@@ -48,7 +48,6 @@ export function AccountSummaryStep({
   onContinue,
   currentPubkey,
   displayName,
-  profilePicture,
   linkedPubkeys = [],
   isLinked = false,
   firebaseEmail,
@@ -108,17 +107,7 @@ export function AccountSummaryStep({
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
           <div className="flex items-center gap-3">
-            {profilePicture ? (
-              <img
-                src={profilePicture}
-                alt="Profile"
-                className="w-10 h-10 rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
-              </div>
-            )}
+            <NostrAvatar pubkey={currentPubkey} size={40} includeName={false} />
             <div>
               <div className="font-medium">{displayName || "New User"}</div>
               <code className="text-sm text-muted-foreground">

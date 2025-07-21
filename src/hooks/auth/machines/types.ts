@@ -97,10 +97,11 @@ export type NostrLoginStep =
 
 export interface NostrLoginState extends BaseStateMachineState {
   step: NostrLoginStep;
+  authenticatedPubkey: string | null;
 }
 
 export type NostrLoginAction = 
-  | { type: "AUTH_COMPLETED" }
+  | { type: "AUTH_COMPLETED"; pubkey: string }
   | AsyncStartAction
   | AsyncSuccessAction
   | AsyncErrorAction
