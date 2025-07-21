@@ -11,8 +11,9 @@ import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
 import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { PubkeyMismatchStep } from "../steps/legacy/PubkeyMismatchStep";
-import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
-import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
+// AccountChoiceStep and AccountGenerationStep no longer used - integrated into ProfileSetupStep
+// import { AccountChoiceStep } from "../steps/legacy/AccountChoiceStep";
+// import { AccountGenerationStep } from "../steps/legacy/AccountGenerationStep";
 import { BringKeypairStep } from "../steps/legacy/BringKeypairStep";
 import { ProfileSetupStep } from "../steps/signup/ProfileSetupStep";
 import { LoadingStep } from "../steps/shared/LoadingStep";
@@ -96,25 +97,24 @@ export function LegacyMigrationFlow({
           />
         );
 
+      // These steps are now skipped - users go directly to profile-setup
+      // where account generation happens inline with profile creation
       case "account-choice":
+      case "account-generation":
+        // Should not reach these steps anymore, but fallback to profile-setup
         return (
-          <AccountChoiceStep
+          <ProfileSetupStep
+            onComplete={handleProfileCompletion}
+            isLoading={stateMachine.isLoading("completeProfile")}
+            error={errorToString(stateMachine.getError("completeProfile"))}
+            isArtist={true}
+            isSoloArtist={true}
             createdLogin={stateMachine.createdLogin}
             generatedName={stateMachine.generatedName}
-            onSaveProfile={handleProfileCompletion}
+            onGenerateAccount={handleAccountGeneration}
             onSignInWithExisting={handleBringOwnKeypairWithCredentials}
-            onAutoGenerate={handleAccountGeneration}
-            isLoading={stateMachine.isLoading("completeProfile") || stateMachine.isLoading("bringOwnKeypair")}
-            error={errorToString(stateMachine.getError("generateNewAccount") || stateMachine.getError("completeProfile") || stateMachine.getError("bringOwnKeypair"))}
             isGenerating={stateMachine.isLoading("generateNewAccount")}
-          />
-        );
-
-      case "account-generation":
-        return (
-          <AccountGenerationStep
-            isLoading={stateMachine.isLoading("generateNewAccount")}
-            error={errorToString(stateMachine.getError("generateNewAccount"))}
+            generateError={errorToString(stateMachine.getError("generateNewAccount"))}
           />
         );
 
@@ -139,6 +139,11 @@ export function LegacyMigrationFlow({
             isSoloArtist={true} // Default to solo artist
             createdLogin={stateMachine.createdLogin}
             generatedName={stateMachine.generatedName}
+            // Account generation props for users without createdLogin
+            onGenerateAccount={stateMachine.createdLogin ? undefined : handleAccountGeneration}
+            onSignInWithExisting={stateMachine.createdLogin ? undefined : handleBringOwnKeypairWithCredentials}
+            isGenerating={stateMachine.isLoading("generateNewAccount")}
+            generateError={errorToString(stateMachine.getError("generateNewAccount"))}
           />
         );
 

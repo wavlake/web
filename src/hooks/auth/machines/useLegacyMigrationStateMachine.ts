@@ -79,9 +79,7 @@ function legacyMigrationReducer(
 
     case "LINKS_CHECKED": {
       const nextStep =
-        action.linkedPubkeys.length > 0
-          ? "linked-nostr-auth"
-          : "account-choice";
+        action.linkedPubkeys.length > 0 ? "linked-nostr-auth" : "profile-setup"; // Skip account-choice and account-generation steps
       return {
         ...state,
         linkedPubkeys: action.linkedPubkeys,
@@ -224,7 +222,7 @@ function getPreviousStep(
     case "bring-own-keypair":
       return hasLinkedAccounts ? "linked-nostr-auth" : "account-choice";
     case "profile-setup":
-      return "account-generation"; // Could be from account-generation or bring-own-keypair
+      return hasLinkedAccounts ? "linked-nostr-auth" : "checking-links";
     case "linking":
       // This step should no longer be reached due to atomic linking
       return "profile-setup";
@@ -451,7 +449,7 @@ export function useLegacyMigrationStateMachine(
           const { login, generatedName } = await dependencies.createAccount();
           dispatch({ type: "ACCOUNT_CREATED", login, generatedName });
 
-          // Convert login to NostrAccount for linking (no redundant account creation)
+          // Convert login to NostrAccount (account creation only, no linking yet)
           const account: NostrAccount = {
             pubkey: login.pubkey,
             signer: login,
@@ -460,82 +458,13 @@ export function useLegacyMigrationStateMachine(
             },
           };
 
-          if (!state.firebaseUser) {
-            throw new Error("Firebase user not available for linking");
-          }
-
-          const firebaseToken = await state.firebaseUser.getIdToken();
-          const nip98Signer = {
-            signEvent: async (event: unknown) => {
-              const { NUser } = await import("@nostrify/react/login");
-              let user: any;
-
-              switch (login.type) {
-                case "nsec":
-                  user = NUser.fromNsecLogin(login);
-                  break;
-                case "bunker":
-                  user = NUser.fromBunkerLogin(login, dependencies.nostr);
-                  break;
-                case "extension":
-                  user = NUser.fromExtensionLogin(login);
-                  break;
-                default:
-                  throw new Error(
-                    `Unsupported login type for NIP-98: ${login.type}`
-                  );
-              }
-
-              return await user.signer.signEvent(event as any);
-            },
-            getPublicKey: async () => login.pubkey,
-          };
-
-          try {
-            await makeLinkAccountRequest({
-              pubkey: account.pubkey,
-              firebaseUid: state.firebaseUser.uid,
-              authToken: firebaseToken,
-              signer: nip98Signer,
-            });
-          } catch (error: any) {
-            // Provide more specific error messages based on error type
-            if (
-              error.message?.includes("network") ||
-              error.message?.includes("fetch")
-            ) {
-              throw new Error(
-                "Network error during account linking. Please check your connection and try again."
-              );
-            } else if (
-              error.message?.includes("auth") ||
-              error.message?.includes("token")
-            ) {
-              throw new Error(
-                "Authentication error during account linking. Please try signing in again."
-              );
-            } else if (
-              error.message?.includes("duplicate") ||
-              error.message?.includes("already")
-            ) {
-              throw new Error(
-                "This account is already linked. Please try a different authentication method."
-              );
-            } else {
-              throw new Error(
-                `Account linking failed: ${
-                  error.message || "Unknown error"
-                }. Please try again.`
-              );
-            }
-          }
-
+          // Store the generated account - linking will happen later in completeProfile
           dispatch({ type: "ACCOUNT_GENERATED", account });
           return { login, generatedName, account };
         },
         dispatch
       ),
-    [dependencies, state.firebaseUser]
+    [dependencies]
   );
 
   const bringOwnKeypair = useMemo(
@@ -636,11 +565,88 @@ export function useLegacyMigrationStateMachine(
             );
           }
 
-          // Store profile data first
+          if (!state.firebaseUser) {
+            throw new Error("Firebase user not available for linking");
+          }
+
+          // Type assertion after null check - we know these exist from the check above
+          const createdLogin = state.createdLogin!;
+          const firebaseUser = state.firebaseUser!;
+
+          const firebaseToken = await firebaseUser.getIdToken();
+          const nip98Signer = {
+            signEvent: async (event: unknown) => {
+              const { NUser } = await import("@nostrify/react/login");
+              let user: any;
+
+              switch (createdLogin.type) {
+                case "nsec":
+                  user = NUser.fromNsecLogin(createdLogin);
+                  break;
+                case "bunker":
+                  user = NUser.fromBunkerLogin(
+                    createdLogin,
+                    dependencies.nostr
+                  );
+                  break;
+                case "extension":
+                  user = NUser.fromExtensionLogin(createdLogin);
+                  break;
+                default:
+                  throw new Error(
+                    `Unsupported login type for NIP-98: ${createdLogin.type}`
+                  );
+              }
+
+              return await user.signer.signEvent(event as any);
+            },
+            getPublicKey: async () => createdLogin.pubkey,
+          };
+
+          try {
+            await makeLinkAccountRequest({
+              pubkey: createdLogin.pubkey,
+              firebaseUid: firebaseUser.uid,
+              authToken: firebaseToken,
+              signer: nip98Signer,
+            });
+          } catch (error: any) {
+            // Provide more specific error messages based on error type
+            if (
+              error.message?.includes("network") ||
+              error.message?.includes("fetch")
+            ) {
+              throw new Error(
+                "Network error during account linking. Please check your connection and try again."
+              );
+            } else if (
+              error.message?.includes("auth") ||
+              error.message?.includes("token")
+            ) {
+              throw new Error(
+                "Authentication error during account linking. Please try signing in again."
+              );
+            } else if (
+              error.message?.includes("duplicate") ||
+              error.message?.includes("already")
+            ) {
+              throw new Error(
+                "This account is already linked. Please try a different authentication method."
+              );
+            } else {
+              throw new Error(
+                `Account linking failed: ${
+                  error.message || "Unknown error"
+                }. Please try again.`
+              );
+            }
+          }
+
+          // Store profile data after successful linking
           dispatch({ type: "PROFILE_COMPLETED", profileData });
 
           // Add the login to actually log the user in
-          dependencies.addLogin(state.createdLogin);
+          dependencies.addLogin(createdLogin);
 
           // Add a small delay to ensure user authentication state has propagated
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -671,7 +677,7 @@ export function useLegacyMigrationStateMachine(
         },
         dispatch
       ),
-    [dependencies, state.createdLogin, state.generatedName]
+    [dependencies, state.createdLogin, state.generatedName, state.firebaseUser]
   );
 
   const completeLogin = useMemo(
