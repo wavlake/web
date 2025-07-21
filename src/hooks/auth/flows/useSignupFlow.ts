@@ -39,6 +39,18 @@ export function useSignupFlow(): UseSignupFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { addLogin } = useCurrentUser();
   const { toast } = useToast();
+
+  // Helper function to get the correct action URL for environment
+  const getActionCodeSettings = useCallback(() => {
+    const isDevelopment = import.meta.env.MODE === 'development';
+    const baseUrl = isDevelopment ? 'http://localhost:8080' : window.location.origin;
+    
+    return {
+      url: baseUrl + '/auth/complete',
+      handleCodeInApp: true,
+    };
+  }, []);
+
   // State machine with dependencies injected
   const stateMachine = useSignupStateMachine({
     createAccount,
@@ -46,13 +58,10 @@ export function useSignupFlow(): UseSignupFlowResult {
       // Profile data is now properly stored in state machine and passed to setupAccount
     },
     createFirebaseAccount: async (email: string) => {
-      // Send passwordless signup link
+      // Send passwordless signup link with environment-appropriate settings
       await firebaseAuth.sendPasswordlessSignInLink({
         email,
-        actionCodeSettings: {
-          url: window.location.origin + '/auth/complete',
-          handleCodeInApp: true,
-        }
+        actionCodeSettings: getActionCodeSettings(),
       });
 
       // For now, we throw an error with instructions. 

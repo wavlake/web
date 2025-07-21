@@ -69,6 +69,17 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const { createAccount, setupAccount } = useCreateNostrAccount();
   const { nostr } = useNostr();
 
+  // Helper function to get the correct action URL for environment
+  const getActionCodeSettings = useCallback(() => {
+    const isDevelopment = import.meta.env.MODE === 'development';
+    const baseUrl = isDevelopment ? 'http://localhost:8080' : window.location.origin;
+    
+    return {
+      url: baseUrl + '/auth/complete',
+      handleCodeInApp: true,
+    };
+  }, []);
+
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
     async (email: string): Promise<FirebaseUser> => {
@@ -82,13 +93,10 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       }
 
       try {
-        // Send passwordless login link
+        // Send passwordless login link with environment-appropriate settings
         await firebaseAuth.sendPasswordlessSignInLink({
           email,
-          actionCodeSettings: {
-            url: window.location.origin + '/auth/complete',
-            handleCodeInApp: true,
-          }
+          actionCodeSettings: getActionCodeSettings(),
         });
 
         // For now, we need to return a promise that resolves when the user completes
