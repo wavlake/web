@@ -7,7 +7,7 @@
 
 // React import removed - not needed for this component
 import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlow";
-import { FirebaseAuthStep } from "../steps/legacy/FirebaseAuthStep";
+import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
 import { LinkedNostrAuthStep } from "../steps/legacy/LinkedNostrAuthStep";
 import { PubkeyMismatchStep } from "../steps/legacy/PubkeyMismatchStep";
@@ -56,11 +56,12 @@ export function LegacyMigrationFlow({
     switch (stateMachine.step) {
       case "firebase-auth":
         return (
-          <FirebaseAuthStep
+          <FirebaseEmailStep
+            variant="login"
             onComplete={handleFirebaseAuthentication}
             onContinueWithExistingUser={async () => {
-              // Use empty credentials - the dependency will detect existing user
-              await handleFirebaseAuthentication("", "");
+              // Use empty email - the dependency will detect existing user
+              await handleFirebaseAuthentication("");
             }}
             isLoading={stateMachine.isLoading("authenticateWithFirebase")}
             error={errorToString(stateMachine.getError("authenticateWithFirebase"))}
