@@ -63,6 +63,7 @@ export type SignupStep =
   | "artist-type"  
   | "profile-setup"
   | "firebase-backup"
+  | "email-sent"
   | "complete";
 
 export interface SignupState extends BaseStateMachineState {
@@ -81,6 +82,7 @@ export type SignupAction =
   | { type: "SET_ARTIST_TYPE"; isSolo: boolean }
   | { type: "ACCOUNT_CREATED"; login: NLoginType; generatedName: string }
   | { type: "PROFILE_COMPLETED"; profileData: ProfileData }
+  | { type: "EMAIL_SENT"; email: string }
   | { type: "FIREBASE_ACCOUNT_CREATED"; firebaseUser: FirebaseUser }
   | { type: "FIREBASE_BACKUP_SKIPPED" }
   | { type: "LOGIN_COMPLETED" }

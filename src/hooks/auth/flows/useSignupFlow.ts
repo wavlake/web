@@ -64,9 +64,9 @@ export function useSignupFlow(): UseSignupFlowResult {
         actionCodeSettings: getActionCodeSettings(),
       });
 
-      // For now, we throw an error with instructions. 
-      // This will be handled properly when we implement the completion handler
-      throw new Error("Please check your email for a signup link to continue.");
+      // Return a special result indicating email was sent successfully
+      // The state machine will handle transitioning to email-sent state
+      return { emailSent: true, email };
     },
     addLogin,
     setupAccount: (profileData: ProfileData | null, generatedName: string) =>
@@ -160,6 +160,8 @@ export function useSignupFlow(): UseSignupFlowResult {
           : "Create Profile";
       case "firebase-backup":
         return "Create Email Account";
+      case "email-sent":
+        return "Check Your Email";
       case "complete":
         return "Welcome!";
       default:
@@ -182,6 +184,8 @@ export function useSignupFlow(): UseSignupFlowResult {
         return "Set up your public profile";
       case "firebase-backup":
         return "Create an email account to backup your Nostr identity and access additional features";
+      case "email-sent":
+        return "A signup link has been sent to your email address.";
       case "complete":
         return "You're all set up!";
       default:

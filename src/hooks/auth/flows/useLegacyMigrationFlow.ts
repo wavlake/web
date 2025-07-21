@@ -82,7 +82,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
 
   // Create dependency functions that can access the hook methods
   const firebaseAuthDependency = useCallback(
-    async (email: string): Promise<FirebaseUser> => {
+    async (email: string): Promise<FirebaseUser | { emailSent: boolean; email: string }> => {
       if (!firebaseAuth.isConfigured) {
         throw new Error("Firebase is not configured for this environment");
       }

@@ -291,7 +291,7 @@ export interface UseLegacyMigrationStateMachineResult {
  * because they have consistent behavior across all contexts.
  */
 export interface LegacyMigrationStateMachineDependencies {
-  firebaseAuth: (email: string) => Promise<FirebaseUser>;
+  firebaseAuth: (email: string) => Promise<FirebaseUser | { emailSent: boolean; email: string }>;
   authenticateNostr: (
     method: NostrAuthMethod,
     credentials: NostrCredentials
