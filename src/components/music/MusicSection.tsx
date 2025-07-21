@@ -151,7 +151,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
         id: track.id,
         author: track.pubkey,
         kind: KINDS.MUSIC_TRACK,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
 
       const njumpUrl = `https://njump.me/${nevent}`;
@@ -180,7 +180,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
         id: track.id,
         author: track.pubkey,
         kind: KINDS.MUSIC_TRACK,
-        relays: ["wss://relay.wavlake.com"],
+        relays: [import.meta.env.VITE_RELAY_URL],
       });
 
       const njumpUrl = `https://njump.me/${nevent}`;
@@ -333,7 +333,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                         <NutzapButton
                           postId={displayTrack.id}
                           authorPubkey={displayTrack.pubkey}
-                          relayHint="wss://relay.wavlake.com"
+                          relayHint={import.meta.env.VITE_RELAY_URL}
                           showText={true}
                           onToggle={(isOpen) =>
                             handleNutzapToggle(displayTrack.id, isOpen)
@@ -374,7 +374,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
           <NutzapInterface
             postId={displayTrack.id}
             authorPubkey={displayTrack.pubkey}
-            relayHint="wss://relay.wavlake.com"
+            relayHint={import.meta.env.VITE_RELAY_URL}
             onSuccess={() => {
               // Call the refetch function if available
               const refetchFn = window[`zapRefetch_${displayTrack.id}`];
@@ -533,7 +533,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                               <NutzapButton
                                 postId={track.id}
                                 authorPubkey={track.pubkey}
-                                relayHint="wss://relay.wavlake.com"
+                                relayHint={import.meta.env.VITE_RELAY_URL}
                                 showText={false}
                                 onToggle={(isOpen) =>
                                   handleNutzapToggle(track.id, isOpen)
@@ -572,7 +572,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                               <NutzapInterface
                                 postId={track.id}
                                 authorPubkey={track.pubkey}
-                                relayHint="wss://relay.wavlake.com"
+                                relayHint={import.meta.env.VITE_RELAY_URL}
                                 onSuccess={() => {
                                   const refetchFn =
                                     window[`zapRefetch_${track.id}`];
@@ -686,7 +686,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                         <NutzapButton
                           postId={track.id}
                           authorPubkey={track.pubkey}
-                          relayHint="wss://relay.wavlake.com"
+                          relayHint={import.meta.env.VITE_RELAY_URL}
                           showText={false}
                           onToggle={(isOpen) =>
                             handleNutzapToggle(track.id, isOpen)
@@ -722,7 +722,7 @@ export function MusicSection({ albums, allTracks }: MusicSectionProps) {
                         <NutzapInterface
                           postId={track.id}
                           authorPubkey={track.pubkey}
-                          relayHint="wss://relay.wavlake.com"
+                          relayHint={import.meta.env.VITE_RELAY_URL}
                           onSuccess={() => {
                             const refetchFn = window[`zapRefetch_${track.id}`];
                             if (typeof refetchFn === "function") refetchFn();
