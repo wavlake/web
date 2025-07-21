@@ -253,8 +253,7 @@ export interface UseLegacyMigrationStateMachineResult {
   // Promise-based actions
   actions: {
     authenticateWithFirebase: (
-      email: string,
-      password: string
+      email: string
     ) => Promise<ActionResult>;
     authenticateWithLinkedNostr: (
       credentials: NostrCredentials
@@ -284,7 +283,7 @@ export interface UseLegacyMigrationStateMachineResult {
  * because they have consistent behavior across all contexts.
  */
 export interface LegacyMigrationStateMachineDependencies {
-  firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
+  firebaseAuth: (email: string) => Promise<FirebaseUser>;
   authenticateNostr: (
     method: NostrAuthMethod,
     credentials: NostrCredentials
@@ -311,8 +310,8 @@ export function useLegacyMigrationStateMachine(
     () =>
       createAsyncAction(
         "authenticateWithFirebase",
-        async (email: string, password: string) => {
-          const firebaseUser = await dependencies.firebaseAuth(email, password);
+        async (email: string) => {
+          const firebaseUser = await dependencies.firebaseAuth(email);
           dispatch({ type: "FIREBASE_AUTH_COMPLETED", firebaseUser });
 
           const firebaseToken = await firebaseUser.getIdToken();
