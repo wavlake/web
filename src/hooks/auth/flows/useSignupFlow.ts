@@ -11,6 +11,7 @@ import { useCreateNostrAccount } from "../useCreateNostrAccount";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useToast } from "@/hooks/useToast";
+import { usePasswordlessCompletion } from "@/hooks/auth/usePasswordlessCompletion";
 import { type ProfileData } from "@/types/profile";
 
 export interface UseSignupFlowResult {
@@ -39,6 +40,7 @@ export function useSignupFlow(): UseSignupFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { addLogin } = useCurrentUser();
   const { toast } = useToast();
+  const { storeEmailForPasswordlessAuth, storeFlowContext } = usePasswordlessCompletion();
 
   // Helper function to get the correct action URL for environment
   const getActionCodeSettings = useCallback(() => {
@@ -58,6 +60,19 @@ export function useSignupFlow(): UseSignupFlowResult {
       // Profile data is now properly stored in state machine and passed to setupAccount
     },
     createFirebaseAccount: async (email: string) => {
+      // Store email for passwordless completion
+      storeEmailForPasswordlessAuth(email);
+      
+      // Store flow context for resumption after email link click
+      storeFlowContext({
+        flow: 'signup',
+        step: 'firebase-backup',
+        additionalData: {
+          isArtist: stateMachine.isArtist,
+          email
+        }
+      });
+      
       // Send passwordless signup link with environment-appropriate settings
       await firebaseAuth.sendPasswordlessSignInLink({
         email,

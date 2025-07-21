@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Sparkles, LogOut, Home, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAppSetting } from "@/hooks/useAppSettings";
+import { usePasswordlessCompletion } from "@/hooks/auth/usePasswordlessCompletion";
 import { nip19 } from "nostr-tools";
 // Import the new flow components
 import { SignupFlow } from "@/components/auth/flows/SignupFlow";
@@ -44,6 +45,18 @@ export default function Login() {
   const { isAuthenticated, logout, metadata, user } = useCurrentUser();
   const isArtist = useAppSetting("isArtist");
   const npub = user?.pubkey ? nip19.npubEncode(user.pubkey) : null;
+  const { getFlowContext, getAndClearFlowContext } = usePasswordlessCompletion();
+
+  // Check for stored flow context and auto-resume flows
+  useEffect(() => {
+    const context = getFlowContext(); // Check without clearing
+    if (context && !selectedFlow && !isAuthenticated) {
+      console.log('Resuming authentication flow:', context);
+      setSelectedFlow(context.flow);
+      // Clear context after successful resumption
+      getAndClearFlowContext();
+    }
+  }, [getFlowContext, getAndClearFlowContext, selectedFlow, isAuthenticated]);
 
   const handleSignupComplete = (result: { isArtist: boolean }) => {
     navigate(result.isArtist ? "/dashboard" : "/groups");

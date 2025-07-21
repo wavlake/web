@@ -32,6 +32,7 @@ import { type ProfileData } from "@/types/profile";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useCreateNostrAccount } from "../useCreateNostrAccount";
+import { usePasswordlessCompletion } from "@/hooks/auth/usePasswordlessCompletion";
 import { useNostr } from "@nostrify/react";
 
 export interface UseLegacyMigrationFlowResult {
@@ -67,6 +68,7 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
   const firebaseAuth = useFirebaseAuth();
   const { loginWithExtension, loginWithNsec, addLogin } = useCurrentUser();
   const { createAccount, setupAccount } = useCreateNostrAccount();
+  const { storeEmailForPasswordlessAuth, storeFlowContext } = usePasswordlessCompletion();
   const { nostr } = useNostr();
 
   // Helper function to get the correct action URL for environment
@@ -93,6 +95,18 @@ export function useLegacyMigrationFlow(): UseLegacyMigrationFlowResult {
       }
 
       try {
+        // Store email for passwordless completion
+        storeEmailForPasswordlessAuth(email);
+        
+        // Store flow context for resumption after email link click
+        storeFlowContext({
+          flow: 'legacy-migration',
+          step: 'firebase-auth',
+          additionalData: {
+            email
+          }
+        });
+        
         // Send passwordless login link with environment-appropriate settings
         await firebaseAuth.sendPasswordlessSignInLink({
           email,

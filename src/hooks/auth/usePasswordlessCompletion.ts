@@ -6,9 +6,18 @@
  * the sign-in process.
  */
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useFirebaseAuth } from "@/components/FirebaseAuthProvider";
 import { useToast } from "@/hooks/useToast";
+
+export interface AuthFlowContext {
+  flow: 'signup' | 'legacy-migration';
+  step: string;
+  additionalData?: {
+    isArtist?: boolean;
+    email?: string;
+  };
+}
 
 interface UsePasswordlessCompletionOptions {
   onSuccess?: (user: any) => void;
@@ -19,6 +28,7 @@ export function usePasswordlessCompletion(options: UsePasswordlessCompletionOpti
   const firebaseAuth = useFirebaseAuth();
   const { toast } = useToast();
   const { onSuccess, onError } = options;
+  const completionHandledRef = useRef(false);
 
   const handlePasswordlessCompletion = useCallback(async () => {
     if (!firebaseAuth.isConfigured) {
@@ -29,6 +39,13 @@ export function usePasswordlessCompletion(options: UsePasswordlessCompletionOpti
     if (!firebaseAuth.isPasswordlessSignInLink(window.location.href)) {
       return;
     }
+
+    // Prevent multiple completion handlers
+    if (completionHandledRef.current) {
+      console.log('Passwordless completion already handled, skipping');
+      return;
+    }
+    completionHandledRef.current = true;
 
     try {
       // Get the email from localStorage (should have been stored when link was sent)
@@ -63,6 +80,9 @@ export function usePasswordlessCompletion(options: UsePasswordlessCompletionOpti
     } catch (error) {
       console.error('Passwordless sign-in completion failed:', error);
       
+      // Reset completion flag on error
+      completionHandledRef.current = false;
+      
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Failed to complete sign-in from email link';
@@ -76,7 +96,7 @@ export function usePasswordlessCompletion(options: UsePasswordlessCompletionOpti
       // Call error callback
       onError?.(error instanceof Error ? error : new Error(errorMessage));
     }
-  }, [firebaseAuth, toast, onSuccess, onError]);
+  }, [firebaseAuth, toast, onSuccess, onError, completionHandledRef]);
 
   // Run completion handler on mount and when URL changes
   useEffect(() => {
@@ -88,9 +108,47 @@ export function usePasswordlessCompletion(options: UsePasswordlessCompletionOpti
     localStorage.setItem('passwordless-email', email);
   }, []);
 
+  // Helper functions for flow context management
+  const storeFlowContext = useCallback((context: AuthFlowContext) => {
+    localStorage.setItem('auth-flow-context', JSON.stringify(context));
+  }, []);
+
+  const getAndClearFlowContext = useCallback((): AuthFlowContext | null => {
+    const stored = localStorage.getItem('auth-flow-context');
+    if (stored) {
+      localStorage.removeItem('auth-flow-context');
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, []);
+
+  const getFlowContext = useCallback((): AuthFlowContext | null => {
+    const stored = localStorage.getItem('auth-flow-context');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, []);
+
+  const resetCompletionHandler = useCallback(() => {
+    completionHandledRef.current = false;
+  }, []);
+
   return {
     handlePasswordlessCompletion,
     storeEmailForPasswordlessAuth,
+    storeFlowContext,
+    getAndClearFlowContext,
+    getFlowContext,
+    resetCompletionHandler,
     isPasswordlessSignInLink: firebaseAuth.isPasswordlessSignInLink,
   };
 }
