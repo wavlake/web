@@ -4,12 +4,11 @@
  * Manages the state for direct Nostr authentication flow.
  * This is the simplest flow with just auth and complete steps.
  * 
- * REFACTORED: Now uses shared authentication patterns and action factory
+ * REFACTORED: Now uses shared authentication patterns and direct async actions
  */
 
 import { useReducer, useCallback, useMemo } from 'react';
 import { handleBaseActions, isOperationLoading, getOperationError, createAsyncAction } from '../utils/stateMachineUtils';
-import { AuthActionFactory } from '../utils/authActionFactory';
 import { ActionResult, NostrLoginState, NostrLoginAction, NostrLoginStep } from './types';
 import type { NostrLoginDependencies, NostrAuthMethod, NostrCredentials, AuthResult } from './sharedTypes';
 
@@ -76,7 +75,7 @@ export function useNostrLoginStateMachine(
 ): UseNostrLoginStateMachineResult {
   const [state, dispatch] = useReducer(nostrLoginReducer, initialState);
   
-  // Create async action handlers using shared factory
+  // Create async action handlers using shared utilities
   const authenticateWithNostr = useMemo(() => {
     // Create custom action that includes profile sync within the async function
     // This ensures all errors (including sync errors) are handled by createAsyncAction
