@@ -3,13 +3,28 @@
  *
  * Business logic layer for the complex legacy migration flow that handles
  * Firebase authentication, pubkey checking, and account linking/generation.
+ * 
+ * ARCHITECTURAL PATTERN - FLOW LAYER:
+ * This file demonstrates the separation of concerns in our authentication architecture:
+ * 
+ * 1. FLOW LAYER (this file):
+ *    - Orchestrates external dependencies (Firebase, Nostr, etc.)
+ *    - Creates dependency functions that abstract implementation details
+ *    - Provides business logic integration between external services
+ *    - Handles error translation and user-friendly messaging
+ * 
+ * 2. STATE MACHINE LAYER (useLegacyMigrationStateMachine):
+ *    - Pure state management logic with injected dependencies
+ *    - Predictable state transitions and action handling
+ *    - Testable with mock dependencies
+ * 
+ * 3. UI LAYER (components):
+ *    - Presents state and calls flow handlers
+ *    - No direct access to state machine internals
  */
 
 import { useCallback } from "react";
-import {
-  useLegacyMigrationStateMachine,
-  LegacyMigrationStateMachineDependencies,
-} from "../machines/useLegacyMigrationStateMachine";
+import { useLegacyMigrationStateMachine } from "../machines/useLegacyMigrationStateMachine";
 import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { NostrAccount } from "../machines/types";
 import { User as FirebaseUser } from "firebase/auth";

@@ -11,7 +11,7 @@ export * from "./flows";
 
 // Account creation utilities
 export { useCreateNostrAccount } from "./useCreateNostrAccount";
-export { useLinkAccount } from "./useLinkAccount";
+export { useLinkAccount } from "../useLinkAccount";
 export { useUnlinkAccount } from "./useUnlinkAccount";
 
 // Signup-specific utilities

@@ -3,6 +3,19 @@
  *
  * Manages the complex state for legacy account migration including
  * Firebase auth, pubkey checking, and account linking/generation.
+ *
+ * ARCHITECTURAL PATTERN:
+ * This file demonstrates the mixed dependency approach used throughout the auth system:
+ *
+ * 1. DEPENDENCY INJECTION (via dependencies parameter):
+ *    - Business logic that varies by context (firebaseAuth, authenticateNostr, addLogin)
+ *    - Functions that need different implementations in different flows
+ *    - Operations that require mocking/testing with different behaviors
+ *
+ * 2. DIRECT IMPORTS (imported functions):
+ *    - Pure utility functions with consistent behavior (makeLinkAccountRequest)
+ *    - Stateless operations that work the same everywhere
+ *    - HTTP API calls and other infrastructure utilities
  */
 
 import { useReducer, useCallback, useMemo } from "react";
@@ -23,8 +36,10 @@ import {
 import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { User as FirebaseUser } from "firebase/auth";
 import { type ProfileData } from "@/types/profile";
+
+// DIRECT IMPORTS: Stateless utility functions with consistent behavior
 import { makeLinkedPubkeysRequest } from "@/hooks/useLinkedPubkeys";
-import { makeLinkAccountRequest } from "../useLinkAccount";
+import { makeLinkAccountRequest } from "../../useLinkAccount";
 
 const initialState: LegacyMigrationState = {
   step: "firebase-auth",
@@ -63,18 +78,27 @@ function legacyMigrationReducer(
     }
 
     case "LINKS_CHECKED": {
-      const nextStep = action.linkedPubkeys.length > 0 ? "linked-nostr-auth" : "account-choice";
+      const nextStep =
+        action.linkedPubkeys.length > 0
+          ? "linked-nostr-auth"
+          : "account-choice";
       return {
         ...state,
         linkedPubkeys: action.linkedPubkeys,
         step: nextStep,
-        expectedPubkey: action.linkedPubkeys.length > 0 ? action.linkedPubkeys[0].pubkey : null,
+        expectedPubkey:
+          action.linkedPubkeys.length > 0
+            ? action.linkedPubkeys[0].pubkey
+            : null,
         canGoBack: true,
       };
     }
 
     case "ACCOUNT_CHOICE_MADE": {
-      const nextStep = action.choice === "generate" ? "account-generation" : "bring-own-keypair";
+      const nextStep =
+        action.choice === "generate"
+          ? "account-generation"
+          : "bring-own-keypair";
       return {
         ...state,
         step: nextStep,
@@ -250,6 +274,17 @@ export interface UseLegacyMigrationStateMachineResult {
   reset: () => void;
 }
 
+/**
+ * DEPENDENCY INJECTION: Business logic that varies by context
+ *
+ * These functions are injected because they enable:
+ * 1. Different implementations where needed (e.g., Firebase create vs login)
+ * 2. Easy mocking/testing with different behaviors
+ * 3. Separation of external service integration from state logic
+ *
+ * NOTE: Utility functions like makeLinkAccountRequest are directly imported
+ * because they have consistent behavior across all contexts.
+ */
 export interface LegacyMigrationStateMachineDependencies {
   firebaseAuth: (email: string, password: string) => Promise<FirebaseUser>;
   authenticateNostr: (
@@ -347,7 +382,7 @@ export function useLegacyMigrationStateMachine(
 
           // Link the new pubkey to Firebase account
           const firebaseToken = await state.firebaseUser.getIdToken();
-          
+
           // Create proper signer for NIP-98 authentication
           const nip98Signer = {
             signEvent: async (event: unknown) => {
@@ -357,7 +392,7 @@ export function useLegacyMigrationStateMachine(
             },
             getPublicKey: async () => state.mismatchedAccount!.pubkey,
           };
-          
+
           try {
             await makeLinkAccountRequest({
               pubkey: state.mismatchedAccount.pubkey,
@@ -367,14 +402,33 @@ export function useLegacyMigrationStateMachine(
             });
           } catch (error: any) {
             // Provide user-friendly error messages
-            if (error.message?.includes('network') || error.message?.includes('fetch')) {
-              throw new Error("Network error during account linking. Please check your connection and try again.");
-            } else if (error.message?.includes('auth') || error.message?.includes('token')) {
-              throw new Error("Authentication error during account linking. Please try signing in again.");
-            } else if (error.message?.includes('duplicate') || error.message?.includes('already')) {
-              throw new Error("This Nostr account is already linked to a different Firebase account.");
+            if (
+              error.message?.includes("network") ||
+              error.message?.includes("fetch")
+            ) {
+              throw new Error(
+                "Network error during account linking. Please check your connection and try again."
+              );
+            } else if (
+              error.message?.includes("auth") ||
+              error.message?.includes("token")
+            ) {
+              throw new Error(
+                "Authentication error during account linking. Please try signing in again."
+              );
+            } else if (
+              error.message?.includes("duplicate") ||
+              error.message?.includes("already")
+            ) {
+              throw new Error(
+                "This Nostr account is already linked to a different Firebase account."
+              );
             } else {
-              throw new Error(`Failed to link new account: ${error.message || 'Unknown error'}. Please try again.`);
+              throw new Error(
+                `Failed to link new account: ${
+                  error.message || "Unknown error"
+                }. Please try again.`
+              );
             }
           }
 
@@ -405,7 +459,7 @@ export function useLegacyMigrationStateMachine(
               name: generatedName,
             },
           };
-          
+
           if (!state.firebaseUser) {
             throw new Error("Firebase user not available for linking");
           }
@@ -415,26 +469,28 @@ export function useLegacyMigrationStateMachine(
             signEvent: async (event: unknown) => {
               const { NUser } = await import("@nostrify/react/login");
               let user: any;
-              
+
               switch (login.type) {
-                case 'nsec':
+                case "nsec":
                   user = NUser.fromNsecLogin(login);
                   break;
-                case 'bunker':
+                case "bunker":
                   user = NUser.fromBunkerLogin(login, dependencies.nostr);
                   break;
-                case 'extension':
+                case "extension":
                   user = NUser.fromExtensionLogin(login);
                   break;
                 default:
-                  throw new Error(`Unsupported login type for NIP-98: ${login.type}`);
+                  throw new Error(
+                    `Unsupported login type for NIP-98: ${login.type}`
+                  );
               }
-              
+
               return await user.signer.signEvent(event as any);
             },
             getPublicKey: async () => login.pubkey,
           };
-          
+
           try {
             await makeLinkAccountRequest({
               pubkey: account.pubkey,
@@ -444,14 +500,33 @@ export function useLegacyMigrationStateMachine(
             });
           } catch (error: any) {
             // Provide more specific error messages based on error type
-            if (error.message?.includes('network') || error.message?.includes('fetch')) {
-              throw new Error("Network error during account linking. Please check your connection and try again.");
-            } else if (error.message?.includes('auth') || error.message?.includes('token')) {
-              throw new Error("Authentication error during account linking. Please try signing in again.");
-            } else if (error.message?.includes('duplicate') || error.message?.includes('already')) {
-              throw new Error("This account is already linked. Please try a different authentication method.");
+            if (
+              error.message?.includes("network") ||
+              error.message?.includes("fetch")
+            ) {
+              throw new Error(
+                "Network error during account linking. Please check your connection and try again."
+              );
+            } else if (
+              error.message?.includes("auth") ||
+              error.message?.includes("token")
+            ) {
+              throw new Error(
+                "Authentication error during account linking. Please try signing in again."
+              );
+            } else if (
+              error.message?.includes("duplicate") ||
+              error.message?.includes("already")
+            ) {
+              throw new Error(
+                "This account is already linked. Please try a different authentication method."
+              );
             } else {
-              throw new Error(`Account linking failed: ${error.message || 'Unknown error'}. Please try again.`);
+              throw new Error(
+                `Account linking failed: ${
+                  error.message || "Unknown error"
+                }. Please try again.`
+              );
             }
           }
 
@@ -473,13 +548,13 @@ export function useLegacyMigrationStateMachine(
             credentials.method,
             credentials
           );
-          
+
           // Link to Firebase atomically using direct API call
           if (!state.firebaseUser) {
             throw new Error("Firebase user not available for linking");
           }
           const firebaseToken = await state.firebaseUser.getIdToken();
-          
+
           // Create proper signer for NIP-98 authentication
           const nip98Signer = {
             signEvent: async (event: unknown) => {
@@ -489,7 +564,7 @@ export function useLegacyMigrationStateMachine(
             },
             getPublicKey: async () => account.pubkey,
           };
-          
+
           try {
             await makeLinkAccountRequest({
               pubkey: account.pubkey,
@@ -499,20 +574,40 @@ export function useLegacyMigrationStateMachine(
             });
           } catch (error: any) {
             // Provide user-friendly error messages
-            if (error.message?.includes('network') || error.message?.includes('fetch')) {
-              throw new Error("Network error during account linking. Please check your connection and try again.");
-            } else if (error.message?.includes('auth') || error.message?.includes('token')) {
-              throw new Error("Authentication error during account linking. Please try signing in again.");
-            } else if (error.message?.includes('duplicate') || error.message?.includes('already')) {
-              throw new Error("This Nostr account is already linked to a different Firebase account.");
+            if (
+              error.message?.includes("network") ||
+              error.message?.includes("fetch")
+            ) {
+              throw new Error(
+                "Network error during account linking. Please check your connection and try again."
+              );
+            } else if (
+              error.message?.includes("auth") ||
+              error.message?.includes("token")
+            ) {
+              throw new Error(
+                "Authentication error during account linking. Please try signing in again."
+              );
+            } else if (
+              error.message?.includes("duplicate") ||
+              error.message?.includes("already")
+            ) {
+              throw new Error(
+                "This Nostr account is already linked to a different Firebase account."
+              );
             } else {
-              throw new Error(`Failed to link imported account: ${error.message || 'Unknown error'}. Please try again.`);
+              throw new Error(
+                `Failed to link imported account: ${
+                  error.message || "Unknown error"
+                }. Please try again.`
+              );
             }
           }
 
           // Create login from the authenticated account
-          const login = account.signer as import("@nostrify/react/login").NLoginType;
-          
+          const login =
+            account.signer as import("@nostrify/react/login").NLoginType;
+
           // Log the user in immediately
           dependencies.addLogin(login);
 
@@ -536,7 +631,9 @@ export function useLegacyMigrationStateMachine(
         "completeProfile",
         async (profileData: ProfileData) => {
           if (!state.createdLogin || !state.generatedName) {
-            throw new Error("No login or generated name available for profile completion");
+            throw new Error(
+              "No login or generated name available for profile completion"
+            );
           }
 
           // Store profile data first
@@ -546,7 +643,7 @@ export function useLegacyMigrationStateMachine(
           dependencies.addLogin(state.createdLogin);
 
           // Add a small delay to ensure user authentication state has propagated
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
 
           // Setup account (create wallet, publish profile with user's custom data)
           // These operations are non-critical - if they fail, user should still be logged in
@@ -563,7 +660,7 @@ export function useLegacyMigrationStateMachine(
                 tags: [],
                 created_at: Math.floor(Date.now() / 1000),
               };
-              
+
               await dependencies.nostr.event(profileEvent);
             } catch (profileError: any) {
               // Even this failure is non-critical - user can set up profile later
