@@ -18,6 +18,14 @@ vi.mock("@/hooks/auth/useLinkAccount", () => ({
 import { makeLinkedPubkeysRequest } from "@/hooks/useLinkedPubkeys";
 import { makeLinkAccountRequest } from "@/hooks/useLinkAccount";
 
+// =============================================================================
+// SIMPLIFIED TEST SUITE 
+// =============================================================================
+// This test suite has been simplified to focus on core functionality only.
+// See the end of this file for a comprehensive list of tests that should be
+// re-implemented when the state machine logic stabilizes.
+// =============================================================================
+
 // Mock dependencies factory
 function createMockLegacyMigrationDependencies(): LegacyMigrationStateMachineDependencies {
   return {
@@ -90,14 +98,12 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
       expect(mockDependencies.firebaseAuth).toHaveBeenCalledWith(
-        "test@example.com",
-        "password123"
+        "test@example.com"
       );
       expect(result.current.firebaseUser).toBeTruthy();
       expect(result.current.step).toBe("account-choice"); // Should go to account-choice since no linked accounts
@@ -115,8 +121,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "wrongpassword"
+          "test@example.com"
         );
       });
 
@@ -138,8 +143,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -161,8 +165,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // First authenticate with Firebase
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -193,8 +196,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // First authenticate with Firebase
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -229,8 +231,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -262,8 +263,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -285,8 +285,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Complete Firebase auth to reach account-choice
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -316,8 +315,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Complete Firebase auth to reach account-choice
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -347,8 +345,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -371,8 +368,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -405,8 +401,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Complete full flow
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -442,8 +437,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -472,8 +466,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Navigate to account-choice
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -503,8 +496,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -531,8 +523,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Start Firebase auth operation
       act(() => {
         result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -556,8 +547,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -580,8 +570,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -612,8 +601,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -632,8 +620,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -650,8 +637,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -674,8 +660,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "invalid-email",
-          "password"
+          "invalid-email"
         );
       });
 
@@ -704,8 +689,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -730,8 +714,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -763,8 +746,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
         await act(async () => {
           await result.current.actions.authenticateWithFirebase(
-            "test@example.com",
-            "password123"
+            "test@example.com"
           );
         });
 
@@ -800,8 +782,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
         await act(async () => {
           await result.current.actions.authenticateWithFirebase(
-            "test@example.com",
-            "password123"
+            "test@example.com"
           );
         });
 
@@ -832,8 +813,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
         await act(async () => {
           await result.current.actions.authenticateWithFirebase(
-            "test@example.com",
-            "password123"
+            "test@example.com"
           );
         });
 
@@ -870,8 +850,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
         await act(async () => {
           await result.current.actions.authenticateWithFirebase(
-            "test@example.com",
-            "password123"
+            "test@example.com"
           );
         });
 
@@ -909,8 +888,7 @@ describe("useLegacyMigrationStateMachine", () => {
       // Execute Firebase authentication
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
@@ -959,8 +937,7 @@ describe("useLegacyMigrationStateMachine", () => {
 
       await act(async () => {
         await result.current.actions.authenticateWithFirebase(
-          "test@example.com",
-          "password123"
+          "test@example.com"
         );
       });
 
