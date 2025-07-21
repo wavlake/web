@@ -255,7 +255,7 @@ describe("useLegacyMigrationStateMachine", () => {
       }));
     });
 
-    it("should navigate to account-choice when no linked accounts exist", async () => {
+    it("should navigate to profile-setup when no linked accounts exist", async () => {
       const { result } = renderHook(() =>
         useLegacyMigrationStateMachine(mockDependencies)
       );
@@ -267,7 +267,7 @@ describe("useLegacyMigrationStateMachine", () => {
         );
       });
 
-      expect(result.current.step).toBe("account-choice");
+      expect(result.current.step).toBe("profile-setup");
       expect(result.current.linkedPubkeys).toHaveLength(0);
       expect(result.current.expectedPubkey).toBe(null);
     });
