@@ -24,6 +24,7 @@ import {
   Link as LinkIcon,
   ArrowRight,
   Shield,
+  Loader2,
 } from "lucide-react";
 import { LinkedPubkey } from "@/hooks/auth/machines/types";
 import { NostrAvatar } from "@/components/NostrAvatar";
@@ -42,6 +43,8 @@ interface AccountSummaryStepProps {
   // Flow context
   flowType: "signup" | "migration" | "login";
   isArtist?: boolean;
+  // Loading state
+  isLoading?: boolean;
 }
 
 export function AccountSummaryStep({
@@ -54,6 +57,7 @@ export function AccountSummaryStep({
   hasFirebaseBackup = false,
   flowType,
   isArtist = false,
+  isLoading = false,
 }: AccountSummaryStepProps) {
   const formatPubkey = (pubkey: string) => {
     const npubKey = nip19.npubEncode(pubkey);
@@ -120,9 +124,23 @@ export function AccountSummaryStep({
 
       {/* Continue Button */}
       <div className="flex justify-center pt-4">
-        <Button onClick={onContinue} className="px-8 py-3 text-lg" size="lg">
-          {flowType === "signup" ? "Get Started" : "Continue to Dashboard"}
-          <ArrowRight className="w-4 h-4 ml-2" />
+        <Button 
+          onClick={onContinue} 
+          className="px-8 py-3 text-lg" 
+          size="lg"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Setting up your account...
+            </>
+          ) : (
+            <>
+              {flowType === "signup" ? "Get Started" : "Continue to Dashboard"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </>
+          )}
         </Button>
       </div>
     </div>

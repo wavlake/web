@@ -23,6 +23,8 @@ interface NostrLoginFlowProps {
 }
 
 export function NostrLoginFlow({ onComplete, onCancel }: NostrLoginFlowProps) {
+  const [isCompletingLogin, setIsCompletingLogin] = useState(false);
+  
   const {
     stateMachine,
     handleNostrAuthentication,
@@ -86,7 +88,11 @@ export function NostrLoginFlow({ onComplete, onCancel }: NostrLoginFlowProps) {
       case "complete":
         return (
           <AccountSummaryStep
-            onContinue={() => onComplete({ success: true })}
+            onContinue={() => {
+              setIsCompletingLogin(true);
+              onComplete({ success: true });
+            }}
+            isLoading={isCompletingLogin}
             currentPubkey={stateMachine.authenticatedPubkey || ""}
             linkedPubkeys={[]}
             isLinked={false}
