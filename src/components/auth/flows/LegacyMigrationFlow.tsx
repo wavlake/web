@@ -5,7 +5,7 @@
  * multiple steps and branching logic.
  */
 
-// React import removed - not needed for this component
+import { useState } from "react";
 import { useLegacyMigrationFlow } from "@/hooks/auth/flows/useLegacyMigrationFlow";
 import { FirebaseEmailStep } from "../steps/shared/FirebaseEmailStep";
 import { CheckingLinksStep } from "../steps/legacy/CheckingLinksStep";
@@ -31,6 +31,8 @@ export function LegacyMigrationFlow({
   onComplete,
   onCancel,
 }: LegacyMigrationFlowProps) {
+  const [isCompletingMigration, setIsCompletingMigration] = useState(false);
+  
   const {
     stateMachine,
     handleFirebaseAuthentication,
@@ -175,7 +177,11 @@ export function LegacyMigrationFlow({
       case "complete":
         return (
           <AccountSummaryStep
-            onContinue={() => onComplete({ success: true })}
+            onContinue={() => {
+              setIsCompletingMigration(true);
+              onComplete({ success: true });
+            }}
+            isLoading={isCompletingMigration}
             currentPubkey={stateMachine.generatedAccount?.pubkey || stateMachine.createdLogin?.pubkey || ""}
             displayName={stateMachine.profileData?.name || stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
             linkedPubkeys={stateMachine.linkedPubkeys}

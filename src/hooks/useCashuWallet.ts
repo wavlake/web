@@ -154,9 +154,13 @@ export function useCashuWallet() {
         tags: [],
         created_at: Math.floor(Date.now() / 1000),
       });
-
-      // Publish event
-      await nostr.event(event);
+      // Publish event with timeout for relay connection issues
+      try {
+        await nostr.event(event, { signal: AbortSignal.timeout(5000) });
+        console.log("Cashu wallet event published successfully");
+      } catch (error) {
+        console.warn("Failed to publish cashu wallet event (continuing without relay sync):", error);
+      }
 
       // Also create or update the nutzap informational event
       try {

@@ -5,6 +5,7 @@
  * and renders appropriate step components.
  */
 
+import { useState } from "react";
 import { useSignupFlow } from "@/hooks/auth/flows/useSignupFlow";
 import { UserTypeStep } from "../steps/signup/UserTypeStep";
 import { ArtistTypeStep } from "../steps/signup/ArtistTypeStep";
@@ -19,6 +20,8 @@ interface SignupFlowProps {
 }
 
 export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
+  const [isCompletingSignup, setIsCompletingSignup] = useState(false);
+  
   const {
     stateMachine,
     handleUserTypeSelection,
@@ -98,14 +101,19 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return (
           <AccountSummaryStep
             onContinue={async () => {
-              // Complete the login process first
+              setIsCompletingSignup(true);
               try {
                 await handleSignupCompletion();
                 onComplete({ isArtist: stateMachine.isArtist });
               } catch (error) {
-                console.error("Failed to complete signup:", error);
+                console.error("AccountSummaryStep: Failed to complete signup:", error);
+                // Even if completion fails, we can still try to navigate since the user is already set up
+                onComplete({ isArtist: stateMachine.isArtist });
+              } finally {
+                setIsCompletingSignup(false);
               }
             }}
+            isLoading={isCompletingSignup}
             currentPubkey={stateMachine.createdLogin?.pubkey || ""}
             displayName={stateMachine.profileData?.name || stateMachine.profileData?.display_name || stateMachine.generatedName || undefined}
             linkedPubkeys={[]}
