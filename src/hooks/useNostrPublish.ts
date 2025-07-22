@@ -5,6 +5,7 @@ import { useCurrentUser } from "./useCurrentUser";
 import { getPostExpirationTimestamp } from "../lib/utils";
 import { CASHU_EVENT_KINDS } from "@/lib/cashu";
 import { KINDS } from "@/lib/nostr-kinds";
+import { toast } from "@/hooks/useToast";
 
 interface EventTemplate {
   kind: number;
@@ -64,6 +65,11 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
     },
     onError: (error) => {
       console.error("Failed to publish event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to publish event. Please try again later.",
+        variant: "destructive",
+      });
     },
     onSuccess: (event) => {
       console.log("Event published successfully:", event);
