@@ -36,6 +36,7 @@ import {
 import { NostrAuthMethod, NostrCredentials } from "@/types/authFlow";
 import { User as FirebaseUser } from "firebase/auth";
 import { type ProfileData } from "@/types/profile";
+import { type NLoginType, NUser } from "@nostrify/react/login";
 
 // DIRECT IMPORTS: Stateless utility functions with consistent behavior
 import { makeLinkedPubkeysRequest } from "@/hooks/useLinkedPubkeys";
@@ -249,7 +250,7 @@ export interface UseLegacyMigrationStateMachineResult {
   actualPubkey: string | null;
   mismatchedAccount: NostrAccount | null;
   generatedAccount: NostrAccount | null;
-  createdLogin: import("@nostrify/react/login").NLoginType | null;
+  createdLogin: NLoginType | null;
   generatedName: string | null;
   profileData: ProfileData | null;
   canGoBack: boolean;
@@ -297,10 +298,10 @@ export interface LegacyMigrationStateMachineDependencies {
     credentials: NostrCredentials
   ) => Promise<NostrAccount>;
   createAccount: () => Promise<{
-    login: import("@nostrify/react/login").NLoginType;
+    login: NLoginType;
     generatedName: string;
   }>;
-  addLogin: (login: import("@nostrify/react/login").NLoginType) => void;
+  addLogin: (login: NLoginType) => void;
   setupAccount: (
     profileData: ProfileData | null,
     generatedName: string
@@ -350,7 +351,7 @@ export function useLegacyMigrationStateMachine(
       createAsyncAction(
         "authenticateWithLinkedNostr",
         async (credentials: NostrCredentials) => {
-          // Authenticate with the provided credentials
+          // Authenticate with the provided credentials but DON'T add login yet
           const account = await dependencies.authenticateNostr(
             credentials.method,
             credentials
@@ -358,7 +359,7 @@ export function useLegacyMigrationStateMachine(
 
           // Check if the authenticated pubkey matches the expected pubkey
           if (state.expectedPubkey && account.pubkey !== state.expectedPubkey) {
-            // Pubkey mismatch detected - show mismatch dialog
+            // Pubkey mismatch detected - store account but don't activate user
             dispatch({
               type: "PUBKEY_MISMATCH_DETECTED",
               expectedPubkey: state.expectedPubkey,
@@ -368,7 +369,10 @@ export function useLegacyMigrationStateMachine(
             return { account, mismatch: true };
           }
 
-          // Pubkey matches - continue with authentication
+          // Pubkey matches - add login to activate user and continue
+          const login = account.signer as NLoginType;
+          dependencies.addLogin(login);
+          
           // Navigate to app (linking already exists)
           dispatch({ type: "LINKING_COMPLETED" });
 
@@ -446,6 +450,10 @@ export function useLegacyMigrationStateMachine(
             }
           }
 
+          // SECURITY FIX: Only activate user AFTER successful linking
+          const login = state.mismatchedAccount.signer as NLoginType;
+          dependencies.addLogin(login);
+
           // Clear mismatch state and complete the flow
           dispatch({ type: "PUBKEY_MISMATCH_CONTINUE" });
           dispatch({ type: "LINKING_COMPLETED" });
@@ -454,7 +462,7 @@ export function useLegacyMigrationStateMachine(
         },
         dispatch
       ),
-    [state.mismatchedAccount, state.firebaseUser]
+    [state.mismatchedAccount, state.firebaseUser, dependencies]
   );
 
   const generateNewAccount = useMemo(
@@ -550,8 +558,7 @@ export function useLegacyMigrationStateMachine(
           }
 
           // Create login from the authenticated account
-          const login =
-            account.signer as import("@nostrify/react/login").NLoginType;
+          const login = account.signer as NLoginType;
 
           // Log the user in immediately
           dependencies.addLogin(login);
@@ -592,7 +599,6 @@ export function useLegacyMigrationStateMachine(
           const firebaseToken = await firebaseUser.getIdToken();
           const nip98Signer = {
             signEvent: async (event: unknown) => {
-              const { NUser } = await import("@nostrify/react/login");
               let user: any;
 
               switch (createdLogin.type) {

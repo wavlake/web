@@ -106,8 +106,7 @@ export function useCashuWallet() {
         cashuStore.setActiveMintUrl(walletData.mints[0]);
       }
 
-      // log wallet data
-      console.log("walletData", walletData);
+      // Wallet successfully loaded and configured
 
       return {
         id: event.id,
@@ -164,7 +163,7 @@ export function useCashuWallet() {
 
       // Also create or update the nutzap informational event
       try {
-        await createNutzapInfo({
+        createNutzapInfo({
           mintOverrides: walletData.mints.map((mint) => ({
             url: mint,
             units: ["sat"],
