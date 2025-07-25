@@ -120,9 +120,6 @@ export function useCashuWallet() {
   // Create or update wallet
   const createWalletMutation = useMutation({
     mutationFn: async (walletData: CashuWalletStruct) => {
-      console.log("[useCashuWallet] Creating or updating wallet", {
-        walletData,
-      });
       if (!user) throw new Error("User not logged in");
       if (!user.signer.nip44) {
         throw new Error("NIP-44 encryption not supported by your signer");
@@ -156,7 +153,6 @@ export function useCashuWallet() {
       // Publish event with timeout for relay connection issues
       try {
         await nostr.event(event, { signal: AbortSignal.timeout(5000) });
-        console.log("Cashu wallet event published successfully");
       } catch (error) {
         console.warn("Failed to publish cashu wallet event (continuing without relay sync):", error);
       }

@@ -242,9 +242,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
       try {
         clearError();
         const auth = getAuth();
-        console.log(`🔗 [FirebaseAuth] Logging in with email:`, {
-          email: credentials.email,
-        });
 
         return await signInWithEmailAndPassword(
           auth,
@@ -265,9 +262,6 @@ export const FirebaseAuthProvider: React.FC<FirebaseAuthProviderProps> = ({
       try {
         clearError();
         const auth = getAuth();
-        console.log(`🔗 [FirebaseAuth] Registering with email:`, {
-          email: credentials.email,
-        });
         const result = await createUserWithEmailAndPassword(
           auth,
           credentials.email,

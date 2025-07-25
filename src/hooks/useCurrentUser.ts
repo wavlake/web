@@ -59,7 +59,6 @@ export function useCurrentUser() {
    * Logout current user from both Nostr and Firebase
    */
   const logout = useCallback(() => {
-    console.log("[useCurrentUser] Logging out user", { user, logins });
     if (user && logins[0]) {
       removeLogin(logins[0].id);
     }
@@ -77,7 +76,6 @@ export function useCurrentUser() {
   const loginWithNsec = useCallback(
     (nsec: string) => {
       try {
-        console.log("[useCurrentUser] Creating login from nsec", { nsec });
         const login = NLogin.fromNsec(nsec);
         addLogin(login);
         return login;
@@ -97,7 +95,6 @@ export function useCurrentUser() {
    */
   const loginWithBunker = useCallback(
     async (uri: string) => {
-      console.log("[useCurrentUser] Creating login from bunker URI", { uri });
       const login = await NLogin.fromBunker(uri, nostr);
       addLogin(login);
       return login;
@@ -109,7 +106,6 @@ export function useCurrentUser() {
    * Login with a NIP-07 browser extension
    */
   const loginWithExtension = useCallback(async () => {
-    console.log("[useCurrentUser] Creating login from browser extension");
     const login = await NLogin.fromExtension();
     addLogin(login);
     return login;
@@ -118,11 +114,6 @@ export function useCurrentUser() {
   // Enhanced addLogin that returns the created user
   const addLoginWithUser = useCallback(
     (login: NLoginType) => {
-      console.log("[useCurrentUser] Adding login", {
-        id: login.id,
-        type: login.type,
-        pubkey: login.pubkey,
-      });
       addLogin(login);
       return loginToUser(login);
     },

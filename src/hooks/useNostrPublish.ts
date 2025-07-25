@@ -72,7 +72,6 @@ export function useNostrPublish(options?: UseNostrPublishOptions) {
       });
     },
     onSuccess: (event) => {
-      console.log("Event published successfully:", event);
       
       // Invalidate specified queries
       if (options?.invalidateQueries) {

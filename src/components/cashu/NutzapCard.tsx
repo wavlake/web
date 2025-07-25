@@ -145,7 +145,6 @@ export function NutzapCard() {
       // First fetch the recipient's nutzap info
       const recipientInfo = await fetchNutzapInfo(recipientPubkey);
 
-      console.log("Recipient info", recipientInfo);
 
       // Convert amount based on currency preference
       let amountValue: number;

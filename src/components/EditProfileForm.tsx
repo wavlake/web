@@ -170,12 +170,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = ({
         content: JSON.stringify(data),
       };
 
-      console.log("Complete kind 0 event being published:", {
-        event: eventToPublish,
-        parsedContent: data,
-        contentString: JSON.stringify(data),
-        preservedFields: Object.keys(data),
-      });
 
       // Publish the metadata event (kind 0) with all preserved fields
       await publishEvent(eventToPublish);

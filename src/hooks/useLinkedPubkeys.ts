@@ -22,9 +22,6 @@ export const makeLinkedPubkeysRequest = async (
   firebaseUser: FirebaseUser,
   authToken: string
 ): Promise<LinkedPubkey[]> => {
-  console.log("[makeLinkedPubkeysRequest] Fetching linked pubkeys", {
-    firebaseUser: firebaseUser.uid,
-  });
 
   const response = await fetch(`${API_BASE_URL}/auth/get-linked-pubkeys`, {
     method: "GET",

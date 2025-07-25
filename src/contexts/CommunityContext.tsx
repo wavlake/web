@@ -185,7 +185,6 @@ export function CommunityProvider({ children }: CommunityProviderProps) {
   // URL synchronization - update URL when community changes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    console.log("Updating URL with communityId:", selectedCommunityId);
     if (selectedCommunityId) {
       urlParams.set("communityId", selectedCommunityId);
     } else {

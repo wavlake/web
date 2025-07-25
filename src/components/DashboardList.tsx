@@ -159,11 +159,6 @@ export function DashboardList() {
                       (tag) => tag[0] === "image"
                     )?.[1];
 
-                    console.log("DashboardList Debug:", {
-                      communityId,
-                      name,
-                      community,
-                    });
 
                     return (
                       <Card

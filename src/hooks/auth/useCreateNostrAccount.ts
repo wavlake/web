@@ -35,10 +35,6 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
     login: NLoginType;
     generatedName: string;
   }> => {
-    console.log("[useCreateNostrAccount] Creating account", {
-      isCreating,
-      generatedName,
-    });
     setIsCreating(true);
 
     try {
@@ -79,12 +75,6 @@ export const useCreateNostrAccount = (): UseCreateAccountReturn => {
       } else {
         finalProfileData = { name: generatedName };
       }
-
-      console.log("[useCreateNostrAccount] Setting up account", {
-        profileData,
-        generatedName,
-        finalProfileData,
-      });
       
       // Create Cashu wallet
       await createCashuWallet();

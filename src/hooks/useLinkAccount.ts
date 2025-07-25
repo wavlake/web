@@ -22,10 +22,6 @@ export const makeLinkAccountRequest = async ({
   authToken,
   signer,
 }: LinkAccountParams) => {
-  console.log("[makeLinkAccountRequest] Linking account", {
-    pubkey,
-    firebaseUid,
-  });
 
   const url = `${import.meta.env.VITE_NEW_API_URL}/auth/link-pubkey`;
   const method = "POST";

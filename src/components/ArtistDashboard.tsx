@@ -75,22 +75,6 @@ function ArtistDashboardContent({
   // Check if user is owner or moderator for notification badges
   const isOwnerOrModerator = userRole === "owner" || userRole === "moderator";
 
-  // Debug logging for moderation permissions
-  console.log("ArtistDashboard Debug:", {
-    userRole,
-    selectedCommunityId,
-    selectedCommunity: selectedCommunity
-      ? {
-          id: selectedCommunity.id,
-          pubkey: selectedCommunity.pubkey,
-          moderatorTags: selectedCommunity.tags?.filter(
-            (tag) => tag[0] === "p" && tag[3] === "moderator"
-          ),
-        }
-      : null,
-    isOwnerOrModerator,
-    userPubkey: user?.pubkey,
-  });
 
   // Get pending reports and join requests counts for owners/moderators
   const { data: openReportsCount = 0 } = useOpenReportsCount(
