@@ -17,6 +17,5 @@ export { NostrAuthStep } from "./steps/shared/NostrAuthStep";
 // Utility components
 export { PubkeyMismatchAlert } from "./PubkeyMismatchAlert";
 export { UnlinkConfirmDialog } from "./UnlinkConfirmDialog";
-export { FirebaseActionGuard } from "./FirebaseActionGuard";
 
 // Legacy/Migration components

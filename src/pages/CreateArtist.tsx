@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Music, Users, Mic, Construction } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { FirebaseActionGuard } from "@/components/auth/FirebaseActionGuard";
 
 export default function CreateArtist() {
   const navigate = useNavigate();
@@ -29,8 +28,7 @@ export default function CreateArtist() {
           </Button>
         </div>
 
-        <FirebaseActionGuard action="create-group" className="mb-6">
-          <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-2xl mx-auto">
             <CardHeader className="text-center">
               <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Construction className="h-8 w-8 text-orange-600 dark:text-orange-400" />
@@ -104,7 +102,6 @@ export default function CreateArtist() {
             </div>
             </CardContent>
           </Card>
-        </FirebaseActionGuard>
       </div>
     </div>
   );

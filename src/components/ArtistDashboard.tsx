@@ -47,7 +47,6 @@ import { useCommunityActivity } from "@/hooks/useCommunityContent";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { SupportTab } from "@/components/dashboard/SupportTab";
 import { GroupLinksContactForm } from "@/components/groups/GroupLinksContactForm";
-import { FirebaseActionGuard } from "@/components/auth/FirebaseActionGuard";
 
 interface ArtistDashboardProps {
   artistName?: string;
@@ -483,30 +482,21 @@ function ArtistDashboardContent({
         </TabsContent>
 
         <TabsContent value="community" className="space-y-4">
-          {/* Single Firebase Guard for all community editing features */}
+          {/* Community editing features */}
           {selectedCommunity && canUpdateCommunity && (
-            <FirebaseActionGuard action="edit-group">
-              <div className="space-y-4">
-                {/* Community Privileges Component */}
-                <CommunityPrivileges showUpdateCommunityFeatures={true} />
+            <div className="space-y-4">
+              {/* Community Privileges Component */}
+              <CommunityPrivileges showUpdateCommunityFeatures={true} />
 
-                {/* Group Links & Contact Form */}
-                <GroupLinksContactForm
-                  group={selectedCommunity}
-                  communityId={selectedCommunityId!}
-                />
-              </div>
-            </FirebaseActionGuard>
-          )}
-
-          {/* Show Community Privileges without update features for non-Firebase users */}
-          {selectedCommunity && canUpdateCommunity && (
-            <div className="sr-only">
-              {/* This is just for the case where Firebase guard shows banner instead */}
+              {/* Group Links & Contact Form */}
+              <GroupLinksContactForm
+                group={selectedCommunity}
+                communityId={selectedCommunityId!}
+              />
             </div>
           )}
 
-          {/* Show basic privileges for non-owners or when Firebase guard is blocking */}
+          {/* Show basic privileges for non-owners */}
           {selectedCommunity && !canUpdateCommunity && (
             <CommunityPrivileges showUpdateCommunityFeatures={false} />
           )}
